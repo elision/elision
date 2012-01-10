@@ -20,6 +20,16 @@ object TypeUniverse extends BasicAtom {
    * @return The string representation of the type universe.
    */
   override def toString = "^TYPE"
+    
+  /**
+   * Type universe matching is a special case, and the basis case, for matching
+   * types.
+   * @param subject	The subject to match.
+   * @param binds		The bindings to honor.
+   * @return	The outcome of the match.
+   */
+  override protected def matchTypes(subject: BasicAtom, binds: Bindings) =
+    tryMatchWithoutTypes(subject, binds)
 
   /**
    * Type universe matching is a special case, and the basis case, for matching

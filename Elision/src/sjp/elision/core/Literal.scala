@@ -35,6 +35,14 @@ case class StrVal(sval: String) extends LitVal {
 }
 
 /**
+ * Represent the value of a literal as a Scala symbol.
+ * @param sval	The Scala symbol.
+ */
+case class SymVal(sval: Symbol) extends LitVal {
+  override def toString = toESymbol(sval.name)
+}
+
+/**
  * Represent the value of a floating point number.
  * @param fval	The floating point value.
  */
@@ -96,6 +104,13 @@ object Literal {
    * @param sval	The string value.
    */
   def apply(typ: BasicAtom, sval: String) = new Literal(typ, StrVal(sval))
+
+  /**
+   * Make a symbol value.
+   * @param typ		The type.
+   * @param sval	The symbol value.
+   */
+  def apply(typ: BasicAtom, sval: Symbol) = new Literal(typ, SymVal(sval))
 
   /**
    * Make a integer value.

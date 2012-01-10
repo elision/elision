@@ -39,7 +39,7 @@ abstract class BasicAtom {
    * @param binds		The bindings to observe.
    * @return	The outcome of the match.
    */
-  private def matchTypes(subject: BasicAtom, binds: Bindings): Outcome =
+  protected def matchTypes(subject: BasicAtom, binds: Bindings): Outcome =
     this.theType.matchTypes(subject.theType, binds) match {
       case mat: Match => mat
       case many: Many => many

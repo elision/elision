@@ -26,24 +26,39 @@ package object core {
 	def toESymbol(str:String): String = {
 	  // The empty string is a special case.
 	  if (str.isEmpty) return "``"
+	  // True and false are also special cases.
+	  if (str == "true" || str == "false") return "`"+str+"`"
+	  // Build up the return value.
+	  var buf = new scala.collection.mutable.StringBuilder
 	  // Look for badness.  The first character is special.
 	  var bad = false
 	  val sh = str.head
-	  val newstr = (if (sh != '_' || !sh.isLetter) {
+	  if (sh != '_' && !sh.isLetter) {
 	    bad = true
-	    if (sh == '`') "\\`" else sh
-	  }) + (str.tail.map{
+	    if (sh == '`') buf++="\\"
+	  }
+	  buf++=sh.toString
+	  str.tail.map{
 	    ch => if (ch != '_' && !ch.isLetterOrDigit) {
 	      bad = true
-	      if (ch == '`') "\\`" else ch
+	      if (ch == '`') buf++="\\"
 	    }
-	  }).toString
-	  if (bad) "`" + newstr + "`" else newstr
+      buf++=ch.toString
+	  }
+	  if (bad) "`" + buf.toString + "`" else buf.toString
 	}
 	
 	// Turn a string into a properly-escaped double-quoted string.  The only
 	// illegal characters in a double-quoted string are the double quotation
 	// mark and the newline.  These must be escaped.
-	def toEString(str:String, delim:Char = '"'): String = "\"" + str.map(
-	    ch => if (ch == '"' || ch == '\n') "\\" + ch)
+	def toEString(str:String) = {
+	  var buf = new scala.collection.mutable.StringBuilder
+	  buf++="\""
+	  for (ch <- str) {
+	    if (ch == '"' || ch == '\n') buf++="\\"
+	    buf ++= ch.toString
+	  }
+	  buf++="\""
+	  buf.toString
+	} 
 }
