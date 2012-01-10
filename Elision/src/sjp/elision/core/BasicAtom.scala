@@ -60,19 +60,16 @@ abstract class BasicAtom {
     else matchTypes(subject, binds) match {
       case fail: Fail => fail
       case mat: Match => tryMatchWithoutTypes(subject, binds)
-      case Many(submatches) => Many(new Matches {
-      	def getNextMatch = {
-      	  val subbind = submatches.next
-      	  if (subbind != null) tryMatchWithoutTypes(subject, subbind)
-      	  else null
-      	}
-      })
+      case Many(submatches) =>
+        Many(new MatchIterator(tryMatchWithoutTypes(subject, _),
+            submatches))
     }
 
   /**
    * Try to match this atom, as a pattern, against the given subject.  Do not
    * do type matching for this atom, but use [[BasicAtom.tryMatch]] for any
    * children, so their types are correctly matched.
+   * 
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.  This is optional.
    * @return	The matching outcome.

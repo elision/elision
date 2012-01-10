@@ -22,19 +22,33 @@ sealed abstract class LitVal
  * Represent the value of a literal as an integer.
  * @param ival	The interger value.
  */
-case class IntVal(ival: Int) extends LitVal
+case class IntVal(ival: Int) extends LitVal {
+  override def toString = ival.toString
+}
 
 /**
  * Represent the value of a literal as a string.
  * @param sval	The string value.
  */
-case class StrVal(sval: String) extends LitVal
+case class StrVal(sval: String) extends LitVal {
+  override def toString = toEString(sval)
+}
 
 /**
  * Represent the value of a floating point number.
  * @param fval	The floating point value.
  */
-case class FltVal(fval: Float) extends LitVal
+case class FltVal(fval: Float) extends LitVal {
+  override def toString = fval.toString
+}
+
+/**
+ * Represent the value of a Boolean.
+ * @param bool	The boolean value.
+ */
+case class BooVal(bool: Boolean) extends LitVal {
+  override def toString = bool.toString
+}
 
 /**
  * Represent a literal.
@@ -43,6 +57,16 @@ case class FltVal(fval: Float) extends LitVal
  */
 case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
   val theType = typ
+  
+  override val isTrue = value match {
+    case BooVal(true) => true
+    case _ => false
+  }
+  
+  override val isFalse = value match {
+    case BooVal(false) => true
+    case _ => false
+  }
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {
@@ -58,6 +82,8 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
         if (changed) (Literal(theType, value), true) else (this, false)
       case _ => (this, false)
     }
+  
+  override def toString = value.toString + ":" + theType.toString
 }
 
 /**
@@ -84,4 +110,11 @@ object Literal {
    * @param fval	The float value.
    */
   def apply(typ: BasicAtom, fval: Float) = new Literal(typ, FltVal(fval))
+  
+  /**
+   * Make a Boolean value.
+   * @param typ		The type.
+   * @param bool	The Boolean value.
+   */
+  def apply(typ: BasicAtom, bool: Boolean) = new Literal(typ, BooVal(bool))
 }

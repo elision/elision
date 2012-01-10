@@ -25,7 +25,7 @@ case class Match(binds: Bindings) extends Outcome
  * and can be obtained from the provided iterator.
  * @param matches	An iterator over all possible matches.
  */
-case class Many(matches: Matches) extends Outcome
+case class Many(matches: MatchIterator) extends Outcome
 
 /**
  * An attempted match failed for the specified reason.
@@ -75,60 +75,4 @@ object Fail {
         case None => ""
         case Some(fail: Fail) => "\n\nCaused by: " + prior.toString
       }))
-}
-
-/**
- * Provide a systematic way to return potentially multiple matches.
- */
-abstract class Matches extends Iterator[Bindings] {
-  /** Is this iterator exhausted?  By default it is not. */
-  private var exhausted = false
-  
-  /**
-   * If there is a current known match, this is it.  This is the next match
-   * to be returned by [[Matches.next]].  It is allowed to be null to
-   * indicate that none is known.  We avoid the object creation of Option.
-   */
-  private var current: Bindings = null
-  
-  /**
-   * Determine if there is a next match.
-   * 
-   * Since we have to know if there is a next match, we actually generate the
-   * match here if necessary.
-   * 
-   * @return	True if there is another match, and false if not.
-   */
-  def hasNext =
-    if (exhausted) false
-    else if (current != null) true
-    else {
-      current = getNextMatch
-      if (current == null) exhausted = true
-      current != null
-    }
-  
-  /**
-   * Get the next match.
-   * 
-   * This may be called without first calling [[Matches.hasNext]].  If so, then
-   * we call [[Matches.hasNext]] here to get the next match.  Note that this
-   * method is allowed to return null.  This is done instead of making an
-   * exception, which is costly.
-   * 
-   * @return	The next match, or null if there is none.
-   */
-  def next =
-    if (current != null || hasNext) {
-      val ret = current
-      current = null
-      ret
-    } else null
-    
-  /**
-   * The method to generate the next match.  This must be supplied by any
-   * overriding class.
-   * @return	The next match(es).
-   */
-  protected def getNextMatch: Bindings
 }
