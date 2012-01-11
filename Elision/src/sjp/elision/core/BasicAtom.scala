@@ -17,13 +17,13 @@ package sjp.elision.core
 abstract class BasicAtom {
   /** The type for the atom. */
   val theType: BasicAtom
-  
+
   /** If true then this atom can be bound. */
   val isBindable: Boolean = false
-  
+
   /** If true, this atom represents false. */
   val isFalse: Boolean = false
-  
+
   /** If true, this atom represents true. */
   val isTrue: Boolean = false
 
@@ -31,10 +31,10 @@ abstract class BasicAtom {
    * Recursively match the types.  This is unbounded recursion; it is expected
    * that a class (a type universe) will override this method to create a basis
    * case.
-   * 
+   *
    * NOTE: When strategies are finally implemented, this is where the selection
    * of type matching strategies should be done.
-   * 
+   *
    * @param subject	The atom to match.
    * @param binds		The bindings to observe.
    * @return	The outcome of the match.
@@ -62,21 +62,21 @@ abstract class BasicAtom {
       case mat: Match => tryMatchWithoutTypes(subject, binds)
       case Many(submatches) =>
         Many(new MatchIterator(tryMatchWithoutTypes(subject, _),
-            submatches))
+          submatches))
     }
 
   /**
    * Try to match this atom, as a pattern, against the given subject.  Do not
    * do type matching for this atom, but use [[BasicAtom.tryMatch]] for any
    * children, so their types are correctly matched.
-   * 
+   *
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.  This is optional.
    * @return	The matching outcome.
    */
   def tryMatchWithoutTypes(subject: BasicAtom,
     binds: Bindings = new Bindings): Outcome
-    
+
   /**
    * Rewrite this atom with the specified bindings.  If types are involved, it
    * is expected that overriding types will handle rewriting those, as well.
@@ -85,4 +85,28 @@ abstract class BasicAtom {
    * 					changed.
    */
   def rewrite(binds: Bindings): (BasicAtom, Boolean)
+}
+
+/**
+ * A "root type" is a simple type that is well-known and used globally in the
+ * system.  It cannot be rewritten, and matches only itself.
+ */
+abstract class RootType extends BasicAtom {
+  /**
+   * Try to match this type against the provided atom.
+   * @param subject	The subject to match.
+   * @param binds		The bindings to honor.
+   * @return	The outcome of the match.
+   */
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+    // A root type matches only itself.
+    if (this == subject) Match(binds)
+    else Fail("This type matches only itself.", this, subject)
+
+  /**
+   * The root types cannot be rewritten.
+   * @param binds	The bindings.
+   * @return	This type.
+   */
+  def rewrite(binds: Bindings) = (this, false)
 }

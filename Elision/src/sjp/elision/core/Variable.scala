@@ -15,10 +15,10 @@ import scala.collection.mutable.HashMap
  * @param typ		The variable type.
  * @param name	The variable name.
  */
-case class Variable(typ:BasicAtom, name:String) extends BasicAtom {
+case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
-  
+
   /** By default, variables can be bound. */
   override val isBindable = true
 
@@ -30,7 +30,8 @@ case class Variable(typ:BasicAtom, name:String) extends BasicAtom {
       case None => Match(binds + (name -> subject))
       case Some(atom) if atom == subject => Match(binds)
       case _ => Fail("Variable already bound to another term.", this, subject)
-    } else Fail("Variable is not bindable.", this, subject)
+    }
+    else Fail("Variable is not bindable.", this, subject)
 
   def rewrite(binds: Bindings) = {
     // If this variable is bound in the provided bindings, replace it with the
@@ -46,6 +47,6 @@ case class Variable(typ:BasicAtom, name:String) extends BasicAtom {
         }
     }
   }
-  
+
   override def toString = toESymbol(name) + ":" + typ.toString
 }

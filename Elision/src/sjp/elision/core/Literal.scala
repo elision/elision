@@ -65,12 +65,12 @@ case class BooVal(bool: Boolean) extends LitVal {
  */
 case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
   val theType = typ
-  
+
   override val isTrue = value match {
     case BooVal(true) => true
     case _ => false
   }
-  
+
   override val isFalse = value match {
     case BooVal(false) => true
     case _ => false
@@ -90,7 +90,7 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
         if (changed) (Literal(theType, value), true) else (this, false)
       case _ => (this, false)
     }
-  
+
   override def toString = value.toString + ":" + theType.toString
 }
 
@@ -125,7 +125,7 @@ object Literal {
    * @param fval	The float value.
    */
   def apply(typ: BasicAtom, fval: Float) = new Literal(typ, FltVal(fval))
-  
+
   /**
    * Make a Boolean value.
    * @param typ		The type.
