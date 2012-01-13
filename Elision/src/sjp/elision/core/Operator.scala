@@ -13,17 +13,17 @@ import scala.collection.immutable.HashMap
 /**
  * A type for all operators.
  */
-object OperatorType extends RootType {
+object OPTYPE extends RootType {
   val theType = TypeUniverse
   
-  
+  override def toString = "OPTYPE"
 }
 
 /**
  * Encapsulate an operator.
  */
 case class Operator(name: String) extends BasicAtom {
-  val theType = TypeUniverse
+  val theType = OPTYPE
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {

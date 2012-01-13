@@ -133,3 +133,10 @@ object Literal {
    */
   def apply(typ: BasicAtom, bool: Boolean) = new Literal(typ, BooVal(bool))
 }
+
+// Make some well-known types.
+object STRING extends Literal(TypeUniverse, SymVal('STRING))
+object SYMBOL extends Literal(TypeUniverse, SymVal('SYMBOL))
+object INTEGER extends Literal(TypeUniverse, SymVal('INTEGER))
+object FLOAT extends Literal(TypeUniverse, SymVal('FLOAT))
+object BOOLEAN extends Literal(TypeUniverse, SymVal('BOOLEAN))

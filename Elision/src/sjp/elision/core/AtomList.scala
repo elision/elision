@@ -24,6 +24,8 @@ case class AtomList(atoms: BasicAtom*) extends BasicAtom {
     	case AtomList(oatoms@_*) =>
     	  // The lists must be the same length, or they cannot match.
     	  if (atoms.length != oatoms.length) Fail("Lists are different sizes.", this, subject)
+    	  else Fail("Not implemented.")
+    	    // Match with backtracking.  This is tricky, tricky.
       case _ => Fail("Not implemented.")
     }
 
