@@ -54,8 +54,7 @@ class AtomParser extends Parser {
         // Parse a variable.  The leading dollar sign is used to distinguish
         // between a symbol and a variable.  If a type is not specified for a
         // variable, it gets put in the type universe.
-        "$" ~ ESymbol ~ ":" ~ Atom |
-        "$" ~ ESymbol |
+        Variable |
         
         // A "naked" operator is specified by explicitly giving the operator
         // type OPTYPE.  Otherwise it is parsed as a symbol.
@@ -73,8 +72,8 @@ class AtomParser extends Parser {
         
         // Parse the special type universe.
         "^TYPE"
-      )
-    )
+      ) ~% (show)
+    ) ~ EOI
   }
   
   /**
@@ -83,6 +82,34 @@ class AtomParser extends Parser {
    */
   def AtomList = rule {
     Atom ~ zeroOrMore("," ~ Atom)
+  }
+  
+  /**
+   * Parse a rule.
+   */
+  def Rule = rule (
+    // First there are optional variable declarations.  In a rule, all pattern
+    // variables must be declared.
+    zeroOrMore("@" ~ Variable ~ zeroOrMore("," ~ Variable)) ~
+    
+    // Next is the rule itself, consisting of a pattern, a rewrite, and zero
+    // or more guards.
+    ignoreCase("rule") ~ Atom ~ "->" ~ Atom ~ zeroOrMore("if" ~ Atom) ~
+    
+    // Next the rule can be declared to be in zero or more rulesets.
+    zeroOrMore((ignoreCase("rulesets") | ignoreCase("ruleset")) ~ ESymbol) ~
+    
+    // Finally the rule's cache level can be declared.  This must be the
+    // last item, if present.
+    optional("level" ~ DInteger)
+  )
+  
+  /**
+   * Parse a variable.
+   */
+  def Variable = rule {
+    "$" ~ ESymbol ~ ":" ~ Atom |
+    "$" ~ ESymbol
   }
 
   //======================================================================
