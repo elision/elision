@@ -35,3 +35,4 @@ case class Operator(name: String) extends BasicAtom {
 
   override def toString = toESymbol(name)
 }
+
