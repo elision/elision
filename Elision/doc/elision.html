@@ -653,12 +653,12 @@ An integer is parsed by reading the first character.  If it is a digit, then it 
 ## If it is an //x// or //X//, then it is a hexadecimal integer.  All subsequent hexadecimal digits (ignoring case) up to but excluding the first non-hexadecimal-digit are part of the integer.
 ## If it is a //b// or //B//, then it is a binary integer.  All subsequent binary digits up to but excluding the first non-binary-digit are part of the integer.
 !!Floating Point Numbers
-//Floating point numbers// can take several forms, and consist of a //mantissa// and an optional //exponent//.  Both the mantissa and exponent can be positive or negative.  Both the mantissa and exponent are represented as integers of any form, with the exceptions that the mantissa may contain a decimal point {{{.}}} and the exponent may be marked as explicitly positive by preceeding it with a plus sign {{{+}}}.  A decimal point in the mantissa effectively modifies the exponent, depending on the base being used.
+//Floating point numbers// can take several forms, and consist of a //significand// and an optional //exponent//.  Both the significand and exponent can be positive or negative.  Both the significand and exponent are represented as integers of any form, with the exceptions that the significand may contain a decimal point {{{.}}} and the exponent may be marked as explicitly positive by preceeding it with a plus sign {{{+}}}.  A decimal point in the significand effectively modifies the exponent, depending on the base being used.
 If no decimal point and no exponent are discovered then the number is regarded as an integer.
-The mantissa and exponent must be joined by an {{{e}}} or {{{E}}}.  The following are all examples of floating point numbers.  The numbers in each row are equal, but different, representations of the same number.
+The significand and exponent must be joined by an {{{e}}} or {{{E}}}.  The following are all examples of floating point numbers.  The numbers in each row are equal, but different, representations of the same number.
 * {{{1.21e5}}} = {{{1.21E+5}}} = {{{12.1E4}}} = {{{121000.}}}
 * {{{0b1010e0b10}}} = {{{0b1.010e101}}} = {{{10e+2}}} = {{{100.}}} = {{{10e0x2}}}
-Note that the base of the mantissa and exponent can be different.
+Note that the base of the significand and exponent can be different.
 Floating point numbers are parsed by discovering, during integer parsing, either a decimal point {{{.}}} or an {{{e}}} or {{{E}}}, signaling that the number is a floating point number.
 !!Types
 Every atom has a corresponding term that denotes its type.  For simplicity, we will say the term $T$ denoting the type of some other term $t$ is $t$'s //type//, but bear in mind that since $T$ it also a term, it must also have a type.
