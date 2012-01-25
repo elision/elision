@@ -12,7 +12,7 @@ import scala.collection.mutable.HashMap
 
 /**
  * Literals can be either an integer, a string, or a floating point number.
- * In order to accomodate that without having to convert to a string, we
+ * In order to deal with that without having to convert to a string, we
  * build a special case class here that is used to manager the value of the
  * literal.
  */
@@ -22,7 +22,7 @@ sealed abstract class LitVal
  * Represent the value of a literal as an integer.
  * @param ival	The interger value.
  */
-case class IntVal(ival: Int) extends LitVal {
+case class IntVal(ival: BigInt) extends LitVal {
 	override def toString = ival.toString
 }
 
@@ -43,13 +43,13 @@ case class SymVal(sval: Symbol) extends LitVal {
 }
 
 /**
- * Represent the value of a floating point number as a mantissa and exponent,
+ * Represent the value of a floating point number as a significand and exponent,
  * using a specified radix.
- * @param mantissa		The mantissa.
+ * @param significand		The significand.
  * @param exponent		The exponent.
  * @param radix				The radix.
  */
-case class ExpandedFloatVal(mantissa:Int, exponent:Int = 1, radix:Int = 10) 
+case class ExpandedFloatVal(significand:BigInt, exponent:Int = 0, radix:Int = 10) 
 extends LitVal {
   /** The prefix to use, indicating the known radix. */
   private val _prefix = radix match {
@@ -59,23 +59,23 @@ extends LitVal {
     case 2 => "0b"
     case _ => require(false)
   }
-  /** Is the mantissa negative. */
-  private val _mneg = mantissa < 0
-  /** Positive mantissa.  This avoids a method call. */
-  private val _posmantissa = if (_mneg) -mantissa else mantissa
+  /** Is the significand negative. */
+  private val _mneg = significand < 0
+  /** Positive significand.  This avoids a method call. */
+  private val _possignificand = if (_mneg) -significand else significand
   /** Is the exponent negative. */
   private val _eneg = exponent < 0
   /** Positive exponent.  This avoids a method call. */
   private val _posexponent = if (_eneg) -exponent else exponent
   
   override def toString = (if (_mneg) "-" else "") + _prefix +
-  	Integer.toString(_posmantissa, radix) + "P" +
+  	_possignificand.toString(radix) + "P" +
   	(if (_eneg) "-" else "") + _prefix + Integer.toString(_posexponent, radix)
   	
   /**
    * Get a simple native floating point representation of this number.
    */
-  def toFloat = mantissa * scala.math.pow(radix, exponent)
+  def toFloat = significand * BigInt(radix).pow(exponent)
 }
 
 /**
@@ -153,18 +153,18 @@ object Literal {
 	 * @param typ		The type.
 	 * @param ival	The integer value.
 	 */
-	def apply(typ: BasicAtom, ival: Int) = new Literal(typ, IntVal(ival))
+	def apply(typ: BasicAtom, ival: BigInt) = new Literal(typ, IntVal(ival))
 	
 	/**
 	 * Make a floating point value.  The value represented is equal to
-	 * mantissa * scala.math.pow(exponent, radix).
+	 * significand * scala.math.pow(exponent, radix).
 	 * @param typ				The type.
-	 * @param mantissa	The mantissa.
+	 * @param significand	The significand.
 	 * @param exponent	The exponent.
 	 * @param radix			The radix.
 	 */
-	def apply(typ: BasicAtom, mantissa: Int, exponent: Int, radix: Int) =
-	  new Literal(typ, ExpandedFloatVal(mantissa, exponent, radix))
+	def apply(typ: BasicAtom, significand: BigInt, exponent: Int, radix: Int) =
+	  new Literal(typ, ExpandedFloatVal(significand, exponent, radix))
 
 	/**
 	 * Make a float value.
@@ -182,8 +182,8 @@ object Literal {
 }
 
 // Make some well-known types.
-object STRING extends Literal(TypeUniverse, SymVal('STRING))
-object SYMBOL extends Literal(TypeUniverse, SymVal('SYMBOL))
-object INTEGER extends Literal(TypeUniverse, SymVal('INTEGER))
-object FLOAT extends Literal(TypeUniverse, SymVal('FLOAT))
-object BOOLEAN extends Literal(TypeUniverse, SymVal('BOOLEAN))
+object STRING extends NamedRootType("STRING")
+object SYMBOL extends NamedRootType("SYMBOL")
+object INTEGER extends NamedRootType("INTEGER")
+object FLOAT extends NamedRootType("FLOAT")
+object BOOLEAN extends NamedRootType("BOOLEAN")
