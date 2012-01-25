@@ -110,3 +110,12 @@ abstract class RootType extends BasicAtom {
    */
   def rewrite(binds: Bindings) = (this, false)
 }
+
+/**
+ * Trivial root type with a specified name and the type universe as its type.
+ * @param name	The name.
+ */
+class NamedRootType(name: String) extends RootType {
+  val theType = TypeUniverse
+  override def toString = name
+}
