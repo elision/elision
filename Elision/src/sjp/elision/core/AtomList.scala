@@ -13,15 +13,16 @@ import java.util.LinkedList
 
 /**
  * Encapsulate an ordered list of atoms.
+ * @param atoms		The list of atoms.  Note that order may be important.
  */
-case class AtomList(atoms: BasicAtom*) extends BasicAtom {
+case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
   val theType = TypeUniverse
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Ordered lists only match other ordered lists with matching elements in
     // the same order.
     subject match {
-    	case AtomList(oatoms@_*) =>
+    	case AtomList(oatoms) =>
     	  // The lists must be the same length, or they cannot match.
     	  if (atoms.length != oatoms.length) Fail("Lists are different sizes.", this, subject)
     	  else Fail("Not implemented.")
@@ -39,7 +40,7 @@ case class AtomList(atoms: BasicAtom*) extends BasicAtom {
         newatom :: doit(atoms.tail)
       }
     val newlist = doit(atoms.toList)
-    if (changed) (AtomList(newlist: _*), true) else (this, false)
+    if (changed) (AtomList(newlist), true) else (this, false)
   }
 
   override def toString = atoms.mkString(", ")
