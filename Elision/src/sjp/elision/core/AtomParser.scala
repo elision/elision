@@ -22,7 +22,7 @@ import scala.collection.mutable.LinkedList
 sealed abstract class AstNode {
   /**
    * Interpret this abstract syntax tree to generate an atom.
-   * @return	The generated atom.§
+   * @return	The generated atom.
    */
   def interpret: BasicAtom
 }
@@ -125,6 +125,7 @@ case class VariableNode(typ: AstNode, name: String) extends AstNode {
  * @param sym		The symbol text.
  */
 case class SymbolLiteralNode(typ: AstNode, sym: String) extends AstNode {
+  println("Making a symbol: " + sym + ":" + typ.toString)
   def interpret = Literal(typ.interpret, SymVal(Symbol(sym)))
 }
 
@@ -171,9 +172,10 @@ object NumberNode {
     // If there is neither fraction nor exponent, then this is just an integer.
     // Otherwise it is a float.
     if (fraction.isDefined || exponent.isDefined) {
-      // This is a float.
-      FloatNode(theSign, integer.digits, fraction.get.digits, integer.radix,
-          exponent.get)
+      // This is a float.  Get the parts.
+      val fracpart = (if (fraction.isDefined) fraction.get.digits else "")
+      val exppart = exponent.getOrElse(SignedIntegerNode.Zero)
+      FloatNode(theSign, integer.digits, fracpart, integer.radix, exppart)
     } else {
       SignedIntegerNode(theSign, integer.digits, integer.radix)
     }
@@ -213,6 +215,11 @@ case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
  * Provide other methods to construct a signed integer.
  */
 object SignedIntegerNode {
+  /** Zero. */
+  val Zero = SignedIntegerNode(true, "0", 10)
+  /** One. */
+  val One = SignedIntegerNode(true, "1", 10)
+  
   /**
    * Create a new signed integer from the given unsigned integer.  The radix
    * is the same as the signed integer.
@@ -234,7 +241,8 @@ object SignedIntegerNode {
    * @param sign		If true or None, positive.  If false, negative.
    * @param integer	The unsigned integer value.
    */
-  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode): SignedIntegerNode =
+  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode):
+  SignedIntegerNode =
     SignedIntegerNode(sign, integer, SimpleTypeNode(INTEGER))
 }
 
@@ -262,7 +270,8 @@ case class FloatNode(sign: Boolean, integer: String, fraction: String,
    * significand and exponent.  Note that the two may use different radices.
    */
   lazy val norm = {
-    // Correct the significand by adding the integer and fractional part together.
+    // Correct the significand by adding the integer and fractional part
+    // together.
     val significand = integer + fraction
     // Now get the exponent, and adjust it to account for the fractional part.
     // Since the decimal moves right, we subtract from the original exponent.
@@ -337,28 +346,40 @@ class AtomParser extends Parser {
      */
   }
   
+  /**
+   * Attempt to parse an atom from the provided string, and return it.  If
+   * something goes wrong, null is returned by this method.
+   * @param atom	The text to parse.
+   * @return	The parsed atom, or null if something went wrong.
+   */
   def tryParse[ATOM >: BasicAtom](atom: String): ATOM =
     parseAtom(atom) match {
     case Success(node) => node.interpret
     case Failure(badness) => null
   }
 
-  def show(x: String) = println("\n++++++++++ " + x + " ++++++++++\n")
-
   //======================================================================
   // Parse and build atoms.
   //======================================================================
-
+  
   def Atom: Rule1[AstNode] = rule {
+    // Handle the special case of the general operator application.
+    FirstAtom ~ "." ~ Atom ~~> (
+      (op: AstNode, arg: AstNode) => ApplicationNode(op, arg)) |
+    // Parse an atom.
+    FirstAtom
+  }
+
+  def FirstAtom: Rule1[AstNode] = rule {
     ParsedWhitespace ~ (
+      // Parse a typical operator application.
+      ParsedApply |
+        
       // Parse the special OPTYPE.
       "OPTYPE" ~> (x => SimpleTypeNode(OPTYPE)) |
 
       // Parse the special RULETYPE.
       "RULETYPE" ~> (x => SimpleTypeNode(RULETYPE)) |
-
-      // Parse a "typical" operator application.
-      //ParsedApply |
 
       // Parse a typed list.
       ParsedTypedList |
@@ -370,14 +391,16 @@ class AtomParser extends Parser {
 
       // A "naked" operator is specified by explicitly giving the operator
       // type OPTYPE.  Otherwise it is parsed as a symbol.
-      ESymbol ~ ":" ~ "OPTYPE" ~~> ((sym: NakedSymbolNode) => OperatorNode(sym.str)) |
+      ESymbol ~ ":" ~ "OPTYPE" ~~> (
+          (sym: NakedSymbolNode) => OperatorNode(sym.str)) |
 
       // Parse a literal.  A literal can take many forms, but it should be
       // possible to always detect the kind of literal during parse.  By
       // default literals go into a simple type, but this can be overridden.
       ParsedLiteral |
       
-      AnyNumber ~ ":" ~ Atom ~~> ((num:NumberNode, typ:AstNode) => num.retype(typ)) |
+      AnyNumber ~ ":" ~ Atom ~~> (
+          (num:NumberNode, typ:AstNode) => num.retype(typ)) |
       AnyNumber |
 
       // Parse the special type universe.
@@ -388,22 +411,22 @@ class AtomParser extends Parser {
     // Parse an operator application.  This just applies an operator to
     // some other atom.  The operator name is given as a symbol, and the
     // argument may be enclosed in parens if it is a list, or joined to
-    // the operator with a dot if not.
+    // the operator with a dot if not.  The dot form is parsed elsewhere.
     //
     // If you want to use a general atom, use a dot to join it to the argument.
     // The same comment applies if you want to use a general atom as the
     // argument.
-    Atom ~ "." ~ Atom ~~> (
-      (op: AstNode, arg: AstNode) => ApplicationNode(op, arg)) |
-      ESymbol ~ "(" ~ ParsedAtomList ~ ")" ~~> (
-        (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
+    ESymbol ~ "(" ~ ParsedAtomList ~ ")" ~~> (
+      (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
   }
   
   def ParsedLiteral = rule {
       ESymbol ~ ":" ~ Atom ~~>
-      	((sym: NakedSymbolNode, typ: AstNode) => SymbolLiteralNode(typ, sym.str)) |
+      	((sym: NakedSymbolNode, typ: AstNode) =>
+      	  SymbolLiteralNode(typ, sym.str)) |
       ESymbol ~~>
-      	((sym: NakedSymbolNode) => SymbolLiteralNode(SimpleTypeNode(SYMBOL), sym.str)) |
+      	((sym: NakedSymbolNode) =>
+      	  SymbolLiteralNode(SimpleTypeNode(SYMBOL), sym.str)) |
       EString ~ ":" ~ Atom ~~>
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
@@ -500,7 +523,7 @@ class AtomParser extends Parser {
   /** Parse a symbol. */
   def ESymbol = rule {
     "`" ~ zeroOrMore(SymChar) ~> (NakedSymbolNode(_)) ~ "`" |
-    (("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
+    group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
       "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_))
   }
 
@@ -593,7 +616,8 @@ class AtomParser extends Parser {
    * @return	An unsigned integer.
    */
   def DInteger = rule {
-    (("1" - "9") ~ zeroOrMore(DDigit)) ~> (UnsignedIntegerNode(_: String, 10))
+    group(("1" - "9") ~ zeroOrMore(DDigit)) ~>
+    (UnsignedIntegerNode(_: String, 10))
   }
 
   /**
@@ -601,7 +625,7 @@ class AtomParser extends Parser {
    * @return	An unsigned integer.
    */
   def OInteger = rule {
-    ("0" ~ zeroOrMore(ODigit)) ~> (UnsignedIntegerNode(_: String, 8))
+    group("0" ~ zeroOrMore(ODigit)) ~> (UnsignedIntegerNode(_: String, 8))
   }
 
   def DDigit = rule { "0" - "9" }
