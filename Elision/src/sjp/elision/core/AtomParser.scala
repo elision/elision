@@ -72,8 +72,18 @@ case class OperatorNode(str: String) extends AstNode {
  * @param list	The actual list of atom nodes.
  */
 case class AtomListNode(list: List[AstNode]) extends AstNode {
+  /**
+   * Properties of this list, if known.  The properties stored are
+   * associativity and commutativity.  If not specified, then the properties
+   * have not yet been specified, and should be inherited from an operator.
+   */
   var props: Option[(Boolean, Boolean)] = None
   def interpret = AtomList(list map (_.interpret))
+  /**
+   * Set the properties for this list.
+   * @param assoc		If true, the list is associative.
+   * @param comm		If true, the list is commutative.
+   */
   def setProperties(assoc: Boolean, comm: Boolean) = {
     props = Some(assoc, comm)
     this
@@ -116,6 +126,47 @@ case class VariableNode(typ: AstNode, name: String) extends AstNode {
 }
 
 //----------------------------------------------------------------------
+// Rule nodes.
+//----------------------------------------------------------------------
+
+/**
+ * A node representing a rewrite rule.
+ * @param decls			Optional pattern variable declarations.
+ * @param pattern		The pattern to match.
+ * @param rewrite		The rewrite to apply when the pattern matches.
+ * @param guards		The list of guards.
+ * @param rulesets	The optional list of rulesets.
+ * @param level			The optional cache level.
+ */
+case class RuleNode(
+    decls: Option[List[VariableNode]],
+    pattern: AstNode,
+    rewrite: AstNode,
+    guards: List[AstNode],
+    rulesets: Option[List[NakedSymbolNode]],
+    level: Option[UnsignedIntegerNode]) extends AstNode {
+  def interpret = {
+    // Get the rulesets as a list of strings.
+    val rs = rulesets match {
+      case None => Set[String]()
+      case Some(list) => list.map(_.str).toSet
+    }
+    // Get the cache level.  The default is zero.
+    val cl = level match {
+      case None => 0
+      case Some(value) => value.asInt.toInt
+    }
+    // Make the rule.
+    RewriteRule(
+        pattern.interpret,
+        rewrite.interpret,
+        guards.map(_.interpret),
+        rs,
+        cl)
+  }
+}
+
+//----------------------------------------------------------------------
 // Literal nodes - that is, nodes that hold literal values.
 //----------------------------------------------------------------------
 
@@ -125,7 +176,6 @@ case class VariableNode(typ: AstNode, name: String) extends AstNode {
  * @param sym		The symbol text.
  */
 case class SymbolLiteralNode(typ: AstNode, sym: String) extends AstNode {
-  println("Making a symbol: " + sym + ":" + typ.toString)
   def interpret = Literal(typ.interpret, SymVal(Symbol(sym)))
 }
 
@@ -163,6 +213,20 @@ abstract class NumberNode extends AstNode {
  * @param typ				The overriding type.  Otherwise it is inferred.
  */
 object NumberNode {
+  /**
+   * Make a new node of the appropriate form to hold a number.
+   * 
+   * The number is constructed as follows.
+   * <code>[sign] [integer].[fraction] e [exponent]</code>
+   * The radix for the result is taken from the integer portion.
+   * 
+   * @param sign			If false, the number is negative.  Otherwise positive.
+   * @param integer		The integer portion of the number.
+   * @param fraction	The fractional portion of the number.  By default, none.
+   * @param exponent	The exponent.  By default, zero.
+   * @param typ				The type for the number.
+   * @return	The new number node.
+   */
   def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
       fraction: Option[UnsignedIntegerNode],
       exponent: Option[SignedIntegerNode],
@@ -192,6 +256,7 @@ object NumberNode {
 case class UnsignedIntegerNode(digits: String, radix: Int,
     typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
   def interpret = Literal(typ.interpret, asInt)
+  /** Get the unsigned integer as a positive native integer value. */
   lazy val asInt = BigInt(digits, radix)
   def retype(newtyp: AstNode) = UnsignedIntegerNode(digits, radix, newtyp)
 }
@@ -241,8 +306,8 @@ object SignedIntegerNode {
    * @param sign		If true or None, positive.  If false, negative.
    * @param integer	The unsigned integer value.
    */
-  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode):
-  SignedIntegerNode =
+  def apply(sign: Option[Boolean],
+      integer: UnsignedIntegerNode): SignedIntegerNode =
     SignedIntegerNode(sign, integer, SimpleTypeNode(INTEGER))
 }
 
@@ -354,14 +419,17 @@ class AtomParser extends Parser {
    */
   def tryParse[ATOM >: BasicAtom](atom: String): ATOM =
     parseAtom(atom) match {
-    case Success(node) => node.interpret
-    case Failure(badness) => null
-  }
+	    case Success(node) => node.interpret
+	    case Failure(badness) => null
+	  }
 
   //======================================================================
   // Parse and build atoms.
   //======================================================================
-  
+
+  /**
+   * Parse an atom.
+   */
   def Atom: Rule1[AstNode] = rule {
     // Handle the special case of the general operator application.
     FirstAtom ~ "." ~ Atom ~~> (
@@ -370,10 +438,16 @@ class AtomParser extends Parser {
     FirstAtom
   }
 
+  /**
+   * Parse an atom, with the exception of the general operator application.
+   */
   def FirstAtom: Rule1[AstNode] = rule {
     ParsedWhitespace ~ (
       // Parse a typical operator application.
       ParsedApply |
+      
+      // Parse a rule.
+      ParsedRule |
         
       // Parse the special OPTYPE.
       "OPTYPE" ~> (x => SimpleTypeNode(OPTYPE)) |
@@ -407,6 +481,9 @@ class AtomParser extends Parser {
       "^TYPE" ~> (x => TypeUniverseNode()))
   }
 
+  /**
+   * Parse the "usual" operator application form.
+   */
   def ParsedApply = rule {
     // Parse an operator application.  This just applies an operator to
     // some other atom.  The operator name is given as a symbol, and the
@@ -416,10 +493,13 @@ class AtomParser extends Parser {
     // If you want to use a general atom, use a dot to join it to the argument.
     // The same comment applies if you want to use a general atom as the
     // argument.
-    ESymbol ~ "(" ~ ParsedAtomList ~ ")" ~~> (
+    ESymbol ~ "(" ~ ParsedAtomList ~ ParsedWhitespace ~ ")" ~~> (
       (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
   }
   
+  /**
+   * Parse a literal symbol or a literal string.
+   */
   def ParsedLiteral = rule {
       ESymbol ~ ":" ~ Atom ~~>
       	((sym: NakedSymbolNode, typ: AstNode) =>
@@ -433,6 +513,9 @@ class AtomParser extends Parser {
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
   }
 
+  /**
+   * Parse a "typed" list.  That is, a list whose properties are specified.
+   */
   def ParsedTypedList = rule {
     // Parse an atom list that specifies its properties.  There are
     // multiple different forms of lists.  The associativity or
@@ -443,7 +526,7 @@ class AtomParser extends Parser {
     // Note that f(x,y,z), if f is associative, could be written as:
     // f.%A(x,y,z)
     "%" ~ (
-      ("AC" | "CA") ~ "(" ~ ParsedAtomList ~ ")" ~~> (
+      ("AC" | "CA") ~ "(" ~ ParsedAtomList ~ ParsedWhitespace ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(true, true)) |
       "A" ~ "(" ~ ParsedAtomList ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(true, false)) |
@@ -452,23 +535,24 @@ class AtomParser extends Parser {
       "(" ~ ParsedAtomList ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(false, false)))
   }
-
+  
   /**
    * Parse a list of atoms, separated by commas.  No concept of associativity,
    * commutativity, etc., is inferred at this point.
    */
   def ParsedAtomList = rule {
-    (Atom ~ zeroOrMore("," ~ Atom)) ~~> (
+    (Atom ~ zeroOrMore(ParsedWhitespace ~ "," ~ Atom)) ~~> (
       (head: AstNode, tail: List[AstNode]) => AtomListNode(head :: tail))
   }
 
   /**
    * Parse a rule.
    */
-  def ParsedRule = rule(
+  def ParsedRule: Rule1[RuleNode] = rule(
     // First there are optional variable declarations.  In a rule, all pattern
     // variables must be declared.
-    zeroOrMore("@" ~ ParsedVariable ~ zeroOrMore("," ~ ParsedVariable)) ~
+    optional("@" ~ ParsedVariable ~ zeroOrMore(anyOf(",@") ~ ParsedVariable) ~~> (
+        (head: VariableNode, tail: List[VariableNode]) => head :: tail)) ~
 
       // Next is the rule itself, consisting of a pattern, a rewrite, and zero
       // or more guards.
@@ -476,11 +560,19 @@ class AtomParser extends Parser {
 
       // Next the rule can be declared to be in zero or more rulesets.
       optional((ignoreCase("rulesets") | ignoreCase("ruleset")) ~ ESymbol ~
-        zeroOrMore("," ~ ESymbol)) ~
+        zeroOrMore("," ~ ESymbol) ~~> (
+            (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)) ~
 
       // Finally the rule's cache level can be declared.  This must be the
       // last item, if present.
-      optional("level" ~ DInteger))
+      optional("level" ~ DInteger) ~~> (
+          RuleNode(
+              _: Option[List[VariableNode]],
+              _: AstNode,
+              _: AstNode,
+              _: List[AstNode],
+              _: Option[List[NakedSymbolNode]],
+              _: Option[UnsignedIntegerNode])))
 
   /**
    * Parse a variable.
@@ -511,10 +603,10 @@ class AtomParser extends Parser {
   def Character = rule { EscapedCharacter | NormalCharacter }
 
   /** Parse an escaped character. */
-  def EscapedCharacter = rule { "\\" ~ anyOf("\"\\nrt") }
+  def EscapedCharacter = rule { "\\" ~ anyOf("""`"\nrt""") }
 
   /** Parse a normal character. */
-  def NormalCharacter = rule { noneOf("\"\\") }
+  def NormalCharacter = rule { noneOf(""""\""") }
 
   //======================================================================
   // Parse a symbol.
@@ -527,21 +619,20 @@ class AtomParser extends Parser {
       "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_))
   }
 
-  def SymChar = rule { SymEsc | SymNorm }
-  def SymEsc = rule {
-    "\\" ~ anyOf("`\\nrt")
-  }
-  def SymNorm = rule { noneOf("`\\") }
+  /** Parse a character that is part of a symbol. */
+  def SymChar = rule { EscapedCharacter | SymNorm }
+  
+  /** Parse a "normal" non-escaped character that is part of a symbol. */
+  def SymNorm = rule { noneOf("""`\""") }
 
   //======================================================================
   // Parse a number.
   //======================================================================
 
-  /* Numbers are parsed in a somewhat unusual way.  We parse the number, and
-		 * make a decision later if the number is a float or integer based on what
-		 * we find.
-		 */
-
+  /**
+   * Parse a number.  The number can be an integer or a float, and can be
+   * positive or negative.
+   */
   def AnyNumber: Rule1[NumberNode] = rule {
     optional("-" ~ push(true)) ~ (
       HNumber |
@@ -551,24 +642,36 @@ class AtomParser extends Parser {
           _:Option[UnsignedIntegerNode],_:Option[SignedIntegerNode]))
   }
 
+  /**
+   * Parse a hexadecimal number that may be either an integer or a float.
+   */
   def HNumber = rule {
     HInteger ~
       optional("." ~ zeroOrMore(HDigit) ~> (UnsignedIntegerNode(_, 16))) ~
       optional(ignoreCase("p") ~ Exponent)
   }
 
+  /**
+   * Parse a binary number that may be either an integer or a float.
+   */
   def BNumber = rule {
     BInteger ~
       optional("." ~ zeroOrMore(BDigit) ~> (UnsignedIntegerNode(_, 2))) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
   }
 
+  /**
+   * Parse a decimal number that may be either an integer or a float.
+   */
   def DNumber = rule {
     DInteger ~
       optional("." ~ zeroOrMore(DDigit) ~> (UnsignedIntegerNode(_, 10))) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
   }
 
+  /**
+   * Parse an octal number that may be either an integer or a float.
+   */
   def ONumber = rule {
     OInteger ~
       optional("." ~ zeroOrMore(ODigit) ~> (UnsignedIntegerNode(_, 8))) ~
@@ -576,8 +679,8 @@ class AtomParser extends Parser {
   }
 
   /**
-   * Parse an exponent expression.
-   * @return	A signed integer.
+   * Parse an exponent expression.  The expression does not include the
+   * linking "e" or "p" exponent indicator.
    */
   def Exponent = rule {
       optional("+" ~ push(true) | "-" ~ push(false)) ~
@@ -585,7 +688,7 @@ class AtomParser extends Parser {
   }
 
   /**
-   * Parse an integer.
+   * Parse an integer in hexadecimal, decimal, octal, or binary.
    * @return	An unsigned integer.
    */
   def AnyInteger = rule {
@@ -628,9 +731,16 @@ class AtomParser extends Parser {
     group("0" ~ zeroOrMore(ODigit)) ~> (UnsignedIntegerNode(_: String, 8))
   }
 
+  /** Parse a decimal digit. */
   def DDigit = rule { "0" - "9" }
+  
+  /** Parse an octal digit. */
   def ODigit = rule { "0" - "7" }
+  
+  /** Parse a hexadecimal digit. */
   def HDigit = rule { "0" - "9" | "a" - "f" | "A" - "F" }
+  
+  /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }
 
   //======================================================================
@@ -640,6 +750,7 @@ class AtomParser extends Parser {
   /**
    * Eliminate trailing whitespace.  This trick is found on the Parboiled web
    * site in the examples.
+   * @param string	Parsed text.
    */
   override implicit def toRule(string: String) =
     if (string.endsWith(" ")) str(string.trim) ~ ParsedWhitespace
