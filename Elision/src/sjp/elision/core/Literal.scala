@@ -69,7 +69,8 @@ extends LitVal {
   private val _posexponent = if (_eneg) -exponent else exponent
   
   override def toString = (if (_mneg) "-" else "") + _prefix +
-  	_possignificand.toString(radix) + "P" +
+  	_possignificand.toString(radix) +
+  	(if (radix == 16) "P" else "e") +
   	(if (_eneg) "-" else "") + _prefix + Integer.toString(_posexponent, radix)
   	
   /**
@@ -103,13 +104,13 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	val theType = typ
 
 	override val isTrue = value match {
-	case BooVal(true) => true
-	case _ => false
+		case BooVal(true) => true
+		case _ => false
 	}
 
 	override val isFalse = value match {
-	case BooVal(false) => true
-	case _ => false
+		case BooVal(false) => true
+		case _ => false
 	}
 
 	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
@@ -122,10 +123,10 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 		// Even though literals cannot be rewritten, there is a chance their type
 		// can be rewritten, so check that.
 		theType.rewrite(binds) match {
-		case (newtype, changed) =>
-		if (changed) (Literal(theType, value), true) else (this, false)
-		case _ => (this, false)
-	}
+			case (newtype, changed) =>
+				if (changed) (Literal(theType, value), true) else (this, false)
+			case _ => (this, false)
+		}
 
 	override def toString = value.toString + ":" + theType.toString
 }
@@ -182,8 +183,14 @@ object Literal {
 }
 
 // Make some well-known types.
+
+/** The STRING type. */
 object STRING extends NamedRootType("STRING")
+/** The SYMBOL type. */
 object SYMBOL extends NamedRootType("SYMBOL")
+/** The INTEGER type. */
 object INTEGER extends NamedRootType("INTEGER")
+/** The FLOAT type. */
 object FLOAT extends NamedRootType("FLOAT")
+/** The BOOLEAN type. */
 object BOOLEAN extends NamedRootType("BOOLEAN")
