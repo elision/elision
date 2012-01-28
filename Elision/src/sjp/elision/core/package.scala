@@ -11,7 +11,7 @@ package sjp.elision
 /**
  * Basic definitions used in this package.
  * 
- * TODO: Need parser.
+ * TODO: Correct whitespace parsing.
  * TODO: Complete Rule implementation.
  * TODO: Ruleset change actions.
  * TODO: Operator library and operator construction.
@@ -22,6 +22,22 @@ package object core {
   // Bindings are used to store variable / value maps used during matching, and
   // as the result of a successful match.
   type Bindings = HashMap[String, BasicAtom]
+  
+  /**
+   * Attempt to parse the given string and return an atom.  The result is null
+   * if a parsing error occurs.  The error is printed to the standard output,
+   * so this is really only useful as a testing method from the prompt.
+   * @param str		The string to parse.
+   * @return	The result of parsing, which may be null.
+   */
+  def parse(str: String) = {
+    val ap = new AtomParser
+    ap.parseAtom(str) match {
+	    case ap.Failure(Some(msg)) => { println(msg) ; null }
+	    case ap.Failure(None) => { println("Failed.") ; null }
+	    case ap.Success(ast) => { ast.interpret }
+    }
+  }
 
   // Turn a string into a properly-escaped symbol.  Symbols must start with a
   // letter or underscore and consist of only letters, numbers, and the

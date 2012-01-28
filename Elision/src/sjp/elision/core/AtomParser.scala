@@ -59,6 +59,11 @@ case class ApplicationNode(op: AstNode, arg: AstNode) extends AstNode {
   def interpret = Apply(op.interpret, arg.interpret)
 }
 
+object ApplicationNode {
+  def apply(op: AstNode, arg1: AstNode, arg2: AstNode): ApplicationNode =
+    ApplicationNode(op, AtomListNode(List(arg1, arg2)))
+}
+
 /**
  * A node representing a "naked" operator.
  * @param str	The operator name.
@@ -442,7 +447,7 @@ class AtomParser extends Parser {
   def Atom: Rule1[AstNode] = rule {
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
-    zeroOrMore(FirstAtom ~ ".") ~ FirstAtom ~~> (
+    zeroOrMore(FirstAtom ~ ParsedWhitespace ~ ".") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
           funlist.foldRight(lastarg)(ApplicationNode(_,_)))
   }
