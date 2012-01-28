@@ -42,7 +42,7 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
         // While the atom is not bound, its type might have to be rewritten.
         theType.rewrite(binds) match {
           case (newtype, changed) =>
-            if (changed) (Variable(theType, name), true) else (this, false)
+            if (changed) (Variable(newtype, name), true) else (this, false)
           case _ => (this, false)
         }
     }

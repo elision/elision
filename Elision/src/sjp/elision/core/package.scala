@@ -11,12 +11,11 @@ package sjp.elision
 /**
  * Basic definitions used in this package.
  * 
- * TODO: Need lambdas.
- * TODO: Need records.
- * TODO: Do we want to capture NaN, -NaN, Infty, -Infty?
  * TODO: Need parser.
  * TODO: Complete Rule implementation.
  * TODO: Ruleset change actions.
+ * TODO: Operator library and operator construction.
+ * TODO: Infix.
  */
 import scala.collection.immutable.HashMap
 package object core {

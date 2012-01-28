@@ -68,6 +68,15 @@ case class OperatorNode(str: String) extends AstNode {
 }
 
 /**
+ * A node representing a lambda.
+ * @param lvar	The lambda variable.
+ * @param body	The lambda body.
+ */
+case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
+  def interpret = Lambda(lvar.interpret, body.interpret)
+}
+
+/**
  * An abstract syntax tree node holding a simple list of atoms.
  * @param list	The actual list of atom nodes.
  */
@@ -431,11 +440,12 @@ class AtomParser extends Parser {
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
-    // Handle the special case of the general operator application.
-    FirstAtom ~ "." ~ Atom ~~> (
-      (op: AstNode, arg: AstNode) => ApplicationNode(op, arg)) |
-    // Parse an atom.
-    FirstAtom
+    // Handle the special case of the general operator application.  These
+    // bind to the left, so: f.g.h.7 denotes Apply(Apply(Apply(f,g),h),7).
+    // TODO This should probably bind to the right, instead.
+    FirstAtom ~ zeroOrMore("." ~ FirstAtom) ~~> (
+        (op: AstNode, arglist: List[AstNode]) =>
+          arglist.foldLeft(op)(ApplicationNode(_,_)))
   }
 
   /**
@@ -443,6 +453,12 @@ class AtomParser extends Parser {
    */
   def FirstAtom: Rule1[AstNode] = rule {
     ParsedWhitespace ~ (
+      // Handle parenthetical expressions.
+      "(" ~ Atom ~ ")" |
+        
+      // Parse a lambda.
+      ParsedLambda |
+
       // Parse a typical operator application.
       ParsedApply |
       
@@ -495,6 +511,14 @@ class AtomParser extends Parser {
     // argument.
     ESymbol ~ "(" ~ ParsedAtomList ~ ParsedWhitespace ~ ")" ~~> (
       (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
+  }
+  
+  /**
+   * Parse a lambda expression.
+   */
+  def ParsedLambda = rule {
+    "\\" ~ ParsedVariable ~ "." ~ FirstAtom ~~> (
+        (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
   }
   
   /**

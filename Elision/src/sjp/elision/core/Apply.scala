@@ -10,15 +10,17 @@ package sjp.elision.core
 
 /**
  * An apply represents applying an operator to an argument of some kind.
+ * @param op		The operator.
+ * @param arg		The argument.
  */
-case class Apply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
+case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom {
   // TODO This is simply wrong.  The type should be obtained from the operator.
   val theType = TypeUniverse
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Only applies match applies.
     subject match {
-      case Apply(oop, oarg) => {
+      case Apply(oop, oarg, _) => {
         // Try to match the operators, and then the arguments.  If both match,
         // then this matches.  If not, then this does not match.
         op.tryMatch(oop, binds) match {
@@ -33,6 +35,8 @@ case class Apply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
             Many(new MatchIterator(arg.tryMatch(oarg, _), matches))
         }
       }
+      case _ => Fail("Applications only match other applications.",
+          this, subject)
     }
 
   def rewrite(binds: Bindings) = {
@@ -41,5 +45,23 @@ case class Apply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
     if (opchanged || argchanged) (Apply(newop, newarg), true) else (this, false)
   }
 
-  override def toString = op.toString + "(" + arg.toString + ")"
+  override def toString = 
+    op match {
+	    case Literal(_,SymVal(sval)) => sval.name + "(" + arg.toString + ")"
+	    case _ => op.toString + "." + arg.toString
+	  }
+}
+
+object Apply {
+  /**
+   * Capture the special case of applying a lambda.  We immediately bind the
+   * lambda variable to the argument and rewrite the body.
+   * @param lam		The lambda.
+   * @param arg		The lambda argument to bind.
+   */
+  def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = op match {
+    case Lambda(lvar, body) =>
+      body.rewrite((new Bindings) + (lvar.name -> arg))._1
+    case _ => Apply(op, arg, true)
+  }
 }
