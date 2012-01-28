@@ -441,11 +441,10 @@ class AtomParser extends Parser {
    */
   def Atom: Rule1[AstNode] = rule {
     // Handle the special case of the general operator application.  These
-    // bind to the left, so: f.g.h.7 denotes Apply(Apply(Apply(f,g),h),7).
-    // TODO This should probably bind to the right, instead.
-    FirstAtom ~ zeroOrMore("." ~ FirstAtom) ~~> (
-        (op: AstNode, arglist: List[AstNode]) =>
-          arglist.foldLeft(op)(ApplicationNode(_,_)))
+    // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
+    zeroOrMore(FirstAtom ~ ".") ~ FirstAtom ~~> (
+        (funlist: List[AstNode], lastarg: AstNode) =>
+          funlist.foldRight(lastarg)(ApplicationNode(_,_)))
   }
 
   /**
