@@ -59,7 +59,17 @@ case class ApplicationNode(op: AstNode, arg: AstNode) extends AstNode {
   def interpret = Apply(op.interpret, arg.interpret)
 }
 
+/**
+ * Provide alternate ways to create an application node.
+ */
 object ApplicationNode {
+  /**
+   * Create an application node for a binary operator.
+   * @param op		The binary operator.
+   * @param arg1	First argument.
+   * @param arg2	Second argument.
+   * @return	The new application node.
+   */
   def apply(op: AstNode, arg1: AstNode, arg2: AstNode): ApplicationNode =
     ApplicationNode(op, AtomListNode(List(arg1, arg2)))
 }
@@ -447,7 +457,7 @@ class AtomParser extends Parser {
   def Atom: Rule1[AstNode] = rule {
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
-    zeroOrMore(FirstAtom ~ ParsedWhitespace ~ ".") ~ FirstAtom ~~> (
+    zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
           funlist.foldRight(lastarg)(ApplicationNode(_,_)))
   }
@@ -456,9 +466,9 @@ class AtomParser extends Parser {
    * Parse an atom, with the exception of the general operator application.
    */
   def FirstAtom: Rule1[AstNode] = rule {
-    ParsedWhitespace ~ (
+    WS ~ (
       // Handle parenthetical expressions.
-      "(" ~ Atom ~ ")" |
+      "(" ~ Atom ~ WS ~ ")" |
         
       // Parse a lambda.
       ParsedLambda |
@@ -485,7 +495,7 @@ class AtomParser extends Parser {
 
       // A "naked" operator is specified by explicitly giving the operator
       // type OPTYPE.  Otherwise it is parsed as a symbol.
-      ESymbol ~ ":" ~ "OPTYPE" ~~> (
+      ESymbol ~ WS ~ ":" ~ WS ~ "OPTYPE" ~~> (
           (sym: NakedSymbolNode) => OperatorNode(sym.str)) |
 
       // Parse a literal.  A literal can take many forms, but it should be
@@ -493,7 +503,7 @@ class AtomParser extends Parser {
       // default literals go into a simple type, but this can be overridden.
       ParsedLiteral |
       
-      AnyNumber ~ ":" ~ Atom ~~> (
+      AnyNumber ~ WS ~ ":" ~ Atom ~~> (
           (num:NumberNode, typ:AstNode) => num.retype(typ)) |
       AnyNumber |
 
@@ -513,7 +523,7 @@ class AtomParser extends Parser {
     // If you want to use a general atom, use a dot to join it to the argument.
     // The same comment applies if you want to use a general atom as the
     // argument.
-    ESymbol ~ "(" ~ ParsedAtomList ~ ParsedWhitespace ~ ")" ~~> (
+    ESymbol ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
       (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
   }
   
@@ -521,7 +531,7 @@ class AtomParser extends Parser {
    * Parse a lambda expression.
    */
   def ParsedLambda = rule {
-    "\\" ~ ParsedVariable ~ "." ~ FirstAtom ~~> (
+    "\\" ~ ParsedVariable ~ WS ~ "." ~ FirstAtom ~~> (
         (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
   }
   
@@ -529,13 +539,13 @@ class AtomParser extends Parser {
    * Parse a literal symbol or a literal string.
    */
   def ParsedLiteral = rule {
-      ESymbol ~ ":" ~ Atom ~~>
+      ESymbol ~ WS ~ ":" ~ Atom ~~>
       	((sym: NakedSymbolNode, typ: AstNode) =>
       	  SymbolLiteralNode(typ, sym.str)) |
       ESymbol ~~>
       	((sym: NakedSymbolNode) =>
       	  SymbolLiteralNode(SimpleTypeNode(SYMBOL), sym.str)) |
-      EString ~ ":" ~ Atom ~~>
+      EString ~ WS ~ ":" ~ Atom ~~>
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
@@ -554,13 +564,13 @@ class AtomParser extends Parser {
     // Note that f(x,y,z), if f is associative, could be written as:
     // f.%A(x,y,z)
     "%" ~ (
-      ("AC" | "CA") ~ "(" ~ ParsedAtomList ~ ParsedWhitespace ~ ")" ~~> (
+      ("AC" | "CA") ~ WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(true, true)) |
-      "A" ~ "(" ~ ParsedAtomList ~ ")" ~~> (
+      "A" ~ WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(true, false)) |
-      "C" ~ "(" ~ ParsedAtomList ~ ")" ~~> (
+      "C" ~ WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(false, true)) |
-      "(" ~ ParsedAtomList ~ ")" ~~> (
+      WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
         (list: AtomListNode) => list.setProperties(false, false)))
   }
   
@@ -569,7 +579,7 @@ class AtomParser extends Parser {
    * commutativity, etc., is inferred at this point.
    */
   def ParsedAtomList = rule {
-    (Atom ~ zeroOrMore(ParsedWhitespace ~ "," ~ Atom)) ~~> (
+    (Atom ~ zeroOrMore(WS ~ "," ~ Atom)) ~~> (
       (head: AstNode, tail: List[AstNode]) => AtomListNode(head :: tail))
   }
 
@@ -579,34 +589,35 @@ class AtomParser extends Parser {
   def ParsedRule: Rule1[RuleNode] = rule(
     // First there are optional variable declarations.  In a rule, all pattern
     // variables must be declared.
-    optional("@" ~ ParsedVariable ~ zeroOrMore(anyOf(",@") ~ ParsedVariable) ~~> (
+    optional("@" ~ ParsedVariable ~
+        zeroOrMore(WS ~ anyOf(",@") ~ ParsedVariable) ~~> (
         (head: VariableNode, tail: List[VariableNode]) => head :: tail)) ~
 
-      // Next is the rule itself, consisting of a pattern, a rewrite, and zero
-      // or more guards.
-      ignoreCase("rule") ~ Atom ~ "->" ~ Atom ~ zeroOrMore("if" ~ Atom) ~
+    // Next is the rule itself, consisting of a pattern, a rewrite, and zero
+    // or more guards.
+    ignoreCase("rule") ~ Atom ~ WS ~ "->" ~ Atom ~ zeroOrMore(WS ~ "if" ~ Atom) ~
 
-      // Next the rule can be declared to be in zero or more rulesets.
-      optional((ignoreCase("rulesets") | ignoreCase("ruleset")) ~ ESymbol ~
-        zeroOrMore("," ~ ESymbol) ~~> (
-            (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)) ~
+    // Next the rule can be declared to be in zero or more rulesets.
+    optional(WS ~ (ignoreCase("rulesets") | ignoreCase("ruleset")) ~ ESymbol ~
+      zeroOrMore(WS ~ "," ~ ESymbol) ~~> (
+          (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)) ~
 
-      // Finally the rule's cache level can be declared.  This must be the
-      // last item, if present.
-      optional("level" ~ DInteger) ~~> (
-          RuleNode(
-              _: Option[List[VariableNode]],
-              _: AstNode,
-              _: AstNode,
-              _: List[AstNode],
-              _: Option[List[NakedSymbolNode]],
-              _: Option[UnsignedIntegerNode])))
+    // Finally the rule's cache level can be declared.  This must be the
+    // last item, if present.
+    optional(WS ~ "level" ~ DInteger) ~~> (
+        RuleNode(
+            _: Option[List[VariableNode]],
+            _: AstNode,
+            _: AstNode,
+            _: List[AstNode],
+            _: Option[List[NakedSymbolNode]],
+            _: Option[UnsignedIntegerNode])))
 
   /**
    * Parse a variable.
    */
   def ParsedVariable = rule {
-    "$" ~ ESymbol ~ ":" ~ Atom ~~> (
+    "$" ~ ESymbol ~ WS ~ ":" ~ Atom ~~> (
       (sval: NakedSymbolNode, typ: AstNode) => VariableNode(typ, sval.str)) |
     "$" ~ ESymbol ~~> (sval => VariableNode(TypeUniverseNode(), sval.str))
   }
@@ -616,7 +627,7 @@ class AtomParser extends Parser {
   //======================================================================
 
   /** Parse ignorable whitespace. */
-  def ParsedWhitespace = rule { zeroOrMore(anyOf(" \n\r\t\f")) }
+  def WS = rule { zeroOrMore(anyOf(" \n\r\t\f")) }
 
   //======================================================================
   // Parse a string.
@@ -774,13 +785,12 @@ class AtomParser extends Parser {
   //======================================================================
   // Other methods affecting the parse.
   //======================================================================
-
+  
   /**
    * Eliminate trailing whitespace.  This trick is found on the Parboiled web
    * site in the examples.
    * @param string	Parsed text.
    */
   override implicit def toRule(string: String) =
-    if (string.endsWith(" ")) str(string.trim) ~ ParsedWhitespace
-    else str(string)
+    if (string.endsWith(" ")) str(string.trim) ~ WS else str(string)
 }
