@@ -11,7 +11,6 @@ package sjp.elision
 /**
  * Basic definitions used in this package.
  * 
- * TODO: Correct whitespace parsing.
  * TODO: Complete Rule implementation.
  * TODO: Ruleset change actions.
  * TODO: Operator library and operator construction.
