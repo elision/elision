@@ -45,10 +45,10 @@ case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom
     if (opchanged || argchanged) (Apply(newop, newarg), true) else (this, false)
   }
 
-  override def toString = 
+  override def toParseString = 
     op match {
-	    case Literal(_,SymVal(sval)) => sval.name + "(" + arg.toString + ")"
-	    case _ => op.toString + "." + arg.toString
+	    case Literal(_,SymVal(sval)) => sval.name + "(" + arg.toParseString + ")"
+	    case _ => op.toParseString + "." + arg.toParseString
 	  }
 }
 

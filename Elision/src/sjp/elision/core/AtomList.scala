@@ -43,5 +43,5 @@ case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
     if (changed) (AtomList(newlist), true) else (this, false)
   }
 
-  override def toString = atoms.mkString(", ")
+  def toParseString = atoms.mkParseString("", ", ", "")
 }

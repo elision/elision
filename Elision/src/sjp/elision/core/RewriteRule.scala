@@ -14,7 +14,7 @@ package sjp.elision.core
 object RULETYPE extends RootType {
   val theType = TypeUniverse
   
-  override def toString = "RULETYPE"
+  def toParseString = "RULETYPE"
 }
 
 /**
@@ -49,9 +49,9 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     else (this, false)
   }
   
-  override def toString = "RULE " + pattern.toString + " -> " +
-  	rewrite.toString +
-  	(if (!guards.isEmpty) guards.mkString(" if ", " if ", "") else "") +
-  	(if (!rulesets.isEmpty) rulesets.mkString(" rulesets ", ", ", "") else "") +
-  	" level " + cacheLevel
+  def toParseString = "RULE { " + pattern.toParseString + " -> " +
+  	rewrite.toParseString +
+  	(if (!guards.isEmpty) guards.mkParseString(" if ", " if ", "") else "") +
+  	(if (!rulesets.isEmpty) rulesets.map(toESymbol(_)).mkString(" rulesets ", ", ", "") else "") +
+  	" level " + cacheLevel + " }"
 }

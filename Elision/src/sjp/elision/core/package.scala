@@ -24,6 +24,25 @@ package object core {
   type Bindings = HashMap[String, BasicAtom]
   
   /**
+   * Magically add a mkParseString, roughly equivalent to mkString, to every
+   * sequence of objects that extend BasicAtom.  Try that with Java!
+   * @param seq		The sequence to get the new method.
+   */
+  implicit def giveMkParseString[A <: BasicAtom](seq: Seq[A]): {
+    def mkParseString(pre: String, mid: String, post: String): String
+  } = new {
+    /**
+     * Make a string from a sequence.
+     * @param pre		The prefix text, if any.
+     * @param mid		The text to insert between each item.
+     * @param post	The suffix text, if any.
+     * @return	The new string.
+     */
+    def mkParseString(pre: String, mid: String, post: String) =
+      seq.map(_.toParseString).mkString(pre, mid, post)
+  }
+  
+  /**
    * Attempt to parse the given string and return an atom.  The result is null
    * if a parsing error occurs.  The error is printed to the standard output,
    * so this is really only useful as a testing method from the prompt.

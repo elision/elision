@@ -37,5 +37,5 @@ case class Lambda(lvar: Variable, body: BasicAtom) extends BasicAtom {
 	    case _ => (this, false)
 	  }
   
-  override def toString = "\\" + lvar.toString + "." + body.toString
+  def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
 }

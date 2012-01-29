@@ -85,6 +85,12 @@ abstract class BasicAtom {
    * 					changed.
    */
   def rewrite(binds: Bindings): (BasicAtom, Boolean)
+  
+  /**
+   * Generate a parseable string from this atom.
+   * @return	The string.
+   */
+  def toParseString: String
 }
 
 /**
@@ -115,7 +121,8 @@ abstract class RootType extends BasicAtom {
  * Trivial root type with a specified name and the type universe as its type.
  * @param name	The name.
  */
-class NamedRootType(name: String) extends RootType {
+case class NamedRootType(name: String) extends RootType {
   val theType = TypeUniverse
-  override def toString = name
+  def toParseString = name
+  override def toString = "NamedRootType(" + toEString(name) + ")"
 }

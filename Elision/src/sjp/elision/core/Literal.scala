@@ -16,14 +16,16 @@ import scala.collection.mutable.HashMap
  * build a special case class here that is used to manager the value of the
  * literal.
  */
-sealed abstract class LitVal
+sealed abstract class LitVal {
+  def toParseString: String
+}
 
 /**
  * Represent the value of a literal as an integer.
  * @param ival	The interger value.
  */
 case class IntVal(ival: BigInt) extends LitVal {
-	override def toString = ival.toString
+	def toParseString = ival.toString
 }
 
 /**
@@ -31,7 +33,7 @@ case class IntVal(ival: BigInt) extends LitVal {
  * @param sval	The string value.
  */
 case class StrVal(sval: String) extends LitVal {
-	override def toString = toEString(sval)
+	def toParseString = toEString(sval)
 }
 
 /**
@@ -39,7 +41,7 @@ case class StrVal(sval: String) extends LitVal {
  * @param sval	The Scala symbol.
  */
 case class SymVal(sval: Symbol) extends LitVal {
-	override def toString = toESymbol(sval.name)
+	def toParseString = toESymbol(sval.name)
 }
 
 /**
@@ -68,7 +70,7 @@ extends LitVal {
   /** Positive exponent.  This avoids a method call. */
   private val _posexponent = if (_eneg) -exponent else exponent
   
-  override def toString = (if (_mneg) "-" else "") + _prefix +
+  def toParseString = (if (_mneg) "-" else "") + _prefix +
   	_possignificand.toString(radix) +
   	(if (radix == 16) "P" else "e") +
   	(if (_eneg) "-" else "") + _prefix + Integer.toString(_posexponent, radix)
@@ -84,7 +86,7 @@ extends LitVal {
  * @param fval	The floating point value.
  */
 case class FltVal(fval: Float) extends LitVal {
-	override def toString = fval.toString
+	def toParseString = fval.toString
 }
 
 /**
@@ -92,7 +94,7 @@ case class FltVal(fval: Float) extends LitVal {
  * @param bool	The boolean value.
  */
 case class BooVal(bool: Boolean) extends LitVal {
-	override def toString = bool.toString
+	def toParseString = bool.toString
 }
 
 /**
@@ -128,7 +130,7 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 			case _ => (this, false)
 		}
 
-	override def toString = value.toString + ":" + theType.toString
+	override def toParseString = value.toParseString + ":" + theType.toParseString
 }
 
 /**

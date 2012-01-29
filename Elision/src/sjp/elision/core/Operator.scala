@@ -16,7 +16,7 @@ import scala.collection.immutable.HashMap
 object OPTYPE extends RootType {
   val theType = TypeUniverse
   
-  override def toString = "OPTYPE"
+  def toParseString = "OPTYPE"
 }
 
 /**
@@ -33,6 +33,6 @@ case class Operator(name: String) extends BasicAtom {
 
   def rewrite(binds: Bindings) = (this, false)
 
-  override def toString = toESymbol(name)
+  def toParseString = toESymbol(name)
 }
 

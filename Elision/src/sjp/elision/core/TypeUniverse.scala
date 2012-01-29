@@ -19,7 +19,7 @@ object TypeUniverse extends RootType {
    * The type universe is represented by ^TYPE.
    * @return The string representation of the type universe.
    */
-  override def toString = "^TYPE"
+  def toParseString = "^TYPE"
 
   /**
    * Type universe matching is a special case, and the basis case, for matching
@@ -30,4 +30,6 @@ object TypeUniverse extends RootType {
    */
   override protected def matchTypes(subject: BasicAtom, binds: Bindings) =
     tryMatchWithoutTypes(subject, binds)
+    
+  override def toString = "TypeUniverse"
 }

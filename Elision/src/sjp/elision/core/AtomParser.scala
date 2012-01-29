@@ -115,6 +115,114 @@ case class AtomListNode(list: List[AstNode]) extends AstNode {
 }
 
 //----------------------------------------------------------------------
+// Operator definition.
+//----------------------------------------------------------------------
+
+/**
+ * A data structure holding operator properties as they are discovered during
+ * the parse.
+ */
+class OperatorPropertiesNode {
+  /** An identity, if any. */
+  var withIdentity: Option[AstNode] = None
+  /** An absorber, if any. */
+  var withAbsorber: Option[AstNode] = None
+  /** True iff this operator is idempotent. */
+  var isIdempotent = false
+  /** True iff this operator is commutative. */ 
+  var isCommutative = false
+  /** True iff this operator is associative. */
+  var isAssociative = false
+  
+  /**
+   * Get the optional identity.
+   * @return	The optional identity.
+   */
+  def identity = withIdentity match {
+    case Some(node) => Some(node.interpret)
+    case None => None
+  }
+  
+  /**
+   * Get the optional absorber.
+   * @return	The optional absorber.
+   */
+  def absorber = withAbsorber match {
+    case Some(node) => Some(node.interpret)
+    case None => None
+  }
+  
+  /**
+   * Convert this into an operator properties instance.
+   * @return	The operator properties object.
+   */
+  def interpret = OperatorProperties(isAssociative, isCommutative,
+      isIdempotent, absorber, identity)
+}
+
+/**
+ * Represent an operator prototype.
+ * @param name			The operator name.
+ * @param typepars	The type parameters.
+ * @param pars			The formal parameter.
+ * @param typ				The type.
+ */
+class OperatorPrototypeNode(
+    val name: String,
+    val typepars: Option[List[VariableNode]],
+    val pars: Option[List[VariableNode]],
+    val typ: AstNode) {
+  def interpret = OperatorPrototype(
+      name,
+      typepars match {
+        case Some(list) => list.map(_.interpret)
+        case None => List[Variable]()
+      },
+      pars match {
+        case Some(list) => list.map(_.interpret)
+        case None => List[Variable]()
+      },
+      typ.interpret)
+}
+
+sealed abstract class OperatorDefinitionNode extends AstNode {
+  def interpret: OperatorDefinition
+}
+
+/**
+ * Represent an immediate operator definition.
+ * @param opn		The prototype node.
+ * @param body	The body.
+ */
+case class ImmediateOperatorDefinitionNode(
+    opn: OperatorPrototypeNode,
+    body: AstNode) extends OperatorDefinitionNode {
+  def interpret = ImmediateOperatorDefinition(opn.interpret, body.interpret)
+}
+
+/**
+ * Represent a symbolic operator definition.
+ * @param opn		The prototype node.
+ * @param prop	The properties.
+ */
+case class SymbolicOperatorDefinitionNode(
+    opn: OperatorPrototypeNode,
+    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
+  def interpret = SymbolicOperatorDefinition(opn.interpret, prop.interpret)
+}
+
+/**
+ * Represent a native operator definition.
+ * @param opn		The prototype node.
+ * @param prop	The properties.
+ */
+case class NativeOperatorDefinitionNode(
+    opn: OperatorPrototypeNode,
+    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
+  def interpret = NativeOperatorDefinition(opn.interpret, prop.interpret)
+}
+
+//----------------------------------------------------------------------
 // Symbol nodes.
 //----------------------------------------------------------------------
 
@@ -169,6 +277,7 @@ case class RuleNode(
     guards: List[AstNode],
     rulesets: Option[List[NakedSymbolNode]],
     level: Option[UnsignedIntegerNode]) extends AstNode {
+  println(this)
   def interpret = {
     // Get the rulesets as a list of strings.
     val rs = rulesets match {
@@ -469,15 +578,18 @@ class AtomParser extends Parser {
     WS ~ (
       // Handle parenthetical expressions.
       "(" ~ Atom ~ WS ~ ")" |
+      
+      // Parse a rule.
+      ParsedRule |
+      
+      // Parse an operator definition.
+      ParsedNativeOperatorDefinition |
         
       // Parse a lambda.
       ParsedLambda |
 
       // Parse a typical operator application.
       ParsedApply |
-      
-      // Parse a rule.
-      ParsedRule |
         
       // Parse the special OPTYPE.
       "OPTYPE" ~> (x => SimpleTypeNode(OPTYPE)) |
@@ -586,7 +698,7 @@ class AtomParser extends Parser {
   /**
    * Parse a rule.
    */
-  def ParsedRule: Rule1[RuleNode] = rule(
+  def ParsedRule = rule(
     // First there are optional variable declarations.  In a rule, all pattern
     // variables must be declared.
     optional("@" ~ ParsedVariable ~
@@ -595,16 +707,17 @@ class AtomParser extends Parser {
 
     // Next is the rule itself, consisting of a pattern, a rewrite, and zero
     // or more guards.
-    ignoreCase("rule") ~ Atom ~ WS ~ "->" ~ Atom ~ zeroOrMore(WS ~ "if" ~ Atom) ~
+    WS ~ ignoreCase("rule") ~ WS ~ "{" ~
+    Atom ~ WS ~ "->" ~ Atom ~ zeroOrMore(WS ~ "if" ~ Atom) ~
 
     // Next the rule can be declared to be in zero or more rulesets.
-    optional(WS ~ (ignoreCase("rulesets") | ignoreCase("ruleset")) ~ ESymbol ~
-      zeroOrMore(WS ~ "," ~ ESymbol) ~~> (
+    optional(WS ~ (ignoreCase("rulesets") | ignoreCase("ruleset")) ~
+        WS ~ ESymbol ~ zeroOrMore(WS ~ "," ~ WS ~ ESymbol) ~~> (
           (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)) ~
 
     // Finally the rule's cache level can be declared.  This must be the
     // last item, if present.
-    optional(WS ~ "level" ~ DInteger) ~~> (
+    optional(WS ~ "level" ~ WS ~ DInteger) ~ WS ~ "}" ~~> (
         RuleNode(
             _: Option[List[VariableNode]],
             _: AstNode,
@@ -617,8 +730,15 @@ class AtomParser extends Parser {
    * Parse a variable.
    */
   def ParsedVariable = rule {
+    ParsedTypedVariable | ParsedUntypedVariable
+  }
+  
+  def ParsedTypedVariable = rule {
     "$" ~ ESymbol ~ WS ~ ":" ~ Atom ~~> (
-      (sval: NakedSymbolNode, typ: AstNode) => VariableNode(typ, sval.str)) |
+      (sval: NakedSymbolNode, typ: AstNode) => VariableNode(typ, sval.str))
+  }
+  
+  def ParsedUntypedVariable = rule {
     "$" ~ ESymbol ~~> (sval => VariableNode(TypeUniverseNode(), sval.str))
   }
 
@@ -781,6 +901,128 @@ class AtomParser extends Parser {
   
   /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }
+  
+  //======================================================================
+  // Define an operator.
+  //======================================================================
+  
+  /**
+   * Parse an operator definition.
+   * 
+   * Operator definitions look as follows.
+   * 
+   * An operator whose definition is provided by a body.  Whenever the operator
+   * is encountered, it is replaced at construction time by binding the formal
+   * parameters and then rewriting the body.  It is essentially a macro.
+   * {{{
+   *   operator abel($x: STRING, $y: ^TYPE): ^TYPE = cain($x, seth($y))
+   * }}}
+   * A symbolic operator whose properties are specified, if any.
+   * {{{
+   *   operator join($x: ^TYPE, $y: ^TYPE): ^TYPE
+   *   operator product($x: NUMBER, $y: NUMBER): NUMBER is
+   *     associative, commutative, absorber 0, identity 1
+   *   operator or($p: BOOLEAN, $q: BOOLEAN): BOOLEAN is
+   *     associative, commutative, idempotent, identity false, absorber true
+   * }}} 
+   * An operator whose definition is provided by the runtime system - that is,
+   * it is implemented in software.
+   * {{{
+   *   native operator `+`($x: NUMBER, $y: NUMBER): NUMBER is
+   *     associative, commutative, identity 0
+   * }}}
+   */
+  def ParsedOperatorDefinition = rule {
+    ParsedNativeOperatorDefinition |
+    ParsedSymbolicOperatorDefinition |
+    ParsedImmediateOperatorDefinition
+  }
+  
+  /**
+   * Parse a native operator definition.
+   * {{{
+   * native operator `+`($x: NUMBER, $y: NUMBER): NUMBER is
+   *   associative, commutative, identity 0
+   * }}}
+   */
+  def ParsedNativeOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
+    "native" ~ WS ~ "{" ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
+    WS ~ "}" ~~> (NativeOperatorDefinitionNode(_,_))
+  }
+  
+  /**
+   * Parse a symbolic operator definition.
+   * {{{
+   * operator join($x: ^TYPE, $y: ^TYPE): ^TYPE
+   * operator product($x: NUMBER, $y: NUMBER): NUMBER is
+   *   associative, commutative, absorber 0, identity 1
+   * operator or($p: BOOLEAN, $q: BOOLEAN): BOOLEAN is
+   *   associative, commutative, idempotent, identity false, absorber true
+   * }}}
+   */
+  def ParsedSymbolicOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
+    "operator" ~ WS ~ "{" ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
+    WS ~ "}" ~~> (SymbolicOperatorDefinitionNode(_,_))
+  }
+  
+  /**
+   * Parse a native operator definition.
+   * {{{
+   * operator abel($x: STRING, $y: ^TYPE): ^TYPE = cain($x, seth($y))
+   * }}}
+   */
+  def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
+    "operator" ~ WS ~ "{" ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
+    WS ~ "}" ~~> (ImmediateOperatorDefinitionNode(_,_))
+  }
+  
+  /** Parse an operator prototype. */
+  def ParsedOperatorPrototype = rule {
+    WS ~ ESymbol ~ optional(ParsedTypeParameterList) ~ WS ~
+    "(" ~ optional(ParsedParameterList) ~ WS ~ ")" ~ WS ~ ":" ~ Atom ~~>
+    ((name:NakedSymbolNode, typepars:Option[List[VariableNode]],
+        pars:Option[List[VariableNode]], typ:AstNode) =>
+          new OperatorPrototypeNode(name.str, typepars, pars, typ))
+  }
+
+  /** Parse a type parameter list. */
+  def ParsedTypeParameterList = rule {
+    "[" ~ ParsedParameterList ~ WS ~ "]"
+  }
+  
+  /** Parse a parameter list. */
+  def ParsedParameterList = rule {
+    ParsedTypedVariable ~
+    zeroOrMore(WS ~ "," ~ WS ~ ParsedTypedVariable) ~~> (_ :: _)
+  }
+  
+  /** Parse an immediate definition for an operator. */
+  def ParsedImmediateDefinition = rule {
+    "=" ~ Atom
+  }
+  
+  /** Parse a sequence of operator properties. */
+  def ParsedOperatorProperties = {
+    val pop = new OperatorPropertiesNode
+    rule {
+      optional(WS ~ "is" ~
+	    	WS ~ ParsedOperatorProperty(pop) ~ zeroOrMore(
+	    	    WS ~ "," ~ WS ~ ParsedOperatorProperty(pop))) ~~> (x => pop)
+    }
+  }
+  
+  /**
+   * Parse an operator property.
+   * @param pop		An operator properties node to fill in.
+   */
+  def ParsedOperatorProperty(pop: OperatorPropertiesNode) =
+    rule {
+      "associative" ~> (x => pop.isAssociative = true) |
+      "commutative" ~> (x => pop.isCommutative = true) |
+      "idempotent" ~> (x => pop.isIdempotent = true) |
+      "absorber" ~ Atom ~~> (abs => pop.withAbsorber = Some(abs)) |
+      "identity" ~ Atom ~~> (id => pop.withIdentity = Some(id)) ~~> (x => pop)
+  	}
 
   //======================================================================
   // Other methods affecting the parse.
