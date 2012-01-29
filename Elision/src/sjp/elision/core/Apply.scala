@@ -47,7 +47,7 @@ case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom
 
   override def toParseString = 
     op match {
-	    case Literal(_,SymVal(sval)) => sval.name + "(" + arg.toParseString + ")"
+	    case Literal(_,s@SymVal(_)) => s.toParseString + "(" + arg.toParseString + ")"
 	    case _ => op.toParseString + "." + arg.toParseString
 	  }
 }

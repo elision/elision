@@ -575,7 +575,7 @@ class AtomParser(val trace: Boolean = false) extends Parser {
       ParsedRule |
       
       // Parse an operator definition.
-      ParsedNativeOperatorDefinition |
+      ParsedOperatorDefinition |
         
       // Parse a lambda.
       ParsedLambda |
