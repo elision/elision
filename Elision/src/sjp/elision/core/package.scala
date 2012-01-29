@@ -18,6 +18,7 @@ package sjp.elision
  * TODO: Infix.
  */
 import scala.collection.immutable.HashMap
+import org.parboiled.errors.ParsingException
 package object core {
   // Bindings are used to store variable / value maps used during matching, and
   // as the result of a successful match.
@@ -43,18 +44,19 @@ package object core {
   }
   
   /**
-   * Attempt to parse the given string and return an atom.  The result is null
-   * if a parsing error occurs.  The error is printed to the standard output,
-   * so this is really only useful as a testing method from the prompt.
+   * Attempt to parse the given string and return an atom.
    * @param str		The string to parse.
+   * @param trace	Whether to trace the parse.
    * @return	The result of parsing, which may be null.
    */
-  def parse(str: String) = {
-    val ap = new AtomParser
-    ap.parseAtom(str) match {
-	    case ap.Failure(Some(msg)) => { println(msg) ; null }
-	    case ap.Failure(None) => { println("Failed.") ; null }
-	    case ap.Success(ast) => { ast.interpret }
+  def parse(str: String, trace: Boolean = false) = {
+    val ap = new AtomParser(trace)
+    try {
+      val node = ap.tryParse(str)
+      println(node.toParseString)
+      node
+    } catch {
+      case th: ParsingException => println(th.getMessage)
     }
   }
 

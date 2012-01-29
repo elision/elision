@@ -9,7 +9,7 @@
 package sjp.elision.core
 
 import org.parboiled.scala._
-import org.parboiled.errors.{ ErrorUtils, ParsingException }
+import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
 
 //======================================================================
@@ -277,7 +277,6 @@ case class RuleNode(
     guards: List[AstNode],
     rulesets: Option[List[NakedSymbolNode]],
     level: Option[UnsignedIntegerNode]) extends AstNode {
-  println(this)
   def interpret = {
     // Get the rulesets as a list of strings.
     val rs = rulesets match {
@@ -514,11 +513,12 @@ case class FloatNode(sign: Boolean, integer: String, fraction: String,
 
 /**
  * A parser to parse a single atom.
+ * @param trace If true, enable tracing.  Off by default.
  */
-class AtomParser extends Parser {
+class AtomParser(val trace: Boolean = false) extends Parser {
   abstract sealed class Presult
   case class Success(node: AstNode) extends Presult
-  case class Failure(badness: Option[Throwable]) extends Presult
+  case class Failure(err: String) extends Presult
   
   /**
    * Entry point to parse an atom from the given string.
@@ -526,22 +526,13 @@ class AtomParser extends Parser {
    * @return	The parsed atom.
    */
   def parseAtom(atom: String): Presult = {
-    try {
-    	Success(TracingParseRunner(Atom).
-    	    run(atom).
-    	    result.
-    	    getOrElse(Failure(None)).
-    	    asInstanceOf[AstNode])
-    } catch {
-      case th: Throwable => Failure(Some(th))
+    val tr = if (trace) TracingParseRunner(Atom) else ReportingParseRunner(Atom)
+    val parsingResult = tr.run(atom)
+    parsingResult.result match {
+      case Some(astRoot) => Success(astRoot)
+      case None => Failure("Invalid MPL2 source:\n" +
+              ErrorUtils.printParseErrors(parsingResult))
     }
-    /*
-    run.result match {
-      case Some(parsedAtom) => parsedAtom.toString
-      case None => throw new ParsingException("Invalid atom.\n" +
-          ErrorUtils.printParseErrors(run))
-    }
-     */
   }
   
   /**
@@ -549,11 +540,12 @@ class AtomParser extends Parser {
    * something goes wrong, null is returned by this method.
    * @param atom	The text to parse.
    * @return	The parsed atom, or null if something went wrong.
+   * @throws	ParsingException	Parsing failed.
    */
   def tryParse[ATOM >: BasicAtom](atom: String): ATOM =
     parseAtom(atom) match {
 	    case Success(node) => node.interpret
-	    case Failure(badness) => null
+	    case Failure(badness) => throw new ParsingException(badness)
 	  }
 
   //======================================================================
@@ -577,7 +569,7 @@ class AtomParser extends Parser {
   def FirstAtom: Rule1[AstNode] = rule {
     WS ~ (
       // Handle parenthetical expressions.
-      "(" ~ Atom ~ WS ~ ")" |
+      "( " ~ Atom ~ ") " |
       
       // Parse a rule.
       ParsedRule |
@@ -592,10 +584,10 @@ class AtomParser extends Parser {
       ParsedApply |
         
       // Parse the special OPTYPE.
-      "OPTYPE" ~> (x => SimpleTypeNode(OPTYPE)) |
+      "OPTYPE " ~> (x => SimpleTypeNode(OPTYPE)) |
 
       // Parse the special RULETYPE.
-      "RULETYPE" ~> (x => SimpleTypeNode(RULETYPE)) |
+      "RULETYPE " ~> (x => SimpleTypeNode(RULETYPE)) |
 
       // Parse a typed list.
       ParsedTypedList |
@@ -607,7 +599,7 @@ class AtomParser extends Parser {
 
       // A "naked" operator is specified by explicitly giving the operator
       // type OPTYPE.  Otherwise it is parsed as a symbol.
-      ESymbol ~ WS ~ ":" ~ WS ~ "OPTYPE" ~~> (
+      ESymbol ~ ": " ~ "OPTYPE " ~~> (
           (sym: NakedSymbolNode) => OperatorNode(sym.str)) |
 
       // Parse a literal.  A literal can take many forms, but it should be
@@ -615,12 +607,12 @@ class AtomParser extends Parser {
       // default literals go into a simple type, but this can be overridden.
       ParsedLiteral |
       
-      AnyNumber ~ WS ~ ":" ~ Atom ~~> (
+      AnyNumber ~ ": " ~ Atom ~~> (
           (num:NumberNode, typ:AstNode) => num.retype(typ)) |
       AnyNumber |
 
       // Parse the special type universe.
-      "^TYPE" ~> (x => TypeUniverseNode()))
+      "^TYPE " ~> (x => TypeUniverseNode()))
   }
 
   /**
@@ -635,7 +627,7 @@ class AtomParser extends Parser {
     // If you want to use a general atom, use a dot to join it to the argument.
     // The same comment applies if you want to use a general atom as the
     // argument.
-    ESymbol ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
+    ESymbol ~ "( " ~ ParsedAtomList ~ ") " ~~> (
       (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
   }
   
@@ -643,7 +635,7 @@ class AtomParser extends Parser {
    * Parse a lambda expression.
    */
   def ParsedLambda = rule {
-    "\\" ~ ParsedVariable ~ WS ~ "." ~ FirstAtom ~~> (
+    "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> (
         (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
   }
   
@@ -651,13 +643,13 @@ class AtomParser extends Parser {
    * Parse a literal symbol or a literal string.
    */
   def ParsedLiteral = rule {
-      ESymbol ~ WS ~ ":" ~ Atom ~~>
+      ESymbol ~ ": " ~ Atom ~~>
       	((sym: NakedSymbolNode, typ: AstNode) =>
       	  SymbolLiteralNode(typ, sym.str)) |
       ESymbol ~~>
       	((sym: NakedSymbolNode) =>
       	  SymbolLiteralNode(SimpleTypeNode(SYMBOL), sym.str)) |
-      EString ~ WS ~ ":" ~ Atom ~~>
+      EString ~ ": " ~ Atom ~~>
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
@@ -676,13 +668,13 @@ class AtomParser extends Parser {
     // Note that f(x,y,z), if f is associative, could be written as:
     // f.%A(x,y,z)
     "%" ~ (
-      ("AC" | "CA") ~ WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
+      ("AC " | "CA ") ~ "( " ~ ParsedAtomList ~ ") " ~~> (
         (list: AtomListNode) => list.setProperties(true, true)) |
-      "A" ~ WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
+      "A " ~ "( " ~ ParsedAtomList ~ ") " ~~> (
         (list: AtomListNode) => list.setProperties(true, false)) |
-      "C" ~ WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
+      "C " ~ "( " ~ ParsedAtomList ~ ") " ~~> (
         (list: AtomListNode) => list.setProperties(false, true)) |
-      WS ~ "(" ~ ParsedAtomList ~ WS ~ ")" ~~> (
+      WS ~ "( " ~ ParsedAtomList ~ ") " ~~> (
         (list: AtomListNode) => list.setProperties(false, false)))
   }
   
@@ -691,7 +683,7 @@ class AtomParser extends Parser {
    * commutativity, etc., is inferred at this point.
    */
   def ParsedAtomList = rule {
-    (Atom ~ zeroOrMore(WS ~ "," ~ Atom)) ~~> (
+    (Atom ~ zeroOrMore(", " ~ Atom)) ~~> (
       (head: AstNode, tail: List[AstNode]) => AtomListNode(head :: tail))
   }
 
@@ -701,23 +693,23 @@ class AtomParser extends Parser {
   def ParsedRule = rule(
     // First there are optional variable declarations.  In a rule, all pattern
     // variables must be declared.
-    optional("@" ~ ParsedVariable ~
-        zeroOrMore(WS ~ anyOf(",@") ~ ParsedVariable) ~~> (
+    optional("@ " ~ ParsedVariable ~
+        zeroOrMore(anyOf(",@") ~ WS ~ ParsedVariable) ~~> (
         (head: VariableNode, tail: List[VariableNode]) => head :: tail)) ~
 
     // Next is the rule itself, consisting of a pattern, a rewrite, and zero
     // or more guards.
-    WS ~ ignoreCase("rule") ~ WS ~ "{" ~
-    Atom ~ WS ~ "->" ~ Atom ~ zeroOrMore(WS ~ "if" ~ Atom) ~
+    ignoreCase("rule") ~ WS ~ "{ " ~
+    Atom ~ "-> " ~ Atom ~ zeroOrMore("if " ~ Atom) ~
 
     // Next the rule can be declared to be in zero or more rulesets.
-    optional(WS ~ (ignoreCase("rulesets") | ignoreCase("ruleset")) ~
-        WS ~ ESymbol ~ zeroOrMore(WS ~ "," ~ WS ~ ESymbol) ~~> (
+    optional((ignoreCase("rulesets") | ignoreCase("ruleset")) ~
+        WS ~ ESymbol ~ zeroOrMore(", " ~ ESymbol) ~~> (
           (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)) ~
 
     // Finally the rule's cache level can be declared.  This must be the
     // last item, if present.
-    optional(WS ~ "level" ~ WS ~ DInteger) ~ WS ~ "}" ~~> (
+    optional("level " ~ AnyInteger) ~ "} " ~~> (
         RuleNode(
             _: Option[List[VariableNode]],
             _: AstNode,
@@ -734,7 +726,7 @@ class AtomParser extends Parser {
   }
   
   def ParsedTypedVariable = rule {
-    "$" ~ ESymbol ~ WS ~ ":" ~ Atom ~~> (
+    "$" ~ ESymbol ~ ": " ~ Atom ~~> (
       (sval: NakedSymbolNode, typ: AstNode) => VariableNode(typ, sval.str))
   }
   
@@ -755,7 +747,7 @@ class AtomParser extends Parser {
 
   /** Parse a double-quoted string. */
   def EString = rule {
-    "\"" ~ zeroOrMore(Character) ~> (_.toString) ~ "\""
+    "\"" ~ zeroOrMore(Character) ~> (_.toString) ~ "\" "
   }
 
   /** Parse a character in a string. */
@@ -773,9 +765,9 @@ class AtomParser extends Parser {
 
   /** Parse a symbol. */
   def ESymbol = rule {
-    "`" ~ zeroOrMore(SymChar) ~> (NakedSymbolNode(_)) ~ "`" |
+    "`" ~ zeroOrMore(SymChar) ~> (NakedSymbolNode(_)) ~ "` " |
     group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
-      "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_))
+      "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
   }
 
   /** Parse a character that is part of a symbol. */
@@ -797,7 +789,7 @@ class AtomParser extends Parser {
       HNumber |
       BNumber |
       DNumber |
-      ONumber) ~~> (NumberNode(_:Option[Boolean],_:UnsignedIntegerNode,
+      ONumber) ~ WS ~~> (NumberNode(_:Option[Boolean],_:UnsignedIntegerNode,
           _:Option[UnsignedIntegerNode],_:Option[SignedIntegerNode]))
   }
 
@@ -850,11 +842,11 @@ class AtomParser extends Parser {
    * Parse an integer in hexadecimal, decimal, octal, or binary.
    * @return	An unsigned integer.
    */
-  def AnyInteger = rule {
+  def AnyInteger = rule { (
     HInteger |
     BInteger |
     DInteger |
-    OInteger
+    OInteger ) ~ WS
   }
 
   /**
@@ -946,8 +938,8 @@ class AtomParser extends Parser {
    * }}}
    */
   def ParsedNativeOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "native" ~ WS ~ "{" ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
-    WS ~ "}" ~~> (NativeOperatorDefinitionNode(_,_))
+    "native " ~ "{ " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
+    "} " ~~> (NativeOperatorDefinitionNode(_,_))
   }
   
   /**
@@ -961,8 +953,8 @@ class AtomParser extends Parser {
    * }}}
    */
   def ParsedSymbolicOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "operator" ~ WS ~ "{" ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
-    WS ~ "}" ~~> (SymbolicOperatorDefinitionNode(_,_))
+    "operator " ~ "{ " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
+    "} " ~~> (SymbolicOperatorDefinitionNode(_,_))
   }
   
   /**
@@ -972,14 +964,14 @@ class AtomParser extends Parser {
    * }}}
    */
   def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "operator" ~ WS ~ "{" ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
-    WS ~ "}" ~~> (ImmediateOperatorDefinitionNode(_,_))
+    "operator " ~ "{ " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
+    "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
   }
   
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
-    WS ~ ESymbol ~ optional(ParsedTypeParameterList) ~ WS ~
-    "(" ~ optional(ParsedParameterList) ~ WS ~ ")" ~ WS ~ ":" ~ Atom ~~>
+    ESymbol ~ optional(ParsedTypeParameterList) ~
+    "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ Atom ~~>
     ((name:NakedSymbolNode, typepars:Option[List[VariableNode]],
         pars:Option[List[VariableNode]], typ:AstNode) =>
           new OperatorPrototypeNode(name.str, typepars, pars, typ))
@@ -987,27 +979,27 @@ class AtomParser extends Parser {
 
   /** Parse a type parameter list. */
   def ParsedTypeParameterList = rule {
-    "[" ~ ParsedParameterList ~ WS ~ "]"
+    "[ " ~ ParsedParameterList ~ "] "
   }
   
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
     ParsedTypedVariable ~
-    zeroOrMore(WS ~ "," ~ WS ~ ParsedTypedVariable) ~~> (_ :: _)
+    zeroOrMore(", " ~ ParsedTypedVariable) ~~> (_ :: _)
   }
   
   /** Parse an immediate definition for an operator. */
   def ParsedImmediateDefinition = rule {
-    "=" ~ Atom
+    "= " ~ Atom
   }
   
   /** Parse a sequence of operator properties. */
   def ParsedOperatorProperties = {
     val pop = new OperatorPropertiesNode
     rule {
-      optional(WS ~ "is" ~
-	    	WS ~ ParsedOperatorProperty(pop) ~ zeroOrMore(
-	    	    WS ~ "," ~ WS ~ ParsedOperatorProperty(pop))) ~~> (x => pop)
+      optional("is " ~
+	    	ParsedOperatorProperty(pop) ~ zeroOrMore(
+	    	    ", " ~ ParsedOperatorProperty(pop))) ~~> (x => pop)
     }
   }
   
@@ -1017,11 +1009,11 @@ class AtomParser extends Parser {
    */
   def ParsedOperatorProperty(pop: OperatorPropertiesNode) =
     rule {
-      "associative" ~> (x => pop.isAssociative = true) |
-      "commutative" ~> (x => pop.isCommutative = true) |
-      "idempotent" ~> (x => pop.isIdempotent = true) |
-      "absorber" ~ Atom ~~> (abs => pop.withAbsorber = Some(abs)) |
-      "identity" ~ Atom ~~> (id => pop.withIdentity = Some(id)) ~~> (x => pop)
+      "associative " ~> (x => pop.isAssociative = true) |
+      "commutative " ~> (x => pop.isCommutative = true) |
+      "idempotent " ~> (x => pop.isIdempotent = true) |
+      "absorber " ~ Atom ~~> (abs => pop.withAbsorber = Some(abs)) |
+      "identity " ~ Atom ~~> (id => pop.withIdentity = Some(id)) ~~> (x => pop)
   	}
 
   //======================================================================
