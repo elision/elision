@@ -17,6 +17,8 @@ object OPTYPE extends RootType {
   val theType = TypeUniverse
   
   def toParseString = "OPTYPE"
+    
+  override def toString = "OPTYPE"
 }
 
 /**
@@ -24,6 +26,7 @@ object OPTYPE extends RootType {
  */
 case class Operator(name: String) extends BasicAtom {
   val theType = OPTYPE
+  val deBrujinIndex = 0
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {
@@ -34,5 +37,8 @@ case class Operator(name: String) extends BasicAtom {
   def rewrite(binds: Bindings) = (this, false)
 
   def toParseString = toESymbol(name)
+  
+  // To create a parseable string we have to make the name parseable.
+  override def toString = "Operator(" + toEString(name) + ")"
 }
 

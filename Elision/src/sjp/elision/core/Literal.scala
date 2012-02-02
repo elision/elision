@@ -42,6 +42,7 @@ case class StrVal(sval: String) extends LitVal {
  */
 case class SymVal(sval: Symbol) extends LitVal {
 	def toParseString = toESymbol(sval.name)
+	override def toString = "SymVal(Symbol(" + toEString(sval.name) + "))"
 }
 
 /**
@@ -104,6 +105,7 @@ case class BooVal(bool: Boolean) extends LitVal {
  */
 case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	val theType = typ
+	val deBrujinIndex = 0
 
 	override val isTrue = value match {
 		case BooVal(true) => true

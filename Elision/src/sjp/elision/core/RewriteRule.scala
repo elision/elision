@@ -29,6 +29,7 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
     extends BasicAtom {
   val theType = RULETYPE
+  val deBrujinIndex = 0
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Rules match only other rules.
@@ -60,4 +61,13 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   	(if (!rulesets.isEmpty)
   	  rulesets.map(toESymbol(_)).mkString(" rulesets ", ", ", "") else "") +
   	" level " + cacheLevel + " }"
+  	
+  // To make a Scala parseable string we have to make the ruleset names into
+  // parseable strings.
+  override def toString = "RewriteRule(" +
+  	pattern.toString + ", " +
+  	rewrite.toString + ", " +
+  	guards.toString + ", " +
+  	rulesets.map(toEString(_)) + ", " +
+  	cacheLevel + ")"
 }

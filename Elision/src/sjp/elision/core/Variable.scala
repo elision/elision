@@ -18,6 +18,7 @@ import scala.collection.mutable.HashMap
 case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
+  val deBrujinIndex = 0
 
   /** By default, variables can be bound. */
   override val isBindable = true

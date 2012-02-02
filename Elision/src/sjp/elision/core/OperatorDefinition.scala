@@ -16,6 +16,7 @@ import scala.collection.mutable.ListBuffer
 abstract class OperatorDefinition(val proto: OperatorPrototype)
 extends BasicAtom {
   val theType = TypeUniverse
+  val deBrujinIndex = 0
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     Fail("Operator definition matching is not implemented.", this, subject)
 	def rewrite(binds: Bindings) = (this, false)
@@ -67,6 +68,10 @@ case class OperatorPrototype(name: String, typepars: List[Variable],
   	(if (!typepars.isEmpty) typepars.mkParseString("[", ",", "]") else "") +
   	pars.mkParseString("(", ",", ")") +
   	": " + typ.toParseString
+  	
+  // To make a Scala parseable string we have to make the name parseable.
+  override def toString = "OperatorPrototype(" + toEString(name) + ", " +
+  	typepars.toString + ", " + pars.toString + ", " + typ.toString + ")"
 }
 
 /**

@@ -17,7 +17,13 @@ import java.util.LinkedList
  */
 case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
   require(atoms != null)
+  
+  // The type of all lists is the type universe.  This may be changed later.
   val theType = TypeUniverse
+  
+  // The De Brujin index is equal to the maximum index of the atoms in the
+  // sequence.  Compute that now.
+  val deBrujinIndex = atoms.map(_.deBrujinIndex).max
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Ordered lists only match other ordered lists with matching elements in
@@ -45,5 +51,7 @@ case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
     if (changed) (AtomList(newlist), true) else (this, false)
   }
 
+  // An atom list is just the list of atoms, separated by commas.  It is up to
+  // the enclosing scope to determine if parens are needed.
   def toParseString = atoms.mkParseString("", ", ", "")
 }

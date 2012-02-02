@@ -16,6 +16,9 @@ package sjp.elision.core
 case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom {
   // TODO This is simply wrong.  The type should be obtained from the operator.
   val theType = TypeUniverse
+  
+  // The De Brujin index is just the maximum of the operator and body.
+  val deBrujinIndex = op.deBrujinIndex.max(arg.deBrujinIndex)
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Only applies match applies.
@@ -47,7 +50,8 @@ case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom
 
   override def toParseString = 
     op match {
-	    case Literal(_,s@SymVal(_)) => s.toParseString + "(" + arg.toParseString + ")"
+	    case Literal(_,s@SymVal(_)) => s.toParseString +
+	    	"(" + arg.toParseString + ")"
 	    case _ => op.toParseString + "." + arg.toParseString
 	  }
 }
@@ -60,7 +64,7 @@ object Apply {
    * @param arg		The lambda argument to bind.
    */
   def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = op match {
-    case Lambda(lvar, body) =>
+    case Lambda(_, lvar, body) =>
       body.rewrite((new Bindings) + (lvar.name -> arg))._1
     case _ => Apply(op, arg, true)
   }

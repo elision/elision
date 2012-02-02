@@ -11,12 +11,37 @@ package sjp.elision.core
 /**
  * The root of all atoms manipulated by the rewriter.
  *
- * Use this by extending it and implementing the abstract methods.  Be sure
- * to specify the type.
+ * To use this, extend the class as a new `case class`.  Then do the following.
+ *  - Specify the type of the object.  To do this add `val theType = `(a basic
+ *    atom).
+ *  - Implement `tryMatchWithoutTypes`.  You can safely assume this method is
+ *    not invoked until ''after'' the types have been matched successfully.  You
+ *    can also assume this may be invoked multiple times if there are many
+ *    potential matches for the types.
+ *  - Implement `rewrite`.
+ *  - Implement `toParseString`.  This must return a string that is parseable by
+ *    [[sjp.elision.core.AtomParser]] to re-create the atom.
+ *  - Implement `toString`.  This must return a string that is parseable by
+ *    Scala to re-create the atom.  In many cases making the class into a
+ *    `case class` will be sufficient, but if there are arguments that are
+ *    primitive types, such as strings, whose toString method does not produce
+ *    a parseable result, this must be adjusted.
+ *  - Write code to specify the De Brujin index of the instance.  This can be
+ *    computed as follows.
+ *    - Instances with no children have De Brujin index of zero.
+ *    - Instances other than lambdas with children have index equal to the
+ *      maximum index of their children.
+ *    - Lambdas have index one greater than the index of their body, and the
+ *      body must also be rewritten to replace the variable with a De Brujin
+ *      index variable.  The implementation of this is left to the lambda
+ *      class.
  */
 abstract class BasicAtom {
   /** The type for the atom. */
   val theType: BasicAtom
+  
+  /** The De Brujin index. */
+  val deBrujinIndex: Int
 
   /** If true then this atom can be bound. */
   val isBindable: Boolean = false
@@ -98,6 +123,8 @@ abstract class BasicAtom {
  * system.  It cannot be rewritten, and matches only itself.
  */
 abstract class RootType extends BasicAtom {
+  val deBrujinIndex = 0
+  
   /**
    * Try to match this type against the provided atom.
    * @param subject	The subject to match.

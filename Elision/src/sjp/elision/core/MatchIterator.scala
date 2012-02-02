@@ -10,6 +10,18 @@ package sjp.elision.core
 
 /**
  * Handle iterating over a collection of matches.
+ * 
+ * This is provided to help in the case that a subordinate match (say of a child
+ * atom) returns many matches.  When this happens, you can create an instance
+ * of this class and provide two things:
+ *  - A closure for `localMatch`.  This is the "thing to do" with each
+ *    subordinate match to generate a complete overall match.  That is, given
+ *    a single match for a child, we do this to create a complete match.  Any
+ *    outcome is possible: no match, a single match, or many matches.  These
+ *    cases are correctly handled by this iterator.
+ *  - The subordinate match iterator `subiter` that provides the subordinate
+ *    matches.
+ * 
  * @param localMatch	Additional work to complete a match, given a subordinate
  * 										match.  This takes the binding from the subordinate match
  * 										and yields a new match outcome.

@@ -10,17 +10,20 @@ package sjp.elision.core
 
 /**
  * A lambda creates an operator that binds a single variable in a term.
- * @param lvar		The lambda variable.
- * @param body		The lambda body.
+ * @param deBrujinIndex			The De Brujin index.
+ * @param lvar							The lambda variable which must match the De Brujin
+ * 													index.
+ * @param body							The lambda body.
  */
-case class Lambda(lvar: Variable, body: BasicAtom) extends BasicAtom {
+case class Lambda(deBrujinIndex: Int, lvar: Variable, body: BasicAtom)
+extends BasicAtom {
   // The type is a mapping from one type to another.
 	val theType =
 	  Apply(Operator("MAP"), AtomList(Seq(lvar.theType, body.theType)))
-  
+	  	
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {
-	  case Lambda(olvar, obody) => if (olvar == lvar) {
+	  case Lambda(odbi, olvar, obody) => if (olvar == lvar) {
 	    body.tryMatch(obody, binds) match {
 	      case fail: Fail =>
 	        Fail("Lambda bodies do not match.", this, subject)
@@ -38,4 +41,26 @@ case class Lambda(lvar: Variable, body: BasicAtom) extends BasicAtom {
 	  }
   
   def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
+}
+
+/**
+ * Companion object with convenient methods to create lambdas.
+ */
+object Lambda {
+  def apply(lvar: Variable, body: BasicAtom): Lambda = {
+    // First compute the De Brujin index of the term.  It is equal to one
+    // greater than the maximum index of the body.
+    val deBrujinIndex = body.deBrujinIndex + 1
+    
+    // Now make a new De Brujin variable for the index.
+    val newvar = Variable(lvar.theType, ":"+deBrujinIndex)
+    
+    // Bind the old variable to the new one.
+    var binds = new Bindings
+    binds += (lvar.name -> newvar)
+    val (newbody, _) = body.rewrite(binds)
+    
+    // Make and return the new lambda.
+    Lambda(deBrujinIndex, newvar, newbody)
+  }
 }
