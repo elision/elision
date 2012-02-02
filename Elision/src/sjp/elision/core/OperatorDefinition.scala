@@ -13,7 +13,8 @@ import scala.collection.mutable.ListBuffer
 /**
  * Common root class for an operator definition.
  */
-abstract class OperatorDefinition extends BasicAtom {
+abstract class OperatorDefinition(val proto: OperatorPrototype)
+extends BasicAtom {
   val theType = TypeUniverse
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     Fail("Operator definition matching is not implemented.", this, subject)
@@ -25,8 +26,8 @@ abstract class OperatorDefinition extends BasicAtom {
  * @param proto		The prototype.
  * @param props		Operator properties.
  */
-case class SymbolicOperatorDefinition(proto: OperatorPrototype,
-    props: OperatorProperties) extends OperatorDefinition {
+case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
+    props: OperatorProperties) extends OperatorDefinition(proto) {
 	def toParseString =
 	  "operator { " + proto.toParseString + " " + props.toParseString + " }"
 }
@@ -36,8 +37,8 @@ case class SymbolicOperatorDefinition(proto: OperatorPrototype,
  * @param proto		The prototype.
  * @param body		The operator definition.
  */
-case class ImmediateOperatorDefinition(proto: OperatorPrototype,
-    body: BasicAtom) extends OperatorDefinition {
+case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
+    body: BasicAtom) extends OperatorDefinition(proto) {
 	def toParseString =
 	  "operator { " + proto.toParseString + " = " + body.toParseString + " }"
 }
@@ -47,8 +48,8 @@ case class ImmediateOperatorDefinition(proto: OperatorPrototype,
  * @param proto		The prototype.
  * @param props		Operator properties.
  */
-case class NativeOperatorDefinition(proto: OperatorPrototype,
-    props: OperatorProperties) extends OperatorDefinition {
+case class NativeOperatorDefinition(override val proto: OperatorPrototype,
+    props: OperatorProperties) extends OperatorDefinition(proto) {
 	def toParseString =
 	  "native { " + proto.toParseString + " " + props.toParseString + " }"
 }

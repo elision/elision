@@ -907,20 +907,20 @@ class AtomParser(val trace: Boolean = false) extends Parser {
    * is encountered, it is replaced at construction time by binding the formal
    * parameters and then rewriting the body.  It is essentially a macro.
    * {{{
-   *   operator abel($x: STRING, $y: ^TYPE): ^TYPE = cain($x, seth($y))
+   *   operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y))
    * }}}
    * A symbolic operator whose properties are specified, if any.
    * {{{
-   *   operator join($x: ^TYPE, $y: ^TYPE): ^TYPE
-   *   operator product($x: NUMBER, $y: NUMBER): NUMBER is
+   *   operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE
+   *   operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
    *     associative, commutative, absorber 0, identity 1
-   *   operator or($p: BOOLEAN, $q: BOOLEAN): BOOLEAN is
+   *   operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
    *     associative, commutative, idempotent, identity false, absorber true
    * }}} 
    * An operator whose definition is provided by the runtime system - that is,
    * it is implemented in software.
    * {{{
-   *   native operator `+`($x: NUMBER, $y: NUMBER): NUMBER is
+   *   native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
    *     associative, commutative, identity 0
    * }}}
    */
@@ -933,7 +933,7 @@ class AtomParser(val trace: Boolean = false) extends Parser {
   /**
    * Parse a native operator definition.
    * {{{
-   * native operator `+`($x: NUMBER, $y: NUMBER): NUMBER is
+   * native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
    *   associative, commutative, identity 0
    * }}}
    */
@@ -945,10 +945,10 @@ class AtomParser(val trace: Boolean = false) extends Parser {
   /**
    * Parse a symbolic operator definition.
    * {{{
-   * operator join($x: ^TYPE, $y: ^TYPE): ^TYPE
-   * operator product($x: NUMBER, $y: NUMBER): NUMBER is
+   * operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE
+   * operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
    *   associative, commutative, absorber 0, identity 1
-   * operator or($p: BOOLEAN, $q: BOOLEAN): BOOLEAN is
+   * operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
    *   associative, commutative, idempotent, identity false, absorber true
    * }}}
    */
@@ -960,7 +960,7 @@ class AtomParser(val trace: Boolean = false) extends Parser {
   /**
    * Parse a native operator definition.
    * {{{
-   * operator abel($x: STRING, $y: ^TYPE): ^TYPE = cain($x, seth($y))
+   * operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y))
    * }}}
    */
   def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {

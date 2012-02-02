@@ -16,6 +16,7 @@ import java.util.LinkedList
  * @param atoms		The list of atoms.  Note that order may be important.
  */
 case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
+  require(atoms != null)
   val theType = TypeUniverse
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
@@ -24,7 +25,8 @@ case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
     subject match {
     	case AtomList(oatoms) =>
     	  // The lists must be the same length, or they cannot match.
-    	  if (atoms.length != oatoms.length) Fail("Lists are different sizes.", this, subject)
+    	  if (atoms.length != oatoms.length)
+    	    Fail("Lists are different sizes.", this, subject)
     	  else Fail("Not implemented.")
     	    // Match with backtracking.  This is tricky, tricky.
       case _ => Fail("Not implemented.")

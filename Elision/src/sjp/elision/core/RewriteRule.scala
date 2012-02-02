@@ -19,6 +19,11 @@ object RULETYPE extends RootType {
 
 /**
  * Encapsulate a rewrite rule.
+ * @param pattern			The pattern to match.
+ * @param rewrite			The rewrite to apply on match.
+ * @param guards			Guards that must be true to accept a match.
+ * @param rulesets		The rulesets that contain this rule.
+ * @param cachelLevel	Memoization cache level.
  */
 case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
@@ -52,6 +57,7 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   def toParseString = "RULE { " + pattern.toParseString + " -> " +
   	rewrite.toParseString +
   	(if (!guards.isEmpty) guards.mkParseString(" if ", " if ", "") else "") +
-  	(if (!rulesets.isEmpty) rulesets.map(toESymbol(_)).mkString(" rulesets ", ", ", "") else "") +
+  	(if (!rulesets.isEmpty)
+  	  rulesets.map(toESymbol(_)).mkString(" rulesets ", ", ", "") else "") +
   	" level " + cacheLevel + " }"
 }
