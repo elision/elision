@@ -12,6 +12,7 @@ package sjp.elision.core
  * An apply represents applying an operator to an argument of some kind.
  * @param op		The operator.
  * @param arg		The argument.
+ * @param hack	Ignored.
  */
 case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom {
   // TODO This is simply wrong.  The type should be obtained from the operator.

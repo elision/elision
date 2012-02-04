@@ -48,17 +48,30 @@ extends BasicAtom {
  */
 object Lambda {
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
+    println("==========")
+    println("lvar = " + lvar)
+    println("body = " + body)
+    
+    
     // First compute the De Brujin index of the term.  It is equal to one
     // greater than the maximum index of the body.
     val deBrujinIndex = body.deBrujinIndex + 1
+    println("deBrujinIndex = " + deBrujinIndex)
     
     // Now make a new De Brujin variable for the index.
-    val newvar = Variable(lvar.theType, ":"+deBrujinIndex)
+    val newvar = new Variable(lvar.theType, ":"+deBrujinIndex) {
+      override val isDeBrujinIndex = true
+    }
+    println("newvar = " + newvar)
     
     // Bind the old variable to the new one.
     var binds = new Bindings
     binds += (lvar.name -> newvar)
+    println("binds = " + binds)
     val (newbody, _) = body.rewrite(binds)
+    println("body = " + body)
+    println("newbody = " + newbody)
+    println("==========")
     
     // Make and return the new lambda.
     Lambda(deBrujinIndex, newvar, newbody)

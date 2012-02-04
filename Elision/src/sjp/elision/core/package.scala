@@ -22,7 +22,6 @@ package sjp.elision
  * TOOO: Rule application.
  * TODO: Ruleset management.
  * TODO: Operator management.
- * TODO: Implement De Brujin indices.
  * TODO: Make Bindings a BasicAtom.
  * 
  * = Design Goals =

@@ -19,6 +19,9 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
   val deBrujinIndex = 0
+  
+  /** Iff true, this variable instance a De Brujin index. */
+  val isDeBrujinIndex = false
 
   /** By default, variables can be bound. */
   override val isBindable = true
