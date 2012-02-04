@@ -20,9 +20,6 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   val theType = typ
   val deBrujinIndex = 0
   
-  /** Iff true, this variable instance a De Brujin index. */
-  val isDeBrujinIndex = false
-
   /** By default, variables can be bound. */
   override val isBindable = true
 
@@ -41,7 +38,10 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
     // If this variable is bound in the provided bindings, replace it with the
     // bound value.
     binds.get(name) match {
-      case Some(atom) => (atom, true)
+      case Some(atom) =>
+        // We don't rewrite De Brujin indices to different indices.
+        if (isDeBrujinIndex && atom.isDeBrujinIndex) (this, false)
+        else (atom, true)
       case None =>
         // While the atom is not bound, its type might have to be rewritten.
         theType.rewrite(binds) match {

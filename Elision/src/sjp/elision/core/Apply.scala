@@ -14,7 +14,8 @@ package sjp.elision.core
  * @param arg		The argument.
  * @param hack	Ignored.
  */
-case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean) extends BasicAtom {
+case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean)
+extends BasicAtom {
   // TODO This is simply wrong.  The type should be obtained from the operator.
   val theType = TypeUniverse
   

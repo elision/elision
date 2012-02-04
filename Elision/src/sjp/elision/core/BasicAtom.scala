@@ -52,6 +52,9 @@ abstract class BasicAtom {
   /** If true, this atom represents true. */
   val isTrue: Boolean = false
 
+  /** Iff true, this variable instance a De Brujin index. */
+  val isDeBrujinIndex = false
+
   /**
    * Recursively match the types.  This is unbounded recursion; it is expected
    * that a class (a type universe) will override this method to create a basis
