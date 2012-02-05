@@ -52,27 +52,8 @@ abstract class BasicAtom {
   /** If true, this atom represents true. */
   val isTrue: Boolean = false
 
-  /** Iff true, this variable instance a De Brujin index. */
+  /** Iff true, this is a De Brujin index. */
   val isDeBrujinIndex = false
-
-  /**
-   * Recursively match the types.  This is unbounded recursion; it is expected
-   * that a class (a type universe) will override this method to create a basis
-   * case.
-   *
-   * NOTE: When strategies are finally implemented, this is where the selection
-   * of type matching strategies should be done.
-   *
-   * @param subject	The atom to match.
-   * @param binds		The bindings to observe.
-   * @return	The outcome of the match.
-   */
-  protected def matchTypes(subject: BasicAtom, binds: Bindings): Outcome =
-    this.theType.matchTypes(subject.theType, binds) match {
-      case mat: Match => mat
-      case many: Many => many
-      case fail: Fail => Fail("Types do not match.", this, subject, Some(fail))
-    }
 
   /**
    * Attempt to match this atom, as a pattern, against the subject atom,
@@ -119,6 +100,25 @@ abstract class BasicAtom {
    * @return	The string.
    */
   def toParseString: String
+
+  /**
+   * Recursively match the types.  This is unbounded recursion; it is expected
+   * that a class (a type universe) will override this method to create a basis
+   * case.
+   *
+   * NOTE: When strategies are finally implemented, this is where the selection
+   * of type matching strategies may be done.
+   *
+   * @param subject	The atom to match.
+   * @param binds		The bindings to observe.
+   * @return	The outcome of the match.
+   */
+  protected def matchTypes(subject: BasicAtom, binds: Bindings): Outcome =
+    this.theType.matchTypes(subject.theType, binds) match {
+      case mat: Match => mat
+      case many: Many => many
+      case fail: Fail => Fail("Types do not match.", this, subject, Some(fail))
+    }
 }
 
 /**
@@ -126,6 +126,7 @@ abstract class BasicAtom {
  * system.  It cannot be rewritten, and matches only itself.
  */
 abstract class RootType extends BasicAtom {
+	// The index of a symbol or root type is zero.
   val deBrujinIndex = 0
   
   /**
@@ -152,7 +153,10 @@ abstract class RootType extends BasicAtom {
  * @param name	The name.
  */
 case class NamedRootType(name: String) extends RootType {
+  // All named root types are in the type universe.
   val theType = TypeUniverse
-  def toParseString = name
+  // The parse string is the name, as a symbol.
+  def toParseString = toESymbol(name)
+  // We have to override the Scala to protect the string.
   override def toString = "NamedRootType(" + toEString(name) + ")"
 }
