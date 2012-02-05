@@ -14,14 +14,12 @@ package sjp.elision
  * TODO: Complete Rule implementation (matching).
  * TODO: Complete Operator definition implementation (matching).
  * TODO: Ruleset change actions.
- * TODO: Operator library and operator construction.
  * TODO: Infix.
  * TODO: AC matching.
  * TODO: C matching.
  * TODO: A matching.
  * TOOO: Rule application.
  * TODO: Ruleset management.
- * TODO: Operator management.
  * TODO: Make Bindings a BasicAtom.
  * 
  * = Design Goals =
