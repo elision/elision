@@ -23,22 +23,26 @@ object OPTYPE extends RootType {
 
 /**
  * Encapsulate an operator.
+ * @param opdef	The operator definition.
  */
-case class Operator(name: String) extends BasicAtom {
+case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   val theType = OPTYPE
   val deBrujinIndex = 0
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {
-      case Operator(oname) if name == oname => Match(binds)
+      case Operator(oopdef) if opdef == oopdef => Match(binds)
       case _ => Fail("Operators do not match.", this, subject)
     }
 
   def rewrite(binds: Bindings) = (this, false)
 
-  def toParseString = toESymbol(name)
+  def toParseString = toESymbol(opdef.proto.name)
   
-  // To create a parseable string we have to make the name parseable.
-  override def toString = "Operator(" + toEString(name) + ")"
+  def apply(arg: BasicAtom) = arg match {
+    case AtomList(atoms) =>
+      // TODO We need to check everything.
+      Apply(this, arg, true)
+    case _ => Apply(this, arg, true)
+  }
 }
-

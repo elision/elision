@@ -52,11 +52,13 @@ case class TypeUniverseNode() extends AstNode {
 
 /**
  * A node representing the application of an operator to an argument.
- * @param op		The operator.
- * @param arg		The argument.
+ * @param context	The context.
+ * @param op			The operator.
+ * @param arg			The argument.
  */
-case class ApplicationNode(op: AstNode, arg: AstNode) extends AstNode {
-  def interpret = Apply(op.interpret, arg.interpret)
+case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
+extends AstNode {
+  def interpret = Apply(context, op.interpret, arg.interpret)
 }
 
 /**
@@ -65,21 +67,24 @@ case class ApplicationNode(op: AstNode, arg: AstNode) extends AstNode {
 object ApplicationNode {
   /**
    * Create an application node for a binary operator.
-   * @param op		The binary operator.
-   * @param arg1	First argument.
-   * @param arg2	Second argument.
+   * @param context	The context.
+   * @param op			The binary operator.
+   * @param arg1		First argument.
+   * @param arg2		Second argument.
    * @return	The new application node.
    */
-  def apply(op: AstNode, arg1: AstNode, arg2: AstNode): ApplicationNode =
-    ApplicationNode(op, AtomListNode(List(arg1, arg2)))
+  def apply(context: Context, op: AstNode,
+      arg1: AstNode, arg2: AstNode): ApplicationNode =
+    ApplicationNode(context, op, AtomListNode(List(arg1, arg2)))
 }
 
 /**
  * A node representing a "naked" operator.
  * @param str	The operator name.
+ * @param lib	The operator library that will get the operator.
  */
-case class OperatorNode(str: String) extends AstNode {
-  def interpret = Operator(str)
+case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
+  def interpret = lib(str)
 }
 
 /**
@@ -513,9 +518,11 @@ case class FloatNode(sign: Boolean, integer: String, fraction: String,
 
 /**
  * A parser to parse a single atom.
- * @param trace If true, enable tracing.  Off by default.
+ * @param context	The context for rulesets and operators.
+ * @param trace 	If true, enable tracing.  Off by default.
  */
-class AtomParser(val trace: Boolean = false) extends Parser {
+class AtomParser(val context: Context, val trace: Boolean = false)
+extends Parser {
   abstract sealed class Presult
   case class Success(node: AstNode) extends Presult
   case class Failure(err: String) extends Presult
@@ -560,7 +567,7 @@ class AtomParser(val trace: Boolean = false) extends Parser {
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(ApplicationNode(_,_)))
+          funlist.foldRight(lastarg)(ApplicationNode(context,_,_)))
   }
 
   /**
@@ -600,7 +607,8 @@ class AtomParser(val trace: Boolean = false) extends Parser {
       // A "naked" operator is specified by explicitly giving the operator
       // type OPTYPE.  Otherwise it is parsed as a symbol.
       ESymbol ~ ": " ~ "OPTYPE " ~~> (
-          (sym: NakedSymbolNode) => OperatorNode(sym.str)) |
+          (sym: NakedSymbolNode) =>
+            OperatorNode(sym.str, context.operatorLibrary)) |
 
       // Parse a literal.  A literal can take many forms, but it should be
       // possible to always detect the kind of literal during parse.  By
@@ -628,7 +636,8 @@ class AtomParser(val trace: Boolean = false) extends Parser {
     // The same comment applies if you want to use a general atom as the
     // argument.
     ESymbol ~ "( " ~ ParsedAtomList ~ ") " ~~> (
-      (op: NakedSymbolNode, arg: AtomListNode) => ApplicationNode(op, arg))
+      (op: NakedSymbolNode, arg: AtomListNode) =>
+        ApplicationNode(context, op, arg))
   }
   
   /**

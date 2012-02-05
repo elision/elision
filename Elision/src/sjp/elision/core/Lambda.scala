@@ -18,8 +18,9 @@ package sjp.elision.core
 case class Lambda(deBrujinIndex: Int, lvar: Variable, body: BasicAtom)
 extends BasicAtom {
   // The type is a mapping from one type to another.
-	val theType =
-	  Apply(Operator("MAP"), AtomList(Seq(lvar.theType, body.theType)))
+	// val theType =
+	//  Apply(OperatorLibrary.MAP, AtomList(Seq(lvar.theType, body.theType)))
+  val theType = TypeUniverse
 	  	
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {

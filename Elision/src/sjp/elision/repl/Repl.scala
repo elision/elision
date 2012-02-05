@@ -16,9 +16,10 @@ import scala.collection.mutable.ListBuffer
  */
 object Repl {
   
-  var parser = new AtomParser(false)
+  val context = new Context()
+  var parser = new AtomParser(context, false)
   var binds = new Bindings
-  val library = new OperatorLibrary
+  val library = context.operatorLibrary
   var showPrior = false
   var showScala = false
   var bindNumber = 0
@@ -67,10 +68,15 @@ object Repl {
     // Save this in the history.
     history += line
     // First parse the line and see what we get.
-    val result = parser.parseAtom(lline)
-    result match {
-    	case parser.Success(ast) => handle(ast.interpret)
-      case parser.Failure(msg) => println(msg)
+    try {
+	    val result = parser.parseAtom(lline)
+	    result match {
+	    	case parser.Success(ast) => handle(ast.interpret)
+	      case parser.Failure(msg) => println(msg)
+	    }
+    } catch {
+      case ex:Exception =>
+        println("ERROR (" + ex.getClass + "): " + ex.getMessage())
     }
   }
   
@@ -103,7 +109,7 @@ object Repl {
       case Literal(_,SymVal('trace)) =>
         // Toggle tracing.
         trace = !trace
-        parser = new AtomParser(trace)
+        parser = new AtomParser(context, trace)
         println("Tracing is " + (if (trace) "ON." else "OFF."))
       case Literal(_,SymVal('scala)) =>
         // Toggle showing the Scala term.

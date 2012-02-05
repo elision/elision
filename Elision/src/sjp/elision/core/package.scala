@@ -55,12 +55,13 @@ package object core {
   
   /**
    * Attempt to parse the given string and return an atom.
-   * @param str		The string to parse.
-   * @param trace	Whether to trace the parse.
+   * @param str			The string to parse.
+   * @param context	The context.
+   * @param trace		Whether to trace the parse.
    * @return	The result of parsing, which may be null.
    */
-  def parse(str: String, trace: Boolean = false) = {
-    val ap = new AtomParser(trace)
+  def parse(str: String, context: Context, trace: Boolean = false) = {
+    val ap = new AtomParser(context, trace)
     try {
       val node = ap.tryParse(str)
       println(node.toParseString)
