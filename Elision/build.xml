@@ -45,15 +45,15 @@ provides the Elision Scala API.
     	<tstamp>
     		<format property="YEAR" pattern="yyyy"/>
     	</tstamp>
-   		<echo>
-        _ _     _
-    ___| (_)___(_) ___  _ __
-   / _ \ | / __| |/ _ \| '_ \
-  |  __/ | \__ \ | (_) | | | |
-   \___|_|_|___/_|\___/|_| |_|
+   		<echo level="info">
+      _ _     _
+  ___| (_)___(_) ___  _ __
+ / _ \ | / __| |/ _ \| '_ \
+|  __/ | \__ \ | (_) | | | |
+ \___|_|_|___/_|\___/|_| |_|
 
-  Copyright (c) ${YEAR} by Stacy Prowell (sprowell@gmail.com).
-  All rights reserved.
+Copyright (c) ${YEAR} by Stacy Prowell (sprowell@gmail.com).
+All rights reserved.
 		</echo>
    	</target>
 	
@@ -63,7 +63,7 @@ provides the Elision Scala API.
 		description="Select release configuration.">
 		<property name="build.optimize" value="on"/>
 		<property name="build.debug"    value="off"/>
-		<echo>Building RELEASE configuration.</echo>
+		<echo level="info">Building RELEASE configuration.</echo>
 	</target>
 
 
@@ -72,7 +72,7 @@ provides the Elision Scala API.
 		description="Select debug configuration.">
 		<property name="build.optimize" value="off"/>
 		<property name="build.debug"    value="on"/>
-		<echo>Building DEBUG configuration.</echo>
+		<echo level="info">Building DEBUG configuration.</echo>
 	</target>
 	
 	
@@ -88,7 +88,7 @@ provides the Elision Scala API.
 	
 	<!-- Check for Scala. -->
 	<target name="check-scala" depends="getenv" unless="env.SCALA_HOME">
-		<echo>Please set the environment variable SCALA_HOME to point to the
+		<echo level="error">Please set the environment variable SCALA_HOME to point to the
 root of your Scala installation.  This is the folder containing the
 bin, lib, and other folders.</echo>
 		<fail message="SCALA_HOME undefined."/>
@@ -105,7 +105,7 @@ bin, lib, and other folders.</echo>
 		<property name="build.lib"  	value="${build.base}/lib"/>
 		<property name="build.jar"		value="elision.jar"/>
 		<property name="build.latest"	value="${build.base}/latest"/>
-		<echo>Using Scala at ${env.SCALA_HOME}.</echo>
+		<echo level="info">Using Scala at ${env.SCALA_HOME}.</echo>
 		<path id="build.classpath">
 			<pathelement path="${java.class.path}"/>
 			<pathelement path="${build.bin}"/>
@@ -119,9 +119,31 @@ bin, lib, and other folders.</echo>
 		<taskdef resource="scala/tools/ant/antlib.xml"
 			classpathref="build.classpath"/>
 		<property name="build.classpath" refid="build.classpath"/>
-		<echo>Using CLASSPATH=${build.classpath}.</echo>
-		<echo>Starting build of Elision on ${TODAY} at ${TSTAMP}.</echo>
+		<echo level="verbose">Using CLASSPATH=${build.classpath}.</echo>
+		<echo level="info">Starting build of Elision on ${TODAY} at ${TSTAMP}.</echo>
     </target>
+	
+	
+	<!-- Clean up the build area.  This will force the source to be re-compiled
+		 but does not affect either the jars or the documentation. -->
+	<target name="clean" depends="init"
+		description="Delete compiled class files.">
+		<delete dir="${build.bin}" failonerror="false"/>
+	</target>
+	
+	
+	<!-- Clean up the entire folder, removing all directories and generated
+		 files including the date-stamped save directories. -->
+	<target name="distclean" depends="clean"
+		description="Remove all generated files and folders.">
+		<delete dir="${build.doc}/api" failonerror="false"/>
+		<delete dir="${build.latest}" failonerror="false"/>
+		<delete includeEmptyDirs="true" failonerror="false">
+			<!-- It is not clear why, but this does not work. -->
+			<fileset dir="${build.base}"
+				includes="[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]"/>
+		</delete>
+	</target>
 
 	
 	<!-- Compile all the Scala code that is out of date. -->
@@ -153,7 +175,7 @@ bin, lib, and other folders.</echo>
 	<!-- Build the Scala API documentation if it is out of date. -->
 	<target name="docs" depends="doc-check" unless="doc.uptodate"
 		description="Generate the Scaladoc.">
-		<echo>The API documentation is out of date; rebuilding.</echo>
+		<echo level="info">The API documentation is out of date; rebuilding.</echo>
 		<mkdir dir="${build.doc}"/>
 		<mkdir dir="${build.doc}/api"/>
 		<scaladoc
@@ -164,7 +186,7 @@ bin, lib, and other folders.</echo>
 			doctitle	="Elision Scala API ${DSTAMP}">
 			<src path="${build.src}"/>
 		</scaladoc>
-		<echo>API documentation is available in ${build.doc}/api.</echo>
+		<echo level="info">API documentation is available in ${build.doc}/api.</echo>
 	</target>
 
 
@@ -185,7 +207,7 @@ bin, lib, and other folders.</echo>
 		 the lib folder. -->
 	<target name="jars" depends="jar-check" unless="jar.uptodate"
 		description="Build the jar files.">
-		<echo>The ${build.jar} is out of date; rebuilding.</echo>
+		<echo level="info">The ${build.jar} is out of date; rebuilding.</echo>
 		<mkdir dir="${build.latest}"/>
 		<mkdir dir="${build.base}/${DSTAMP}"/>
 		<jar
@@ -205,7 +227,7 @@ bin, lib, and other folders.</echo>
 		</jar>
 		<copy file="${build.latest}/${build.jar}"
 			todir="${build.base}/${DSTAMP}"/>
-		<echo>New ${build.jar} built in ${build.latest}.</echo>
+		<echo level="info">New ${build.jar} built in ${build.latest}.</echo>
 	</target>
 
 
@@ -213,7 +235,7 @@ bin, lib, and other folders.</echo>
 		 is not required. -->
 	<target name="repl" depends="compile"
 		description="Start the Elision REPL.">
-		<java classname="sjp.elision.repl.Repl"
+		<java classname="sjp.elision.repl.Repl" fork="true"
 			classpathref="build.classpath">
 		</java>
 	</target>
