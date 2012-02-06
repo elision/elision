@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+      _ _     _
+  ___| (_)___(_) ___  _ __
+ / _ \ | / __| |/ _ \| '_ \
+|  __/ | \__ \ | (_) | | | |
+ \___|_|_|___/_|\___/|_| |_|
+The Elision Term Rewriter
+
+Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com)
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met: 
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer. 
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution. 
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<project name="elision" default="jars">
+	
+	
+    <description>
+Build the Elision term rewriter system.  This results in a jar file
+elision.jar that is executable (it runs the Elision REPL) and
+provides the Elision Scala API.
+    </description>
+    	
+    
+    <!-- A simple target to print a banner at the start of the build. -->
+    <target name="start">
+    	<tstamp>
+    		<format property="YEAR" pattern="yyyy"/>
+    	</tstamp>
+   		<echo>
+        _ _     _
+    ___| (_)___(_) ___  _ __
+   / _ \ | / __| |/ _ \| '_ \
+  |  __/ | \__ \ | (_) | | | |
+   \___|_|_|___/_|\___/|_| |_|
+
+  Copyright (c) ${YEAR} by Stacy Prowell (sprowell@gmail.com).
+  All rights reserved.
+		</echo>
+   	</target>
+	
+	
+  	<!-- A target to configure the build for release. -->
+	<target name="release" unless="build.debug"
+		description="Select release configuration.">
+		<property name="build.optimize" value="on"/>
+		<property name="build.debug"    value="off"/>
+		<echo>Building RELEASE configuration.</echo>
+	</target>
+
+
+	<!-- A target to configure the build for debugging. -->
+	<target name="debug" unless="build.debug"
+		description="Select debug configuration.">
+		<property name="build.optimize" value="off"/>
+		<property name="build.debug"    value="on"/>
+		<echo>Building DEBUG configuration.</echo>
+	</target>
+	
+	
+	<!-- Target to make the environment variables available via properties. -->
+	<target name="getenv">
+		<property environment="env"/>
+	</target>
+		
+	
+	<!-- Execute checks prior to building. -->
+	<target name="checks" depends="check-scala"/>
+	
+	
+	<!-- Check for Scala. -->
+	<target name="check-scala" depends="getenv" unless="env.SCALA_HOME">
+		<echo>Please set the environment variable SCALA_HOME to point to the
+root of your Scala installation.  This is the folder containing the
+bin, lib, and other folders.</echo>
+		<fail message="SCALA_HOME undefined."/>
+	</target>
+
+	
+	<!-- Perform all necessary initialization, set properties, create the
+		 classpath, etc. -->
+	<target name="init" depends="start,debug,checks">
+		<property name="build.base" 	value="."/>
+		<property name="build.src"  	value="${build.base}/src"/>
+		<property name="build.doc"  	value="${build.base}/doc"/>
+		<property name="build.bin"  	value="${build.base}/bin"/>
+		<property name="build.lib"  	value="${build.base}/lib"/>
+		<property name="build.jar"		value="elision.jar"/>
+		<property name="build.latest"	value="${build.base}/latest"/>
+		<echo>Using Scala at ${env.SCALA_HOME}.</echo>
+		<path id="build.classpath">
+			<pathelement path="${java.class.path}"/>
+			<pathelement path="${build.bin}"/>
+			<fileset dir="${env.SCALA_HOME}/lib">
+				<include name="**/*.jar"/>
+			</fileset>
+			<fileset dir="${build.lib}">
+				<include name="**/*.jar"/>
+			</fileset>
+		</path>
+		<taskdef resource="scala/tools/ant/antlib.xml"
+			classpathref="build.classpath"/>
+		<property name="build.classpath" refid="build.classpath"/>
+		<echo>Using CLASSPATH=${build.classpath}.</echo>
+		<echo>Starting build of Elision on ${TODAY} at ${TSTAMP}.</echo>
+    </target>
+
+	
+	<!-- Compile all the Scala code that is out of date. -->
+	<target name="compile" depends="init"
+		description="Compile all Scala code.">
+		<mkdir dir="${build.bin}"/>
+		<scalac
+			destdir		="${build.bin}"
+			classpathref="build.classpath"
+			deprecation	="on"
+			unchecked	="on">
+			<src path="${build.src}"/>
+		</scalac>
+    </target>
+
+
+	<!-- Determine if the documentation is up to date.  If it is, set the
+		 doc.uptodate property.  This checks the package.html file in the
+		 root folder of the documentation against the time stamps of the
+		 source files. -->
+	<target name="doc-check" depends="init">
+		<uptodate property="doc.uptodate"
+			targetfile="${build.doc}/api/package.html">
+			<srcfiles dir="${build.src}" includes="**.*.scala"/>
+		</uptodate>
+	</target>
+
+
+	<!-- Build the Scala API documentation if it is out of date. -->
+	<target name="docs" depends="doc-check" unless="doc.uptodate"
+		description="Generate the Scaladoc.">
+		<echo>The API documentation is out of date; rebuilding.</echo>
+		<mkdir dir="${build.doc}"/>
+		<mkdir dir="${build.doc}/api"/>
+		<scaladoc
+			destdir		="${build.doc}/api"
+			classpathref="build.classpath"
+			deprecation	="on"
+			unchecked	="on"
+			doctitle	="Elision Scala API ${DSTAMP}">
+			<src path="${build.src}"/>
+		</scaladoc>
+		<echo>API documentation is available in ${build.doc}/api.</echo>
+	</target>
+
+
+	<!-- Determine if the jar files are up to date.  If they are, set the
+		 jar.uptodate property.  This checks the latest jar file against
+		 the class files and supporting jar files in lib. -->
+	<target name="jar-check" depends="compile">
+		<uptodate property="jar.uptodate"
+			targetfile="${build.latest}/${build.jar}">
+			<srcfiles dir="${build.bin}" includes="**/*.class"/>
+			<srcfiles dir="${build.lib}" includes="**/*.jar"/>
+		</uptodate>
+	</target>
+
+
+	<!-- Build the jar files if they are out of date.  This builds a
+		 comprehensive jar file that contains all supporting jars from
+		 the lib folder. -->
+	<target name="jars" depends="jar-check" unless="jar.uptodate"
+		description="Build the jar files.">
+		<echo>The ${build.jar} is out of date; rebuilding.</echo>
+		<mkdir dir="${build.latest}"/>
+		<mkdir dir="${build.base}/${DSTAMP}"/>
+		<jar
+			filesetmanifest	="mergewithoutmain"
+			destfile		="${build.latest}/${build.jar}"
+			index			="true">
+			<fileset dir="${build.bin}"/>
+			<archives>
+				<zips>
+					<fileset dir="${build.lib}" includes="**/*.jar"/>
+				</zips>
+			</archives>
+			<manifest>
+				<attribute name="Build-Date" value="${DSTAMP}"/>
+				<attribute name="Main-Class" value="sjp.elision.repl.Repl"/>
+			</manifest>
+		</jar>
+		<copy file="${build.latest}/${build.jar}"
+			todir="${build.base}/${DSTAMP}"/>
+		<echo>New ${build.jar} built in ${build.latest}.</echo>
+	</target>
+
+
+	<!-- Execute the REPL.  This runs out of the bin folder, so the jar file
+		 is not required. -->
+	<target name="repl" depends="compile"
+		description="Start the Elision REPL.">
+		<java classname="sjp.elision.repl.Repl"
+			classpathref="build.classpath">
+		</java>
+	</target>
+</project>
