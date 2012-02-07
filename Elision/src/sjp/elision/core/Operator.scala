@@ -50,6 +50,7 @@ object OPTYPE extends RootType {
  */
 case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   val theType = OPTYPE
+  
   val deBrujinIndex = 0
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
@@ -62,10 +63,16 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
 
   def toParseString = toESymbol(opdef.proto.name)
   
+  /**
+   * Apply this operator to the given argument.  This is the correct way to
+   * apply an operator.
+   * @param arg	The argument.
+   * @return	A new atom.
+   */
   def apply(arg: BasicAtom) = arg match {
     case AtomList(atoms) =>
       // TODO We need to check everything.
-      Apply(this, arg, true)
-    case _ => Apply(this, arg, true)
+      Apply(this, arg)
+    case _ => Apply(this, arg)
   }
 }

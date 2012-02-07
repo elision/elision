@@ -82,7 +82,7 @@ class OperatorLibrary(
    * The mapping from operator name to operator.  This holds the mapping as it
    * changes.
    */
- 	var nameToOperator = MMap[String, Operator]()
+ 	private var _nameToOperator = MMap[String, Operator]()
  	
  	/**
  	 * Get the named operator, if it is defined.  If not already defined, and
@@ -97,7 +97,14 @@ class OperatorLibrary(
  	  case Some(op) => op
  	}
  	
- 	def get(name: String): Option[Operator] = nameToOperator.get(name) match {
+ 	/**
+ 	 * Get an operator by name.  If the operator is known, it is returned.  If
+ 	 * not, and if undefined operators are allowed, then the operator is
+ 	 * immediately defined and returned.  Otherwise None is returned.
+ 	 * @param name	The name of the operator.
+ 	 * @return	The optional operator.
+ 	 */
+ 	def get(name: String): Option[Operator] = _nameToOperator.get(name) match {
  	  case s:Some[Operator] => s
  	  case None if allowUndefined == true =>
  	    // Make the operator now.
@@ -122,14 +129,14 @@ class OperatorLibrary(
  	 */
  	def add(od: OperatorDefinition) = {
  	  val name = od.proto.name
- 	  if (nameToOperator.contains(name))
+ 	  if (_nameToOperator.contains(name))
  	    if (allowRedefinition)
  	      println("WARNING: Redefining operator " + od.proto.name)
  	    // Reject this!  The operator is already defined.
  	    else throw OperatorRedefinitionError(
  	        "Attempt to re-define known operator " + name + ".")
     // Accept this and store it in the map.  Return the definition.
-    nameToOperator += (name -> Operator(od))
+    _nameToOperator += (name -> Operator(od))
  	  od
  	}
  	

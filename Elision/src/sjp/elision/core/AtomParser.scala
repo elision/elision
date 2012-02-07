@@ -50,6 +50,14 @@ sealed abstract class AstNode {
   def interpret: BasicAtom
 }
 
+/**
+ * A special node indicating end of the input was found just as atom parsing
+ * was started.  This is not an error; it is just the end of input.
+ */
+case class EndNode extends AstNode {
+  def interpret = TypeUniverse
+}
+
 //----------------------------------------------------------------------
 // Type nodes.
 //----------------------------------------------------------------------
@@ -547,6 +555,7 @@ case class FloatNode(sign: Boolean, integer: String, fraction: String,
 class AtomParser(val context: Context, val trace: Boolean = false)
 extends Parser {
   abstract sealed class Presult
+  case class Finish() extends Presult
   case class Success(node: AstNode) extends Presult
   case class Failure(err: String) extends Presult
   
@@ -559,6 +568,7 @@ extends Parser {
     val tr = if (trace) TracingParseRunner(Atom) else ReportingParseRunner(Atom)
     val parsingResult = tr.run(atom)
     parsingResult.result match {
+      case Some(EndNode()) => Finish()
       case Some(astRoot) => Success(astRoot)
       case None => Failure("Invalid MPL2 source:\n" +
               ErrorUtils.printParseErrors(parsingResult))
@@ -566,15 +576,15 @@ extends Parser {
   }
   
   /**
-   * Attempt to parse an atom from the provided string, and return it.  If
-   * something goes wrong, null is returned by this method.
+   * Attempt to parse an atom from the provided string, and return it.
    * @param atom	The text to parse.
-   * @return	The parsed atom, or null if something went wrong.
+   * @return	The parsed atom, or None if there was no atom found.
    * @throws	ParsingException	Parsing failed.
    */
-  def tryParse[ATOM >: BasicAtom](atom: String): ATOM =
+  def tryParse[ATOM >: BasicAtom](atom: String): Option[ATOM] =
     parseAtom(atom) match {
-	    case Success(node) => node.interpret
+    	case Finish() => None
+	    case Success(node) => Some(node.interpret)
 	    case Failure(badness) => throw new ParsingException(badness)
 	  }
 
@@ -586,6 +596,8 @@ extends Parser {
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
+    // If we find the end of input, push an end node.
+    WS ~ EOI ~ push(EndNode()) |
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (

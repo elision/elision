@@ -79,14 +79,15 @@ package object core {
    * @param str			The string to parse.
    * @param context	The context.
    * @param trace		Whether to trace the parse.
-   * @return	The result of parsing, which may be null.
+   * @return	The result of parsing, which may be None.
    */
   def parse(str: String, context: Context, trace: Boolean = false) = {
     val ap = new AtomParser(context, trace)
     try {
-      val node = ap.tryParse(str)
-      println(node.toParseString)
-      node
+      ap.tryParse(str) match {
+        case None => None
+        case Some(atom) => { println(atom.toParseString) ; Some(atom) }
+      }
     } catch {
       case th: ParsingException => println(th.getMessage)
     }

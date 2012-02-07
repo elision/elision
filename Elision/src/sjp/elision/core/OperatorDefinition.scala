@@ -45,6 +45,17 @@ extends BasicAtom {
 	def rewrite(binds: Bindings) = (this, false)
 }
 
+object OperatorDefinition {
+  def handleArgument(argument: BasicAtom): Option[BasicAtom] = {
+    // What we do is determined by the kind of atom we are given.  If we can
+    // check an argument list, then do so.  Otherwise we leave it as-is.
+    argument match {
+      case AtomList(atoms) => Some(argument)
+      case _ => Some(argument)
+    }
+  }
+}
+
 /**
  * Encapsulate an operator definition.
  * @param proto		The prototype.

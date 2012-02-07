@@ -37,7 +37,7 @@ package sjp.elision.core
  * @param arg		The argument.
  * @param hack	Ignored.
  */
-case class Apply(op: BasicAtom, arg: BasicAtom, hack: Boolean)
+class Apply private (val op: BasicAtom, val arg: BasicAtom)
 extends BasicAtom {
   val theType = op.theType
   
@@ -47,7 +47,7 @@ extends BasicAtom {
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Only applies match applies.
     subject match {
-      case Apply(oop, oarg, _) => {
+      case Apply(oop, oarg) => {
         // Try to match the operators, and then the arguments.  If both match,
         // then this matches.  If not, then this does not match.
         op.tryMatch(oop, binds) match {
@@ -69,7 +69,7 @@ extends BasicAtom {
   def rewrite(binds: Bindings) = {
     val (newop, opchanged) = op.rewrite(binds)
     val (newarg, argchanged) = arg.rewrite(binds)
-    if (opchanged || argchanged) (Apply(newop, newarg, true), true)
+    if (opchanged || argchanged) (new Apply(newop, newarg), true)
     else (this, false)
   }
 
@@ -95,7 +95,23 @@ object Apply {
       // Get the real operator for the symbolic name.
       val realop = context.operatorLibrary(name.name)
       // Apply this operator to the given argument(s).
-      Apply(realop, arg, true)
-    case _ => Apply(op, arg, true)
+      new Apply(realop, arg)
+    case _ => new Apply(op, arg)
   }
+  
+  /**
+   * Construct an operator application.  No additional processing is
+   * performed here.
+   * @param op		The operator.
+   * @param arg		The argument.
+   * @return	The new application.
+   */
+  private[core] def apply(op: Operator, arg: BasicAtom) = new Apply(op, arg)
+  
+  /**
+   * Unpack an operator application.
+   * @param apply	The application.
+   * @return	The pair of operator and argument.
+   */
+  def unapply(apply: Apply) = Some(apply.op, apply.arg)
 }

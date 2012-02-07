@@ -124,6 +124,7 @@ object Repl {
     try {
 	    val result = _parser.parseAtom(lline)
 	    result match {
+	      case _parser.Finish() => 
 	    	case _parser.Success(ast) => handle(ast.interpret)
 	      case _parser.Failure(msg) => println(msg)
 	    }
@@ -194,7 +195,7 @@ object Repl {
         // Show the history.
         var num = 1
         for (line <- _history) { println(" " + num + ": " + line) ; num += 1 }
-      case Apply(Literal(_,SymVal('unbind)),AtomList(seq), _) =>
+      case Apply(Literal(_,SymVal('unbind)),AtomList(seq)) =>
         // Try to unbind.
         seq match {
           case Seq(from:Variable) =>
@@ -204,7 +205,7 @@ object Repl {
             println("ERROR: Incorrect form for an unbind.  Need a single " +
             		"argument that must be a variable.")
         }
-      case Apply(Literal(_,SymVal('bind)),AtomList(seq), _) =>
+      case Apply(Literal(_,SymVal('bind)),AtomList(seq)) =>
         // Try to bind.
         seq match {
           case Seq(from:Variable,to) =>
