@@ -116,12 +116,17 @@ bin, lib, and other folders.</echo>
 				<include name="**/*.jar"/>
 			</fileset>
 		</path>
-		<taskdef resource="scala/tools/ant/antlib.xml"
-			classpathref="build.classpath"/>
 		<property name="build.classpath" refid="build.classpath"/>
+		<taskdef resource="scala/tools/ant/antlib.xml"
+			classpath="${build.classpath}"/>
 		<echo level="verbose">Using CLASSPATH=${build.classpath}.</echo>
 		<echo level="info">Starting build of Elision on ${TODAY} at ${TSTAMP}.</echo>
     </target>
+	
+	
+	<!-- A simple target to build both the jars and the documentation. -->
+	<target name="all" depends="jars,docs"
+		description="Build the jars and the API documentation."/>
 	
 	
 	<!-- Clean up the build area.  This will force the source to be re-compiled
@@ -166,7 +171,7 @@ bin, lib, and other folders.</echo>
 	<target name="doc-check" depends="init">
 		<uptodate property="doc.uptodate"
 			targetfile="${build.doc}/api/package.html">
-			<srcfiles dir="${build.src}" includes="**.*.scala"/>
+			<srcfiles dir="${build.src}" includes="**/*.scala"/>
 		</uptodate>
 	</target>
 

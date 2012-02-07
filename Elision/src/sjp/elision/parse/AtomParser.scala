@@ -54,7 +54,7 @@ sealed abstract class AstNode {
  * A special node indicating end of the input was found just as atom parsing
  * was started.  This is not an error; it is just the end of input.
  */
-case class EndNode extends AstNode {
+case class EndNode() extends AstNode {
   def interpret = TypeUniverse
 }
 

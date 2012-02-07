@@ -105,7 +105,7 @@ class OperatorLibrary(
  	 * @return	The optional operator.
  	 */
  	def get(name: String): Option[Operator] = _nameToOperator.get(name) match {
- 	  case s:Some[Operator] => s
+ 	  case s:Some[_] => s
  	  case None if allowUndefined == true =>
  	    // Make the operator now.
  	    val od = SymbolicOperatorDefinition(

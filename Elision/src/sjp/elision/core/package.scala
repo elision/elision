@@ -34,6 +34,10 @@ package sjp.elision
 /**
  * Basic definitions used in this package.
  * 
+ * = Punch List =
+ * This is the current punch list for Elision.  Use TODO to indicate an item;
+ * this gets picked up by Eclipse.
+ * 
  * TODO: Complete Rule implementation (matching).
  * TODO: Complete Operator definition implementation (matching).
  * TODO: Ruleset change actions.
@@ -44,9 +48,32 @@ package sjp.elision
  * TOOO: Rule application.
  * TODO: Ruleset management.
  * TODO: Make Bindings a BasicAtom.
+ * TODO: Revisit every atom class wrt case class or not.
+ * TODO: BasicAtom cleanup / doc.
+ * TODO: Bindings cleanup / doc.
+ * TODO: Literal cleanup / doc.
+ * TODO: Variable cleanup / doc.
+ * TODO: Lambda cleanup / doc.
+ * TODO: Apply cleanup / doc.
+ * TODO: Context cleanup / doc.
+ * TODO: OperatorDefinition cleanup / doc.
+ * TODO: TypeUniverse cleanup / doc.
+ * TODO: MatchIterator cleanup / doc.
+ * TODO: Outcome cleanup / doc.
+ * TODO: Operator cleanup / doc.
+ * TODO: OperatorDefinition cleanup / doc.
+ * TODO: AtomList cleanup / doc.
+ * TODO: SequenceMatcher cleanup / doc.
+ * TODO: RewriteRule cleanup / doc.
+ * TODO: AtomParser cleanup / doc.
  * 
  * = Design Goals =
- * 
+ *  * Every atom that can be programmatically created can be written using
+ *    the toParseString, and the result can be parsed by AtomParser.
+ *  * Every atom that can be programmatically created has a toString method
+ *    that generates valid Scala code to reproduce the atom.
+ *  * Avoid global data and singletons.
+ *  * Simple API.
  */
 import scala.collection.immutable.HashMap
 import org.parboiled.errors.ParsingException
