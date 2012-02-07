@@ -139,9 +139,8 @@ bin, lib, and other folders.</echo>
 		<delete dir="${build.doc}/api" failonerror="false"/>
 		<delete dir="${build.latest}" failonerror="false"/>
 		<delete includeEmptyDirs="true" failonerror="false">
-			<!-- It is not clear why, but this does not work. -->
-			<fileset dir="${build.base}"
-				includes="[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]"/>
+			<fileset dir="${build.base}" includes="20??????/**"/>
+			<dirset dir="${build.base}" includes="20??????/**"/>
 		</delete>
 	</target>
 
