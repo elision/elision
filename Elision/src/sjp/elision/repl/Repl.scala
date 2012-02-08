@@ -33,6 +33,7 @@ package sjp.elision.repl
 
 import sjp.elision.core._
 import scala.collection.mutable.ListBuffer
+import sjp.elision.parse.AtomParser
 
 /**
  * Provide a REPL to experiment with the new term rewriter.

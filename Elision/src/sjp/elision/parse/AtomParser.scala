@@ -29,11 +29,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package sjp.elision.core
+package sjp.elision.parse
 
 import org.parboiled.scala._
 import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
+import sjp.elision.core._
 
 //======================================================================
 // Definitions for an abstract syntax tree for atoms.

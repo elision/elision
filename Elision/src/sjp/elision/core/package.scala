@@ -38,7 +38,6 @@ package sjp.elision
  * This is the current punch list for Elision.  Use TODO to indicate an item;
  * this gets picked up by Eclipse.
  * 
- * TODO: Complete Rule implementation (matching).
  * TODO: Complete Operator definition implementation (matching).
  * TODO: Ruleset change actions.
  * TODO: Infix.
@@ -77,6 +76,7 @@ package sjp.elision
  */
 import scala.collection.immutable.HashMap
 import org.parboiled.errors.ParsingException
+import sjp.elision.parse.AtomParser
 package object core {
   // Bindings are used to store variable / value maps used during matching, and
   // as the result of a successful match.
