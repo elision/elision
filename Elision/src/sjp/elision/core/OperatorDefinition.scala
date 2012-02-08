@@ -34,6 +34,11 @@ import scala.collection.mutable.LinkedList
 import scala.collection.mutable.ListBuffer
 
 /**
+ * An exception indicating an illegal operator definition.
+ */
+class IllegalOperatorDefinition(msg: String) extends Exception(msg)
+
+/**
  * Common root class for an operator definition.
  */
 abstract class OperatorDefinition(val proto: OperatorPrototype)
@@ -43,17 +48,6 @@ extends BasicAtom {
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     Fail("Operator definition matching is not implemented.", this, subject)
 	def rewrite(binds: Bindings) = (this, false)
-}
-
-object OperatorDefinition {
-  def handleArgument(argument: BasicAtom): Option[BasicAtom] = {
-    // What we do is determined by the kind of atom we are given.  If we can
-    // check an argument list, then do so.  Otherwise we leave it as-is.
-    argument match {
-      case AtomList(atoms) => Some(argument)
-      case _ => Some(argument)
-    }
-  }
 }
 
 /**
@@ -122,6 +116,17 @@ case class OperatorProperties(
     idem: Boolean = false,
     absorber: Option[BasicAtom] = None,
     identity: Option[BasicAtom] = None) {
+  // Absorbers, identities, and idempotency are only allowed when an operator
+  // is associative.
+  if (!assoc) {
+    if (idem) throw new IllegalOperatorDefinition(
+        "Idempotent operators must be associative.")
+    if (absorber != None) throw new IllegalOperatorDefinition(
+        "Operators with an absorber must be associative.")
+    if (identity != None) throw new IllegalOperatorDefinition(
+        "Operators with an identity must be associative.")
+  }
+  
   /**
    * The properties as a comma-delimited string.
    */

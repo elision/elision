@@ -49,13 +49,7 @@ case class UndefinedOperatorException(msg: String) extends Exception(msg)
  * are managed by name, and two operators in the same library cannot have the
  * same name (but there can be multiple libraries).
  * 
- * This is the place where instances of an operator are created.  Properties
- * are not checked, nor is any typechecking performed until the operator is
- * applied to some argument list.  Note that there is a trick here; since
- * an operator instance is immutable, only one instance is ever required for
- * an operator, and that instance is created and returned every time the
- * operator is requested.  So, if you need to use an operator many times, you
- * only have to get it once.
+ * = Undefined Operators =
  * 
  * You can set this class to allow undefined operators to be used.  When an
  * operator f that has not previously been defined is requested, a definition
@@ -65,8 +59,15 @@ case class UndefinedOperatorException(msg: String) extends Exception(msg)
  * operator { f(x: ^TYPE, y: ^TYPE): ^TYPE is associative }
  * }}}
  * 
- * This allows the operator to take any number of arguments, including zero,
- * with any type.
+ * This is borderline useless, and is only intended for testing and debugging.
+ * Since you cannot modify the operator definition, and the above is probably
+ * not what you want, there is little reason to use this "feature" and it may
+ * be removed in the future.
+ * 
+ * = Native Operators =
+ * 
+ * Handlers for native operators come here to register themselves.  Pass a
+ * closure that takes the argument list.
  * 
  * @param allowUndefined		If true, allow undefined operators as described
  * 													above.  This is false by default.
@@ -83,6 +84,57 @@ class OperatorLibrary(
    * changes.
    */
  	private var _nameToOperator = MMap[String, Operator]()
+ 	
+ 	/**
+ 	 * The mapping from operator name to its native handler.  This holds the
+ 	 * mapping as it changes.
+ 	 */
+ 	private var _nameToHandler = MMap[String, (String, AtomList) => BasicAtom]()
+ 	
+ 	private var _warned = scala.collection.mutable.Set[String]()
+ 	
+ 	/**
+ 	 * Register a native handler for an operator.  The operator does not have
+ 	 * to be defined yet.  Note that the handler is not always invoked; only if
+ 	 * an operator is applied to an argument list is the handler invoked, and
+ 	 * then only if the argument list survives processing for the operator
+ 	 * properties (absorber, etc.).
+ 	 * 
+ 	 * @param name		The operator name.  This is always passed to the handler
+ 	 * 								as the first argument.  This makes it possible to write
+ 	 * 								a single handler for many similar operators.
+ 	 * @param handler	The handler.  It must take the operator name and the
+ 	 * 								argument list, post processing for identities and such,
+ 	 * 								and generate a new atom.
+ 	 */
+ 	def register(name: String, handler: (String, AtomList) => BasicAtom) = {
+ 	  _nameToHandler += (name -> handler)
+ 	  this
+ 	}
+ 	
+ 	/**
+ 	 * Handle a native operator application.  This method is used by the
+ 	 * [[sjp.elision.core.Operator]] class to invoke the native handler, if
+ 	 * one has been registered.
+ 	 * 
+ 	 * If no native handler has been provided, then a warning message is issued
+ 	 * the first time the operator is encountered here.
+ 	 * 
+ 	 * @param op		The operator.
+ 	 * @param args	The argument list.
+ 	 * @return	A new atom.
+ 	 */
+ 	def handle(op: Operator, args: AtomList) =
+ 	  _nameToHandler.get(op.opdef.proto.name) match {
+		  case None =>
+		    if (!_warned.contains(op.name)) {
+		      _warned.add(op.name)
+		      warn("No implementation provided for native operator " +
+		          op.name + ".")
+		    }
+		    Apply(op, args)
+		  case Some(handler) => handler(op.name, args)
+	 	}
  	
  	/**
  	 * Get the named operator, if it is defined.  If not already defined, and

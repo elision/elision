@@ -139,7 +139,7 @@ case class AtomListNode(list: List[AstNode]) extends AstNode {
    * have not yet been specified, and should be inherited from an operator.
    */
   var props: Option[(Boolean, Boolean)] = None
-  def interpret = AtomList(list map (_.interpret))
+  def interpret = AtomList(list map (_.interpret), props)
   /**
    * Set the properties for this list.
    * @param assoc		If true, the list is associative.
@@ -710,9 +710,14 @@ extends Parser {
     // an A (for associativity) or C (for commutativity), followed by the
     // list in parens.
     //
+    // The special case of %?(..) is reserved for explicitly not setting the
+    // properties of the list.  Such as list is then applicable to any
+    // operator, and will take its properties from the operator.
+    //
     // Note that f(x,y,z), if f is associative, could be written as:
     // f.%A(x,y,z)
     "%" ~ (
+      "? " ~ "( " ~ ParsedAtomList ~ ") " |
       ("AC " | "CA ") ~ "( " ~ ParsedAtomList ~ ") " ~~> (
         (list: AtomListNode) => list.setProperties(true, true)) |
       "A " ~ "( " ~ ParsedAtomList ~ ") " ~~> (

@@ -73,10 +73,16 @@ extends BasicAtom {
     else (this, false)
   }
 
-  override def toParseString = 
+  def toParseString =
+    // If the operator is an actual operator instance, and if the argument is
+    // an atom list, then we generate the "friendly" version of the apply.
+    // Otherwise we generate the more general form of the apply.
     op match {
-	    case _:Operator => op.toParseString +
-	    	"(" + arg.toParseString + ")"
+	    case _:Operator =>
+	      arg match {
+	        case al:AtomList => op.toParseString + "(" + al.toNakedString + ")"
+	        case _ => op.toParseString + "." + arg.toParseString
+	      }
 	    case _ => op.toParseString + "." + arg.toParseString
 	  }
 }

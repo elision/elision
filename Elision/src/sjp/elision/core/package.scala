@@ -35,19 +35,13 @@ package sjp.elision
  * Basic definitions used in this package.
  * 
  * = Punch List =
- * This is the current punch list for Elision.  Use TODO to indicate an item;
- * this gets picked up by Eclipse.
+ * This is the current punch list for Elision.  This list gets picked up by
+ * Eclipse.
  * 
- * TODO: Complete Operator definition implementation (matching).
- * TODO: Ruleset change actions.
- * TODO: Infix.
- * TODO: AC matching.
- * TODO: C matching.
- * TODO: A matching.
  * TOOO: Rule application.
- * TODO: Ruleset management.
  * TODO: Make Bindings a BasicAtom.
  * TODO: Revisit every atom class wrt case class or not.
+ * 
  * TODO: BasicAtom cleanup / doc.
  * TODO: Bindings cleanup / doc.
  * TODO: Literal cleanup / doc.
@@ -65,6 +59,13 @@ package sjp.elision
  * TODO: SequenceMatcher cleanup / doc.
  * TODO: RewriteRule cleanup / doc.
  * TODO: AtomParser cleanup / doc.
+ * 
+ * TODO: Complete Operator definition implementation (matching). DEFER.
+ * TODO: Ruleset change actions. DEFER.
+ * TODO: Infix. DEFER.
+ * TODO: AC matching. DEFER.
+ * TODO: C matching. DEFER.
+ * TODO: A matching. DEFER.
  * 
  * = Design Goals =
  *  * Every atom that can be programmatically created can be written using
@@ -164,5 +165,14 @@ package object core {
     }
     buf ++= "\""
     buf.toString
+  }
+  
+  /**
+   * Issue a warning.  This should be wired to whatever error reporting
+   * mechanism you want to use.
+   * @param text	The text of the warning.
+   */
+  def warn(text: String) {
+    println("WARNING: " + text)
   }
 }

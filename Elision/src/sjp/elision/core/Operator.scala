@@ -51,6 +51,9 @@ object OPTYPE extends RootType {
 case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   val theType = OPTYPE
   
+  /** Provide quick access to the operator name. */
+  lazy val name = opdef.proto.name
+  
   val deBrujinIndex = 0
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
@@ -61,18 +64,63 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
 
   def rewrite(binds: Bindings) = (this, false)
 
-  def toParseString = toESymbol(opdef.proto.name)
+  def toParseString = toESymbol(name) + ":OPTYPE"
   
   /**
    * Apply this operator to the given argument.  This is the correct way to
-   * apply an operator.
+   * apply an operator.  The argument can be any atom.
    * @param arg	The argument.
    * @return	A new atom.
    */
   def apply(arg: BasicAtom) = arg match {
-    case AtomList(atoms) =>
-      // TODO We need to check everything.
+    /*
+     * How Operator Applications Get Created
+     * 
+     * Okay, so you come here to create an operator.  If the argument is not
+     * an atom list, then the application is immediately created and returned.
+     * No native handler or immediate rewrite is applied.
+     * 
+     * Otherwise you have to do some work.  In order to do this properly, you
+     * have to know what the operator is, have its prototype and properties,
+     * and do some processing.  All those ingredients are present here, so
+     * this is where the magic happens.
+     * 
+     * This is how an operator application is handled.
+		 * 
+		 *  # If the argument is not an atom list, then the application is immediately
+		 *    created and returned.  No native handlers are invoked and no immediate
+		 *    rewrites are applied.
+		 *  # If the argument is an atom list, then the atom list properties are
+		 *    checked.  If they are set, they must match the operator's properties,
+		 *    or an ArgumentListException is thrown.
+		 *  # A new argument list is allocated with the same properties as the operator.
+		 *  # Each argument in the original list is considered, and the following is
+		 *    done.
+		 *  # The arguments are matched against the parameter list.  If the match fails,
+		 *    then an ArgumentListException is thrown.
+		 *  # Any instances of an identity are discarded.
+		 *  # If an absorber is found, it is immediately returned as the result.
+		 *  # If no arguments are left, and the operator has an identity, then the
+		 *    identity is returned as the result.
+		 *  # If the operator is a native operator, and a closure has been registered,
+		 *    then the new argument list is passed to the closure.  Note that this means
+		 *    that the closure might not get invoked; for instance, if an absorber is
+		 *    found.  The result of the closure is returned as the result.
+		 *  # If no closure is present for a native operator, or if the operator is a
+		 *    symbolic operator, then the operator prototype is rewritten with the
+		 *    bindings from the parameter match.  The result is returned.
+		 *  # Finally, for an immediate operator the bindings are applied to the
+		 *    replacement, and the result is returned.
+     */
+    
+    case al:AtomList =>
+      // See if the atom list provides properties.
+      al.props match {
+        case None => // No properties specified; nothing to check.
+        case Some((assoc,comm)) =>
+      }
       Apply(this, arg)
+    // If not an atom list, immediately make and return an apply.
     case _ => Apply(this, arg)
   }
 }

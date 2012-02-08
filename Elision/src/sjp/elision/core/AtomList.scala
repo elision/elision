@@ -37,8 +37,12 @@ import java.util.LinkedList
 /**
  * Encapsulate an ordered list of atoms.
  * @param atoms		The list of atoms.  Note that order may be important.
+ * @param props		The optional operator properties.  If specified, this must
+ * 								be a pair whose first element is associativtiy, and whose
+ * 								second element is commutativity.
  */
-case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
+case class AtomList(atoms: Seq[BasicAtom],
+    props: Option[(Boolean,Boolean)] = None) extends BasicAtom {
   require(atoms != null)
   
   // The type of all lists is the type universe.  This may be changed later.
@@ -52,12 +56,18 @@ case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
     // Ordered lists only match other ordered lists with matching elements in
     // the same order.
     subject match {
-    	case AtomList(oatoms) =>
+    	case AtomList(oatoms, oprops) =>
     	  // The lists must be the same length, or they cannot match.
     	  if (atoms.length != oatoms.length)
     	    Fail("Lists are different sizes.", this, subject)
-    	  else Fail("Not implemented.")
-    	    // Match with backtracking.  This is tricky, tricky.
+    	  else
+    	    // The properties must be the same, or they cannot match.
+    	    if (props != oprops)
+    	      Fail("List properties do not match.", this, subject)
+    	    else
+    	      // Now all the items in the list much match.  We use the sequence
+    	      // matcher for that.
+    	      SequenceMatcher.tryMatch(atoms, oatoms, binds)
       case _ => Fail("Not implemented.")
     }
 
@@ -74,7 +84,23 @@ case class AtomList(atoms: Seq[BasicAtom]) extends BasicAtom {
     if (changed) (AtomList(newlist), true) else (this, false)
   }
 
-  // An atom list is just the list of atoms, separated by commas.  It is up to
-  // the enclosing scope to determine if parens are needed.
-  def toParseString = atoms.mkParseString("", ", ", "")
+  // An atom list is just the list of atoms, separated by commas.  The list may
+  // have properties set; if so, those are indicated here.
+  def toParseString = atoms.mkParseString(
+      "%" + (props match {
+        case None => "?"
+        case Some((false, false)) => ""
+        case Some((true, false)) => "A"
+        case Some((false, true)) => "C"
+        case Some((true, true)) => "AC"
+      }) + "(" , ", ", ")")
+  
+  /**
+   * Provide a "naked" version of the list, without the parens and property
+   * indicators.
+   * @return	The elements of the list, separated by commas.  Items internal
+   * 					to the list may themselves be lists; that is okay, since the
+   * 					parse string is used for those atoms.
+   */
+  def toNakedString = atoms.mkParseString("", ", ", "")
 }
