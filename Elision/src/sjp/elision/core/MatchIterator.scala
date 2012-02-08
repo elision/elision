@@ -157,7 +157,7 @@ class MatchIterator(val localMatch: (Bindings) => Outcome,
       // Obtain the next subordinate match.  We get a collection of bindings.
       // Then apply the local matching process and handle the result.
       localMatch(subiter.next) match {
-        case Fail(_) => return getNextMatch	// Tail recursion.
+        case Fail(_,_) => return getNextMatch	// Tail recursion.
         case Match(binds) => return binds		// Got a single binding.
         case Many(matches) => {
           // Now we have a local iterator.  Save it and start using it now.

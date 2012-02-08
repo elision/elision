@@ -36,7 +36,6 @@ package sjp.elision.core
  */
 object RULETYPE extends RootType {
   val theType = TypeUniverse
-  
   def toParseString = "RULETYPE"
 }
 
@@ -52,20 +51,29 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
     extends BasicAtom {
   val theType = RULETYPE
-  val deBrujinIndex = 0
+  
+  // The De Brujin index of a rewrite rule is equal to the maximum index of
+  // the children of the rule.
+  val deBrujinIndex = {
+    import scala.math._
+    val tmp = max(pattern.deBrujinIndex, rewrite.deBrujinIndex)
+    max(tmp, guards.foldLeft(0)((x,y) => x.max(y.deBrujinIndex)))
+  }
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Rules match only other rules.
     subject match {
-    case RewriteRule(opat, orew, ogua, orul, olev) =>
-      Fail("Rule matching is not implemented.", this, subject)
-    case _ => Fail("Rules cannot match non-rules.", this, subject)
-  }
+	    case RewriteRule(opat, orew, ogua, orul, olev) =>
+	      SequenceMatcher.tryMatch(pattern +: rewrite +: guards,
+	          opat +: orew +: ogua)
+	    case _ => Fail("Rules cannot match non-rules.", this, subject)
+	  }
 
   def rewrite(binds: Bindings) = {
     // Rewrite the pattern and rewrite.
     val (newpat, patchanged) = pattern.rewrite(binds)
     val (newrew, rewchanged) = rewrite.rewrite(binds)
+    
     // Rewrite all the guards.
     var changed = patchanged || rewchanged
     var newgua = guards.map(gua => {
@@ -73,6 +81,9 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
       changed |= guachanged
       newgua
     })
+    
+    // If any part of the rewrite rule changed, generate a new rewrite rule,
+    // preserving the ruleset membership and cache level.
     if (changed)
       (RewriteRule(newpat, newrew, newgua, rulesets, cacheLevel), true)
     else (this, false)

@@ -53,8 +53,10 @@ case class Many(matches: MatchIterator) extends Outcome
 /**
  * An attempted match failed for the specified reason.
  * @param reason	The reason the match failed, as a closure.
+ * @param index		A failure index, in cases where that has meaning, such as
+ * 								when matching a sequence of atoms against another sequence.
  */
-case class Fail(reason: () => String) extends Outcome {
+case class Fail(reason: () => String, index: Int) extends Outcome {
   /**
    * Evaluate the reason closure to obtain the actual reason.  This is done
    * in a lazy fashion and stored to prevent it from being evaluated before
@@ -77,7 +79,7 @@ object Fail {
    * Construct a new Fail using a simple string instead of a closure.
    * @param reason	The reason the match failed.
    */
-  def apply(reason: String) = new Fail(() => reason)
+  def apply(reason: String) = new Fail(() => reason, 0)
 
   /**
    * Construct a new Fail using the given reason string, showing the pattern
@@ -89,13 +91,14 @@ object Fail {
    * @param prior		The optional subordinate matching failure that caused this
    * 								match to fail.  This allows reporting a chain of matching
    * 								failures.  This value is optional.
+   * @param index		An index.  This is useful when we are matching a sequence.
    */
   def apply(reason: String, pattern: BasicAtom, subject: BasicAtom,
-    prior: Option[Fail] = None) =
+    prior: Option[Fail] = None, index: Int = 0): Fail =
     new Fail(() => reason + "\nPattern: " +
       pattern.toString + "\nSubject: " + subject.toString +
       (prior match {
         case None => ""
         case Some(fail: Fail) => "\n\nCaused by: " + prior.toString
-      }))
+      }), index)
 }
