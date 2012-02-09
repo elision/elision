@@ -32,6 +32,13 @@
 package sjp.elision.core
 
 import scala.collection.immutable.HashMap
+import scala.collection.mutable.ListBuffer
+
+/**
+ * An incorrect argument list was supplied to an operator.
+ * @param msg	The human-readable message describing the problem.
+ */
+class ArgumentListException(msg: String) extends Exception(msg)
 
 /**
  * A type for all operators.
@@ -118,9 +125,97 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
       al.props match {
         case None => // No properties specified; nothing to check.
         case Some((assoc,comm)) =>
+          // The properties must match.  We also check for absorbers and
+          // identities here.  We only do this for native and symbolic
+          // definitions.
+          opdef match {
+            case NativeOperatorDefinition(_, props) =>
+              checkProps(props, al, assoc, comm)
+            case SymbolicOperatorDefinition(_, props) =>
+              checkProps(props, al, assoc, comm)
+            case _ =>
+          }
       }
       Apply(this, arg)
     // If not an atom list, immediately make and return an apply.
     case _ => Apply(this, arg)
+  }
+  
+  /**
+   * Check the given properties against the operator definition.  If they do
+   * not match, throw an exception.
+   * 
+   * The argument list is processed to flatten associative applications, and
+   * to remove identities and look for absorbers.
+   * 
+   * Finally, the remaining arguments (if any) are checked to see if they
+   * match the formal parameters.
+   * 
+   * @param props		The operator properties.
+   * @param al			The original atom list.
+   * @param assoc		True iff associative.
+   * @param comm		True iff commutative.
+   * @return	An argument list modified according to the specified properties.
+   * @throws	ArgumentListException
+   * 					The properties do not match.
+   */
+  private def checkProps(props: OperatorProperties, al: AtomList,
+      assoc: Boolean, comm: Boolean): BasicAtom = {
+    // Check the properties and throw an exception if they do not match.
+    if (props.assoc && !assoc)
+      throw new ArgumentListException("Non-associative argument list " +
+      		"passed to associative operator.")
+    else if (props.comm && !comm)
+      throw new ArgumentListException("Non-commutative argument list " +
+      		"passed to commutative operator.")
+    else if (assoc && !props.assoc)
+      throw new ArgumentListException("Associative argument list passed " +
+      		"to non-associative operator.")
+    else if (comm && !props.comm)
+      throw new ArgumentListException("Commutative argument list passed " +
+      		"to non-commutative operator.")
+    
+    // If the operator is not associative, then we cannot change the number
+    // of elements.  The only remaining item is to match the arguments against
+    // the formal parameters.
+    if (!assoc) {
+      SequenceMatcher.tryMatch(opdef.proto.pars, al.atoms) match {
+        case fail:Fail =>
+          throw new ArgumentListException("Incorrect argument list: " + fail)
+        case _ => Apply(this, al)
+      }
+    }
+    
+    // Now check for identities and absorbers, and flatten any associative
+    // applications.
+    val newlist = ListBuffer[BasicAtom]()
+    val absorber = props.absorber.getOrElse(null)
+    val identity = props.identity.getOrElse(null)
+    for (atom <- al.atoms) {
+		  // See if this atom is an absorber.  If so, we are done.
+		  if (atom == absorber) return absorber
+		  
+		  // If this atom is an application of the same operator, then flatten
+		  // the argument list.
+		  atom match {
+		    case Apply(op, AtomList(args,_)) if op == this =>
+		      // Add the arguments directly to this list.  We can assume it has
+		      // already been processed, so no deeper checking is needed.
+		      newlist ++ args
+		    case _ =>
+		  }
+		  
+		  // See if this atom is not the identity.  If so, add it to the list.
+		  if (atom != identity) newlist += atom
+    }
+    
+    // If the list is empty, and there is an identity, then the identity is
+    // the result.  Otherwise the answer is a new list.
+    if (newlist.isEmpty && identity != null) return identity
+    
+    // There are still arguments left.  These arguments must match the formal
+    // parameters.  For this to work, we need the argument lists to be the same
+    // size.
+    AtomList(newlist, Some((assoc, comm)))
   }
 }

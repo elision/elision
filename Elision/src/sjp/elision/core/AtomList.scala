@@ -36,6 +36,7 @@ import java.util.LinkedList
 
 /**
  * Encapsulate an ordered list of atoms.
+ * 
  * @param atoms		The list of atoms.  Note that order may be important.
  * @param props		The optional operator properties.  If specified, this must
  * 								be a pair whose first element is associativtiy, and whose
