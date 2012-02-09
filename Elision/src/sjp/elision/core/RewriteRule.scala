@@ -94,6 +94,54 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     else (this, false)
   }
   
+  /**
+   * Attempt to apply this rule to a given atom.
+   * 
+   * To successfully apply a rule, the subject must match the pattern and
+   * given the provided bindings (if any).  The complete set of bindings is
+   * then used to rewrite every guard, and these are checked to see if they
+   * are the literal true.  At present no further rewriting of guards is
+   * performed.
+   * 
+   * If all guards are true, then the bindings are applied to the rewrite and
+   * the result is returned.
+   * 
+   * @param subject	The subject to test.
+   * @param binds		Bindings to honor.
+   * @return	A pair consisting of an atom and a boolean.  The boolean is
+   * 					true if the rewrite yielded a new atom, and is false otherwise.
+   */
+  def tryRewrite(subject: BasicAtom, binds: Bindings = new Bindings()):
+  (BasicAtom, Boolean) = {
+    // Local function to check the guards.
+    def checkGuards(candidate: Bindings): Boolean = {
+      for (guard <- guards) {
+        val (newguard, _) = guard.rewrite(candidate)
+        if (!newguard.isTrue) return false
+      }
+      true
+    }
+    
+    // Local function to perform the rewrite if the rule fires.
+    def doRewrite(candidate: Bindings) = rewrite.rewrite(candidate)
+    
+    // First we try to match the given atom against the pattern.
+    pattern.tryMatch(subject, binds) match {
+      case fail:Fail => (subject, false)
+      case Match(newbinds) =>
+        // We got a match.  Check the guards.
+        if (checkGuards(newbinds)) doRewrite(newbinds)
+        else (subject, false)
+      case Many(iter) =>
+        // We might have many matches.  We search through them until we find
+        // one that satisfies the guards, or until we run out of candidates.
+        for (newbinds <- iter) {
+          if (checkGuards(newbinds)) doRewrite(newbinds)
+        }
+        (subject, false)
+    }
+  }
+  
   def toParseString = "RULE { " + pattern.toParseString + " -> " +
   	rewrite.toParseString +
   	(if (!guards.isEmpty) guards.mkParseString(" if ", " if ", "") else "") +

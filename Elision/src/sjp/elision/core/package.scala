@@ -38,7 +38,6 @@ package sjp.elision
  * This is the current punch list for Elision.  This list gets picked up by
  * Eclipse.
  * 
- * TOOO: Rule application.
  * TODO: Make Bindings a BasicAtom.
  * TODO: Revisit every atom class wrt case class or not.
  * TODO: Extract sequence rewriting. (?)
@@ -62,7 +61,7 @@ package sjp.elision
  * TODO: RewriteRule cleanup / doc.
  * TODO: AtomParser cleanup / doc.
  * 
- * TODO: Complete Operator definition implementation (matching). DEFER.
+ * TODO: Complete operator definition implementation (matching). DEFER.
  * TODO: Ruleset change actions. DEFER.
  * TODO: Infix. DEFER.
  * TODO: AC matching. DEFER.
