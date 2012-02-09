@@ -44,6 +44,9 @@ extends BasicAtom {
 	// val theType =
 	//  Apply(OperatorLibrary.MAP, AtomList(Seq(lvar.theType, body.theType)))
   val theType = TypeUniverse
+  
+  // Constancy of a lambda depends only on the body.
+  val isConstant = body.isConstant
 	  	
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {
@@ -65,6 +68,8 @@ extends BasicAtom {
 	  }
   
   def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
+  
+  override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
 }
 
 /**

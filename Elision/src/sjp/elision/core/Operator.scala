@@ -46,9 +46,13 @@ class ArgumentListException(msg: String) extends Exception(msg)
 object OPTYPE extends RootType {
   val theType = TypeUniverse
   
+  val isConstant = true
+  
   def toParseString = "OPTYPE"
     
   override def toString = "OPTYPE"
+    
+  override lazy val hashCode = toParseString.hashCode
 }
 
 /**
@@ -57,6 +61,7 @@ object OPTYPE extends RootType {
  */
 case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   val theType = OPTYPE
+  val isConstant = opdef.isConstant
   
   /** Provide quick access to the operator name. */
   lazy val name = opdef.proto.name
@@ -218,4 +223,6 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
     // size.
     AtomList(newlist, Some((assoc, comm)))
   }
+  
+  override lazy val hashCode = opdef.hashCode
 }

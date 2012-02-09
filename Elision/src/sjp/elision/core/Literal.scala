@@ -49,6 +49,7 @@ sealed abstract class LitVal {
  */
 case class IntVal(ival: BigInt) extends LitVal {
 	def toParseString = ival.toString
+	override lazy val hashCode = ival.hashCode
 }
 
 /**
@@ -57,6 +58,7 @@ case class IntVal(ival: BigInt) extends LitVal {
  */
 case class StrVal(sval: String) extends LitVal {
 	def toParseString = toEString(sval)
+	override lazy val hashCode = sval.hashCode
 }
 
 /**
@@ -66,6 +68,7 @@ case class StrVal(sval: String) extends LitVal {
 case class SymVal(sval: Symbol) extends LitVal {
 	def toParseString = toESymbol(sval.name)
 	override def toString = "SymVal(Symbol(" + toEString(sval.name) + "))"
+	override lazy val hashCode = sval.hashCode
 }
 
 /**
@@ -103,6 +106,9 @@ extends LitVal {
    * Get a simple native floating point representation of this number.
    */
   def toFloat = significand * BigInt(radix).pow(exponent)
+  
+  override lazy val hashCode = (significand.hashCode * 31 +
+  	exponent.hashCode) * 31 + radix.hashCode
 }
 
 /**
@@ -111,6 +117,7 @@ extends LitVal {
  */
 case class FltVal(fval: Float) extends LitVal {
 	def toParseString = fval.toString
+	override lazy val hashCode = fval.hashCode
 }
 
 /**
@@ -119,6 +126,7 @@ case class FltVal(fval: Float) extends LitVal {
  */
 case class BooVal(bool: Boolean) extends LitVal {
 	def toParseString = bool.toString
+	override lazy val hashCode = bool.hashCode
 }
 
 /**
@@ -129,6 +137,7 @@ case class BooVal(bool: Boolean) extends LitVal {
 case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	val theType = typ
 	val deBrujinIndex = 0
+	val isConstant = true
 
 	override val isTrue = value match {
 		case BooVal(true) => true
@@ -156,6 +165,8 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 		}
 
 	override def toParseString = value.toParseString + ":" + theType.toParseString
+	
+	override lazy val hashCode = 31 * theType.hashCode + value.hashCode
 }
 
 /**

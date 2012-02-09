@@ -57,8 +57,10 @@ extends BasicAtom {
  */
 case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
     props: OperatorProperties) extends OperatorDefinition(proto) {
+  lazy val isConstant = props.isConstant
 	def toParseString =
 	  "operator { " + proto.toParseString + " " + props.toParseString + " }"
+	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
 }
 
 /**
@@ -68,8 +70,10 @@ case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
  */
 case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
     body: BasicAtom) extends OperatorDefinition(proto) {
+  lazy val isConstant = body.isConstant
 	def toParseString =
 	  "operator { " + proto.toParseString + " = " + body.toParseString + " }"
+	override lazy val hashCode = proto.hashCode * 31 + body.hashCode
 }
 
 /**
@@ -79,8 +83,10 @@ case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
  */
 case class NativeOperatorDefinition(override val proto: OperatorPrototype,
     props: OperatorProperties) extends OperatorDefinition(proto) {
+  lazy val isConstant = props.isConstant
 	def toParseString =
 	  "native { " + proto.toParseString + " " + props.toParseString + " }"
+	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
 }
 
 /**
@@ -90,16 +96,16 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
  * @param pars			The parameters.
  * @param typ				The type.
  */
-case class OperatorPrototype(name: String, typepars: List[Variable],
-    pars: List[Variable], typ: BasicAtom) {
-  def toParseString = name +
-  	(if (!typepars.isEmpty) typepars.mkParseString("[", ",", "]") else "") +
-  	pars.mkParseString("(", ",", ")") +
+case class OperatorPrototype(name: String, pars: List[Variable], typ: BasicAtom) {
+  def toParseString = name + pars.mkParseString("(", ",", ")") +
   	": " + typ.toParseString
   	
   // To make a Scala parseable string we have to make the name parseable.
   override def toString = "OperatorPrototype(" + toEString(name) + ", " +
-  	typepars.toString + ", " + pars.toString + ", " + typ.toString + ")"
+  	pars.toString + ", " + typ.toString + ")"
+  	
+  override lazy val hashCode = (name.hashCode * 31 + pars.hashCode) * 31 +
+      typ.hashCode
 }
 
 /**
@@ -116,6 +122,13 @@ case class OperatorProperties(
     idem: Boolean = false,
     absorber: Option[BasicAtom] = None,
     identity: Option[BasicAtom] = None) {
+  lazy val isConstant = (absorber, identity) match {
+    case (None, None) => true
+    case (Some(atom), None) => atom.isConstant
+    case (None, Some(atom)) => atom.isConstant
+    case (Some(a1), Some(a2)) => a1.isConstant && a2.isConstant
+  }
+  
   // Absorbers, identities, and idempotency are only allowed when an operator
   // is associative.
   if (!assoc) {
@@ -145,5 +158,9 @@ case class OperatorProperties(
     }
     list.mkString("", ", ", "")
   }
+  
   def toParseString = if (propstr.length > 0) "is " + propstr else ""
+    
+  override lazy val hashCode = (((assoc.hashCode * 31 + comm.hashCode) * 31 +
+      idem.hashCode) * 31 + absorber.hashCode) * 31 + identity.hashCode
 }

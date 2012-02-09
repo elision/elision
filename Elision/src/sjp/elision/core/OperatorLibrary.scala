@@ -163,7 +163,6 @@ class OperatorLibrary(
  	    val od = SymbolicOperatorDefinition(
  	        OperatorPrototype(
  	        		name,
- 	        		List[Variable](),
  	        		List(Variable(TypeUniverse, "x"), Variable(TypeUniverse, "y")),
  	        		TypeUniverse),
  	        OperatorProperties(assoc = true))
@@ -196,7 +195,6 @@ class OperatorLibrary(
  	add(SymbolicOperatorDefinition(
  	    OperatorPrototype(
  	        "MAP",
- 	        List[Variable](),
  	        List(Variable(TypeUniverse, "domain"),
  	            Variable(TypeUniverse, "codomain")),
  	        TypeUniverse),

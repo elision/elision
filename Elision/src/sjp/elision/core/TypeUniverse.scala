@@ -37,6 +37,8 @@ package sjp.elision.core
 object TypeUniverse extends RootType {
   /** The type of the type universe is itself. */
   val theType = this
+  
+  val isConstant = true
 
   /**
    * The type universe is represented by ^TYPE.
@@ -55,4 +57,6 @@ object TypeUniverse extends RootType {
     tryMatchWithoutTypes(subject, binds)
     
   override def toString = "TypeUniverse"
+    
+  override lazy val hashCode = toParseString.hashCode
 }

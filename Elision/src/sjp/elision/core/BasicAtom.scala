@@ -77,6 +77,9 @@ abstract class BasicAtom {
 
   /** Iff true, this is a De Brujin index. */
   val isDeBrujinIndex = false
+  
+  /** If true then this atom denotes a constant (it contains no variables). */
+  val isConstant: Boolean
 
   /**
    * Attempt to match this atom, as a pattern, against the subject atom,
@@ -178,8 +181,14 @@ abstract class RootType extends BasicAtom {
 case class NamedRootType(name: String) extends RootType {
   // All named root types are in the type universe.
   val theType = TypeUniverse
+  
+  val isConstant = true
+  
   // The parse string is the name, as a symbol.
   def toParseString = toESymbol(name)
+  
   // We have to override the Scala to protect the string.
   override def toString = "NamedRootType(" + toEString(name) + ")"
+  
+  override lazy val hashCode = name.hashCode()
 }

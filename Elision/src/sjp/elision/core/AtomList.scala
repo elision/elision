@@ -49,6 +49,8 @@ case class AtomList(atoms: Seq[BasicAtom],
   // The type of all lists is the type universe.  This may be changed later.
   val theType = TypeUniverse
   
+  val isConstant = atoms.foldLeft(true)(_ && _.isConstant)
+  
   // The De Brujin index is equal to the maximum index of the atoms in the
   // sequence.  Compute that now.
   val deBrujinIndex = atoms.map(_.deBrujinIndex).max
@@ -104,4 +106,6 @@ case class AtomList(atoms: Seq[BasicAtom],
    * 					parse string is used for those atoms.
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
+  
+  override lazy val hashCode = atoms.hashCode
 }

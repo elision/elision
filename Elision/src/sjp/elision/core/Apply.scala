@@ -40,6 +40,7 @@ package sjp.elision.core
 class Apply private (val op: BasicAtom, val arg: BasicAtom)
 extends BasicAtom {
   val theType = op.theType
+  val isConstant = op.isConstant && arg.isConstant
   
   // The De Brujin index is just the maximum of the operator and body.
   val deBrujinIndex = op.deBrujinIndex.max(arg.deBrujinIndex)
@@ -85,6 +86,8 @@ extends BasicAtom {
 	      }
 	    case _ => op.toParseString + "." + arg.toParseString
 	  }
+  
+  override lazy val hashCode = op.hashCode * 31 + arg.hashCode
 }
 
 object Apply {

@@ -41,8 +41,6 @@ package sjp.elision
  * TOOO: Rule application.
  * TODO: Make Bindings a BasicAtom.
  * TODO: Revisit every atom class wrt case class or not.
- * TODO: Implement hash codes for every atom.
- * TODO: Implement constant checking for every atom.
  * TODO: Extract sequence rewriting. (?)
  * TODO: Implement pairs and smaps.
  * 

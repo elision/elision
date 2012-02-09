@@ -42,6 +42,7 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
   val deBrujinIndex = 0
+  val isConstant = false
   
   /** By default, variables can be bound. */
   override val isBindable = true
@@ -78,4 +79,6 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   def toParseString = "$" + toESymbol(name) + ":" + typ.toParseString
   
   override def toString = "Variable(" + typ + "," + toEString(name) + ")"
+  
+  override lazy val hashCode = typ.hashCode * 31 + name.hashCode
 }

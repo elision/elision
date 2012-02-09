@@ -36,7 +36,9 @@ package sjp.elision.core
  */
 object RULETYPE extends RootType {
   val theType = TypeUniverse
+  val isConstant = true
   def toParseString = "RULETYPE"
+  override lazy val hashCode = toParseString.hashCode
 }
 
 /**
@@ -51,6 +53,9 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
     extends BasicAtom {
   val theType = RULETYPE
+  
+  lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
+  	guards.foldLeft(true)(_ && _.isConstant)
   
   // The De Brujin index of a rewrite rule is equal to the maximum index of
   // the children of the rule.
@@ -104,4 +109,7 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   	guards.toString + ", " +
   	rulesets.map(toEString(_)) + ", " +
   	cacheLevel + ")"
+  	
+  override lazy val hashCode = (pattern.hashCode * 31 + rewrite.hashCode) *
+      31 + guards.hashCode
 }

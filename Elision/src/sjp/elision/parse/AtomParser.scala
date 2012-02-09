@@ -200,21 +200,15 @@ class OperatorPropertiesNode {
 /**
  * Represent an operator prototype.
  * @param name			The operator name.
- * @param typepars	The type parameters.
  * @param pars			The formal parameter.
  * @param typ				The type.
  */
 class OperatorPrototypeNode(
     val name: String,
-    val typepars: Option[List[VariableNode]],
     val pars: Option[List[VariableNode]],
     val typ: AstNode) {
   def interpret = OperatorPrototype(
       name,
-      typepars match {
-        case Some(list) => list.map(_.interpret)
-        case None => List[Variable]()
-      },
       pars match {
         case Some(list) => list.map(_.interpret)
         case None => List[Variable]()
@@ -1020,18 +1014,11 @@ extends Parser {
   
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
-    ESymbol ~ optional(ParsedTypeParameterList) ~
-    "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ Atom ~~>
-    ((name:NakedSymbolNode, typepars:Option[List[VariableNode]],
-        pars:Option[List[VariableNode]], typ:AstNode) =>
-          new OperatorPrototypeNode(name.str, typepars, pars, typ))
+    ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ Atom ~~>
+    ((name:NakedSymbolNode, pars:Option[List[VariableNode]], typ:AstNode) =>
+          new OperatorPrototypeNode(name.str, pars, typ))
   }
 
-  /** Parse a type parameter list. */
-  def ParsedTypeParameterList = rule {
-    "[ " ~ ParsedParameterList ~ "] "
-  }
-  
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
     ParsedTypedVariable ~
