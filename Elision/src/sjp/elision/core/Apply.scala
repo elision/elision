@@ -70,7 +70,7 @@ extends BasicAtom {
   def rewrite(binds: Bindings) = {
     val (newop, opchanged) = op.rewrite(binds)
     val (newarg, argchanged) = arg.rewrite(binds)
-    if (opchanged || argchanged) (new Apply(newop, newarg), true)
+    if (opchanged || argchanged) (Apply(newop, newarg), true)
     else (this, false)
   }
 
@@ -87,35 +87,38 @@ extends BasicAtom {
 	    case _ => op.toParseString + "." + arg.toParseString
 	  }
   
+  override def toString = "Apply(" + op.toString + ", " + arg.toString + ")"
+  
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
 }
 
+/**
+ * Provide additional constructors for an apply.
+ */
 object Apply {
   /**
    * Construct an operator application, handling special cases.
-   * @param context	The context.
    * @param op			The operator.
    * @param arg			The argument.
    */
-  def apply(context: Context, op: BasicAtom, arg: BasicAtom): BasicAtom = op match {
-    case Lambda(_, lvar, body) =>
-      body.rewrite((new Bindings) + (lvar.name -> arg))._1
-    case Literal(_,SymVal(name)) =>
-      // Get the real operator for the symbolic name.
-      val realop = context.operatorLibrary(name.name)
-      // Apply this operator to the given argument(s).
-      new Apply(realop, arg)
-    case _ => new Apply(op, arg)
+  def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = {
+    println("Building an apply:")
+    println("  op -> " + op)
+    println(" arg -> " + arg)
+	  op match {
+	    case Lambda(_, lvar, body) =>
+	      // Curry the lambda body by binding the variable to the argument and then
+	      // rewriting the body.
+	      body.rewrite((new Bindings) + (lvar.name -> arg))._1
+	    case rule:RewriteRule =>
+	      // Try to apply the rewrite rule.  Whatever we get back is the result.
+	      println("Rewriting with rule.")
+	      rule.tryRewrite(arg)._1
+	    case _ =>
+	      println("Rewriting vanilla.")
+	      new Apply(op, arg)
+	  } 
   }
-  
-  /**
-   * Construct an operator application.  No additional processing is
-   * performed here.
-   * @param op		The operator.
-   * @param arg		The argument.
-   * @return	The new application.
-   */
-  private[core] def apply(op: Operator, arg: BasicAtom) = new Apply(op, arg)
   
   /**
    * Unpack an operator application.

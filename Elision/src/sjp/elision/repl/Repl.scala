@@ -159,9 +159,6 @@ object Repl {
       case od:OperatorDefinition =>
       	// Put operator definitions in the operator library.
         _library.add(od)
-      case rule:RewriteRule =>
-      	// Rules go in the rule library.
-        println("WARNING: The rule library is not implemented yet.")
       case Literal(_,SymVal('help)) =>
         // Give some help.
         println("""
@@ -228,6 +225,13 @@ object Repl {
 		    // Now write out the new atom.
 		    show(newatom, Some("repl" + _bindNumber))
 		    _bindNumber += 1
+		    // Rules go in the rule library.
+		    newatom match {
+		      case rule:RewriteRule =>
+		      	// Rules go in the rule library.
+		        _context.add(rule)
+		      case _ =>
+        }
     }
   }
 }

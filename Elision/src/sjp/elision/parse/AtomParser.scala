@@ -90,7 +90,16 @@ case class TypeUniverseNode() extends AstNode {
  */
 case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
 extends AstNode {
-  def interpret = Apply(context, op.interpret, arg.interpret)
+  def interpret = {
+    // If the operator provided is a symbol, then we will try to interpret it
+    // as an operator.
+    val atom = op.interpret
+    atom match {
+      case Literal(_, SymVal(sval)) =>
+        Apply(context.operatorLibrary(sval.name), arg.interpret)
+      case _ => Apply(atom, arg.interpret)
+    }
+  }
 }
 
 /**
