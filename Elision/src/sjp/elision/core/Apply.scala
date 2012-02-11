@@ -32,21 +32,49 @@
 package sjp.elision.core
 
 /**
- * An apply represents applying an operator to an argument of some kind.
+ * An apply represents applying an operator to an argument.
+ * 
+ * ==Structure and Syntax==
+ * There are two forms of apply.
+ * 
+ * The usual form in which an operator is applied to a list of arguments that
+ * match formal parameters, written with the operator identified by a symbol,
+ * and the arguments in parentheses juxtaposed with the operator.
+ *  - `max(5,9)`
+ *  
+ * The second form is the more general form, where some atom is treated as
+ * an operator, and applied to another atom.  These atoms may be anything.
+ * The application is written by interposing a dot (.) between the two atoms.
+ *  - `max.%(5,9)`
+ *  - `\$op.\$arg`
+ * 
+ * The second form is right associative.
+ *  - `x.y.z` = `x.(y.x)`
+ *  
+ * ==Type==
+ * The type is taken from the operator.
+ *  
+ * ==Equality and Matching==
+ * Two applies are equal iff their operator and argument are equal.
+ * 
+ * Two applies match if the respective operators and arguments match.
+ * 
  * @param op		The operator.
  * @param arg		The argument.
- * @param hack	Ignored.
  */
 class Apply private (val op: BasicAtom, val arg: BasicAtom)
 extends BasicAtom {
+  /** The type is taken from the operator. */
   val theType = op.theType
+  
+  /** An apply is constant iff both the operator and argument are constant. */
   val isConstant = op.isConstant && arg.isConstant
   
-  // The De Brujin index is just the maximum of the operator and body.
+  /** The De Brujin index is just the maximum of the operator and body. */
   val deBrujinIndex = op.deBrujinIndex.max(arg.deBrujinIndex)
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
-    // Only applies match applies.
+    // Only applies match other applies.
     subject match {
       case Apply(oop, oarg) => {
         // Try to match the operators, and then the arguments.  If both match,
