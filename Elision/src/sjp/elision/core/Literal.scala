@@ -131,6 +131,13 @@ case class BooVal(bool: Boolean) extends LitVal {
 
 /**
  * Represent a literal.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  * @param typ		The type of the literal.
  * @param value	The value for the literal.
  */

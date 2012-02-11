@@ -33,6 +33,13 @@ package sjp.elision.core
 
 /**
  * A lambda creates an operator that binds a single variable in a term.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  * @param deBrujinIndex			The De Brujin index.
  * @param lvar							The lambda variable which must match the De Brujin
  * 													index.

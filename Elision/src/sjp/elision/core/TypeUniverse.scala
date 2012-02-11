@@ -33,6 +33,13 @@ package sjp.elision.core
 
 /**
  * Define the unique type universe.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  */
 object TypeUniverse extends RootType {
   /** The type of the type universe is itself. */

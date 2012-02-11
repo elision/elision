@@ -35,6 +35,13 @@ import scala.collection.mutable.HashMap
 
 /**
  * Represent a variable.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  * @param typ		The variable type.
  * @param name	The variable name.
  */

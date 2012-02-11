@@ -52,6 +52,13 @@ extends BasicAtom {
 
 /**
  * Encapsulate an operator definition.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  * @param proto		The prototype.
  * @param props		Operator properties.
  */

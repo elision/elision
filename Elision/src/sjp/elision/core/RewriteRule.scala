@@ -43,6 +43,13 @@ object RULETYPE extends RootType {
 
 /**
  * Encapsulate a rewrite rule.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  * @param pattern			The pattern to match.
  * @param rewrite			The rewrite to apply on match.
  * @param guards			Guards that must be true to accept a match.

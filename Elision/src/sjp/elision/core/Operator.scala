@@ -57,6 +57,13 @@ object OPTYPE extends RootType {
 
 /**
  * Encapsulate an operator.
+ * 
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  * @param opdef	The operator definition.
  */
 case class Operator(opdef: OperatorDefinition) extends BasicAtom {

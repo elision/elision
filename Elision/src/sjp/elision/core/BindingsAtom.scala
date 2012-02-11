@@ -37,6 +37,13 @@ import scala.collection.mutable.ListBuffer
  * they were an atom (matched and rewritten, for instance).  Since this is
  * costly, and since bindings are critical to the operation of the rewriter,
  * this class is provided and typically operates by implicit conversion.
+ *
+ * ==Structure and Syntax==
+ * 
+ * ==Type==
+ * 
+ * ==Equality and Matching==
+ * 
  */
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
   require(mybinds != null, "Bindings are null.")
