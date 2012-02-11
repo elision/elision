@@ -577,49 +577,41 @@ case class FloatNode(sign: Boolean, integer: String, fraction: String,
 class AtomParser(val context: Context, val trace: Boolean = false)
 extends Parser {
   abstract sealed class Presult
-  case class Finish() extends Presult
-  case class Success(node: AstNode) extends Presult
+  case class Success(nodes: List[AstNode]) extends Presult
   case class Failure(err: String) extends Presult
   
   /**
-   * Entry point to parse an atom from the given string.
-   * @param atom	The string to parse.
-   * @return	The parsed atom.
+   * Entry point to parse all atoms from the given string.
+   * @param line	The string to parse.
+   * @return	The parsing result.
    */
-  def parseAtom(atom: String): Presult = {
-    val tr = if (trace) TracingParseRunner(Atom) else ReportingParseRunner(Atom)
-    val parsingResult = tr.run(atom)
+  def parseAtoms(line: String): Presult = {
+    val tr =
+      if (trace) TracingParseRunner(AtomSeq)
+      else ReportingParseRunner(AtomSeq)
+    val parsingResult = tr.run(line)
     parsingResult.result match {
-      case Some(EndNode()) => Finish()
-      case Some(astRoot) => Success(astRoot)
+      case Some(nodes) => Success(nodes)
       case None => Failure("Invalid MPL2 source:\n" +
               ErrorUtils.printParseErrors(parsingResult))
     }
   }
-  
-  /**
-   * Attempt to parse an atom from the provided string, and return it.
-   * @param atom	The text to parse.
-   * @return	The parsed atom, or None if there was no atom found.
-   * @throws	ParsingException	Parsing failed.
-   */
-  def tryParse[ATOM >: BasicAtom](atom: String): Option[ATOM] =
-    parseAtom(atom) match {
-    	case Finish() => None
-	    case Success(node) => Some(node.interpret)
-	    case Failure(badness) => throw new ParsingException(badness)
-	  }
 
   //======================================================================
   // Parse and build atoms.
   //======================================================================
+  
+  /**
+   * Parse all the atoms that can be found in the input.
+   */
+  def AtomSeq = rule {
+    zeroOrMore(Atom) ~ EOI
+  }
 
   /**
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
-    // If we find the end of input, push an end node.
-    WS ~ EOI ~ push(EndNode()) |
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (

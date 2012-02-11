@@ -123,10 +123,11 @@ object Repl {
     _history += line
     // First parse the line and see what we get.
     try {
-	    val result = _parser.parseAtom(lline)
+	    val result = _parser.parseAtoms(lline)
 	    result match {
-	      case _parser.Finish() => 
-	    	case _parser.Success(ast) => handle(ast.interpret)
+	    	case _parser.Success(list) =>
+	    	  // Interpret each node, and stop if we encounter a failure.
+	    	  list.forall(node => handle(node.interpret))
 	      case _parser.Failure(msg) => println(msg)
 	    }
     } catch {
@@ -152,6 +153,7 @@ object Repl {
    * Decide what to do about an atom we just parsed.  This is where most of
    * the commands get processed, operators get added to the library, etc.
    * @param atom	An atom just parsed.
+   * @return	True on success, false on failure.
    */
   private def handle(atom: BasicAtom) = {
     // Certain atoms require additional processing.
@@ -159,6 +161,7 @@ object Repl {
       case od:OperatorDefinition =>
       	// Put operator definitions in the operator library.
         _library.add(od)
+        true
       case Literal(_,SymVal('help)) =>
         // Give some help.
         println("""
@@ -176,32 +179,39 @@ object Repl {
             |
             |To quit type CTRL+D.
             |""".stripMargin)
+        true
       case Literal(_,SymVal('trace)) =>
         // Toggle tracing.
         _trace = !_trace
         _parser = new AtomParser(_context, _trace)
         println("Tracing is " + (if (_trace) "ON." else "OFF."))
+        true
       case Literal(_,SymVal('scala)) =>
         // Toggle showing the Scala term.
         _showScala = !_showScala
         println("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
+        true
       case Literal(_,SymVal('prior)) =>
         // Toggle showing the prior term.
         _showPrior = !_showPrior
         println("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
+        true
       case Literal(_,SymVal('history)) =>
         // Show the history.
         var num = 1
         for (line <- _history) { println(" " + num + ": " + line) ; num += 1 }
+        true
       case Apply(Literal(_,SymVal('unbind)),AtomList(seq,_)) =>
         // Try to unbind.
         seq match {
           case Seq(from:Variable) =>
             _binds -= from.name
             println("Unbound " + from.toParseString)
+            true
           case _ =>
             println("ERROR: Incorrect form for an unbind.  Need a single " +
             		"argument that must be a variable.")
+            false
         }
       case Apply(Literal(_,SymVal('bind)),AtomList(seq,_)) =>
         // Try to bind.
@@ -210,10 +220,12 @@ object Repl {
             // Bind the variable in this context.
             _binds += (from.name -> to)
             println("Bound " + from.toParseString)
+            true
           case _ =>
             // Incorrect form for a bind.
             println("ERROR: Incorrect form for a bind.  Need two arguments, " +
             		"the first of which must be a variable.")
+            false
         }
       case _ =>
         // Maybe show the atom before we rewrite.
@@ -232,6 +244,7 @@ object Repl {
 		        _context.add(rule)
 		      case _ =>
         }
+        true
     }
   }
 }

@@ -35,16 +35,20 @@ package sjp.elision.core
  * Define the unique type universe.
  * 
  * ==Structure and Syntax==
+ * The type universe is an object (a singleton).  There is exactly one instance
+ * (a constant) represented by the string `^TYPE`.
  * 
  * ==Type==
+ * The type universe is a ''root type'', so it is its own type.
  * 
  * ==Equality and Matching==
- * 
+ * The type universe is equal only to itself, and matches only itself.
  */
 object TypeUniverse extends RootType {
   /** The type of the type universe is itself. */
   val theType = this
   
+  /** The type universe is constant. */
   val isConstant = true
 
   /**
@@ -56,6 +60,7 @@ object TypeUniverse extends RootType {
   /**
    * Type universe matching is a special case, and the basis case, for matching
    * types.
+   * 
    * @param subject	The subject to match.
    * @param binds		The bindings to honor.
    * @return	The outcome of the match.
