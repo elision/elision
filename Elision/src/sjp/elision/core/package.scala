@@ -38,7 +38,7 @@ package sjp.elision
  * This is the current punch list for Elision.  This list gets picked up by
  * Eclipse.
  * 
- * TODO: Make Bindings a BasicAtom.
+ * TODO: Add equality methods everywhere.
  * TODO: Revisit every atom class wrt case class or not.
  * TODO: Extract sequence rewriting. (?)
  * TODO: Implement pairs and smaps.
@@ -102,6 +102,20 @@ package object core {
     def mkParseString(pre: String, mid: String, post: String) =
       seq.map(_.toParseString).mkString(pre, mid, post)
   }
+  
+  /**
+   * Where needed, convert a bindings object into a bindings atom (wrap).
+   * @param binds	The bindings.
+   * @return	The new bindings atom.
+   */
+  implicit def wrapBindingsAtom(binds: Bindings) = new BindingsAtom(binds)
+  
+  /**
+   * Where needed, convert a bindings atom to a simple bindings object (unwrap).
+   * @param atom	The bindings atom.
+   * @return	The bindings.
+   */
+  implicit def unwrapBindingsAtom(atom: BindingsAtom) = atom.mybinds
   
   /**
    * Attempt to parse the given string and return an atom.

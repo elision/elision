@@ -263,6 +263,24 @@ case class NativeOperatorDefinitionNode(
 }
 
 //----------------------------------------------------------------------
+// Object and binding nodes.
+//----------------------------------------------------------------------
+
+/**
+ * Represent a bindings atom.
+ * @param map	The bindings.
+ */
+case class BindingsNode(map: Map[String,AstNode]) extends AstNode {
+  def interpret = {
+    var binds = new Bindings
+    for ((str,node) <- map) {
+      binds += (str -> node.interpret)
+    }
+    BindingsAtom(binds)
+  }
+}
+
+//----------------------------------------------------------------------
 // Symbol nodes.
 //----------------------------------------------------------------------
 
@@ -625,6 +643,9 @@ extends Parser {
         
       // Parse a lambda.
       ParsedLambda |
+      
+      // Parse a set of bindings.
+      ParsedBindings |
 
       // Parse a typical operator application.
       ParsedApply |
@@ -1061,6 +1082,27 @@ extends Parser {
       "absorber " ~ Atom ~~> (abs => pop.withAbsorber = Some(abs)) |
       "identity " ~ Atom ~~> (id => pop.withIdentity = Some(id)) ~~> (x => pop)
   	}
+  
+  //======================================================================
+  // Bindings.
+  //======================================================================
+  
+  /**
+   * Parse a set of bindings.
+   */
+  def ParsedBindings = {
+    var binds = Map[String,AstNode]()
+    rule {
+      ("{ " ~ "bind " ~
+      optional(ESymbol ~ "-> " ~ FirstAtom ~~>
+      	((sym: NakedSymbolNode, atom: AstNode) =>
+      	  binds += (sym.str -> atom)) ~
+      zeroOrMore(", " ~ ESymbol ~ "-> " ~ FirstAtom ~~>
+      	((sym: NakedSymbolNode, atom: AstNode) =>
+      	  binds += (sym.str -> atom)))) ~
+      "} ") ~~> (x => BindingsNode(binds))
+    }
+  }
 
   //======================================================================
   // Other methods affecting the parse.
