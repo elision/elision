@@ -837,7 +837,7 @@ The Elision library makes use of the Parboiled parser library.  This library is 
 * [[DefaultTiddlers]]: Contains the names of the tiddlers that you want to appear when the TiddlyWiki is opened
 You'll also need to enter your username for signing your edits: &lt;&lt;option txtUserName&gt;&gt;</pre>
 </div>
-<div title="Home" creator="sprowell" modifier="sprowell" created="201102020416" modified="201202101524" changecount="16">
+<div title="Home" creator="sprowell" modifier="YourName" created="201102020416" modified="201202120424" changecount="17">
 <pre>Welcome to the Elision design documentation.  Quick links are at the left.
 
 This serves as documentation of the design decisions in Elision, a simple term rewriting engine written in Scala.
@@ -849,7 +849,6 @@ This documentation has the following purposes.
 * To explain the use of the library via the [[Scala API]].
 * To explain [[design decisions|Design]] in the library.
 
-* Start with the [[Overview]].
 * Documentation on the native text format for terms and types can be found [[here|Language]].
 </pre>
 </div>
@@ -931,18 +930,6 @@ An a concrete example, suppose {{{Int}}} is a symbol literal with type {{{^TYPE}
 [[Design]]
 
 [[Copyright and License]]</pre>
-</div>
-<div title="Overview" creator="sprowell" modifier="sprowell" created="201201102312" modified="201201110237" changecount="5">
-<pre>The most basic object manipulated by Elision is the {{{BasicAtom}}}.  This is an abstract class from which all terms and types descend.  Immediate descendants of {{{BasicAtom}}} must be case classes, and include the following simple terms.
-* {{{TypeUniverse}}}.  This is a singleton object that represents the type of all types.  It is its own type.  For historical reasons it is represented {{{^TYPE}}}.
-* {{{Literal}}}.  Literals come in several forms (symbol, string, Boolean, integer, and floating point) and have an associated type that is independent of the literal's form.  Type constants should be symbol literals.  Instances can be created by writing {{{Literal(theType, theValue)}}}.  The value must be one of the following.
-** A Symbol: {{{Literal(theType, Symbol(&quot;x&quot;))}}} or {{{Literal(theType, 'x)}}}
-** A String: {{{Literal(theType, &quot;a string&quot;)}}}
-** An integer: {{{Literal(theType, 21)}}}
-** A floating point number: {{{Literal(theType, 21e14)}}}
-** A Boolean value: {{{Literal(theType, true)}}}
-* {{{Variable}}}.  Variables have a type and name.  Instances can be created by writing {{{Variable(theType, theName)}}}, such as {{{Variable(theType, &quot;x&quot;)}}}.
-* {{{Operator}}}.  An operator represents some operation and has a name and several other properties.  Operators all reside in the special type {{{OPTYPE}}}.  By convention this type is not written.</pre>
 </div>
 <div title="Plugin: jsMath" modifier="BobMcElrath" created="200606070000" modified="200606070000" tags="systemConfig excludeLists" server.type="file" server.host="http://bob.mcelrath.org/plugins.html" server.page.revision="200606070000">
 <pre>/***
@@ -1131,14 +1118,15 @@ window.wikify = function(source,output,highlightRegExp,tiddler)
 //}}}
 </pre>
 </div>
-<div title="README" creator="sprowell" modifier="sprowell" created="201202101530" modified="201202101536" changecount="4">
-<pre>{{{
-      _ _     _
-  ___| (_)___(_) ___  _ __
- / _ \ | / __| |/ _ \| '_ \
-|  __/ | \__ \ | (_) | | | |
- \___|_|_|___/_|\___/|_| |_|
-}}}
+<div title="README" creator="sprowell" modifier="YourName" created="201202101530" modified="201202120424" changecount="13">
+<pre>&lt;code c&gt;
+/*       _ _     _
+ *   ___| (_)___(_) ___  _ __
+ *  / _ \ | / __| |/ _ \| '_ \
+ * |  __/ | \__ \ | (_) | | | |
+ *  \___|_|_|___/_|\___/|_| |_|
+ */
+&lt;/code&gt;
 The Elision Term Rewriter
 This is the distribution of the Elision term rewriter source code.  This short
 file describes how to build the rewriter, how to run the REPL, and how to set
