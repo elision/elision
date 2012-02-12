@@ -13,5 +13,6 @@
 			<attribute name="javadoc_location" value="file:/Users/ysp/Personal/workspace/Elision/lib/parboiled/doc/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/jline-1.0/jline-1.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -92,8 +92,12 @@ object Repl {
    */
   def run() {
     // Show the prompt and read a line.
-    print("E> ")
-    for(line <- io.Source.stdin.getLines) { execute(line) ; print("E> ") }
+    val cr = new jline.ConsoleReader()
+    while(true) {
+      val line = cr.readLine("e> ")
+      if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
+      execute(line)
+    }
   }
 
   /**
@@ -177,7 +181,7 @@ object Repl {
             |
             |Use ! followed by a number to re-execute a line from the history.
             |
-            |To quit type CTRL+D.
+            |To quit type :quit.
             |""".stripMargin)
         true
       case Literal(_,SymVal('trace)) =>
