@@ -38,10 +38,52 @@ import java.util.LinkedList
  * Encapsulate an ordered list of atoms.
  * 
  * ==Structure and Syntax==
+ * An atom list is just that: a list of atoms.  It can come in two forms:
+ *  - An ''untyped'' list of atoms, ordered.
+ *  - A ''typed'' list of atoms.
+ *  
+ * The latter incorporates information about the structure of the list;
+ * specifically associativity and commutativity.
+ * 
+ * Represented as a stand-alone atom, an atom list is indicated starting with
+ * a percent sign.  This is followed by property indicators, and then by the
+ * actual list of atoms, comma separated, in parentheses.
+ * 
+ * The property indicators are the following.
+ *  - A single question mark `?` indicates that no properties have been set,
+ *    and this is an untyped list.
+ *  - The characters `AC` indicate that the list is both associative and
+ *    commutative.
+ *  - The single character `A` indicates that the list is associative, but not
+ *    commutative.
+ *  - The single character `C` indicates that the list is commutative, but not
+ *    associative.
+ *  - An absence of characters between the percent sign and the opening
+ *    parenthesis indicates that the list is neither commutative nor
+ *    associative.
+ *    
+ * Examples are the following.
+ *  - `%(5,4,3)` - neither associative nor commutative
+ *  - `%?(5,4)` - untyped list
+ *  - `%AC(fred,jim,beth)` - associative and commutative
  * 
  * ==Type==
+ * All atom lists have ^TYPE as their type.  This may be subject to change
+ * later.
  * 
  * ==Equality and Matching==
+ * Two lists are equal iff their properties, length, and elements are equal.
+ * The lists match iff their properties are the same and their elements can be
+ * matched.  This can happen in several ways.
+ *  - A list that is untyped is treated as if it were explicitly not associative
+ *    or commutative.
+ *  - A commutative but not associative list matches iff the elements can be
+ *    matched in any order.
+ *  - An associative list matches iff the pattern has no more elements than
+ *    the subject, and the elements of the subject can be "parenthesized" to
+ *    single elements in such a way that the elements of the lists match.
+ *  - An associative and commutative list matches iff its elements can be
+ *    reordered and parenthesized in such a way that the elements all match.
  * 
  * @param atoms		The list of atoms.  Note that order may be important.
  * @param props		The optional operator properties.  If specified, this must
@@ -55,7 +97,8 @@ case class AtomList(atoms: Seq[BasicAtom],
   // The type of all lists is the type universe.  This may be changed later.
   val theType = TypeUniverse
   
-  val isConstant = atoms.foldLeft(true)(_ && _.isConstant)
+  // The list is constant iff all elements are constant.
+  val isConstant = atoms.forall(_.isConstant)
   
   // The De Brujin index is equal to the maximum index of the atoms in the
   // sequence.  Compute that now.
@@ -76,6 +119,7 @@ case class AtomList(atoms: Seq[BasicAtom],
     	    else
     	      // Now all the items in the list much match.  We use the sequence
     	      // matcher for that.
+    	      // TODO This needs to use the appropriate matching algorithm!
     	      SequenceMatcher.tryMatch(atoms, oatoms, binds)
       case _ => Fail("Not implemented.")
     }
