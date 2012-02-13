@@ -32,16 +32,6 @@
 package sjp.elision.core
 
 /**
- * A type for all rules.
- */
-object RULETYPE extends RootType {
-  val theType = TypeUniverse
-  val isConstant = true
-  def toParseString = "RULETYPE"
-  override lazy val hashCode = toParseString.hashCode
-}
-
-/**
  * Encapsulate a rewrite rule.
  * 
  * ==Structure and Syntax==
@@ -167,4 +157,13 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   	
   override lazy val hashCode = (pattern.hashCode * 31 + rewrite.hashCode) *
       31 + guards.hashCode
+      
+  override def equals(rule: Any) = rule match {
+    case orule:RewriteRule =>
+      pattern == orule.pattern &&
+      rewrite == orule.rewrite &&
+      guards == orule.guards &&
+      rulesets == orule.rulesets
+    case _ => false
+  }
 }

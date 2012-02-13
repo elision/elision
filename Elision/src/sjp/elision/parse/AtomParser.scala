@@ -641,12 +641,15 @@ extends Parser {
 
       // Parse a typical operator application.
       ParsedApply |
-        
-      // Parse the special OPTYPE.
-      "OPTYPE " ~> (x => SimpleTypeNode(OPTYPE)) |
 
-      // Parse the special RULETYPE.
-      "RULETYPE " ~> (x => SimpleTypeNode(RULETYPE)) |
+      // Parse the special root types.
+      "STRING " ~ push(SimpleTypeNode(STRING)) |
+      "SYMBOL " ~ push(SimpleTypeNode(SYMBOL)) |
+      "INTEGER " ~ push(SimpleTypeNode(INTEGER)) |
+      "FLOAT " ~ push(SimpleTypeNode(FLOAT)) |
+      "BOOLEAN " ~ push(SimpleTypeNode(BOOLEAN)) |
+      "OPTYPE " ~ push(SimpleTypeNode(OPTYPE)) |
+      "RULETYPE " ~ push(SimpleTypeNode(RULETYPE)) |
 
       // Parse a typed list.
       ParsedTypedList |
@@ -661,7 +664,7 @@ extends Parser {
       ESymbol ~ ": " ~ "OPTYPE " ~~> (
           (sym: NakedSymbolNode) =>
             OperatorNode(sym.str, context.operatorLibrary)) |
-
+       
       // Parse a literal.  A literal can take many forms, but it should be
       // possible to always detect the kind of literal during parse.  By
       // default literals go into a simple type, but this can be overridden.

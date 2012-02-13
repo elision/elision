@@ -124,4 +124,9 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
    */
   override def toString() = "BindingsAtom(" + mybinds.map(pair =>
     toEString(pair._1) + " -> " + pair._2).mkString("Map(", ",", ")") + ")"
+    
+  override def equals(other: Any) = other match {
+    case BindingsAtom(obinds) if (obinds == mybinds) => true
+    case _ => false
+  }
 }

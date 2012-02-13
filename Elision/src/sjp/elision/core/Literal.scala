@@ -50,6 +50,10 @@ sealed abstract class LitVal {
 case class IntVal(ival: BigInt) extends LitVal {
 	def toParseString = ival.toString
 	override lazy val hashCode = ival.hashCode
+	override def equals(other: Any) = other match {
+	  case value: IntVal => ival == value.ival
+	  case _ => false
+	}
 }
 
 /**
@@ -59,6 +63,10 @@ case class IntVal(ival: BigInt) extends LitVal {
 case class StrVal(sval: String) extends LitVal {
 	def toParseString = toEString(sval)
 	override lazy val hashCode = sval.hashCode
+	override def equals(other: Any) = other match {
+	  case value: StrVal => sval == value.sval
+	  case _ => false
+	}
 }
 
 /**
@@ -69,6 +77,10 @@ case class SymVal(sval: Symbol) extends LitVal {
 	def toParseString = toESymbol(sval.name)
 	override def toString = "SymVal(Symbol(" + toEString(sval.name) + "))"
 	override lazy val hashCode = sval.hashCode
+	override def equals(other: Any) = other match {
+	  case value: SymVal => sval == value.sval
+	  case _ => false
+	}
 }
 
 /**
@@ -109,6 +121,13 @@ extends LitVal {
   
   override lazy val hashCode = (significand.hashCode * 31 +
   	exponent.hashCode) * 31 + radix.hashCode
+  	
+  override def equals(other: Any) = other match {
+    case value:ExpandedFloatVal =>
+      value.significand == significand &&
+      value.exponent == exponent
+    case _ => false
+  }
 }
 
 /**
@@ -118,6 +137,10 @@ extends LitVal {
 case class FltVal(fval: Float) extends LitVal {
 	def toParseString = fval.toString
 	override lazy val hashCode = fval.hashCode
+	override def equals(other: Any) = other match {
+	  case value:FltVal => fval == value.fval
+	  case _ => false
+	}
 }
 
 /**
@@ -127,6 +150,10 @@ case class FltVal(fval: Float) extends LitVal {
 case class BooVal(bool: Boolean) extends LitVal {
 	def toParseString = bool.toString
 	override lazy val hashCode = bool.hashCode
+	override def equals(other: Any) = other match {
+	  case value:BooVal => bool == value.bool
+	  case _ => false
+	}
 }
 
 /**
@@ -174,6 +201,13 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	override def toParseString = value.toParseString + ":" + theType.toParseString
 	
 	override lazy val hashCode = 31 * theType.hashCode + value.hashCode
+	
+	override def equals(other: Any) = other match {
+	  case lit:Literal =>
+	    typ == lit.typ &&
+	    value == lit.value
+	  case _ => false
+	}
 }
 
 /**
@@ -226,16 +260,3 @@ object Literal {
 	 */
 	def apply(typ: BasicAtom, bool: Boolean) = new Literal(typ, BooVal(bool))
 }
-
-// Make some well-known types.
-
-/** The STRING type. */
-object STRING extends NamedRootType("STRING")
-/** The SYMBOL type. */
-object SYMBOL extends NamedRootType("SYMBOL")
-/** The INTEGER type. */
-object INTEGER extends NamedRootType("INTEGER")
-/** The FLOAT type. */
-object FLOAT extends NamedRootType("FLOAT")
-/** The BOOLEAN type. */
-object BOOLEAN extends NamedRootType("BOOLEAN")

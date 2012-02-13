@@ -41,21 +41,6 @@ import scala.collection.mutable.ListBuffer
 class ArgumentListException(msg: String) extends Exception(msg)
 
 /**
- * A type for all operators.
- */
-object OPTYPE extends RootType {
-  val theType = TypeUniverse
-  
-  val isConstant = true
-  
-  def toParseString = "OPTYPE"
-    
-  override def toString = "OPTYPE"
-    
-  override lazy val hashCode = toParseString.hashCode
-}
-
-/**
  * Encapsulate an operator.
  * 
  * ==Structure and Syntax==
@@ -277,4 +262,9 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   }
   
   override lazy val hashCode = opdef.hashCode
+  
+  override def equals(other: Any) = other match {
+    case op:Operator => opdef == op.opdef
+    case _ => false
+  }
 }

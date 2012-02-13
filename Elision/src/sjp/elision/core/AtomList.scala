@@ -158,4 +158,9 @@ case class AtomList(atoms: Seq[BasicAtom],
   def toNakedString = atoms.mkParseString("", ", ", "")
   
   override lazy val hashCode = atoms.hashCode
+  
+  override def equals(other: Any) = other match {
+    case AtomList(oatoms, oprops) if (oatoms == atoms && oprops == props) => true
+    case _ => false
+  }
 }

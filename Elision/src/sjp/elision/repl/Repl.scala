@@ -200,6 +200,45 @@ object Repl {
     }
     if (_showScala) println("Scala: " + pre + atom)
     println(pre + atom.toParseString)
+    checkParseString(atom)
+  }
+  
+  /**
+   * Check the atom for round-trip parsing.  That is, generate the parse
+   * string and then try to parse it.  If the result is not equal to the
+   * original atom, then we write an error report.
+   * 
+   * @param atom	The atom to check.
+   */
+  private def checkParseString(atom: BasicAtom) {
+    // Get the parse string for the atom.
+    val parseString = atom.toParseString
+    
+    // Parse the string.  The result should be a single atom.
+    val result = _parser.parseAtoms(parseString)
+    result match {
+      case _parser.Success(list) =>
+        // If there is more than one atom, then we have a failure.
+        if (list.length == 0)
+          println("ERROR: Round-trip parse failure for atom " +
+              atom.toString + ".  No atoms returned on parse.")
+        if (list.length > 1) {
+          println("ERROR: Round-trip parse failure for atom " +
+              atom.toString + ".  Too many atoms returned on parse.")
+          for (node <- list) println(" -> " + node.interpret.toParseString)
+        }
+        // The result must be equal to the original atom.
+        val newatom = list(0).interpret
+        if (atom != newatom) {
+          println("ERROR: Round-trip parse failure for atom " +
+              atom.toString + ".  Atom unequal to original.")
+          println("  original: " + atom.toParseString)
+          println("  result:   " + newatom.toParseString)
+        }
+      case _parser.Failure(msg) =>
+        println("ERROR: Round-trip parse failure for atom " + atom.toString +
+            ".\nParse failed: " + msg)
+    }
   }
   
   /**

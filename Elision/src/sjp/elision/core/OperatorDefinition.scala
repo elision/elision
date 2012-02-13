@@ -68,6 +68,12 @@ case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
 	def toParseString =
 	  "operator { " + proto.toParseString + " " + props.toParseString + " }"
 	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
+	override def equals(other: Any) = other match {
+    case sod:SymbolicOperatorDefinition =>
+      proto == sod.proto &&
+      props == sod.props
+    case _ => false
+  }
 }
 
 /**
@@ -81,6 +87,12 @@ case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
 	def toParseString =
 	  "operator { " + proto.toParseString + " = " + body.toParseString + " }"
 	override lazy val hashCode = proto.hashCode * 31 + body.hashCode
+	override def equals(other: Any) = other match {
+    case iod:ImmediateOperatorDefinition =>
+      proto == iod.proto &&
+      body == iod.body
+    case _ => false
+  }
 }
 
 /**
@@ -94,6 +106,12 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
 	def toParseString =
 	  "native { " + proto.toParseString + " " + props.toParseString + " }"
 	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
+	override def equals(other: Any) = other match {
+    case nod:NativeOperatorDefinition =>
+      proto == nod.proto &&
+      props == nod.props
+    case _ => false
+  }
 }
 
 /**
@@ -113,6 +131,14 @@ case class OperatorPrototype(name: String, pars: List[Variable], typ: BasicAtom)
   	
   override lazy val hashCode = (name.hashCode * 31 + pars.hashCode) * 31 +
       typ.hashCode
+      
+  override def equals(other: Any) = other match {
+    case op:OperatorPrototype =>
+      name == op.name &&
+      pars == op.pars &&
+      typ == op.typ
+    case _ => false
+  }
 }
 
 /**
@@ -170,4 +196,14 @@ case class OperatorProperties(
     
   override lazy val hashCode = (((assoc.hashCode * 31 + comm.hashCode) * 31 +
       idem.hashCode) * 31 + absorber.hashCode) * 31 + identity.hashCode
+
+  override def equals(other: Any) = other match {
+    case op:OperatorProperties =>
+      assoc == op.assoc &&
+      comm == op.comm &&
+      idem == op.idem &&
+      absorber == op.absorber &&
+      identity == op.identity
+    case _ => false
+  }
 }

@@ -77,6 +77,13 @@ extends BasicAtom {
   def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
   
   override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
+  
+  override def equals(other: Any) = other match {
+    case lambda:Lambda =>
+      lvar == lambda.lvar &&
+      body == lambda.body
+    case _ => false
+  }
 }
 
 /**

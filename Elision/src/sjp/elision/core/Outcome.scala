@@ -99,6 +99,6 @@ object Fail {
       pattern.toParseString + "\nSubject: " + subject.toParseString +
       (prior match {
         case None => ""
-        case Some(fail: Fail) => "\n\nCaused by:\n" + prior.get.toString
+        case Some(_) => "\n\nCaused by:\n" + prior.get.toString
       }), index)
 }

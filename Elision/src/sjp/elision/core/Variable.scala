@@ -88,4 +88,9 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   override def toString = "Variable(" + typ + "," + toEString(name) + ")"
   
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
+  
+  override def equals(varx: Any) = varx match {
+    case ovar:Variable => ovar.typ == typ && ovar.name == name
+    case _ => false
+  }
 }

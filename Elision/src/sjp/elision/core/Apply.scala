@@ -118,6 +118,12 @@ extends BasicAtom {
   override def toString = "Apply(" + op.toString + ", " + arg.toString + ")"
   
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
+  
+  override def equals(other: Any) = other match {
+    case Apply(oop, oarg) =>
+      oop == op && oarg == arg
+    case _ => false
+  }
 }
 
 /**
