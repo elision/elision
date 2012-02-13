@@ -36,533 +36,531 @@ import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
 import sjp.elision.core._
 
-//======================================================================
-// Definitions for an abstract syntax tree for atoms.
-//======================================================================
-
 /**
- * An abstract syntax tree node resulting from parsing an atom.
+ * Provide abstract syntax tree nodes used during parsing.
  */
-sealed abstract class AstNode {
-  /**
-   * Interpret this abstract syntax tree to generate an atom.
-   * @return	The generated atom.
-   */
-  def interpret: BasicAtom
-}
-
-/**
- * A special node indicating end of the input was found just as atom parsing
- * was started.  This is not an error; it is just the end of input.
- */
-case class EndNode() extends AstNode {
-  def interpret = TypeUniverse
-}
-
-//----------------------------------------------------------------------
-// Type nodes.
-//----------------------------------------------------------------------
-
-/**
- * A node representing a simple type, which must be a root type.
- * @param TYPE	The type.
- */
-case class SimpleTypeNode(TYPE: RootType) extends AstNode {
-  def interpret = TYPE
-}
-
-/**
- * A node representing the unique type universe.
- */
-case class TypeUniverseNode() extends AstNode {
-  def interpret = TypeUniverse
-}
-
-//----------------------------------------------------------------------
-// Operator application.
-//----------------------------------------------------------------------
-
-/**
- * A node representing the application of an operator to an argument.
- * @param context	The context.
- * @param op			The operator.
- * @param arg			The argument.
- */
-case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
-extends AstNode {
-  def interpret = {
-    // If the operator provided is a symbol, then we will try to interpret it
-    // as an operator.
-    val atom = op.interpret
-    atom match {
-      case Literal(_, SymVal(sval)) =>
-        Apply(context.operatorLibrary(sval.name), arg.interpret)
-      case _ => Apply(atom, arg.interpret)
-    }
-  }
-}
-
-/**
- * Provide alternate ways to create an application node.
- */
-object ApplicationNode {
-  /**
-   * Create an application node for a binary operator.
-   * @param context	The context.
-   * @param op			The binary operator.
-   * @param arg1		First argument.
-   * @param arg2		Second argument.
-   * @return	The new application node.
-   */
-  def apply(context: Context, op: AstNode,
-      arg1: AstNode, arg2: AstNode): ApplicationNode =
-    ApplicationNode(context, op, AtomListNode(List(arg1, arg2)))
-}
-
-/**
- * A node representing a "naked" operator.
- * @param str	The operator name.
- * @param lib	The operator library that will get the operator.
- */
-case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
-  def interpret = lib(str)
-}
-
-/**
- * A node representing a lambda.
- * @param lvar	The lambda variable.
- * @param body	The lambda body.
- */
-case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
-  def interpret = Lambda(lvar.interpret, body.interpret)
-}
-
-/**
- * An abstract syntax tree node holding a simple list of atoms.
- * @param list	The actual list of atom nodes.
- */
-case class AtomListNode(list: List[AstNode]) extends AstNode {
-  /**
-   * Properties of this list, if known.  The properties stored are
-   * associativity and commutativity.  If not specified, then the properties
-   * have not yet been specified, and should be inherited from an operator.
-   */
-  var props: Option[(Boolean, Boolean)] = None
-  def interpret = AtomList(list map (_.interpret), props)
-  /**
-   * Set the properties for this list.
-   * @param assoc		If true, the list is associative.
-   * @param comm		If true, the list is commutative.
-   */
-  def setProperties(assoc: Boolean, comm: Boolean) = {
-    props = Some(assoc, comm)
-    this
-  }
-}
-
-//----------------------------------------------------------------------
-// Operator definition.
-//----------------------------------------------------------------------
-
-/**
- * A data structure holding operator properties as they are discovered during
- * the parse.
- */
-class OperatorPropertiesNode {
-  /** An identity, if any. */
-  var withIdentity: Option[AstNode] = None
-  /** An absorber, if any. */
-  var withAbsorber: Option[AstNode] = None
-  /** True iff this operator is idempotent. */
-  var isIdempotent = false
-  /** True iff this operator is commutative. */ 
-  var isCommutative = false
-  /** True iff this operator is associative. */
-  var isAssociative = false
-  
-  /**
-   * Get the optional identity.
-   * @return	The optional identity.
-   */
-  def identity = withIdentity match {
-    case Some(node) => Some(node.interpret)
-    case None => None
-  }
-  
-  /**
-   * Get the optional absorber.
-   * @return	The optional absorber.
-   */
-  def absorber = withAbsorber match {
-    case Some(node) => Some(node.interpret)
-    case None => None
-  }
-  
-  /**
-   * Convert this into an operator properties instance.
-   * @return	The operator properties object.
-   */
-  def interpret = OperatorProperties(isAssociative, isCommutative,
-      isIdempotent, absorber, identity)
-}
-
-/**
- * Represent an operator prototype.
- * @param name			The operator name.
- * @param pars			The formal parameter.
- * @param typ				The type.
- */
-class OperatorPrototypeNode(
-    val name: String,
-    val pars: Option[List[VariableNode]],
-    val typ: AstNode) {
-  def interpret = OperatorPrototype(
-      name,
-      pars match {
-        case Some(list) => list.map(_.interpret)
-        case None => List[Variable]()
-      },
-      typ.interpret)
-}
-
-sealed abstract class OperatorDefinitionNode extends AstNode {
-  def interpret: OperatorDefinition
-}
-
-/**
- * Represent an immediate operator definition.
- * @param opn		The prototype node.
- * @param body	The body.
- */
-case class ImmediateOperatorDefinitionNode(
-    opn: OperatorPrototypeNode,
-    body: AstNode) extends OperatorDefinitionNode {
-  def interpret = ImmediateOperatorDefinition(opn.interpret, body.interpret)
-}
-
-/**
- * Represent a symbolic operator definition.
- * @param opn		The prototype node.
- * @param prop	The properties.
- */
-case class SymbolicOperatorDefinitionNode(
-    opn: OperatorPrototypeNode,
-    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
-  def interpret = SymbolicOperatorDefinition(opn.interpret, prop.interpret)
-}
-
-/**
- * Represent a native operator definition.
- * @param opn		The prototype node.
- * @param prop	The properties.
- */
-case class NativeOperatorDefinitionNode(
-    opn: OperatorPrototypeNode,
-    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
-  def interpret = NativeOperatorDefinition(opn.interpret, prop.interpret)
-}
-
-//----------------------------------------------------------------------
-// Object and binding nodes.
-//----------------------------------------------------------------------
-
-/**
- * Represent a bindings atom.
- * @param map	The bindings.
- */
-case class BindingsNode(map: Map[String,AstNode]) extends AstNode {
-  def interpret = {
-    var binds = new Bindings
-    for ((str,node) <- map) {
-      binds += (str -> node.interpret)
-    }
-    BindingsAtom(binds)
-  }
-}
-
-//----------------------------------------------------------------------
-// Symbol nodes.
-//----------------------------------------------------------------------
-
-/**
- * A node representing a "naked" symbol: a symbol whose type is the type
- * universe.
- * @param str	The symbol text.
- */
-case class NakedSymbolNode(str: String) extends AstNode {
-  def interpret = Literal(TypeUniverse, SymVal(Symbol(str)))
-}
-
-/**
- * A node representing a symbol.
- * @param typ		The type.
- * @param name	The symbol text.
- */
-case class SymbolNode(typ: AstNode, name: String) extends AstNode {
-  def interpret = Literal(typ.interpret, name)
-}
-
-//----------------------------------------------------------------------
-// Variable nodes.
-//----------------------------------------------------------------------
-
-/**
- * A node representing a variable reference.
- * @param typ		The type.
- * @param name	The variable name.
- */
-case class VariableNode(typ: AstNode, name: String) extends AstNode {
-  def interpret = Variable(typ.interpret, name)
-}
-
-//----------------------------------------------------------------------
-// Rule nodes.
-//----------------------------------------------------------------------
-
-/**
- * A node representing a rewrite rule.
- * @param decls			Optional pattern variable declarations.
- * @param pattern		The pattern to match.
- * @param rewrite		The rewrite to apply when the pattern matches.
- * @param guards		The list of guards.
- * @param rulesets	The optional list of rulesets.
- * @param level			The optional cache level.
- */
-case class RuleNode(
-    decls: Option[List[VariableNode]],
-    pattern: AstNode,
-    rewrite: AstNode,
-    guards: List[AstNode],
-    rulesets: Option[List[NakedSymbolNode]],
-    level: Option[UnsignedIntegerNode]) extends AstNode {
-  def interpret = {
-    // Get the rulesets as a list of strings.
-    val rs = rulesets match {
-      case None => Set[String]()
-      case Some(list) => list.map(_.str).toSet
-    }
-    // Get the cache level.  The default is zero.
-    val cl = level match {
-      case None => 0
-      case Some(value) => value.asInt.toInt
-    }
-    // Make the rule.
-    RewriteRule(
-        pattern.interpret,
-        rewrite.interpret,
-        guards.map(_.interpret),
-        rs,
-        cl)
-  }
-}
-
-//----------------------------------------------------------------------
-// Literal nodes - that is, nodes that hold literal values.
-//----------------------------------------------------------------------
-
-/**
- * A node representing a symbol literal.
- * @param typ		The type.
- * @param sym		The symbol text.
- */
-case class SymbolLiteralNode(typ: AstNode, sym: String) extends AstNode {
-  def interpret = Literal(typ.interpret, SymVal(Symbol(sym)))
-}
-
-/**
- * A node representing a string literal.
- * @param typ		The type.
- * @param str		The string text.
- */
-case class StringLiteralNode(typ: AstNode, str: String) extends AstNode {
-  def interpret = Literal(typ.interpret, str)
-}
-
-//----------------------------------------------------------------------
-// Numeric literal value nodes.
-//----------------------------------------------------------------------
-
-/**
- * Root of all numeric abstract syntax tree nodes.
- */
-abstract class NumberNode extends AstNode {
-  /**
-   * Make a new version of this node, with the specified type.
-   * @param newtyp		The new type.
-   * @return	A new node with the given type.
-   */
-  def retype(newtyp: AstNode): NumberNode
-}
-
-/**
- * An abstract syntax tree node holding a numeric value.
- * @param sign			True if positive, false if negative.
- * @param integer		The integer portion of the number.
- * @param fraction	The fractional portion of the number, if any.
- * @param exponent	The exponent, if any.
- * @param typ				The overriding type.  Otherwise it is inferred.
- */
-object NumberNode {
-  /**
-   * Make a new node of the appropriate form to hold a number.
-   * 
-   * The number is constructed as follows.
-   * <code>[sign] [integer].[fraction] e [exponent]</code>
-   * The radix for the result is taken from the integer portion.
-   * 
-   * @param sign			If false, the number is negative.  Otherwise positive.
-   * @param integer		The integer portion of the number.
-   * @param fraction	The fractional portion of the number.  By default, none.
-   * @param exponent	The exponent.  By default, zero.
-   * @param typ				The type for the number.
-   * @return	The new number node.
-   */
-  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
-      fraction: Option[UnsignedIntegerNode],
-      exponent: Option[SignedIntegerNode],
-      typ: Option[AstNode] = None): NumberNode = {
-    // Make the sign concrete.
-    val theSign = sign.getOrElse(true)
-    // If there is neither fraction nor exponent, then this is just an integer.
-    // Otherwise it is a float.
-    if (fraction.isDefined || exponent.isDefined) {
-      // This is a float.  Get the parts.
-      val fracpart = (if (fraction.isDefined) fraction.get.digits else "")
-      val exppart = exponent.getOrElse(SignedIntegerNode.Zero)
-      FloatNode(theSign, integer.digits, fracpart, integer.radix, exppart)
-    } else {
-      SignedIntegerNode(theSign, integer.digits, integer.radix)
-    }
-  }
-}
-
-/**
- * An abstract syntax tree node holding an unsigned integer.  The integer value
- * should be regarded as positive.
- * @param digits	The digits of the number.
- * @param radix		The radix.
- * @param typ			The type.  If not specified, INTEGER is used.
- */
-case class UnsignedIntegerNode(digits: String, radix: Int,
-    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
-  def interpret = Literal(typ.interpret, asInt)
-  /** Get the unsigned integer as a positive native integer value. */
-  lazy val asInt = BigInt(digits, radix)
-  def retype(newtyp: AstNode) = UnsignedIntegerNode(digits, radix, newtyp)
-}
-
-/**
- * An abstract syntax tree node holding a signed integer.
- * @param sign		If true, positive, and if false, negative.
- * @param digits	The digits of the number.
- * @param radix		The radix.
- * @param typ			The type.  If not specified, INTEGER is used.
- */
-case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
-    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
-  def interpret = Literal(typ.interpret, asInt)
-  lazy val asInt = if (sign) asUInt else -asUInt
-  lazy val asUInt = BigInt(digits, radix)
-  def retype(newtyp: AstNode) = SignedIntegerNode(sign, digits, radix, newtyp)
-}
-
-/**
- * Provide other methods to construct a signed integer.
- */
-object SignedIntegerNode {
-  /** Zero. */
-  val Zero = SignedIntegerNode(true, "0", 10)
-  /** One. */
-  val One = SignedIntegerNode(true, "1", 10)
-  
-  /**
-   * Create a new signed integer from the given unsigned integer.  The radix
-   * is the same as the signed integer.
-   * @param sign		If true or None, positive.  If false, negative.
-   * @param integer	The unsigned integer value.
-   * @param typ			The type.
-   */
-  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
-      typ: AstNode): SignedIntegerNode =
-    sign match {
-      case Some(bool) => SignedIntegerNode(bool, integer.digits, integer.radix,
-          typ)
-      case None => SignedIntegerNode(true, integer.digits, integer.radix, typ)
-    }
-  
-  /**
-   * Create a new signed integer from the given unsigned integer.  The radix
-   * is the same as the signed integer.
-   * @param sign		If true or None, positive.  If false, negative.
-   * @param integer	The unsigned integer value.
-   */
-  def apply(sign: Option[Boolean],
-      integer: UnsignedIntegerNode): SignedIntegerNode =
-    SignedIntegerNode(sign, integer, SimpleTypeNode(INTEGER))
-}
-
-/**
- * An abstract syntax tree node holding a floating point value.
- * @param sign			True if positive, false if negative.
- * @param integer		The integer portion's digits.
- * @param fraction	The fractional portion's digits.
- * @param radix			The radix for the integer and fraction.
- * @param exp				The exponent.
- * @param typ				The type.  If not specified, FLOAT is used.
- */
-case class FloatNode(sign: Boolean, integer: String, fraction: String,
-    radix: Int, exp: SignedIntegerNode, typ: AstNode = SimpleTypeNode(FLOAT))
-    extends NumberNode {
-  // We need to modify the integer and fraction parts to create the proper
-  // significand.  This is done as follows.  If there are n digits in the
-  // fraction, then we need to subtract n from the exponent.  Now, to do the
-  // math we have to convert the exponent into an actual integer, then do the
-  // math, and then convert it back to the proper number in the correct radix.
-  // We do all that now.
-  
-  /**
-   * The normalized version of this float.  It is a pair consisting of the
-   * significand and exponent.  Note that the two may use different radices.
-   */
-  lazy val norm = {
-    // Correct the significand by adding the integer and fractional part
-    // together.
-    val significand = integer + fraction
-    // Now get the exponent, and adjust it to account for the fractional part.
-    // Since the decimal moves right, we subtract from the original exponent.
-    var exponent = exp.asInt
-    exponent -= fraction.length
-    // The sign of the exponent might change, so we recompute the sign here.
-    // We separate the sign and the exponent, so we also need the unsigned
-    // version of the exponent.
-    val newsign = exponent >= 0
-    exponent = exponent.abs
-    // Construct the new exponent as a signed integer node.  We use the same
-    // radix as before.
-    val newexp = SignedIntegerNode(newsign,
-        exponent.toString(exp.radix), exp.radix)
-    // Done.  Return the significand and exponent.  Note these two might have
-    // different radix.
-    (SignedIntegerNode(sign, significand, radix), newexp)
-  }
-  
-  /**
-   * The simple triple representation of this float.  It consists of the
-   * significand, the exponent, and the preferred radix (from the significand).
-   */
-  lazy val asTriple = (norm._1.asInt, norm._2.asInt, radix)
-  
-  /**
-   * Compute the platform float representation of this number.  This is not
-   * very likely to be useful, but might be very good for debugging.
-   */
-  lazy val asFloat = norm._1.asInt * BigInt(radix).pow(norm._2.asInt.toInt)
-  
-  def interpret = Literal(typ.interpret, norm._1.asInt.toInt,
-      norm._2.asInt.toInt, radix)
-  
-  def retype(newtyp: AstNode) = FloatNode(sign, integer, fraction, radix, exp,
-      newtyp)
+object AtomParser {
+	
+	//======================================================================
+	// Definitions for an abstract syntax tree for atoms.
+	//======================================================================
+	
+	/**
+	 * An abstract syntax tree node resulting from parsing an atom.
+	 */
+	sealed abstract class AstNode {
+	  /**
+	   * Interpret this abstract syntax tree to generate an atom.
+	   * @return	The generated atom.
+	   */
+	  def interpret: BasicAtom
+	}
+	
+	//----------------------------------------------------------------------
+	// Type nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a simple type, which must be a root type.
+	 * @param TYPE	The type.
+	 */
+	case class SimpleTypeNode(TYPE: RootType) extends AstNode {
+	  def interpret = TYPE
+	}
+	
+	/**
+	 * A node representing the unique type universe.
+	 */
+	case class TypeUniverseNode() extends AstNode {
+	  def interpret = TypeUniverse
+	}
+	
+	//----------------------------------------------------------------------
+	// Operator application.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing the application of an operator to an argument.
+	 * @param context	The context.
+	 * @param op			The operator.
+	 * @param arg			The argument.
+	 */
+	case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
+	extends AstNode {
+	  def interpret = {
+	    // If the operator provided is a symbol, then we will try to interpret it
+	    // as an operator.
+	    val atom = op.interpret
+	    atom match {
+	      case Literal(_, SymVal(sval)) =>
+	        context.operatorLibrary(sval.name)(arg.interpret)
+	      case _ => Apply(atom, arg.interpret)
+	    }
+	  }
+	}
+	
+	/**
+	 * Provide alternate ways to create an application node.
+	 */
+	object ApplicationNode {
+	  /**
+	   * Create an application node for a binary operator.
+	   * @param context	The context.
+	   * @param op			The binary operator.
+	   * @param arg1		First argument.
+	   * @param arg2		Second argument.
+	   * @return	The new application node.
+	   */
+	  def apply(context: Context, op: AstNode,
+	      arg1: AstNode, arg2: AstNode): ApplicationNode =
+	    ApplicationNode(context, op, AtomListNode(List(arg1, arg2)))
+	}
+	
+	/**
+	 * A node representing a "naked" operator.
+	 * @param str	The operator name.
+	 * @param lib	The operator library that will get the operator.
+	 */
+	case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
+	  def interpret = lib(str)
+	}
+	
+	/**
+	 * A node representing a lambda.
+	 * @param lvar	The lambda variable.
+	 * @param body	The lambda body.
+	 */
+	case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
+	  def interpret = Lambda(lvar.interpret, body.interpret)
+	}
+	
+	/**
+	 * An abstract syntax tree node holding a simple list of atoms.
+	 * @param list	The actual list of atom nodes.
+	 */
+	case class AtomListNode(list: List[AstNode]) extends AstNode {
+	  /**
+	   * Properties of this list, if known.  The properties stored are
+	   * associativity and commutativity.  If not specified, then the properties
+	   * have not yet been specified, and should be inherited from an operator.
+	   */
+	  var props: Option[(Boolean, Boolean)] = None
+	  def interpret = AtomList(list map (_.interpret), props)
+	  /**
+	   * Set the properties for this list.
+	   * @param assoc		If true, the list is associative.
+	   * @param comm		If true, the list is commutative.
+	   */
+	  def setProperties(assoc: Boolean, comm: Boolean) = {
+	    props = Some(assoc, comm)
+	    this
+	  }
+	}
+	
+	//----------------------------------------------------------------------
+	// Operator definition.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A data structure holding operator properties as they are discovered during
+	 * the parse.
+	 */
+	class OperatorPropertiesNode {
+	  /** An identity, if any. */
+	  var withIdentity: Option[AstNode] = None
+	  /** An absorber, if any. */
+	  var withAbsorber: Option[AstNode] = None
+	  /** True iff this operator is idempotent. */
+	  var isIdempotent = false
+	  /** True iff this operator is commutative. */ 
+	  var isCommutative = false
+	  /** True iff this operator is associative. */
+	  var isAssociative = false
+	  
+	  /**
+	   * Get the optional identity.
+	   * @return	The optional identity.
+	   */
+	  def identity = withIdentity match {
+	    case Some(node) => Some(node.interpret)
+	    case None => None
+	  }
+	  
+	  /**
+	   * Get the optional absorber.
+	   * @return	The optional absorber.
+	   */
+	  def absorber = withAbsorber match {
+	    case Some(node) => Some(node.interpret)
+	    case None => None
+	  }
+	  
+	  /**
+	   * Convert this into an operator properties instance.
+	   * @return	The operator properties object.
+	   */
+	  def interpret = OperatorProperties(isAssociative, isCommutative,
+	      isIdempotent, absorber, identity)
+	}
+	
+	/**
+	 * Represent an operator prototype.
+	 * @param name			The operator name.
+	 * @param pars			The formal parameter.
+	 * @param typ				The type.
+	 */
+	class OperatorPrototypeNode(
+	    val name: String,
+	    val pars: Option[List[VariableNode]],
+	    val typ: AstNode) {
+	  def interpret = OperatorPrototype(
+	      name,
+	      pars match {
+	        case Some(list) => list.map(_.interpret)
+	        case None => List[Variable]()
+	      },
+	      typ.interpret)
+	}
+	
+	sealed abstract class OperatorDefinitionNode extends AstNode {
+	  def interpret: OperatorDefinition
+	}
+	
+	/**
+	 * Represent an immediate operator definition.
+	 * @param opn		The prototype node.
+	 * @param body	The body.
+	 */
+	case class ImmediateOperatorDefinitionNode(
+	    opn: OperatorPrototypeNode,
+	    body: AstNode) extends OperatorDefinitionNode {
+	  def interpret = ImmediateOperatorDefinition(opn.interpret, body.interpret)
+	}
+	
+	/**
+	 * Represent a symbolic operator definition.
+	 * @param opn		The prototype node.
+	 * @param prop	The properties.
+	 */
+	case class SymbolicOperatorDefinitionNode(
+	    opn: OperatorPrototypeNode,
+	    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
+	  def interpret = SymbolicOperatorDefinition(opn.interpret, prop.interpret)
+	}
+	
+	/**
+	 * Represent a native operator definition.
+	 * @param opn		The prototype node.
+	 * @param prop	The properties.
+	 */
+	case class NativeOperatorDefinitionNode(
+	    opn: OperatorPrototypeNode,
+	    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
+	  def interpret = NativeOperatorDefinition(opn.interpret, prop.interpret)
+	}
+	
+	//----------------------------------------------------------------------
+	// Object and binding nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * Represent a bindings atom.
+	 * @param map	The bindings.
+	 */
+	case class BindingsNode(map: Map[String,AstNode]) extends AstNode {
+	  def interpret = {
+	    var binds = new Bindings
+	    for ((str,node) <- map) {
+	      binds += (str -> node.interpret)
+	    }
+	    BindingsAtom(binds)
+	  }
+	}
+	
+	//----------------------------------------------------------------------
+	// Symbol nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a "naked" symbol: a symbol whose type is the type
+	 * universe.
+	 * @param str	The symbol text.
+	 */
+	case class NakedSymbolNode(str: String) extends AstNode {
+	  def interpret = Literal(TypeUniverse, SymVal(Symbol(str)))
+	}
+	
+	/**
+	 * A node representing a symbol.
+	 * @param typ		The type.
+	 * @param name	The symbol text.
+	 */
+	case class SymbolNode(typ: AstNode, name: String) extends AstNode {
+	  def interpret = Literal(typ.interpret, name)
+	}
+	
+	//----------------------------------------------------------------------
+	// Variable nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a variable reference.
+	 * @param typ		The type.
+	 * @param name	The variable name.
+	 */
+	case class VariableNode(typ: AstNode, name: String) extends AstNode {
+	  def interpret = Variable(typ.interpret, name)
+	}
+	
+	//----------------------------------------------------------------------
+	// Rule nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a rewrite rule.
+	 * @param decls			Optional pattern variable declarations.
+	 * @param pattern		The pattern to match.
+	 * @param rewrite		The rewrite to apply when the pattern matches.
+	 * @param guards		The list of guards.
+	 * @param rulesets	The optional list of rulesets.
+	 * @param level			The optional cache level.
+	 */
+	case class RuleNode(
+	    decls: Option[List[VariableNode]],
+	    pattern: AstNode,
+	    rewrite: AstNode,
+	    guards: List[AstNode],
+	    rulesets: Option[List[NakedSymbolNode]],
+	    level: Option[UnsignedIntegerNode]) extends AstNode {
+	  def interpret = {
+	    // Get the rulesets as a list of strings.
+	    val rs = rulesets match {
+	      case None => Set[String]()
+	      case Some(list) => list.map(_.str).toSet
+	    }
+	    // Get the cache level.  The default is zero.
+	    val cl = level match {
+	      case None => 0
+	      case Some(value) => value.asInt.toInt
+	    }
+	    // Make the rule.
+	    RewriteRule(
+	        pattern.interpret,
+	        rewrite.interpret,
+	        guards.map(_.interpret),
+	        rs,
+	        cl)
+	  }
+	}
+	
+	//----------------------------------------------------------------------
+	// Literal nodes - that is, nodes that hold literal values.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a symbol literal.
+	 * @param typ		The type.
+	 * @param sym		The symbol text.
+	 */
+	case class SymbolLiteralNode(typ: AstNode, sym: String) extends AstNode {
+	  def interpret = Literal(typ.interpret, SymVal(Symbol(sym)))
+	}
+	
+	/**
+	 * A node representing a string literal.
+	 * @param typ		The type.
+	 * @param str		The string text.
+	 */
+	case class StringLiteralNode(typ: AstNode, str: String) extends AstNode {
+	  def interpret = Literal(typ.interpret, str)
+	}
+	
+	//----------------------------------------------------------------------
+	// Numeric literal value nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * Root of all numeric abstract syntax tree nodes.
+	 */
+	abstract class NumberNode extends AstNode {
+	  /**
+	   * Make a new version of this node, with the specified type.
+	   * @param newtyp		The new type.
+	   * @return	A new node with the given type.
+	   */
+	  def retype(newtyp: AstNode): NumberNode
+	}
+	
+	/**
+	 * An abstract syntax tree node holding a numeric value.
+	 * @param sign			True if positive, false if negative.
+	 * @param integer		The integer portion of the number.
+	 * @param fraction	The fractional portion of the number, if any.
+	 * @param exponent	The exponent, if any.
+	 * @param typ				The overriding type.  Otherwise it is inferred.
+	 */
+	object NumberNode {
+	  /**
+	   * Make a new node of the appropriate form to hold a number.
+	   * 
+	   * The number is constructed as follows.
+	   * <code>[sign] [integer].[fraction] e [exponent]</code>
+	   * The radix for the result is taken from the integer portion.
+	   * 
+	   * @param sign			If false, the number is negative.  Otherwise positive.
+	   * @param integer		The integer portion of the number.
+	   * @param fraction	The fractional portion of the number.  By default, none.
+	   * @param exponent	The exponent.  By default, zero.
+	   * @param typ				The type for the number.
+	   * @return	The new number node.
+	   */
+	  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
+	      fraction: Option[UnsignedIntegerNode],
+	      exponent: Option[SignedIntegerNode],
+	      typ: Option[AstNode] = None): NumberNode = {
+	    // Make the sign concrete.
+	    val theSign = sign.getOrElse(true)
+	    // If there is neither fraction nor exponent, then this is just an integer.
+	    // Otherwise it is a float.
+	    if (fraction.isDefined || exponent.isDefined) {
+	      // This is a float.  Get the parts.
+	      val fracpart = (if (fraction.isDefined) fraction.get.digits else "")
+	      val exppart = exponent.getOrElse(SignedIntegerNode.Zero)
+	      FloatNode(theSign, integer.digits, fracpart, integer.radix, exppart)
+	    } else {
+	      SignedIntegerNode(theSign, integer.digits, integer.radix)
+	    }
+	  }
+	}
+	
+	/**
+	 * An abstract syntax tree node holding an unsigned integer.  The integer value
+	 * should be regarded as positive.
+	 * @param digits	The digits of the number.
+	 * @param radix		The radix.
+	 * @param typ			The type.  If not specified, INTEGER is used.
+	 */
+	case class UnsignedIntegerNode(digits: String, radix: Int,
+	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
+	  def interpret = Literal(typ.interpret, asInt)
+	  /** Get the unsigned integer as a positive native integer value. */
+	  lazy val asInt = BigInt(digits, radix)
+	  def retype(newtyp: AstNode) = UnsignedIntegerNode(digits, radix, newtyp)
+	}
+	
+	/**
+	 * An abstract syntax tree node holding a signed integer.
+	 * @param sign		If true, positive, and if false, negative.
+	 * @param digits	The digits of the number.
+	 * @param radix		The radix.
+	 * @param typ			The type.  If not specified, INTEGER is used.
+	 */
+	case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
+	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
+	  def interpret = Literal(typ.interpret, asInt)
+	  lazy val asInt = if (sign) asUInt else -asUInt
+	  lazy val asUInt = BigInt(digits, radix)
+	  def retype(newtyp: AstNode) = SignedIntegerNode(sign, digits, radix, newtyp)
+	}
+	
+	/**
+	 * Provide other methods to construct a signed integer.
+	 */
+	object SignedIntegerNode {
+	  /** Zero. */
+	  val Zero = SignedIntegerNode(true, "0", 10)
+	  /** One. */
+	  val One = SignedIntegerNode(true, "1", 10)
+	  
+	  /**
+	   * Create a new signed integer from the given unsigned integer.  The radix
+	   * is the same as the signed integer.
+	   * @param sign		If true or None, positive.  If false, negative.
+	   * @param integer	The unsigned integer value.
+	   * @param typ			The type.
+	   */
+	  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
+	      typ: AstNode): SignedIntegerNode =
+	    sign match {
+	      case Some(bool) => SignedIntegerNode(bool, integer.digits, integer.radix,
+	          typ)
+	      case None => SignedIntegerNode(true, integer.digits, integer.radix, typ)
+	    }
+	  
+	  /**
+	   * Create a new signed integer from the given unsigned integer.  The radix
+	   * is the same as the signed integer.
+	   * @param sign		If true or None, positive.  If false, negative.
+	   * @param integer	The unsigned integer value.
+	   */
+	  def apply(sign: Option[Boolean],
+	      integer: UnsignedIntegerNode): SignedIntegerNode =
+	    SignedIntegerNode(sign, integer, SimpleTypeNode(INTEGER))
+	}
+	
+	/**
+	 * An abstract syntax tree node holding a floating point value.
+	 * @param sign			True if positive, false if negative.
+	 * @param integer		The integer portion's digits.
+	 * @param fraction	The fractional portion's digits.
+	 * @param radix			The radix for the integer and fraction.
+	 * @param exp				The exponent.
+	 * @param typ				The type.  If not specified, FLOAT is used.
+	 */
+	case class FloatNode(sign: Boolean, integer: String, fraction: String,
+	    radix: Int, exp: SignedIntegerNode, typ: AstNode = SimpleTypeNode(FLOAT))
+	    extends NumberNode {
+	  // We need to modify the integer and fraction parts to create the proper
+	  // significand.  This is done as follows.  If there are n digits in the
+	  // fraction, then we need to subtract n from the exponent.  Now, to do the
+	  // math we have to convert the exponent into an actual integer, then do the
+	  // math, and then convert it back to the proper number in the correct radix.
+	  // We do all that now.
+	  
+	  /**
+	   * The normalized version of this float.  It is a pair consisting of the
+	   * significand and exponent.  Note that the two may use different radices.
+	   */
+	  lazy val norm = {
+	    // Correct the significand by adding the integer and fractional part
+	    // together.
+	    val significand = integer + fraction
+	    // Now get the exponent, and adjust it to account for the fractional part.
+	    // Since the decimal moves right, we subtract from the original exponent.
+	    var exponent = exp.asInt
+	    exponent -= fraction.length
+	    // The sign of the exponent might change, so we recompute the sign here.
+	    // We separate the sign and the exponent, so we also need the unsigned
+	    // version of the exponent.
+	    val newsign = exponent >= 0
+	    exponent = exponent.abs
+	    // Construct the new exponent as a signed integer node.  We use the same
+	    // radix as before.
+	    val newexp = SignedIntegerNode(newsign,
+	        exponent.toString(exp.radix), exp.radix)
+	    // Done.  Return the significand and exponent.  Note these two might have
+	    // different radix.
+	    (SignedIntegerNode(sign, significand, radix), newexp)
+	  }
+	  
+	  /**
+	   * The simple triple representation of this float.  It consists of the
+	   * significand, the exponent, and the preferred radix (from the significand).
+	   */
+	  lazy val asTriple = (norm._1.asInt, norm._2.asInt, radix)
+	  
+	  /**
+	   * Compute the platform float representation of this number.  This is not
+	   * very likely to be useful, but might be very good for debugging.
+	   */
+	  lazy val asFloat = norm._1.asInt * BigInt(radix).pow(norm._2.asInt.toInt)
+	  
+	  def interpret = Literal(typ.interpret, norm._1.asInt.toInt,
+	      norm._2.asInt.toInt, radix)
+	  
+	  def retype(newtyp: AstNode) = FloatNode(sign, integer, fraction, radix, exp,
+	      newtyp)
+	}
 }
 
 //======================================================================
@@ -576,6 +574,8 @@ case class FloatNode(sign: Boolean, integer: String, fraction: String,
  */
 class AtomParser(val context: Context, val trace: Boolean = false)
 extends Parser {
+  import AtomParser._
+  
   abstract sealed class Presult
   case class Success(nodes: List[AstNode]) extends Presult
   case class Failure(err: String) extends Presult

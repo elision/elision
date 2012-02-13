@@ -91,7 +91,7 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
    * @param arg	The argument.
    * @return	A new atom.
    */
-  def apply(arg: BasicAtom) = arg match {
+  def apply(arg: BasicAtom): BasicAtom = arg match {
     /*
      * How Operator Applications Get Created
      * 
@@ -133,29 +133,40 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
      */
     
     case al:AtomList =>
-      // See if the atom list provides properties.
+      // We have to check the prototype against the arguments.  First we
+      // capture the properties.
+      var assoc = false
+      var comm = false
       al.props match {
-        case None => // No properties specified; nothing to check.
-        case Some((assoc,comm)) =>
-          // The properties must match.  We also check for absorbers and
-          // identities here.  We only do this for native and symbolic
-          // definitions.
-          opdef match {
-            case NativeOperatorDefinition(_, props) =>
-              checkProps(props, al, assoc, comm)
-            case SymbolicOperatorDefinition(_, props) =>
-              checkProps(props, al, assoc, comm)
-            case _ =>
-          }
+        case None =>
+          // If no properties are specified, we treat the argument list as if
+          // it is neither associative nor commutative.
+        case Some((a,c)) =>
+          // Save the properties.
+          assoc = a
+          comm = c
       }
+      // What we do next depends on the type of operator definition.  The
+      // native and symbolic definitions specify properties; the immediate
+      // definition does not.
+      // 
+      // The following will compute the correct atom for the apply.
+      opdef match {
+        case NativeOperatorDefinition(_, props) =>
+          checkProto(props, al, assoc, comm)
+        case SymbolicOperatorDefinition(_, props) =>
+          checkProto(props, al, assoc, comm)
+        case _ =>
+          Apply(this, arg)
+      }
+    case _ =>
+      // If not an atom list, immediately make and return an apply.
       Apply(this, arg)
-    // If not an atom list, immediately make and return an apply.
-    case _ => Apply(this, arg)
   }
   
   /**
-   * Check the given properties against the operator definition.  If they do
-   * not match, throw an exception.
+   * Check an argument atom list against the prototype for the operator.  If
+   * they do not match, throw an exception.
    * 
    * The argument list is processed to flatten associative applications, and
    * to remove identities and look for absorbers.
@@ -171,7 +182,7 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
    * @throws	ArgumentListException
    * 					The properties do not match.
    */
-  private def checkProps(props: OperatorProperties, al: AtomList,
+  private def checkProto(props: OperatorProperties, al: AtomList,
       assoc: Boolean, comm: Boolean): BasicAtom = {
     // Check the properties and throw an exception if they do not match.
     if (props.assoc && !assoc)
@@ -191,12 +202,20 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
     // of elements.  The only remaining item is to match the arguments against
     // the formal parameters.
     if (!assoc) {
+      // To check the argument list, we match the prototype argument list
+      // against the provided argument list.  If they match, then all is
+      // well.  If they do not match, then we immediately throw an exception.
       SequenceMatcher.tryMatch(opdef.proto.pars, al.atoms) match {
         case fail:Fail =>
+          // The argument list does not match the formal parameters.
           throw new ArgumentListException("Incorrect argument list: " + fail)
-        case _ => Apply(this, al)
+        case _ =>
+          // The argument list matches.  Make and return the apply.
+          Apply(this, al)
       }
     }
+    
+    // After this point we are dealing with an associative operator.
     
     // Now check for identities and absorbers, and flatten any associative
     // applications.
@@ -204,30 +223,56 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
     val absorber = props.absorber.getOrElse(null)
     val identity = props.identity.getOrElse(null)
     for (atom <- al.atoms) {
-		  // See if this atom is an absorber.  If so, we are done.
-		  if (atom == absorber) return absorber
-		  
 		  // If this atom is an application of the same operator, then flatten
-		  // the argument list.
+		  // the argument list.  This is the "parenthesized" list case:
+		  // op(x,op(y,z)) becomes op(x,y,z).
+      //
+      // We also look for identities (which we skip) and absorbers.
 		  atom match {
 		    case Apply(op, AtomList(args,_)) if op == this =>
 		      // Add the arguments directly to this list.  We can assume it has
 		      // already been processed, so no deeper checking is needed.
 		      newlist ++ args
+		    case atom:BasicAtom if atom == absorber =>
+		    	// This atom is an absorber.  We are done.
+		      return absorber
+		    case atom:BasicAtom if atom == identity =>
+		      // Skip identities.
 		    case _ =>
+		    	// This atom is not the identity or an absorber.  Add it to the list.
+		      newlist += atom
 		  }
-		  
-		  // See if this atom is not the identity.  If so, add it to the list.
-		  if (atom != identity) newlist += atom
     }
     
     // If the list is empty, and there is an identity, then the identity is
     // the result.  Otherwise the answer is a new list.
     if (newlist.isEmpty && identity != null) return identity
     
+    // If the list is a singleton, and there is an identity, then the answer
+    // is the single element, whatever it is.
+    if (newlist.length == 1 && identity != null) return newlist(0)
+    
     // There are still arguments left.  These arguments must match the formal
-    // parameters.  For this to work, we need the argument lists to be the same
-    // size.
+    // parameters.  These two lists might be different sizes, however.  If the
+    // argument list is shorter than the parameter list, it is doomed and we
+    // give up.
+    val pars = opdef.proto.pars
+    val plen = pars.length
+    val nlen = newlist.length
+    if (nlen < plen) throw new ArgumentListException("Too few arguments (" +
+        nlen + ") to operator " + this +
+        " after processing.  Argument list is now: " +
+        newlist.mkParseString("(",", ",")") + ".")
+
+    // If there are equal numbers of parameters and arguments, great!  We can
+    // just match normally.
+    //
+    // In the case that there are more arguments than parameters, we have to
+    // do some modification to the parameter list.  We make a new list by
+    // repeating the last parameter as many times as necessary, and then
+    // performing the match on the new lists.
+    //
+    // TODO: Implement this!
     AtomList(newlist, Some((assoc, comm)))
   }
   

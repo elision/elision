@@ -34,10 +34,13 @@ package sjp.elision.repl
 import sjp.elision.core._
 import scala.collection.mutable.ListBuffer
 import sjp.elision.parse.AtomParser
+import jline.History
+import java.io.File
 
 /**
  * Provide a REPL to experiment with the new term rewriter.
  * 
+ * ==Use==
  * The REPL can be started from the command line, or programmatically by
  * invoking the `run` method.  It prints a prompt, reads a line from the
  * standard input, and executes the line.
@@ -45,25 +48,50 @@ import sjp.elision.parse.AtomParser
  * Other uses are possible.  To just execute a line, use the `execute` method.
  * This avoids reading from standard input, etc.  Note that `execute` maintains
  * the history, so history references are possible.
+ * 
+ * ==REPL Interaction==
+ * Interaction with the REPL is described in the documentation of the `run`
+ * method.  The REPL provides for command line editing, a persistent history,
+ * and special operations.
  */
 object Repl {
   
+  /** Figure out the location to store the history. */
+  private val _filename = {
+    val prop = new scala.sys.SystemProperties
+    val home = prop("user.home")
+    val fname = (if (prop("path.separator") == ":") ".elision"
+      else "elision.ini")
+    home + prop("file.separator") + fname
+  }
+  
+  /** Get a history to use for the line editor. */
+  val _hist = new History(new File(_filename))
+  
   /** The context to use. */
   private val _context = new Context()
+  
   /** The parser to use. */
   private var _parser = new AtomParser(_context, false)
+  
   /** The current set of bindings. */
   private var _binds = new Bindings
+  
   /** Direct access to the context's operator library. */
   private val _library = _context.operatorLibrary
+  
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
+  
   /** Whether to show the Scala. */
   private var _showScala = false
+  
   /** The binding number. */
   private var _bindNumber = 0
+  
   /** Whether or not to trace the parser. */
   private var _trace = false
+  
   /** The history.  This is set in `execute`. */
   private var _history = ListBuffer[String]()
 
@@ -88,11 +116,24 @@ object Repl {
   
   /**
    * Repeatedly print a prompt, obtain a line from the standard input,
-   * and call [[sjp.elision.repl.Repl.execute]] to execute the line.
+   * and call `execute` to execute the line.
+   * 
+   * ==Interaction==
+   * Interaction with the REPL is improved by using the
+   * [[http://jline.sourceforge.net jLine Library]].  This allows using the
+   * arrow keys to edit the line and move back and forward in the history.  It
+   * also supports saving the history between uses; the history is stored
+   * in the user's home folder (identified by the java property `user.home`)
+   * and named `.elision`.
+   * 
+   * ==Commands==
+   * The REPL supports several special commands.  These are processed by the
+   * `execute` method, and are described in its documentation.
    */
   def run() {
     // Show the prompt and read a line.
-    val cr = new jline.ConsoleReader()
+    val cr = new jline.ConsoleReader
+    cr.setHistory(_hist)
     while(true) {
       val line = cr.readLine("e> ")
       if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
@@ -104,6 +145,14 @@ object Repl {
    * Execute a line.  The line can be a command known to the interpreter, or
    * a history reference.  Exceptions are captured and displayed to the
    * standard output.
+   * 
+   * ==Commands==
+   * This method supports several special commands.
+   *  - `:quit`
+   *    Terminate the current session.
+   *  - `help`
+   *    Print help text.
+   * 
    * @param line	The line to execute.
    */
   def execute(line: String) {
