@@ -83,7 +83,8 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
     }
   }
 
-  def toParseString = "$" + toESymbol(name) + ":" + typ.toParseString
+  def toParseString = "$" + toESymbol(name) +
+  		(if (theType != ANYTYPE) ":" + typ.toParseString else "")
   
   override def toString = "Variable(" + typ + "," + toEString(name) + ")"
   

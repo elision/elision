@@ -95,3 +95,11 @@ object BOOLEAN extends NamedRootType("BOOLEAN")
 object RULETYPE extends NamedRootType("RULETYPE")
 /** A type for all operators. */
 object OPTYPE extends NamedRootType("OPTYPE")
+
+/**
+ * The unusual type ANY that matches anything.
+ */
+object ANYTYPE extends NamedRootType("ANYTYPE") {
+  override def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings) =
+    Match(binds)
+}

@@ -107,12 +107,15 @@ extends BasicAtom {
     // an atom list, then we generate the "friendly" version of the apply.
     // Otherwise we generate the more general form of the apply.
     op match {
-	    case _:Operator =>
+	    case actual:Operator =>
 	      arg match {
-	        case al:AtomList => op.toParseString + "(" + al.toNakedString + ")"
-	        case _ => op.toParseString + "." + arg.toParseString
+	        case al:AtomList =>
+	          toESymbol(actual.name) + "(" + al.toNakedString + ")"
+	        case _ =>
+	          op.toParseString + "." + arg.toParseString
 	      }
-	    case _ => op.toParseString + "." + arg.toParseString
+	    case _ =>
+	      op.toParseString + "." + arg.toParseString
 	  }
   
   override def toString = "Apply(" + op.toString + ", " + arg.toString + ")"
@@ -136,9 +139,9 @@ object Apply {
    * @param arg			The argument.
    */
   def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = {
-    println("Building an apply:")
-    println("  op -> " + op)
-    println(" arg -> " + arg)
+    //println("Building an apply:")
+    //println("  op -> " + op)
+    //println(" arg -> " + arg)
 	  op match {
 	    case Lambda(_, lvar, body) =>
 	      // Curry the lambda body by binding the variable to the argument and then
@@ -146,10 +149,10 @@ object Apply {
 	      body.rewrite((new Bindings) + (lvar.name -> arg))._1
 	    case rule:RewriteRule =>
 	      // Try to apply the rewrite rule.  Whatever we get back is the result.
-	      println("Rewriting with rule.")
+	      //println("Rewriting with rule.")
 	      rule.tryRewrite(arg)._1
 	    case _ =>
-	      println("Rewriting vanilla.")
+	      //println("Rewriting vanilla.")
 	      new Apply(op, arg)
 	  } 
   }
@@ -160,4 +163,20 @@ object Apply {
    * @return	The pair of operator and argument.
    */
   def unapply(apply: Apply) = Some(apply.op, apply.arg)
+}
+ 
+object Op {
+  /**
+   * Pull an apply apart.  This only works in the case of an operator applied
+   * to an atom list.
+   * 
+   * @param apply	The apply to dissect.
+   * @return	The parts, as a sequence, starting with the operator name.
+   */
+  def unapplySeq(apply: Apply): Option[Seq[BasicAtom]] =
+    apply match {
+    case Apply(op:Operator, AtomList(atoms,_)) =>
+      Some(Literal(STRING,op.name) +: atoms)
+    case _ => None
+  }
 }

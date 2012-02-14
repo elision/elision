@@ -86,16 +86,8 @@ class OperatorLibrary(
  	private var _nameToOperator = MMap[String, Operator]()
  	
  	/**
- 	 * The mapping from operator name to its native handler.  This holds the
- 	 * mapping as it changes.
- 	 */
- 	private var _nameToHandler = MMap[String, (String, AtomList) => BasicAtom]()
- 	
- 	private var _warned = scala.collection.mutable.Set[String]()
- 	
- 	/**
- 	 * Register a native handler for an operator.  The operator does not have
- 	 * to be defined yet.  Note that the handler is not always invoked; only if
+ 	 * Register a native handler for an operator.  The operator must already be
+ 	 * defined.  Note that the handler is not always invoked; only if
  	 * an operator is applied to an argument list is the handler invoked, and
  	 * then only if the argument list survives processing for the operator
  	 * properties (absorber, etc.).
@@ -108,33 +100,17 @@ class OperatorLibrary(
  	 * 								and generate a new atom.
  	 */
  	def register(name: String, handler: (String, AtomList) => BasicAtom) = {
- 	  _nameToHandler += (name -> handler)
+ 	  // Go fetch the operator.  It must be defined.
+ 	  _nameToOperator.get(name) match {
+ 	    case None =>
+ 	      warn("Operator " + name + " undeclared; ignoring native handler.")
+ 	    case Some(op) =>
+ 	      if (!op.opdef.isInstanceOf[NativeOperatorDefinition]) 
+          warn("Operator " + name + " is not native; ignoring native handler.")
+ 	      op.handler = handler
+ 	  }
  	  this
  	}
- 	
- 	/**
- 	 * Handle a native operator application.  This method is used by the
- 	 * [[sjp.elision.core.Operator]] class to invoke the native handler, if
- 	 * one has been registered.
- 	 * 
- 	 * If no native handler has been provided, then a warning message is issued
- 	 * the first time the operator is encountered here.
- 	 * 
- 	 * @param op		The operator.
- 	 * @param args	The argument list.
- 	 * @return	A new atom.
- 	 */
- 	def handle(op: Operator, args: AtomList) =
- 	  _nameToHandler.get(op.opdef.proto.name) match {
-		  case None =>
-		    if (!_warned.contains(op.name)) {
-		      _warned.add(op.name)
-		      warn("No implementation provided for native operator " +
-		          op.name + ".")
-		    }
-		    Apply(op, args)
-		  case Some(handler) => handler(op.name, args)
-	 	}
  	
  	/**
  	 * Get the named operator, if it is defined.  If not already defined, and

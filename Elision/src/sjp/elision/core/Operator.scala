@@ -55,6 +55,10 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   val theType = OPTYPE
   val isConstant = opdef.isConstant
   
+  /** The native handler, if one is declared. */
+  protected[core] var handler: (String,AtomList) => BasicAtom =
+    (_, list:AtomList) => Apply(this, list)
+  
   /** Provide quick access to the operator name. */
   lazy val name = opdef.proto.name
   
@@ -141,11 +145,20 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
           checkProto(props, al, assoc, comm)
         case SymbolicOperatorDefinition(_, props) =>
           checkProto(props, al, assoc, comm)
-        case _ =>
-          Apply(this, arg)
+        case ImmediateOperatorDefinition(_, body) =>
+          // Match the arguments against the formal parameters.
+          val bind = SequenceMatcher.tryMatch(opdef.proto.pars, al.atoms) match {
+            case Fail(reason, index) =>
+            	throw new ArgumentListException("Incorrect argument list at " +
+            			"position " + index + ": " + reason())
+            case Match(bnd) => bnd
+            case Many(matches) => matches.next()
+          }
+          body.rewrite(bind)._1
       }
     case _ =>
-      // If not an atom list, immediately make and return an apply.
+      // If not an atom list, immediately make and return an apply.  Note that
+      // we cannot use any native handler here.
       Apply(this, arg)
   }
   
@@ -193,10 +206,12 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
       SequenceMatcher.tryMatch(opdef.proto.pars, al.atoms) match {
         case fail:Fail =>
           // The argument list does not match the formal parameters.
-          throw new ArgumentListException("Incorrect argument list: " + fail)
+          throw new ArgumentListException(
+              "Incorrect argument list at position " + fail.index + ": " +
+              fail.theReason )
         case _ =>
           // The argument list matches.  Make and return the apply.
-          Apply(this, al)
+          return handler(name, al)
       }
     }
     
@@ -256,9 +271,20 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
     // do some modification to the parameter list.  We make a new list by
     // repeating the last parameter as many times as necessary, and then
     // performing the match on the new lists.
-    //
-    // TODO: Implement this!
-    AtomList(newlist, Some((assoc, comm)))
+    val parameters = ListBuffer[BasicAtom]()
+    parameters ++ pars
+    val last = pars.last
+    while (parameters.length < newlist.length) parameters :+ last
+    SequenceMatcher.tryMatch(parameters, newlist) match {
+      case fail:Fail =>
+        // The argument list does not match the formal parameters.
+        throw new ArgumentListException(
+            "Incorrect argument list at position " + fail.index + ": " +
+            fail.theReason )
+      case _ =>
+        // The argument list matches.  Make and return the apply.
+        return handler(name, AtomList(newlist, Some((assoc, comm))))
+    }
   }
   
   override lazy val hashCode = opdef.hashCode

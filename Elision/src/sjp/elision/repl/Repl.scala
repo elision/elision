@@ -101,6 +101,7 @@ object Repl {
    * @param args	The command line arguments.
    */
   def main(args: Array[String]) {
+    defineOps
     println("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
@@ -242,6 +243,42 @@ object Repl {
   }
   
   /**
+   * Define the operators we need.
+   */
+  private def defineOps {
+    val bindDef = NativeOperatorDefinition(
+        OperatorPrototype(
+            "bind",
+            List(Variable(ANYTYPE,"v"),Variable(ANYTYPE,"a")),
+            ANYTYPE),
+            OperatorProperties())
+    _context.operatorLibrary.add(bindDef)
+    _context.operatorLibrary.register("bind",
+        (_, list:AtomList) => list match {
+          case Args(from:Variable, to:BasicAtom) =>
+          	// Bind the variable in this context.
+            _binds += (from.name -> to)
+            println("Bound " + from.toParseString)
+            to
+        })
+    val unbindDef = NativeOperatorDefinition(
+        OperatorPrototype(
+            "unbind",
+            List(Variable(ANYTYPE,"v")),
+            ANYTYPE),
+            OperatorProperties())
+    _context.operatorLibrary.add(unbindDef)
+    _context.operatorLibrary.register("unbind",
+        (_, list:AtomList) => list match {
+          case Args(from:Variable) =>
+          	// Unbind the variable in this context.
+            _binds -= from.name
+            println("Unbound " + from.toParseString)
+            TypeUniverse
+        })
+  }
+  
+  /**
    * Decide what to do about an atom we just parsed.  This is where most of
    * the commands get processed, operators get added to the library, etc.
    * @param atom	An atom just parsed.
@@ -264,7 +301,8 @@ object Repl {
             | history .................... Show the history so far.
             | prior ...................... Toggle showing the unrewritten term.
             | scala ...................... Toggle showing the Scala term.
-            | trace ...................... Toggle parser tracing.
+            | traceparse.................. Toggle parser tracing.
+            | tracematch ................. Toggle match tracing.
             | unbind(v) .................. Unbind variable v.
             |
             |Use ! followed by a number to re-execute a line from the history.
@@ -272,11 +310,17 @@ object Repl {
             |To quit type :quit.
             |""".stripMargin)
         true
-      case Literal(_,SymVal('trace)) =>
+      case Literal(_,SymVal('traceparse)) =>
         // Toggle tracing.
         _trace = !_trace
         _parser = new AtomParser(_context, _trace)
         println("Tracing is " + (if (_trace) "ON." else "OFF."))
+        true
+      case Literal(_,SymVal('tracematch)) =>
+        // Toggle tracing.
+        BasicAtom.traceMatching = !BasicAtom.traceMatching
+        println("Match tracing is " +
+            (if (BasicAtom.traceMatching) "ON." else "OFF."))
         true
       case Literal(_,SymVal('scala)) =>
         // Toggle showing the Scala term.

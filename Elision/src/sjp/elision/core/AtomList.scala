@@ -164,3 +164,17 @@ case class AtomList(atoms: Seq[BasicAtom],
     case _ => false
   }
 }
+
+/**
+ * Provide alternate injection and extractor methods useful with arguments to
+ * an operator.
+ */
+object Args {
+  /**
+   * Get the atoms in the list as a sequence.
+   * 
+   * @param list	 The list to extract.
+   * @return	The extracted list.
+   */
+	def unapplySeq(al:AtomList) = Some(al.atoms)
+}

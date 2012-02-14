@@ -139,7 +139,7 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     }
   }
   
-  def toParseString = "RULE { " + pattern.toParseString + " -> " +
+  def toParseString = "{ RULE " + pattern.toParseString + " -> " +
   	rewrite.toParseString +
   	(if (!guards.isEmpty) guards.mkParseString(" if ", " if ", "") else "") +
   	(if (!rulesets.isEmpty)

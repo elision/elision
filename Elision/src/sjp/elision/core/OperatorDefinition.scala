@@ -66,7 +66,7 @@ case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
     props: OperatorProperties) extends OperatorDefinition(proto) {
   lazy val isConstant = props.isConstant
 	def toParseString =
-	  "operator { " + proto.toParseString + " " + props.toParseString + " }"
+	  "{ operator " + proto.toParseString + " " + props.toParseString + " }"
 	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
 	override def equals(other: Any) = other match {
     case sod:SymbolicOperatorDefinition =>
@@ -85,7 +85,7 @@ case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
     body: BasicAtom) extends OperatorDefinition(proto) {
   lazy val isConstant = body.isConstant
 	def toParseString =
-	  "operator { " + proto.toParseString + " = " + body.toParseString + " }"
+	  "{ operator " + proto.toParseString + " = " + body.toParseString + " }"
 	override lazy val hashCode = proto.hashCode * 31 + body.hashCode
 	override def equals(other: Any) = other match {
     case iod:ImmediateOperatorDefinition =>
@@ -104,7 +104,7 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
     props: OperatorProperties) extends OperatorDefinition(proto) {
   lazy val isConstant = props.isConstant
 	def toParseString =
-	  "native { " + proto.toParseString + " " + props.toParseString + " }"
+	  "{ native " + proto.toParseString + " " + props.toParseString + " }"
 	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
 	override def equals(other: Any) = other match {
     case nod:NativeOperatorDefinition =>

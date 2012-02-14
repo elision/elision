@@ -650,6 +650,7 @@ extends Parser {
       "BOOLEAN " ~ push(SimpleTypeNode(BOOLEAN)) |
       "OPTYPE " ~ push(SimpleTypeNode(OPTYPE)) |
       "RULETYPE " ~ push(SimpleTypeNode(RULETYPE)) |
+      "ANYTYPE " ~ push(SimpleTypeNode(ANYTYPE)) |
 
       // Parse a typed list.
       ParsedTypedList |
@@ -670,7 +671,7 @@ extends Parser {
       // default literals go into a simple type, but this can be overridden.
       ParsedLiteral |
       
-      AnyNumber ~ ": " ~ Atom ~~> (
+      AnyNumber ~ ": " ~ FirstAtom ~~> (
           (num:NumberNode, typ:AstNode) => num.retype(typ)) |
       AnyNumber |
 
@@ -707,13 +708,13 @@ extends Parser {
    * Parse a literal symbol or a literal string.
    */
   def ParsedLiteral = rule {
-      ESymbol ~ ": " ~ Atom ~~>
+      ESymbol ~ ": " ~ FirstAtom ~~>
       	((sym: NakedSymbolNode, typ: AstNode) =>
       	  SymbolLiteralNode(typ, sym.str)) |
       ESymbol ~~>
       	((sym: NakedSymbolNode) =>
       	  SymbolLiteralNode(SimpleTypeNode(SYMBOL), sym.str)) |
-      EString ~ ": " ~ Atom ~~>
+      EString ~ ": " ~ FirstAtom ~~>
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
@@ -760,6 +761,8 @@ extends Parser {
    * Parse a rule.
    */
   def ParsedRule = rule(
+    "{ " ~
+    
     // First there are optional variable declarations.  In a rule, all pattern
     // variables must be declared.
     optional("@ " ~ ParsedVariable ~
@@ -768,7 +771,7 @@ extends Parser {
 
     // Next is the rule itself, consisting of a pattern, a rewrite, and zero
     // or more guards.
-    ignoreCase("rule") ~ WS ~ "{ " ~
+    ignoreCase("rule") ~ WS ~
     Atom ~ "-> " ~ Atom ~ zeroOrMore("if " ~ Atom) ~
 
     // Next the rule can be declared to be in zero or more rulesets.
@@ -795,12 +798,12 @@ extends Parser {
   }
   
   def ParsedTypedVariable = rule {
-    "$" ~ ESymbol ~ ": " ~ Atom ~~> (
+    "$" ~ ESymbol ~ ": " ~ FirstAtom ~~> (
       (sval: NakedSymbolNode, typ: AstNode) => VariableNode(typ, sval.str))
   }
   
   def ParsedUntypedVariable = rule {
-    "$" ~ ESymbol ~~> (sval => VariableNode(TypeUniverseNode(), sval.str))
+    "$" ~ ESymbol ~~> (sval => VariableNode(SimpleTypeNode(ANYTYPE), sval.str))
   }
 
   //======================================================================
@@ -976,21 +979,21 @@ extends Parser {
    * is encountered, it is replaced at construction time by binding the formal
    * parameters and then rewriting the body.  It is essentially a macro.
    * {{{
-   *   operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y))
+   *   { operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y)) }
    * }}}
    * A symbolic operator whose properties are specified, if any.
    * {{{
-   *   operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE
-   *   operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
-   *     associative, commutative, absorber 0, identity 1
-   *   operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
-   *     associative, commutative, idempotent, identity false, absorber true
+   *   { operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE }
+   *   { operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
+   *     associative, commutative, absorber 0, identity 1 }
+   *   { operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
+   *     associative, commutative, idempotent, identity false, absorber true }
    * }}} 
    * An operator whose definition is provided by the runtime system - that is,
    * it is implemented in software.
    * {{{
-   *   native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
-   *     associative, commutative, identity 0
+   *   { native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
+   *     associative, commutative, identity 0 }
    * }}}
    */
   def ParsedOperatorDefinition = rule {
@@ -1002,44 +1005,44 @@ extends Parser {
   /**
    * Parse a native operator definition.
    * {{{
-   * native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
-   *   associative, commutative, identity 0
+   * { native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
+   *   associative, commutative, identity 0 }
    * }}}
    */
   def ParsedNativeOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "native " ~ "{ " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
+    "{ " ~ "native " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
     "} " ~~> (NativeOperatorDefinitionNode(_,_))
   }
   
   /**
    * Parse a symbolic operator definition.
    * {{{
-   * operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE
-   * operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
-   *   associative, commutative, absorber 0, identity 1
-   * operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
-   *   associative, commutative, idempotent, identity false, absorber true
+   * { operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE }
+   * { operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
+   *   associative, commutative, absorber 0, identity 1 }
+   * { operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
+   *   associative, commutative, idempotent, identity false, absorber true }
    * }}}
    */
   def ParsedSymbolicOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "operator " ~ "{ " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
+    "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
     "} " ~~> (SymbolicOperatorDefinitionNode(_,_))
   }
   
   /**
    * Parse a native operator definition.
    * {{{
-   * operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y))
+   * { operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y)) }
    * }}}
    */
   def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "operator " ~ "{ " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
+    "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
     "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
   }
   
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
-    ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ Atom ~~>
+    ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ FirstAtom ~~>
     ((name:NakedSymbolNode, pars:Option[List[VariableNode]], typ:AstNode) =>
           new OperatorPrototypeNode(name.str, pars, typ))
   }

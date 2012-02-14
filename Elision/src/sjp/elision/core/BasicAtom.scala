@@ -80,25 +80,70 @@ abstract class BasicAtom {
   
   /** If true then this atom denotes a constant (it contains no variables). */
   val isConstant: Boolean
-
+  
   /**
    * Attempt to match this atom, as a pattern, against the subject atom,
    * observing the bindings, if any.  The type is checked prior to trying
    * any matching.
+   * 
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.  This is optional.
    * @return	The matching outcome.
    */
   def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings) =
-    // Don't bother to try to match equal atoms.
-    if (this eq subject) Match(binds)
-    else matchTypes(subject, binds) match {
-      case fail: Fail => fail
-      case mat: Match => tryMatchWithoutTypes(subject, binds)
-      case Many(submatches) =>
-        Many(new MatchIterator(tryMatchWithoutTypes(subject, _),
-          submatches))
+    if (BasicAtom.traceMatching) traceMatch(subject, binds)
+    else doMatch(subject, binds)
+  
+  /**
+   * Attempt to match this atom, as a pattern, against the subject atom,
+   * observing the bindings, if any.  The type is checked prior to trying
+   * any matching.
+   * 
+   * Tracing information is printed as matching is performed.
+   * 
+   * @param subject	The subject atom to match.
+   * @param binds		Any bindings that must be observed.  This is optional.
+   * @return	The matching outcome.
+   */
+  private def traceMatch(subject: BasicAtom, binds: Bindings = new Bindings) = {
+    val what = this.hashCode * 31 + subject.hashCode
+    printf("MATCHER (%x):\n", what)
+    println("  pattern: " + this.toParseString + "\n  subject: " +
+        subject.toParseString + "\n  with: " + binds.toParseString)
+    val outcome = doMatch(subject, binds)
+    printf("MATCHER (%x): ", what)
+    outcome match {
+      case fail:Fail => println(fail)
+      case Match(bnd) => println(bnd.toParseString)
+      case many:Many => println("Many Matches")
     }
+    outcome
+  }
+
+  /**
+   * Attempt to match this atom, as a pattern, against the subject atom,
+   * observing the bindings, if any.  The type is checked prior to trying
+   * any matching.
+   * 
+   * @param subject	The subject atom to match.
+   * @param binds		Any bindings that must be observed.  This is optional.
+   * @return	The matching outcome.
+   */
+  private def doMatch(subject: BasicAtom, binds: Bindings = new Bindings) =
+    // Don't bother to try to match equal atoms that are constant.  The
+    // constancy check is required; otherwise we might "match" $x against
+    // $x, but not bind.  This leaves us free to bind $x to something different
+    // later, invalidating the original "match".  Matching is tricky.
+    if (isConstant && this == subject)
+      Match(binds)
+    else
+      matchTypes(subject, binds) match {
+	      case fail: Fail => fail
+	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds)
+	      case Many(submatches) =>
+	        Many(new MatchIterator(tryMatchWithoutTypes(subject, _),
+	          submatches))
+	    }
 
   /**
    * Try to match this atom, as a pattern, against the given subject.  Do not
@@ -140,9 +185,17 @@ abstract class BasicAtom {
    * @return	The outcome of the match.
    */
   protected def matchTypes(subject: BasicAtom, binds: Bindings): Outcome =
-    this.theType.matchTypes(subject.theType, binds) match {
+    this.theType.tryMatch(subject.theType, binds) match {
       case mat: Match => mat
       case many: Many => many
       case fail: Fail => Fail("Types do not match.", this, subject, Some(fail))
     }
+}
+
+/**
+ * Mutable controls affecting all atoms.
+ */
+object BasicAtom {
+  /** Enable (if true) or disable (if false) match tracing. */
+  var traceMatching = false
 }
