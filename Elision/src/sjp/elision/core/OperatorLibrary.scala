@@ -86,6 +86,24 @@ class OperatorLibrary(
  	private var _nameToOperator = MMap[String, Operator]()
  	
  	/**
+ 	 * Turn the operator library into a sequence of newline-terminated strings
+ 	 * that are parseable by AtomParser.
+ 	 * 
+ 	 * @return	A parseable version of this instance.
+ 	 */
+ 	def toParseString =
+ 	  _nameToOperator.values.map(_.opdef.toParseString).mkString("","\n","\n")
+ 	  
+ 	/**
+ 	 * Turn the operator library into a sequence of newline-terminated strings
+ 	 * that are parseable as Scala.
+ 	 * 
+ 	 * @return	A parseable version of this instance.
+ 	 */
+ 	override def toString =
+ 	  _nameToOperator.values.map(_.opdef.toString).mkString("","\n","\n")
+ 	
+ 	/**
  	 * Register a native handler for an operator.  The operator must already be
  	 * defined.  Note that the handler is not always invoked; only if
  	 * an operator is applied to an argument list is the handler invoked, and

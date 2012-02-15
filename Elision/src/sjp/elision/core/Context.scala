@@ -147,6 +147,49 @@ class Context(val allowUndeclared:Boolean = false) {
   private val _kind2rules = MMap[Class[_],ListBuffer[(BitSet,RewriteRule)]]()
   
   /**
+   * Map each operator to a list of rules for rewriting terms with that
+   * operator at the root.  The rules are ordered, and each has an associated
+   * bit set that tells which rulesets the rule is in.
+   */
+  private val _op2rules = MMap[String,ListBuffer[(BitSet,RewriteRule)]]()
+  
+  /**
+   * Generate a newline-separated list of rules that can be parsed using the
+   * atom parser to reconstruct the set of rules in this context.
+   * 
+   * @return	The parseable rule sets.
+   */
+  def toParseString = {
+    val buf = new StringBuilder
+    buf :+ operatorLibrary.toParseString
+    for ((_,list) <- _kind2rules) {
+      buf :+ list.map(_._2).mkParseString("","\n","\n")
+    }
+    for ((_,list) <- _op2rules) {
+      buf :+ list.map(_._2).mkParseString("","\n","\n")
+    }
+    buf.toString()
+  }
+  
+  /**
+   * Generate a newline-separated list of rules that can be parsed by Scala
+   * to reconstruct the set of rules in this context.
+   * 
+   * @return	The parseable rule sets.
+   */
+  override def toString = {
+    val buf = new StringBuilder
+    buf :+ operatorLibrary.toString
+    for ((_,list) <- _kind2rules) {
+      buf :+ list.map(_._2).mkString("","\n","\n")
+    }
+    for ((_,list) <- _op2rules) {
+      buf :+ list.map(_._2).mkString("","\n","\n")
+    }
+    buf.toString()
+  }
+  
+  /**
    * Add a rewrite rule to this context.
    * @param rule	The rewrite rule to add.
    * @throws	NoSuchRulesetException
@@ -170,9 +213,13 @@ class Context(val allowUndeclared:Boolean = false) {
    * @param atom	The atom.
    * @return	The list of rules for the given kind of atom.
    */
-  private def getRuleList(atom: BasicAtom) =
-    _kind2rules.getOrElseUpdate(atom.getClass(),
-        ListBuffer[(BitSet, RewriteRule)]())
+  private def getRuleList(atom: BasicAtom) = atom match {
+    case Apply(op:Operator, _) =>
+      _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
+    case _ =>
+	    _kind2rules.getOrElseUpdate(atom.getClass(),
+	        ListBuffer[(BitSet, RewriteRule)]())
+  }
         
   /**
    * Get the list of rules that apply to the given atom and which are in any

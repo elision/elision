@@ -62,6 +62,7 @@ case class IntVal(ival: BigInt) extends LitVal {
  */
 case class StrVal(sval: String) extends LitVal {
 	def toParseString = toEString(sval)
+	override def toString = toEString(sval)
 	override lazy val hashCode = sval.hashCode
 	override def equals(other: Any) = other match {
 	  case value: StrVal => sval == value.sval
@@ -148,7 +149,7 @@ case class FltVal(fval: Float) extends LitVal {
  * Represent the value of a Boolean.
  * @param bool	The boolean value.
  */
-case class BooVal(bool: Boolean) extends LitVal {
+case class BooVal (val bool: Boolean) extends LitVal {
 	def toParseString = bool.toString
 	override lazy val hashCode = bool.hashCode
 	override def equals(other: Any) = other match {
@@ -251,11 +252,17 @@ object Literal {
 	 * @param fval	The float value.
 	 */
 	def apply(typ: BasicAtom, fval: Float) = new Literal(typ, FltVal(fval))
+	
+	/** The value true. */
+	val TRUE = new Literal(BOOLEAN, BooVal(true))
+	
+	/** The value false. */
+	val FALSE = new Literal(BOOLEAN, BooVal(false))
 
 	/**
 	 * Make a Boolean value.
 	 * @param typ		The type.
 	 * @param bool	The Boolean value.
 	 */
-	def apply(typ: BasicAtom, bool: Boolean) = new Literal(typ, BooVal(bool))
+	def apply(typ: BasicAtom, bool: Boolean) = if (bool) TRUE else FALSE
 }

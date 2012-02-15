@@ -112,7 +112,8 @@ object Repl {
 							 |All rights reserved.""".stripMargin)
     run
     println("")
-    println("Objects: ")
+    println("Context: ")
+    println(_context.toParseString)
   }
   
   /**

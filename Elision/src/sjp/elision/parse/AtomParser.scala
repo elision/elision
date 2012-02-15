@@ -362,8 +362,20 @@ object AtomParser {
 	 * @param typ		The type.
 	 * @param sym		The symbol text.
 	 */
-	case class SymbolLiteralNode(typ: AstNode, sym: String) extends AstNode {
-	  def interpret = Literal(typ.interpret, SymVal(Symbol(sym)))
+	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
+	  def interpret = {
+	    // If the type is None, or if it is BOOLEAN, then check for truth values.
+	    if (typ == None || typ.get.interpret == BOOLEAN) sym match {
+	      case "true" => Literal.TRUE
+	      case "false" => Literal.FALSE
+	      case _ =>
+	        // In this case if the type was None, it should be Symbol.  If it was
+	        // Boolean, it should stay Boolean.
+	        Literal((if (typ == None) SYMBOL else BOOLEAN), SymVal(Symbol(sym)))
+	    } else {
+	    	Literal(typ.get.interpret, SymVal(Symbol(sym)))
+	    }
+	  }
 	}
 	
 	/**
@@ -651,7 +663,7 @@ extends Parser {
       "OPTYPE " ~ push(SimpleTypeNode(OPTYPE)) |
       "RULETYPE " ~ push(SimpleTypeNode(RULETYPE)) |
       "ANYTYPE " ~ push(SimpleTypeNode(ANYTYPE)) |
-
+      
       // Parse a typed list.
       ParsedTypedList |
 
@@ -710,10 +722,10 @@ extends Parser {
   def ParsedLiteral = rule {
       ESymbol ~ ": " ~ FirstAtom ~~>
       	((sym: NakedSymbolNode, typ: AstNode) =>
-      	  SymbolLiteralNode(typ, sym.str)) |
+      	  SymbolLiteralNode(Some(typ), sym.str)) |
       ESymbol ~~>
       	((sym: NakedSymbolNode) =>
-      	  SymbolLiteralNode(SimpleTypeNode(SYMBOL), sym.str)) |
+      	  SymbolLiteralNode(None, sym.str)) |
       EString ~ ": " ~ FirstAtom ~~>
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
@@ -811,7 +823,9 @@ extends Parser {
   //======================================================================
 
   /** Parse ignorable whitespace. */
-  def WS = rule { zeroOrMore(anyOf(" \n\r\t\f")) }
+  def WS = rule {
+    zeroOrMore(anyOf(" \n\r\t\f"))
+  }
 
   //======================================================================
   // Parse a string.
