@@ -102,7 +102,7 @@ case class AtomList(atoms: Seq[BasicAtom],
   
   // The De Brujin index is equal to the maximum index of the atoms in the
   // sequence.  Compute that now.
-  val deBrujinIndex = atoms.map(_.deBrujinIndex).max
+  val deBrujinIndex = atoms.foldLeft(0)(_ max _.deBrujinIndex)
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Ordered lists only match other ordered lists with matching elements in

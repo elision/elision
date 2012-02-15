@@ -765,8 +765,13 @@ extends Parser {
    * commutativity, etc., is inferred at this point.
    */
   def ParsedAtomList = rule {
-    (Atom ~ zeroOrMore(", " ~ Atom)) ~~> (
-      (head: AstNode, tail: List[AstNode]) => AtomListNode(head :: tail))
+    optional(Atom ~ zeroOrMore(", " ~ Atom)) ~~> (
+        (what: Option[(AstNode,List[AstNode])]) => what match {
+          case None =>
+            AtomListNode(List[AstNode]())
+          case Some((head:AstNode, tail:List[AstNode])) =>
+            AtomListNode(head :: tail)
+        })
   }
 
   /**

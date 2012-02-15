@@ -122,19 +122,6 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
      */
     
     case al:AtomList =>
-      // We have to check the prototype against the arguments.  First we
-      // capture the properties.
-      var assoc = false
-      var comm = false
-      al.props match {
-        case None =>
-          // If no properties are specified, we treat the argument list as if
-          // it is neither associative nor commutative.
-        case Some((a,c)) =>
-          // Save the properties.
-          assoc = a
-          comm = c
-      }
       // What we do next depends on the type of operator definition.  The
       // native and symbolic definitions specify properties; the immediate
       // definition does not.
@@ -142,8 +129,10 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
       // The following will compute the correct atom for the apply.
       opdef match {
         case NativeOperatorDefinition(_, props) =>
+          val (assoc, comm) = al.props.getOrElse(props.assoc, props.comm)
           checkProto(props, al, assoc, comm)
         case SymbolicOperatorDefinition(_, props) =>
+          val (assoc, comm) = al.props.getOrElse(props.assoc, props.comm)
           checkProto(props, al, assoc, comm)
         case ImmediateOperatorDefinition(_, body) =>
           // Match the arguments against the formal parameters.
@@ -274,7 +263,11 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
     val parameters = ListBuffer[BasicAtom]()
     parameters ++ pars
     val last = pars.last
-    while (parameters.length < newlist.length) parameters :+ last
+    var count = 1
+    while (parameters.length < newlist.length) {
+      parameters append Variable(last.theType, last.name+count)
+      count += 1
+    }
     SequenceMatcher.tryMatch(parameters, newlist) match {
       case fail:Fail =>
         // The argument list does not match the formal parameters.

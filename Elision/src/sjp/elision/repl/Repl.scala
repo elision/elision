@@ -277,6 +277,34 @@ object Repl {
             println("Unbound " + from.toParseString)
             TypeUniverse
         })
+    val readDef = NativeOperatorDefinition(
+        OperatorPrototype(
+            "read",
+            List(Variable(STRING,"filename")),
+            ANYTYPE),
+            OperatorProperties())
+    _context.operatorLibrary.add(readDef)
+    _context.operatorLibrary.register("read",
+        (_, list:AtomList) => list match {
+          case Args(filename:Literal) =>
+            // TODO Read the content of the file.
+            println("Not implemented.")
+            Literal.FALSE
+        })
+    val writeDef = NativeOperatorDefinition(
+        OperatorPrototype(
+            "write",
+            List(Variable(STRING,"filename")),
+            ANYTYPE),
+            OperatorProperties())
+    _context.operatorLibrary.add(writeDef)
+    _context.operatorLibrary.register("write",
+        (_, list:AtomList) => list match {
+          case Args(filename:Literal) =>
+            // TODO Write the content to the file.
+            println("Not implemented.")
+            Literal.FALSE
+        })
   }
   
   /**
