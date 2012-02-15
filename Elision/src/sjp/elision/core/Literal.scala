@@ -45,7 +45,7 @@ sealed abstract class LitVal {
 
 /**
  * Represent the value of a literal as an integer.
- * @param ival	The interger value.
+ * @param ival	The integer value.
  */
 case class IntVal(ival: BigInt) extends LitVal {
 	def toParseString = ival.toString
@@ -125,7 +125,8 @@ extends LitVal {
   override def equals(other: Any) = other match {
     case value:ExpandedFloatVal =>
       value.significand == significand &&
-      value.exponent == exponent
+      value.exponent == exponent &&
+      value.radix == radix
     case _ => false
   }
 }
@@ -189,14 +190,12 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 		case _ => Fail("Literals do not match.", this, subject)
 	}
 
-	def rewrite(binds: Bindings) =
+	def rewrite(binds: Bindings) = {
 		// Even though literals cannot be rewritten, there is a chance their type
 		// can be rewritten, so check that.
-		theType.rewrite(binds) match {
-			case (newtype, changed) =>
-				if (changed) (Literal(theType, value), true) else (this, false)
-			case _ => (this, false)
-		}
+	  val (newtype, changed) = theType.rewrite(binds)
+		if (changed) (Literal(newtype, value), true) else (this, false)
+	}
 
 	override def toParseString = value.toParseString + ":" + theType.toParseString
 	
