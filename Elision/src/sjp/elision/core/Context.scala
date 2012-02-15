@@ -161,12 +161,12 @@ class Context(val allowUndeclared:Boolean = false) {
    */
   def toParseString = {
     val buf = new StringBuilder
-    buf :+ operatorLibrary.toParseString
+    buf append operatorLibrary.toParseString
     for ((_,list) <- _kind2rules) {
-      buf :+ list.map(_._2).mkParseString("","\n","\n")
+      buf append list.map(_._2).mkParseString("","\n","\n")
     }
     for ((_,list) <- _op2rules) {
-      buf :+ list.map(_._2).mkParseString("","\n","\n")
+      buf append list.map(_._2).mkParseString("","\n","\n")
     }
     buf.toString()
   }
@@ -179,12 +179,12 @@ class Context(val allowUndeclared:Boolean = false) {
    */
   override def toString = {
     val buf = new StringBuilder
-    buf :+ operatorLibrary.toString
+    buf append operatorLibrary.toString
     for ((_,list) <- _kind2rules) {
-      buf :+ list.map(_._2).mkString("","\n","\n")
+      buf append list.map(_._2).mkString("","\n","\n")
     }
     for ((_,list) <- _op2rules) {
-      buf :+ list.map(_._2).mkString("","\n","\n")
+      buf append list.map(_._2).mkString("","\n","\n")
     }
     buf.toString()
   }
