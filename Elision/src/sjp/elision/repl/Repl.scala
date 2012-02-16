@@ -92,9 +92,6 @@ object Repl {
   /** Whether or not to trace the parser. */
   private var _trace = false
   
-  /** The history.  This is set in `execute`. */
-  private var _history = ListBuffer[String]()
-
   /**
    * The entry point when started from the command line.  Print the current
    * version number, then invoke `run`.
@@ -165,17 +162,15 @@ object Repl {
     if (lline.startsWith("!")) {
       // This is a history reference.  The rest of the line is probably
       // a number, so try to parse it as such.
-      val num = lline.substring(1).toInt - 1
+      val num = lline.substring(1).toInt
       try {
-      	lline = _history(num)
+      	lline = _hist.getHistory(num)
       } catch {
-        case ex:ArrayIndexOutOfBoundsException =>
+        case ex:IndexOutOfBoundsException =>
           println("ERROR: No such history item.")
           return
       }
     }
-    // Save this in the history.
-    _history += line
     // First parse the line and see what we get.
     try {
 	    val result = _parser.parseAtoms(lline)
@@ -330,8 +325,8 @@ object Repl {
             | history .................... Show the history so far.
             | prior ...................... Toggle showing the unrewritten term.
             | scala ...................... Toggle showing the Scala term.
-            | traceparse.................. Toggle parser tracing.
             | tracematch ................. Toggle match tracing.
+            | traceparse ................. Toggle parser tracing.
             | unbind(v) .................. Unbind variable v.
             |
             |Use ! followed by a number to re-execute a line from the history.
@@ -363,8 +358,10 @@ object Repl {
         true
       case Literal(_,SymVal('history)) =>
         // Show the history.
-        var num = 1
-        for (line <- _history) { println(" " + num + ": " + line) ; num += 1 }
+        for (index <- 1 until _hist.getCurrentIndex()) {
+          println(" " + index + ": " + _hist.getHistory(index))
+        }
+        println("Persistent history is found in: " + _filename)
         true
       case Apply(Literal(_,SymVal('unbind)),AtomList(seq,_)) =>
         // Try to unbind.
