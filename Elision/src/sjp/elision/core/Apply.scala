@@ -151,6 +151,10 @@ object Apply {
 	      // Try to apply the rewrite rule.  Whatever we get back is the result.
 	      //println("Rewriting with rule.")
 	      rule.tryRewrite(arg)._1
+	    case binds:BindingsAtom =>
+	      // Try to rewrite the argument using the bindings and whatever we get
+	      // back is the result.
+	      arg.rewrite(binds)._1
 	    case _ =>
 	      //println("Rewriting vanilla.")
 	      new Apply(op, arg)
