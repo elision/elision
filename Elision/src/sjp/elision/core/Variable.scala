@@ -61,7 +61,9 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
     if (isBindable) binds.get(name) match {
       case None => Match(binds + (name -> subject))
       case Some(atom) if atom == subject => Match(binds)
-      case _ => Fail("Variable already bound to another term.", this, subject)
+      case _ => Fail("Variable " + this.toParseString +
+          " is already bound to the term " + binds.get(name).get.toParseString +
+          ".", this, subject)
     }
     else Fail("Variable is not bindable.", this, subject)
 
