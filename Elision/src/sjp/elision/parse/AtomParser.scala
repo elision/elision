@@ -845,7 +845,9 @@ extends Parser {
   def Character = rule { EscapedCharacter | NormalCharacter }
 
   /** Parse an escaped character. */
-  def EscapedCharacter = rule { "\\" ~ anyOf("""`"\nrt""") }
+  def EscapedCharacter = rule {
+    "\\" ~ anyOf("""`"nrt\""")
+  }
 
   /** Parse a normal character. */
   def NormalCharacter = rule { noneOf(""""\""") }
