@@ -175,9 +175,16 @@ package object core {
   }
 
   /**
-   * Turn a string into a properly-escaped double-quoted string.  The only
-   * illegal characters in a double-quoted string are the double quotation
-   * mark and the newline.  These must be escaped.
+   * Turn a string into a properly-escaped double-quoted string.  The following
+   * transformations are performed.
+   * {{{
+   * double quotation mark   -> \"
+   * newline                 -> \n
+   * tab                     -> \t
+   * carriage return         -> \r
+   * backslash               -> \\
+   * }}}
+   * The resulting string is enclosed in double quotation marks.
    * 
    * @param str	The string.
    * @return	The string with special character escaped.
@@ -198,6 +205,10 @@ package object core {
     buf ++= "\""
     buf.toString
   }
+  
+  /**
+   * Interpret common escapes
+   */
   
   /**
    * Issue a warning.  This should be wired to whatever error reporting

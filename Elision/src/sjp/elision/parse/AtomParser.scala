@@ -40,6 +40,51 @@ import sjp.elision.core._
  * Provide abstract syntax tree nodes used during parsing.
  */
 object AtomParser {
+  
+  /**
+   * Accumulate a character into a string.  The character may actually be an
+   * escape sequence that will be interpreted here.
+   * 
+   * See `toEString` for the reverse conversion.
+   * 
+   * The following escapes are interpreted.
+   * {{{
+   * \"  -> double quotation mark
+   * \`  -> backtick
+   * \\  -> backslash
+   * \n  -> newline
+   * \t  -> tab
+   * \r  -> carriage return
+   * }}}
+   * 
+   * @param front	The string to get the new character appended at the end.
+   * @param last	The new character, possibly an escape to interpret.
+   * @return	The new string.
+   */
+  def append(front: StringBuilder, last: String) = {
+    // Interpret the last part.  If it is an escape, then convert it to a
+    // character first.
+    front.append(last match {
+      case """\"""" => "\""
+      case """\`""" => "`"
+      case """\\""" => "\\"
+      case """\n""" => "\n"
+      case """\t""" => "\t"
+      case """\r""" => "\r"
+      case _ => last
+    })
+  }
+  
+  /**
+   * Given a list of strings, each of which represents a single character
+   * (possibly as an escape), concatenate them into a single string.
+   * 
+   * @param chars	The list of characters.
+   * @return	The composed string.
+   */
+  def construct(chars: List[String]) = {
+    chars.foldLeft(new StringBuilder())(append(_,_)).toString
+  }
 	
 	//======================================================================
 	// Definitions for an abstract syntax tree for atoms.
@@ -838,11 +883,21 @@ extends Parser {
 
   /** Parse a double-quoted string. */
   def EString = rule {
-    "\"" ~ zeroOrMore(Character) ~> (_.toString) ~ "\" "
+    val str = new StringBuilder()
+    "\"" ~ zeroOrMore(Character(str)) ~~> (x => construct(x)) ~ "\" "
   }
 
-  /** Parse a character in a string. */
-  def Character = rule { EscapedCharacter | NormalCharacter }
+  /**
+   * Parse a character in a string.  The character is added to the end of the
+   * string passed in (if any) and the composite string is returned.  Escapes
+   * are interpreted here.
+   * 
+   * @param str		The string to get the new character.  May be unspecified.
+   * @return	The new string.
+   */
+  def Character(str: StringBuilder) = rule {
+    (EscapedCharacter | NormalCharacter) ~> (x => x)
+  }
 
   /** Parse an escaped character. */
   def EscapedCharacter = rule {
@@ -858,13 +913,16 @@ extends Parser {
 
   /** Parse a symbol. */
   def ESymbol = rule {
-    "`" ~ zeroOrMore(SymChar) ~> (NakedSymbolNode(_)) ~ "` " |
+    val str = new StringBuilder()
+    "`" ~ zeroOrMore(SymChar) ~~> (x => NakedSymbolNode(construct(x))) ~ "` " |
     group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
       "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
   }
 
   /** Parse a character that is part of a symbol. */
-  def SymChar = rule { EscapedCharacter | SymNorm }
+  def SymChar = rule {
+    (EscapedCharacter | SymNorm) ~> (x => x)
+  }
   
   /** Parse a "normal" non-escaped character that is part of a symbol. */
   def SymNorm = rule { noneOf("""`\""") }
