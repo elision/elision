@@ -837,7 +837,7 @@ The Elision library makes use of the Parboiled parser library.  This library is 
 * [[DefaultTiddlers]]: Contains the names of the tiddlers that you want to appear when the TiddlyWiki is opened
 You'll also need to enter your username for signing your edits: &lt;&lt;option txtUserName&gt;&gt;</pre>
 </div>
-<div title="Home" creator="sprowell" modifier="YourName" created="201102020416" modified="201202120424" changecount="17">
+<div title="Home" creator="sprowell" modifier="sprowell" created="201102020416" modified="201202171045" changecount="19">
 <pre>Welcome to the Elision design documentation.  Quick links are at the left.
 
 This serves as documentation of the design decisions in Elision, a simple term rewriting engine written in Scala.
@@ -845,77 +845,13 @@ This serves as documentation of the design decisions in Elision, a simple term r
 If you have just obtained this library and want to build it, see the [[README]].
 
 This documentation has the following purposes.
+* To explain Elision's atom [[Syntax]].
 * To explain the use of the library via the [[REPL]].
 * To explain the use of the library via the [[Scala API]].
 * To explain [[design decisions|Design]] in the library.
 
 * Documentation on the native text format for terms and types can be found [[here|Language]].
 </pre>
-</div>
-<div title="Language" creator="sprowell" modifier="sprowell" created="201201102153" modified="201201102320" changecount="18">
-<pre>Elision supports a simple language for unambiguously representing terms and types.  The primary objective of this language is that ''anything that can be created in software can be represented in the language and unambiguously re-imported.''
-
-The parser recognizes the following simple token types.
-* Symbols
-* Strings
-* Integers
-* Floating Point Numbers
-!!Symbols
-A simple //symbol// consists of a sequence of letters, digits, and underscores, and must start with a letter or underscore.  The following are valid simple symbols.
-* {{{Fred}}}
-* {{{_protected}}}
-* {{{Adam12}}}
-* {{{_12_and_24}}}
-Nothing prevents creating a symbol, programmatically, containing other characters.  If a symbol breaks these rules, it must be enclosed in backticks {{{`..`}}}.  The following are valid symbols.  Note that the backticks are not part of the symbol.
-* {{{``}}}
-* {{{`12`}}}
-* {{{`   protected mode  `}}}
-If there are backticks in the symbol, they must be escaped with a backslash {{{\}}}.  The following is a valid symbol that contains two backticks.
-* {{{`\`This\``}}}
-Symbols are parsed using simple rules.
-# Read the first character.
-# If it is a letter or underscore, then subsequent letters, digits, and underscores are part of the symbol, up to but not including the first character that is not a digit, underscore, or letter.
-# If it is a backtick, then all subsequent characters up to the next unescaped backtick are part of the symbol.  The enclosing unescaped backticks themselves are not part of the symbol.  Escaped backticks are part of the symbol.
-# Anything else is not a valid symbol.
-!!Strings
-A //string// consists of a sequence of characters.  Strings are delimited by double quotation marks {{{&quot;}}}.  Any embedded double quotation marks must be escaped with a backslash {{{\}}}.  Additionally, embedded newlines must be escaped by a backslash.  The following is a valid string.
-{{{
-&quot;    A \
-multiline \&quot;string\&quot;.&quot;
-}}}
-Strings are parsed by reading the opening quotation mark, and then reading all subsequent characters up to the first unescaped double quotation mark.  The enclosing unescaped double quotation marks are not part of the string.  Escaped double quotation marks and newlines are part of the string.
-!!Integers
-An //integer// can take several forms.
-* A simple decimal integer consists of an initial non-zero digit followed by zero or more digits.
-* An octal integer consists of an initial zero followed by one or more octal digits.
-* A hexadecimal integer consists of an initial zero, an (upper- or lower-case) x, and then one or more hexadecimal digits.
-* A binary integer consists of an initial zero, an (upper- or lower-case) b, and then one or more binary digits.
-Any integer can be preceeded by a unary negative sign {{{-}}} to negate its value.
-The following are examples of the number 174.
-* {{{174}}}
-* {{{0256}}}
-* {{{0xAE}}} and {{{0XAE}}}
-* {{{0b10101110}}} and {{{0B10101110}}}
-An integer is parsed by reading the first character.  If it is a digit, then it is expected to be an integer.
-# If the first digit is non-zero, it is a decimal integer.  All subsequent digits up to the first non-digit are part of the integer.
-# If the first digit is a zero, then the next character is read.
-## If it is not a digit, an //x// or a //b// (ignoring case), then the result is the decimal integer zero.
-## If it is another digit, then it is an octal integer.  All subsequent octal digits up to but excluding the first non-octal-digit are part of the integer.
-## If it is an //x// or //X//, then it is a hexadecimal integer.  All subsequent hexadecimal digits (ignoring case) up to but excluding the first non-hexadecimal-digit are part of the integer.
-## If it is a //b// or //B//, then it is a binary integer.  All subsequent binary digits up to but excluding the first non-binary-digit are part of the integer.
-!!Floating Point Numbers
-//Floating point numbers// can take several forms, and consist of a //significand// and an optional //exponent//.  Both the significand and exponent can be positive or negative.  Both the significand and exponent are represented as integers of any form, with the exceptions that the significand may contain a decimal point {{{.}}} and the exponent may be marked as explicitly positive by preceeding it with a plus sign {{{+}}}.  A decimal point in the significand effectively modifies the exponent, depending on the base being used.
-If no decimal point and no exponent are discovered then the number is regarded as an integer.
-The significand and exponent must be joined by an {{{e}}} or {{{E}}}.  The following are all examples of floating point numbers.  The numbers in each row are equal, but different, representations of the same number.
-* {{{1.21e5}}} = {{{1.21E+5}}} = {{{12.1E4}}} = {{{121000.}}}
-* {{{0b1010e0b10}}} = {{{0b1.010e101}}} = {{{10e+2}}} = {{{100.}}} = {{{10e0x2}}}
-Note that the base of the significand and exponent can be different.
-Floating point numbers are parsed by discovering, during integer parsing, either a decimal point {{{.}}} or an {{{e}}} or {{{E}}}, signaling that the number is a floating point number.
-!!Types
-Every atom has a corresponding term that denotes its type.  For simplicity, we will say the term $T$ denoting the type of some other term $t$ is $t$'s //type//, but bear in mind that since $T$ it also a term, it must also have a type.
-To prevent infinite regress, there is a unique type denoted {{{^TYPE}}} and called the //type universe// that has itself as a parent.
-If term $t$ has type $T$ then this is indicated by writing $t:T$.  The colon is right-associative, so writing $a:B:C:D$ means that $C$ has type $D$, while $B$ has type $C:D$, and $a$ has type $B:C:D$.  When the parent type is {{{^TYPE}}} we do not write it.  Parentheses cannot be used to change the associativity of types since the type system is linear (every term has exactly one associated type).
-An a concrete example, suppose {{{Int}}} is a symbol literal with type {{{^TYPE}}}.  Then if {{{5}}} is an integer literal with type {{{Int}}} we write: {{{5:Int}}}.</pre>
 </div>
 <div title="MainMenu" creator="sprowell" modifier="sprowell" created="201102020416" modified="201202110252" changecount="4">
 <pre>[[Home]]
@@ -1118,7 +1054,7 @@ window.wikify = function(source,output,highlightRegExp,tiddler)
 //}}}
 </pre>
 </div>
-<div title="README" creator="sprowell" modifier="YourName" created="201202101530" modified="201202120424" changecount="13">
+<div title="README" creator="sprowell" modifier="sprowell" created="201202101530" modified="201202171046" changecount="14">
 <pre>&lt;code c&gt;
 /*       _ _     _
  *   ___| (_)___(_) ___  _ __
@@ -1182,35 +1118,35 @@ Once you have installed the Scala IDE plugin, do the following.
 At this point Elision should automatically build, and you are ready to start
 working with the code.</pre>
 </div>
-<div title="REPL" creator="sprowell" modifier="sprowell" created="201202170255" modified="201202170309" changecount="10">
+<div title="REPL" creator="sprowell" modifier="sprowell" created="201202170255" modified="201202171043" changecount="16">
 <pre>The REPL is Elision's Read, Evaluate, Print Loop.  It provides a way to directly interact with the rewriter.
 !!Starting the REPL
 * Run the REPL from the jar file by pointing Scala at the file: {{{scala elision.jar}}}.
 * You can also run the REPL directly from the bin folder (i.e., the jar does not have to be built).  This is useful if you are using Eclipse to automatically build.  To accomplish this a shell script {{{repl.sh}}} is located in the root folder of the project.
 * Finally, you can launch Scala with the correct jars and classpath loaded by using the {{{run.sh}}} script located in the root folder of the project.  From the Scala prompt, execute {{{sjp.elision.repl.Repl.run}}}.
-!!In the REPL
+!!Commands
 The most useful commands to know immediately are {{{help}}} (to get help) and {{{:quit}}} (to quit).
 
-Two additional commands are &quot;reserved&quot; but do nothing, yet.  Those are {{{read}}} and {{{write}}}.  The rest of this email is a short introduction to interacting with the system via the REPL.  //Note that lots of things are broken right now!//
-!!Commands
-The {{{bind(v,a)}}} command binds a variable to an atom.  Try {{{bind($x,7)}}} and {{{bind($y,\$x.%($x,$x))}}}.  Then try {{{$x}}} and {{{$y}}} at the prompt.  Then try {{{$y.$x}}}.
-
-The {{{unbind(v)}}} command unbinds a variable.  Try {{{unbind($x)}}}, and then repeat {{{$y.$x}}}.
-
-The {{{showprior}}} command toggles printing the parsed atom before any bindings are applied.  Turn on printing prior atoms and then try {{{$y.$x}}}.
-
-The {{{showscala}}} command toggles printing the Scala source code to re-create the atom.  Try turning the Scala code on and then try {{{$y.$x}}}.  Note that if you have {{{showprior}}} on, you get the Scala code both before and after applying the bindings.
-!!Tracing
+Two additional commands are &quot;reserved&quot; but do nothing, yet.  Those are {{{read}}} and {{{write}}}.  //Note that lots of things are broken right now!//
+!!!Binding
+* The {{{bind(v,a)}}} command binds a variable to an atom.  Try {{{bind($x,7)}}} and {{{bind($y,\$x.%($x,$x))}}}.  Then try {{{$x}}} and {{{$y}}} at the prompt.  Then try {{{$y.$x}}}.
+* The {{{unbind(v)}}} command unbinds a variable.  Try {{{unbind($x)}}}, and then repeat {{{$y.$x}}}.
+!!!Atom Display
+* The {{{showprior}}} command toggles printing the parsed atom before any bindings are applied.  Turn on printing prior atoms and then try {{{$y.$x}}}.
+* The {{{showscala}}} command toggles printing the Scala source code to re-create the atom.  Try turning the Scala code on and then try {{{$y.$x}}}.  Note that if you have {{{showprior}}} on, you get the Scala code both before and after applying the bindings.
+!!!Tracing
 The {{{traceparse}}} command toggles tracing in the parser.  This is very useful if you are trying to diagnose parsing errors, but otherwise a bit annoying because it produces a lot of data.  To get a sense of this, turn on parse tracing and try {{{7}}}.
 
 The {{{tracematch}}} command toggles tracing in the matcher.  This is very useful if you are trying to diagnose matching errors.  Try turning on matching and then try {{{{match $x -&gt; 7} }}}.
-!!History
-The REPL maintains a persistent history.  Right now I have not set a limit.  To see the history, use the history command.  This will provide a listing similar to the history list for a shell.
-To re-evaluate an item from the history, use the &quot;bang&quot; notation as with a shell, for instance !2 will re-evaluate item 2 in the history.
-Every time an atom is evaluated in the current interactive session, the final result is bound to a variable and saved.  You've probably noticed the $repl1, $repl2, etc., variables showing up.  These contain the item evaluated, and you can use these in new atoms.
+!!!History
+The REPL maintains a persistent history.  To see the history, use the {{{history}}} command.  This will provide a listing similar to the history list for a shell.
+
+To re-evaluate an item from the history, use the &quot;bang&quot; notation as with a shell, for instance {{{!2}}} will re-evaluate item 2 in the history.
+
+Every time an atom is evaluated in the current interactive session, the final result is bound to a variable and saved.  If you've been trying the examples above, you've probably noticed the {{{$repl1}}}, {{{$repl2}}}, etc., variables showing up.  Every time the REPL evaluates an atom, it binds it to a new {{{$repl}}} variable.
+
 As mentioned above, the history is persistent; it is stored in your home folder.  The file is printed at the end of the history listing.
-You can use the up and down arrow keys to move forward and backward through the history.  Try it!
-</pre>
+You can use the up and down arrow keys to move forward and backward through the history.  Try it!  To erase the history, erase the file.  This file is a text file, so you can also directly edit it if you wish.</pre>
 </div>
 <div title="SiteSubtitle" creator="sprowell" modifier="sprowell" created="201102011809" modified="201201102145" changecount="2">
 <pre>Elision project design documentation</pre>
@@ -1420,8 +1356,74 @@ StyleSheet for ~SyntaxHighlighter
 
 /*}}}*/</pre>
 </div>
-<div title="Syntax" creator="sprowell" modifier="sprowell" created="201202110307" modified="201202110307" changecount="2">
-<pre>This article describes the syntax for atoms, as understood by Elision.
+<div title="Syntax" creator="sprowell" modifier="sprowell" created="201202110307" modified="201202171048" changecount="7">
+<pre>Elision supports a simple language for unambiguously representing terms and types.  The primary objective of this language is that ''anything that can be created in software can be represented in the language and unambiguously re-imported.''
+
+The parser recognizes the following simple token types.
+* Symbols
+* Strings
+* Integers
+* Floating Point Numbers
+!!Symbols
+A simple //symbol// consists of a sequence of letters, digits, and underscores, and must start with a letter or underscore.  The following are valid simple symbols.
+* {{{Fred}}}
+* {{{_protected}}}
+* {{{Adam12}}}
+* {{{_12_and_24}}}
+Nothing prevents creating a symbol, programmatically, containing other characters.  If a symbol breaks these rules, it must be enclosed in backticks {{{`..`}}}.  The following are valid symbols.  Note that the backticks are not part of the symbol.
+* {{{``}}}
+* {{{`12`}}}
+* {{{`   protected mode  `}}}
+If there are backticks in the symbol, they must be escaped with a backslash {{{\}}}.  The following is a valid symbol that contains two backticks.
+* {{{`\`This\``}}}
+Symbols are parsed using simple rules.
+# Read the first character.
+# If it is a letter or underscore, then subsequent letters, digits, and underscores are part of the symbol, up to but not including the first character that is not a digit, underscore, or letter.
+# If it is a backtick, then all subsequent characters up to the next unescaped backtick are part of the symbol.  The enclosing unescaped backticks themselves are not part of the symbol.  Escaped backticks are part of the symbol.
+# Anything else is not a valid symbol.
+!!Strings
+A //string// consists of a sequence of characters.  Strings are delimited by double quotation marks {{{&quot;}}}.  Any embedded double quotation marks must be escaped with a backslash {{{\}}}.  Additionally, embedded newlines must be escaped by a backslash.  The following is a valid string.
+{{{
+&quot;    A \
+multiline \&quot;string\&quot;.&quot;
+}}}
+Strings are parsed by reading the opening quotation mark, and then reading all subsequent characters up to the first unescaped double quotation mark.  The enclosing unescaped double quotation marks are not part of the string.  Escaped double quotation marks and newlines are part of the string.
+!!Integers
+An //integer// can take several forms.
+* A simple decimal integer consists of an initial non-zero digit followed by zero or more digits.
+* An octal integer consists of an initial zero followed by one or more octal digits.
+* A hexadecimal integer consists of an initial zero, an (upper- or lower-case) x, and then one or more hexadecimal digits.
+* A binary integer consists of an initial zero, an (upper- or lower-case) b, and then one or more binary digits.
+Any integer can be preceeded by a unary negative sign {{{-}}} to negate its value.
+The following are examples of the number 174.
+* {{{174}}}
+* {{{0256}}}
+* {{{0xAE}}} and {{{0XAE}}}
+* {{{0b10101110}}} and {{{0B10101110}}}
+An integer is parsed by reading the first character.  If it is a digit, then it is expected to be an integer.
+# If the first digit is non-zero, it is a decimal integer.  All subsequent digits up to the first non-digit are part of the integer.
+# If the first digit is a zero, then the next character is read.
+## If it is not a digit, an //x// or a //b// (ignoring case), then the result is the decimal integer zero.
+## If it is another digit, then it is an octal integer.  All subsequent octal digits up to but excluding the first non-octal-digit are part of the integer.
+## If it is an //x// or //X//, then it is a hexadecimal integer.  All subsequent hexadecimal digits (ignoring case) up to but excluding the first non-hexadecimal-digit are part of the integer.
+## If it is a //b// or //B//, then it is a binary integer.  All subsequent binary digits up to but excluding the first non-binary-digit are part of the integer.
+!!Floating Point Numbers
+//Floating point numbers// can take several forms, and consist of a //significand// and an optional //exponent//.  Both the significand and exponent can be positive or negative.  Both the significand and exponent are represented as integers of any form, with the exceptions that the significand may contain a decimal point {{{.}}} and the exponent may be marked as explicitly positive by preceeding it with a plus sign {{{+}}}.  A decimal point in the significand effectively modifies the exponent, depending on the base being used.
+If no decimal point and no exponent are discovered then the number is regarded as an integer.
+The significand and exponent must be joined by an {{{e}}} or {{{E}}}.  The following are all examples of floating point numbers.  The numbers in each row are equal, but different, representations of the same number.
+* {{{1.21e5}}} = {{{1.21E+5}}} = {{{12.1E4}}} = {{{121000.}}}
+* {{{0b1010e0b10}}} = {{{0b1.010e101}}} = {{{10e+2}}} = {{{100.}}} = {{{10e0x2}}}
+Note that the base of the significand and exponent can be different.
+Floating point numbers are parsed by discovering, during integer parsing, either a decimal point {{{.}}} or an {{{e}}} or {{{E}}}, signaling that the number is a floating point number.
+!!Types
+Every atom has a corresponding term that denotes its type.  For simplicity, we will say the term $T$ denoting the type of some other term $t$ is $t$'s //type//, but bear in mind that since $T$ it also a term, it must also have a type.
+To prevent infinite regress, there is a unique type denoted {{{^TYPE}}} and called the //type universe// that has itself as a parent.
+If term $t$ has type $T$ then this is indicated by writing $t:T$.  The colon is right-associative, so writing $a:B:C:D$ means that $C$ has type $D$, while $B$ has type $C:D$, and $a$ has type $B:C:D$.  When the parent type is {{{^TYPE}}} we do not write it.  Parentheses cannot be used to change the associativity of types since the type system is linear (every term has exactly one associated type).
+An a concrete example, suppose {{{Int}}} is a symbol literal with type {{{^TYPE}}}.  Then if {{{5}}} is an integer literal with type {{{Int}}} we write: {{{5:Int}}}.
+
+
+
+This article describes the syntax for atoms, as understood by Elision.
 !BNF
 The syntax is described by a BNF, using the following notation.
 * Literals (terminals) are enclosed in double or single quotation marks.
@@ -1430,11 +1432,13 @@ The syntax is described by a BNF, using the following notation.
 * Alternatives are indicated with a vertical bar.
 * Sequences are indicated by juxtaposition.
 * The end of a production is indicated by a period.
-!Simple Atoms
-The simplest atoms are literals.
-&lt;code&gt;
-string = '&quot;' ( escape | character ) '&quot;' .
-&lt;/code&gt;
+!Atoms
+!!Literals
+* Integers such as {{{7}}} and {{{-14}}}.  Integers may be decimal ({{{255}}}), hexadecimal ({{{0xff}}}), octal ({{{0377}}}), and binary ({{{0b11111111}}}).  The radix is indicated by the prefix.
+* Floating-point numbers, such as {{{2.5}}} and {{{-825e-2}}}.  Floating point numbers may also be decimal ({{{2.5}}}), hexadecimal ({{{0x2.8}}}), octal ({{{02.4}}}), and binary ({{{0b10.1}}}).  Exponents have their own radix, so you can write {{{-825e-2}}} as {{{-825e-0x2}}}.
+* Strings are enclosed in double-quotation marks, and are sequences of characters.  The escapes {{{\&quot;}}}, {{{\n}}}, {{{\r}}}, {{{\t}}}, and {{{\\}}} work as you'd expect.
+* Symbols normally start with a letter or underscore, followed by any number of letters, digits, and underscores.  If you break any of these rules, you must enclose your symbol in backticks.  Use escapes to include backticks in a symbol: {{{\`}}}.
+* Boolean literals take the form of the keywords {{{true}}} and {{{false}}}.  If you feel motivated, you can type {{{true:BOOLEAN}}} and {{{false:BOOLEAN}}}.  If the system sees the keyword {{{true}}} or {{{false}}}, it will assume you mean the Boolean value.  If you mean the symbol, you must provide the type (such as {{{true:SYMBOL}}}).
 </pre>
 </div>
 <div title="SyntaxHighlighterPlugin" modifier="Jonny Gerold" created="200904132309" modified="201008112145" tags="systemConfig" server.type="file" server.host="http://dl.getdropbox.com/u/52078/Notes/Notes.html" server.page.revision="201008112145">
