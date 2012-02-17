@@ -323,8 +323,8 @@ object Repl {
             | bind(v,a) .................. Bind variable v to atom a.
         		| help ....................... Show this help text.
             | history .................... Show the history so far.
-            | prior ...................... Toggle showing the unrewritten term.
-            | scala ...................... Toggle showing the Scala term.
+            | showprior .................. Toggle showing the unrewritten term.
+            | showscala .................. Toggle showing the Scala term.
             | tracematch ................. Toggle match tracing.
             | traceparse ................. Toggle parser tracing.
             | unbind(v) .................. Unbind variable v.
@@ -346,12 +346,12 @@ object Repl {
         println("Match tracing is " +
             (if (BasicAtom.traceMatching) "ON." else "OFF."))
         true
-      case Literal(_,SymVal('scala)) =>
+      case Literal(_,SymVal('showscala)) =>
         // Toggle showing the Scala term.
         _showScala = !_showScala
         println("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
         true
-      case Literal(_,SymVal('prior)) =>
+      case Literal(_,SymVal('showprior)) =>
         // Toggle showing the prior term.
         _showPrior = !_showPrior
         println("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))

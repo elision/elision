@@ -50,6 +50,9 @@ extends BasicAtom {
   // The type is a mapping from one type to another.
 	// val theType =
 	//  Apply(OperatorLibrary.MAP, AtomList(Seq(lvar.theType, body.theType)))
+  // TODO Fix the lambda type.
+  // The difficulty here arises from the use of Context.  The type of the
+  // lambda must be supplied.
   val theType = TypeUniverse
   
   // Constancy of a lambda depends only on the body.

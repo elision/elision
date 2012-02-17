@@ -57,10 +57,14 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // We don't need to worry about the types here.  We can bind the variable
     // if the variable allows binding, and it is not already bound to a
-    // different atom.
+    // different atom.  We also allow the variable to match ANYTYPE.
     if (isBindable) binds.get(name) match {
-      case None => Match(binds + (name -> subject))
-      case Some(atom) if atom == subject => Match(binds)
+      case None =>
+        // This is tricky.  We don't bind if we match against ANYTYPE.  Are
+        // there unforseen consequences to this decision?
+        if (subject == ANYTYPE) Match(binds)
+        else Match(binds + (name -> subject))
+      case Some(atom) if atom == ANYTYPE || atom == subject => Match(binds)
       case _ => Fail("Variable " + this.toParseString +
           " is already bound to the term " + binds.get(name).get.toParseString +
           ".", this, subject)

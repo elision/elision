@@ -52,6 +52,10 @@ class ArgumentListException(msg: String) extends Exception(msg)
  * @param opdef	The operator definition.
  */
 case class Operator(opdef: OperatorDefinition) extends BasicAtom {
+  // The type of all operators is OPTYPE.  This is not a good thing; it should
+  // really be a MAP from the operator domain to the codomain.  Something to
+  // fix...
+  // TODO Fix operator type.
   val theType = OPTYPE
   val isConstant = opdef.isConstant
   

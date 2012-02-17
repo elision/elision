@@ -258,6 +258,9 @@ object Literal {
 	
 	/** The value false. */
 	val FALSE = new Literal(BOOLEAN, BooVal(false))
+	
+	/** The special Nothing value. */
+	val NOTHING = new Literal(ANYTYPE, SymVal(Symbol("Nothing")))
 
 	/**
 	 * Make a Boolean value.

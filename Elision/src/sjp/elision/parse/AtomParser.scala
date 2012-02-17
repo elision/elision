@@ -323,16 +323,37 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
+	// Matching nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node denoting the result of matching.
+	 * 
+	 * @param pat	The pattern.
+	 * @param sub	The subject.
+	 * @return	Nothing on no match, or the bindings if the match succeeds.
+	 */
+	case class MatchNode(pat: AstNode, sub: AstNode) extends AstNode {
+	  def interpret = {
+	    pat.interpret.tryMatch(sub.interpret) match {
+	      case fail:Fail => Literal.NOTHING
+	      case Match(binds) => binds
+	      case Many(iter) => if (iter.hasNext) iter.next else Literal.NOTHING
+	    }
+	  }
+	}
+	
+	//----------------------------------------------------------------------
 	// Symbol nodes.
 	//----------------------------------------------------------------------
 	
 	/**
 	 * A node representing a "naked" symbol: a symbol whose type is the type
-	 * universe.
+	 * ANYTYPE.
 	 * @param str	The symbol text.
 	 */
 	case class NakedSymbolNode(str: String) extends AstNode {
-	  def interpret = Literal(TypeUniverse, SymVal(Symbol(str)))
+	  def interpret = Literal(ANYTYPE, SymVal(Symbol(str)))
 	}
 	
 	/**
@@ -408,17 +429,21 @@ object AtomParser {
 	 * @param sym		The symbol text.
 	 */
 	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
-	  def interpret = {
-	    // If the type is None, or if it is BOOLEAN, then check for truth values.
-	    if (typ == None || typ.get.interpret == BOOLEAN) sym match {
-	      case "true" => Literal.TRUE
-	      case "false" => Literal.FALSE
-	      case _ =>
-	        // In this case if the type was None, it should be Symbol.  If it was
-	        // Boolean, it should stay Boolean.
-	        Literal((if (typ == None) SYMBOL else BOOLEAN), SymVal(Symbol(sym)))
+	  def interpret: BasicAtom = {
+	    // There are interesting "untyped" cases.  Without type, true and false
+	    // should be made Booleans, and Nothing should have type ANYTYPE.
+	    if (typ == None) sym match {
+	      case "Nothing" => return Literal.NOTHING
+	      case "true" => return Literal.TRUE
+	      case "false" => return Literal.FALSE
+	      case _ => Literal(ANYTYPE, Symbol(sym))
 	    } else {
-	    	Literal(typ.get.interpret, SymVal(Symbol(sym)))
+	      typ.get.interpret match {
+	        case ANYTYPE if sym == "Nothing" => return Literal.NOTHING
+	        case BOOLEAN if sym == "true" => return Literal.TRUE
+	        case BOOLEAN if sym == "false" => return Literal.FALSE
+	        case t:(_) => return Literal(t, Symbol(sym))
+	      }
 	    }
 	  }
 	}
@@ -673,7 +698,8 @@ extends Parser {
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(ApplicationNode(context,_,_)))
+          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
+    ParsedMatch
   }
 
   /**
@@ -698,7 +724,7 @@ extends Parser {
 
       // Parse a typical operator application.
       ParsedApply |
-
+      
       // Parse the special root types.
       "STRING " ~ push(SimpleTypeNode(STRING)) |
       "SYMBOL " ~ push(SimpleTypeNode(SYMBOL)) |
@@ -1179,6 +1205,18 @@ extends Parser {
       	  binds += (sym.str -> atom)))) ~
       "} ") ~~> (x => BindingsNode(binds))
     }
+  }
+  
+  //======================================================================
+  // Matching.
+  //======================================================================
+  
+  /**
+   * Parse a match between two atoms.
+   */
+  def ParsedMatch = rule {
+    "{ " ~ "match " ~ FirstAtom ~ "-> " ~ FirstAtom ~ "} " ~~>
+    ((pat,sub) => MatchNode(pat, sub))
   }
 
   //======================================================================
