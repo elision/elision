@@ -1182,6 +1182,36 @@ Once you have installed the Scala IDE plugin, do the following.
 At this point Elision should automatically build, and you are ready to start
 working with the code.</pre>
 </div>
+<div title="REPL" creator="sprowell" modifier="sprowell" created="201202170255" modified="201202170309" changecount="10">
+<pre>The REPL is Elision's Read, Evaluate, Print Loop.  It provides a way to directly interact with the rewriter.
+!!Starting the REPL
+* Run the REPL from the jar file by pointing Scala at the file: {{{scala elision.jar}}}.
+* You can also run the REPL directly from the bin folder (i.e., the jar does not have to be built).  This is useful if you are using Eclipse to automatically build.  To accomplish this a shell script {{{repl.sh}}} is located in the root folder of the project.
+* Finally, you can launch Scala with the correct jars and classpath loaded by using the {{{run.sh}}} script located in the root folder of the project.  From the Scala prompt, execute {{{sjp.elision.repl.Repl.run}}}.
+!!In the REPL
+The most useful commands to know immediately are {{{help}}} (to get help) and {{{:quit}}} (to quit).
+
+Two additional commands are &quot;reserved&quot; but do nothing, yet.  Those are {{{read}}} and {{{write}}}.  The rest of this email is a short introduction to interacting with the system via the REPL.  //Note that lots of things are broken right now!//
+!!Commands
+The {{{bind(v,a)}}} command binds a variable to an atom.  Try {{{bind($x,7)}}} and {{{bind($y,\$x.%($x,$x))}}}.  Then try {{{$x}}} and {{{$y}}} at the prompt.  Then try {{{$y.$x}}}.
+
+The {{{unbind(v)}}} command unbinds a variable.  Try {{{unbind($x)}}}, and then repeat {{{$y.$x}}}.
+
+The {{{showprior}}} command toggles printing the parsed atom before any bindings are applied.  Turn on printing prior atoms and then try {{{$y.$x}}}.
+
+The {{{showscala}}} command toggles printing the Scala source code to re-create the atom.  Try turning the Scala code on and then try {{{$y.$x}}}.  Note that if you have {{{showprior}}} on, you get the Scala code both before and after applying the bindings.
+!!Tracing
+The {{{traceparse}}} command toggles tracing in the parser.  This is very useful if you are trying to diagnose parsing errors, but otherwise a bit annoying because it produces a lot of data.  To get a sense of this, turn on parse tracing and try {{{7}}}.
+
+The {{{tracematch}}} command toggles tracing in the matcher.  This is very useful if you are trying to diagnose matching errors.  Try turning on matching and then try {{{{match $x -&gt; 7} }}}.
+!!History
+The REPL maintains a persistent history.  Right now I have not set a limit.  To see the history, use the history command.  This will provide a listing similar to the history list for a shell.
+To re-evaluate an item from the history, use the &quot;bang&quot; notation as with a shell, for instance !2 will re-evaluate item 2 in the history.
+Every time an atom is evaluated in the current interactive session, the final result is bound to a variable and saved.  You've probably noticed the $repl1, $repl2, etc., variables showing up.  These contain the item evaluated, and you can use these in new atoms.
+As mentioned above, the history is persistent; it is stored in your home folder.  The file is printed at the end of the history listing.
+You can use the up and down arrow keys to move forward and backward through the history.  Try it!
+</pre>
+</div>
 <div title="SiteSubtitle" creator="sprowell" modifier="sprowell" created="201102011809" modified="201201102145" changecount="2">
 <pre>Elision project design documentation</pre>
 </div>
