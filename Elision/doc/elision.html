@@ -1356,10 +1356,10 @@ StyleSheet for ~SyntaxHighlighter
 
 /*}}}*/</pre>
 </div>
-<div title="Syntax" creator="sprowell" modifier="sprowell" created="201202110307" modified="201202171048" changecount="7">
+<div title="Syntax" creator="sprowell" modifier="sprowell" created="201202110307" modified="201202180425" changecount="13">
 <pre>Elision supports a simple language for unambiguously representing terms and types.  The primary objective of this language is that ''anything that can be created in software can be represented in the language and unambiguously re-imported.''
-
-The parser recognizes the following simple token types.
+!Literals
+The parser recognizes the following simple literal types.
 * Symbols
 * Strings
 * Integers
@@ -1382,41 +1382,36 @@ Symbols are parsed using simple rules.
 # If it is a backtick, then all subsequent characters up to the next unescaped backtick are part of the symbol.  The enclosing unescaped backticks themselves are not part of the symbol.  Escaped backticks are part of the symbol.
 # Anything else is not a valid symbol.
 !!Strings
-A //string// consists of a sequence of characters.  Strings are delimited by double quotation marks {{{&quot;}}}.  Any embedded double quotation marks must be escaped with a backslash {{{\}}}.  Additionally, embedded newlines must be escaped by a backslash.  The following is a valid string.
+A //string// consists of a sequence of characters.  Strings are delimited by double quotation marks {{{&quot;}}}.  The following escape sequences are understood.
+|\\n |newline |
+|\\r |carriage return |
+|\\t |tab |
+|\\\\ |backslash |
+|\\&quot; |double quotation mark |
 {{{
-&quot;    A \
-multiline \&quot;string\&quot;.&quot;
+&quot;    A \nmultiline \&quot;string\&quot;.&quot;
 }}}
-Strings are parsed by reading the opening quotation mark, and then reading all subsequent characters up to the first unescaped double quotation mark.  The enclosing unescaped double quotation marks are not part of the string.  Escaped double quotation marks and newlines are part of the string.
 !!Integers
 An //integer// can take several forms.
 * A simple decimal integer consists of an initial non-zero digit followed by zero or more digits.
 * An octal integer consists of an initial zero followed by one or more octal digits.
-* A hexadecimal integer consists of an initial zero, an (upper- or lower-case) x, and then one or more hexadecimal digits.
-* A binary integer consists of an initial zero, an (upper- or lower-case) b, and then one or more binary digits.
+* A hexadecimal integer consists of an initial zero, an (upper- or lower-case) {{{x}}}, and then one or more hexadecimal digits.
+* A binary integer consists of an initial zero, an (upper- or lower-case) {{{b}}}, and then one or more binary digits.
 Any integer can be preceeded by a unary negative sign {{{-}}} to negate its value.
 The following are examples of the number 174.
-* {{{174}}}
-* {{{0256}}}
-* {{{0xAE}}} and {{{0XAE}}}
-* {{{0b10101110}}} and {{{0B10101110}}}
-An integer is parsed by reading the first character.  If it is a digit, then it is expected to be an integer.
-# If the first digit is non-zero, it is a decimal integer.  All subsequent digits up to the first non-digit are part of the integer.
-# If the first digit is a zero, then the next character is read.
-## If it is not a digit, an //x// or a //b// (ignoring case), then the result is the decimal integer zero.
-## If it is another digit, then it is an octal integer.  All subsequent octal digits up to but excluding the first non-octal-digit are part of the integer.
-## If it is an //x// or //X//, then it is a hexadecimal integer.  All subsequent hexadecimal digits (ignoring case) up to but excluding the first non-hexadecimal-digit are part of the integer.
-## If it is a //b// or //B//, then it is a binary integer.  All subsequent binary digits up to but excluding the first non-binary-digit are part of the integer.
+* {{{174}}} (decimal)
+* {{{0256}}} (octal)
+* {{{0xAE}}} and {{{0XAE}}} (hexadecimal)
+* {{{0b10101110}}} and {{{0B10101110}}} (binary)
 !!Floating Point Numbers
 //Floating point numbers// can take several forms, and consist of a //significand// and an optional //exponent//.  Both the significand and exponent can be positive or negative.  Both the significand and exponent are represented as integers of any form, with the exceptions that the significand may contain a decimal point {{{.}}} and the exponent may be marked as explicitly positive by preceeding it with a plus sign {{{+}}}.  A decimal point in the significand effectively modifies the exponent, depending on the base being used.
-If no decimal point and no exponent are discovered then the number is regarded as an integer.
-The significand and exponent must be joined by an {{{e}}} or {{{E}}}.  The following are all examples of floating point numbers.  The numbers in each row are equal, but different, representations of the same number.
+If no decimal point and no exponent are discovered then the number is regarded as an integer.  Compare {{{17}}} and {{{17.}}}.
+The significand and exponent must be joined by an (upper- or lower-case) {{{e}}} or {{{p}}}.  The latter must be used when the significand is hexadecimal, since {{{e}}} is a valid hexadecimal digit.  The following are all examples of floating point numbers.  The numbers in each row are equal, but different, representations of the same number.
 * {{{1.21e5}}} = {{{1.21E+5}}} = {{{12.1E4}}} = {{{121000.}}}
 * {{{0b1010e0b10}}} = {{{0b1.010e101}}} = {{{10e+2}}} = {{{100.}}} = {{{10e0x2}}}
 Note that the base of the significand and exponent can be different.
-Floating point numbers are parsed by discovering, during integer parsing, either a decimal point {{{.}}} or an {{{e}}} or {{{E}}}, signaling that the number is a floating point number.
-!!Types
-Every atom has a corresponding term that denotes its type.  For simplicity, we will say the term $T$ denoting the type of some other term $t$ is $t$'s //type//, but bear in mind that since $T$ it also a term, it must also have a type.
+!Types
+Every atom has a corresponding term that denotes its type.  For simplicity, we will say the term $T$ denoting the type of some other term $t$ is $t$'s //type//, but bear in mind that since $T$ is also a term, it must also have a type.
 To prevent infinite regress, there is a unique type denoted {{{^TYPE}}} and called the //type universe// that has itself as a parent.
 If term $t$ has type $T$ then this is indicated by writing $t:T$.  The colon is right-associative, so writing $a:B:C:D$ means that $C$ has type $D$, while $B$ has type $C:D$, and $a$ has type $B:C:D$.  When the parent type is {{{^TYPE}}} we do not write it.  Parentheses cannot be used to change the associativity of types since the type system is linear (every term has exactly one associated type).
 An a concrete example, suppose {{{Int}}} is a symbol literal with type {{{^TYPE}}}.  Then if {{{5}}} is an integer literal with type {{{Int}}} we write: {{{5:Int}}}.
