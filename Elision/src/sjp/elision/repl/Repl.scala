@@ -92,13 +92,25 @@ object Repl {
   /** Whether or not to trace the parser. */
   private var _trace = false
   
+  /** Have we defined the operators.  This is used by the `run` method. */
+  private var _opsDefined = false
+  
   /**
    * The entry point when started from the command line.  Print the current
    * version number, then invoke `run`.
    * @param args	The command line arguments.
    */
   def main(args: Array[String]) {
-    defineOps
+    run
+    println("")
+    println("Context: ")
+    println(_context.toParseString)
+  }
+  
+  /**
+   * Display the banner.
+   */
+  private def banner() {
     println("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
@@ -107,10 +119,6 @@ object Repl {
 							 |
 							 |Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
 							 |All rights reserved.""".stripMargin)
-    run
-    println("")
-    println("Context: ")
-    println(_context.toParseString)
   }
   
   /**
@@ -130,6 +138,12 @@ object Repl {
    * `execute` method, and are described in its documentation.
    */
   def run() {
+    // Display the banner
+    banner()
+    
+    // Define the operators.
+    if (!_opsDefined) defineOps
+
     // Show the prompt and read a line.
     val cr = new jline.ConsoleReader
     cr.setHistory(_hist)
@@ -242,12 +256,9 @@ object Repl {
    * Define the operators we need.
    */
   private def defineOps {
+    // Bind.
     val bindDef = NativeOperatorDefinition(
-        OperatorPrototype(
-            "bind",
-            List(Variable(ANYTYPE,"v"),Variable(ANYTYPE,"a")),
-            ANYTYPE),
-            OperatorProperties())
+        Proto("bind", ANYTYPE, 'a, 'v), Prop())
     _context.operatorLibrary.add(bindDef)
     _context.operatorLibrary.register("bind",
         (_, list:AtomList) => list match {
@@ -257,12 +268,21 @@ object Repl {
             println("Bound " + from.toParseString)
             to
         })
+
+    // Bind.
+    val equalDef = NativeOperatorDefinition(
+        Proto("equal", ANYTYPE, 'x, 'y), Prop(Commutative()))
+    _context.operatorLibrary.add(equalDef)
+    _context.operatorLibrary.register("equal",
+        (_, list:AtomList) => list match {
+          case Args(x:Variable, y:BasicAtom) =>
+            // Check for equality.
+            if (x == y) Literal.TRUE else Literal.FALSE
+        })
+        
+    // Unbind.
     val unbindDef = NativeOperatorDefinition(
-        OperatorPrototype(
-            "unbind",
-            List(Variable(ANYTYPE,"v")),
-            ANYTYPE),
-            OperatorProperties())
+        Proto("unbind", ANYTYPE, 'v), Prop())
     _context.operatorLibrary.add(unbindDef)
     _context.operatorLibrary.register("unbind",
         (_, list:AtomList) => list match {
@@ -272,12 +292,10 @@ object Repl {
             println("Unbound " + from.toParseString)
             TypeUniverse
         })
+        
+    // Read.
     val readDef = NativeOperatorDefinition(
-        OperatorPrototype(
-            "read",
-            List(Variable(STRING,"filename")),
-            ANYTYPE),
-            OperatorProperties())
+        Proto("read", ANYTYPE, 'filename), Prop())
     _context.operatorLibrary.add(readDef)
     _context.operatorLibrary.register("read",
         (_, list:AtomList) => list match {
@@ -286,12 +304,10 @@ object Repl {
             println("Not implemented.")
             Literal.FALSE
         })
+        
+    // Write.
     val writeDef = NativeOperatorDefinition(
-        OperatorPrototype(
-            "write",
-            List(Variable(STRING,"filename")),
-            ANYTYPE),
-            OperatorProperties())
+        Proto("write", ANYTYPE, 'filename), Prop())
     _context.operatorLibrary.add(writeDef)
     _context.operatorLibrary.register("write",
         (_, list:AtomList) => list match {
@@ -300,6 +316,105 @@ object Repl {
             println("Not implemented.")
             Literal.FALSE
         })
+        
+    // Help.
+    val helpDef = NativeOperatorDefinition(
+        Proto("help", ANYTYPE), Prop())
+    _context.operatorLibrary.add(helpDef)
+    _context.operatorLibrary.register("help",
+        (_, list:AtomList) => list match {
+          case Args() =>
+          	// Give some help.
+		        println("""
+		        		|Elision Help
+		        		|
+		            | bind(v,a) .................. Bind variable v to atom a.
+		        		| help ....................... Show this help text.
+		            | history .................... Show the history so far.
+		            | showprior .................. Toggle showing the unrewritten term.
+		            | showscala .................. Toggle showing the Scala term.
+		            | tracematch ................. Toggle match tracing.
+		            | traceparse ................. Toggle parser tracing.
+		            | unbind(v) .................. Unbind variable v.
+		            |
+		            |Use ! followed by a number to re-execute a line from the history.
+		            |
+		            |To quit type :quit.
+		            |""".stripMargin)
+		        Literal.NOTHING
+        })
+        
+    // Traceparse.
+    val traceparseDef = NativeOperatorDefinition(
+        Proto("traceparse", ANYTYPE), Prop())
+    _context.operatorLibrary.add(traceparseDef)
+    _context.operatorLibrary.register("traceparse",
+        (_, list:AtomList) => list match {
+          case Args() =>
+		        // Toggle tracing.
+		        _trace = !_trace
+		        _parser = new AtomParser(_context, _trace)
+		        println("Tracing is " + (if (_trace) "ON." else "OFF."))
+		        Literal.NOTHING
+        })
+        
+    // Tracematch.
+    val tracematchDef = NativeOperatorDefinition(
+        Proto("tracematch", ANYTYPE), Prop())
+    _context.operatorLibrary.add(tracematchDef)
+    _context.operatorLibrary.register("tracematch",
+        (_, list:AtomList) => list match {
+          case Args() =>
+		        // Toggle tracing.
+		        BasicAtom.traceMatching = !BasicAtom.traceMatching
+		        println("Match tracing is " +
+		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
+		        Literal.NOTHING
+        })
+        
+    // Showscala.
+    val showscalaDef = NativeOperatorDefinition(
+        Proto("showscala", ANYTYPE), Prop())
+    _context.operatorLibrary.add(showscalaDef)
+    _context.operatorLibrary.register("showscala",
+        (_, list:AtomList) => list match {
+          case Args() =>
+		        // Toggle showing the Scala term.
+		        _showScala = !_showScala
+		        println("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
+		        Literal.NOTHING
+        })
+        
+    // Showprior.
+    val showpriorDef = NativeOperatorDefinition(
+        Proto("showprior", ANYTYPE), Prop())
+    _context.operatorLibrary.add(showpriorDef)
+    _context.operatorLibrary.register("showprior",
+        (_, list:AtomList) => list match {
+          case Args() =>
+		        // Toggle showing the prior term.
+		        _showPrior = !_showPrior
+		        println("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
+		        Literal.NOTHING
+        })
+        
+    // History.
+    val historyDef = NativeOperatorDefinition(
+        Proto("history", ANYTYPE), Prop())
+    _context.operatorLibrary.add(historyDef)
+    _context.operatorLibrary.register("history",
+        (_, list:AtomList) => list match {
+          case Args() =>
+		        // Show the history.
+		        for (index <- 1 until _hist.getCurrentIndex()) {
+		          println(" " + index + ": " + _hist.getHistory(index))
+		        }
+		        println("Persistent history is found in: " + _filename)
+		        Literal.NOTHING
+        })
+        
+    // The operator are defined.
+    _opsDefined = true
   }
   
   /**
@@ -315,80 +430,6 @@ object Repl {
       	// Put operator definitions in the operator library.
         _library.add(od)
         true
-      case Literal(_,SymVal('help)) =>
-        // Give some help.
-        println("""
-        		|Elision Help
-        		|
-            | bind(v,a) .................. Bind variable v to atom a.
-        		| help ....................... Show this help text.
-            | history .................... Show the history so far.
-            | showprior .................. Toggle showing the unrewritten term.
-            | showscala .................. Toggle showing the Scala term.
-            | tracematch ................. Toggle match tracing.
-            | traceparse ................. Toggle parser tracing.
-            | unbind(v) .................. Unbind variable v.
-            |
-            |Use ! followed by a number to re-execute a line from the history.
-            |
-            |To quit type :quit.
-            |""".stripMargin)
-        true
-      case Literal(_,SymVal('traceparse)) =>
-        // Toggle tracing.
-        _trace = !_trace
-        _parser = new AtomParser(_context, _trace)
-        println("Tracing is " + (if (_trace) "ON." else "OFF."))
-        true
-      case Literal(_,SymVal('tracematch)) =>
-        // Toggle tracing.
-        BasicAtom.traceMatching = !BasicAtom.traceMatching
-        println("Match tracing is " +
-            (if (BasicAtom.traceMatching) "ON." else "OFF."))
-        true
-      case Literal(_,SymVal('showscala)) =>
-        // Toggle showing the Scala term.
-        _showScala = !_showScala
-        println("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
-        true
-      case Literal(_,SymVal('showprior)) =>
-        // Toggle showing the prior term.
-        _showPrior = !_showPrior
-        println("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
-        true
-      case Literal(_,SymVal('history)) =>
-        // Show the history.
-        for (index <- 1 until _hist.getCurrentIndex()) {
-          println(" " + index + ": " + _hist.getHistory(index))
-        }
-        println("Persistent history is found in: " + _filename)
-        true
-      case Apply(Literal(_,SymVal('unbind)),AtomList(seq,_)) =>
-        // Try to unbind.
-        seq match {
-          case Seq(from:Variable) =>
-            _binds -= from.name
-            println("Unbound " + from.toParseString)
-            true
-          case _ =>
-            println("ERROR: Incorrect form for an unbind.  Need a single " +
-            		"argument that must be a variable.")
-            false
-        }
-      case Apply(Literal(_,SymVal('bind)),AtomList(seq,_)) =>
-        // Try to bind.
-        seq match {
-          case Seq(from:Variable,to) =>
-            // Bind the variable in this context.
-            _binds += (from.name -> to)
-            println("Bound " + from.toParseString)
-            true
-          case _ =>
-            // Incorrect form for a bind.
-            println("ERROR: Incorrect form for a bind.  Need two arguments, " +
-            		"the first of which must be a variable.")
-            false
-        }
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)

@@ -84,39 +84,6 @@ package object core {
   type Bindings = HashMap[String, BasicAtom]
   
   /**
-   * Magically add a mkParseString, roughly equivalent to mkString, to every
-   * sequence of objects that extend BasicAtom.  Try that with Java!
-   * @param seq		The sequence to get the new method.
-   */
-  implicit def giveMkParseString[A <: BasicAtom](seq: Seq[A]): {
-    def mkParseString(pre: String, mid: String, post: String): String
-  } = new {
-    /**
-     * Make a string from a sequence.
-     * @param pre		The prefix text, if any.
-     * @param mid		The text to insert between each item.
-     * @param post	The suffix text, if any.
-     * @return	The new string.
-     */
-    def mkParseString(pre: String, mid: String, post: String) =
-      seq.map(_.toParseString).mkString(pre, mid, post)
-  }
-  
-  /**
-   * Where needed, convert a bindings object into a bindings atom (wrap).
-   * @param binds	The bindings.
-   * @return	The new bindings atom.
-   */
-  implicit def wrapBindingsAtom(binds: Bindings) = new BindingsAtom(binds)
-  
-  /**
-   * Where needed, convert a bindings atom to a simple bindings object (unwrap).
-   * @param atom	The bindings atom.
-   * @return	The bindings.
-   */
-  implicit def unwrapBindingsAtom(atom: BindingsAtom) = atom.mybinds
-  
-  /**
    * Attempt to parse the given string and return an atom.
    * @param str			The string to parse.
    * @param context	The context.
@@ -207,10 +174,6 @@ package object core {
   }
   
   /**
-   * Interpret common escapes
-   */
-  
-  /**
    * Issue a warning.  This should be wired to whatever error reporting
    * mechanism you want to use.
    * @param text	The text of the warning.
@@ -218,4 +181,48 @@ package object core {
   def warn(text: String) {
     println("WARNING: " + text)
   }
+  
+  //======================================================================
+  // WARNING: Here be IMPLICITS!
+  //======================================================================
+  
+  implicit def symToVariable(symbol: Symbol) = Variable(ANYTYPE, symbol.name)
+  implicit def variableToSym(variable: Variable) = Symbol(variable.name)
+  implicit def intToLiteral(value: Int) = Literal(INTEGER, value)
+  implicit def intToLiteral(value: BigInt) = Literal(INTEGER, value)
+  implicit def strToLiteral(string: String) = Literal(STRING, string)
+  implicit def symToLiteral(symbol: Symbol) = Literal(SYMBOL, symbol)
+  
+  /**
+   * Magically add a mkParseString, roughly equivalent to mkString, to every
+   * sequence of objects that extend BasicAtom.  Try that with Java!
+   * @param seq		The sequence to get the new method.
+   */
+  implicit def giveMkParseString[A <: BasicAtom](seq: Seq[A]): {
+    def mkParseString(pre: String, mid: String, post: String): String
+  } = new {
+    /**
+     * Make a string from a sequence.
+     * @param pre		The prefix text, if any.
+     * @param mid		The text to insert between each item.
+     * @param post	The suffix text, if any.
+     * @return	The new string.
+     */
+    def mkParseString(pre: String, mid: String, post: String) =
+      seq.map(_.toParseString).mkString(pre, mid, post)
+  }
+  
+  /**
+   * Where needed, convert a bindings object into a bindings atom (wrap).
+   * @param binds	The bindings.
+   * @return	The new bindings atom.
+   */
+  implicit def wrapBindingsAtom(binds: Bindings) = new BindingsAtom(binds)
+  
+  /**
+   * Where needed, convert a bindings atom to a simple bindings object (unwrap).
+   * @param atom	The bindings atom.
+   * @return	The bindings.
+   */
+  implicit def unwrapBindingsAtom(atom: BindingsAtom) = atom.mybinds
 }
