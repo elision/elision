@@ -1,5 +1,4 @@
 /*======================================================================
- *       _ _     _
  *   ___| (_)___(_) ___  _ __
  *  / _ \ | / __| |/ _ \| '_ \
  * |  __/ | \__ \ | (_) | | | |
@@ -267,6 +266,7 @@ object Repl {
             _binds += (from.name -> to)
             println("Bound " + from.toParseString)
             to
+          case _ => Literal.FALSE
         })
 
     // Bind.
@@ -278,6 +278,7 @@ object Repl {
           case Args(x:Variable, y:BasicAtom) =>
             // Check for equality.
             if (x == y) Literal.TRUE else Literal.FALSE
+          case _ => Literal.FALSE
         })
         
     // Unbind.
@@ -291,6 +292,18 @@ object Repl {
             _binds -= from.name
             println("Unbound " + from.toParseString)
             TypeUniverse
+          case _ => Literal.FALSE
+        })
+        
+    // showbinds.
+    val showbindsDef = NativeOperatorDefinition(
+        Proto("showbinds", ANYTYPE), Prop())
+    _context.operatorLibrary.add(showbindsDef)
+    _context.operatorLibrary.register("showbinds",
+        (_, list:AtomList) => list match {
+          case Args() =>
+            _binds.toParseString()
+          case _ => Literal.FALSE
         })
         
     // Read.
@@ -303,6 +316,7 @@ object Repl {
             // TODO Read the content of the file.
             println("Not implemented.")
             Literal.FALSE
+          case _ => Literal.FALSE
         })
         
     // Write.
@@ -315,6 +329,7 @@ object Repl {
             // TODO Write the content to the file.
             println("Not implemented.")
             Literal.FALSE
+          case _ => Literal.FALSE
         })
         
     // Help.
@@ -342,6 +357,7 @@ object Repl {
 		            |To quit type :quit.
 		            |""".stripMargin)
 		        Literal.NOTHING
+          case _ => Literal.FALSE
         })
         
     // Traceparse.
@@ -356,6 +372,7 @@ object Repl {
 		        _parser = new AtomParser(_context, _trace)
 		        println("Tracing is " + (if (_trace) "ON." else "OFF."))
 		        Literal.NOTHING
+          case _ => Literal.FALSE
         })
         
     // Tracematch.
@@ -370,6 +387,7 @@ object Repl {
 		        println("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
 		        Literal.NOTHING
+          case _ => Literal.FALSE
         })
         
     // Showscala.
@@ -383,6 +401,7 @@ object Repl {
 		        _showScala = !_showScala
 		        println("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
 		        Literal.NOTHING
+          case _ => Literal.FALSE
         })
         
     // Showprior.
@@ -396,6 +415,7 @@ object Repl {
 		        _showPrior = !_showPrior
 		        println("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
 		        Literal.NOTHING
+          case _ => Literal.FALSE
         })
         
     // History.
@@ -411,6 +431,7 @@ object Repl {
 		        }
 		        println("Persistent history is found in: " + _filename)
 		        Literal.NOTHING
+          case _ => Literal.FALSE
         })
         
     // The operator are defined.

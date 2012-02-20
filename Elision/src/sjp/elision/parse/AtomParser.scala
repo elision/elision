@@ -442,7 +442,7 @@ object AtomParser {
 	        case ANYTYPE if sym == "Nothing" => return Literal.NOTHING
 	        case BOOLEAN if sym == "true" => return Literal.TRUE
 	        case BOOLEAN if sym == "false" => return Literal.FALSE
-	        case t:(_) => return Literal(t, Symbol(sym))
+	        case t:Any => return Literal(t, Symbol(sym))
 	      }
 	    }
 	  }
