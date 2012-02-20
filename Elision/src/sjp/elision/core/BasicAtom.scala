@@ -134,7 +134,9 @@ abstract class BasicAtom {
     // constancy check is required; otherwise we might "match" $x against
     // $x, but not bind.  This leaves us free to bind $x to something different
     // later, invalidating the original "match".  Matching is tricky.
-    if (isConstant && this == subject)
+    if (subject == ANYTYPE)
+      Match(binds)
+    else if (isConstant && this == subject)
       Match(binds)
     else
       matchTypes(subject, binds) match {
