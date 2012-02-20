@@ -1,0 +1,872 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass amsbook
+\use_default_options true
+\begin_modules
+theorems-ams
+eqs-within-sections
+figs-within-sections
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Elision User Guide
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Elision is distributed under the BSD 
+\begin_inset Quotes eld
+\end_inset
+
+two clause
+\begin_inset Quotes erd
+\end_inset
+
+ license.
+\end_layout
+
+\begin_layout LyX-Code
+      _ _     _
+\end_layout
+
+\begin_layout LyX-Code
+  ___| (_)___(_) ___  _ __
+\end_layout
+
+\begin_layout LyX-Code
+ / _ 
+\backslash
+ | / __| |/ _ 
+\backslash
+| '_ 
+\backslash
+
+\end_layout
+
+\begin_layout LyX-Code
+|  __/ | 
+\backslash
+__ 
+\backslash
+ | (_) | | | |
+\end_layout
+
+\begin_layout LyX-Code
+ 
+\backslash
+___|_|_|___/_|
+\backslash
+___/|_| |_|
+\end_layout
+
+\begin_layout LyX-Code
+The Elision Term Rewriter
+\end_layout
+
+\begin_layout LyX-Code
+ 
+\end_layout
+
+\begin_layout LyX-Code
+Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com)
+\end_layout
+
+\begin_layout LyX-Code
+All rights reserved.
+\end_layout
+
+\begin_layout LyX-Code
+ 
+\end_layout
+
+\begin_layout LyX-Code
+Redistribution and use in source and binary forms, with or without
+\end_layout
+
+\begin_layout LyX-Code
+modification, are permitted provided that the following conditions are met:
+ 
+\end_layout
+
+\begin_layout LyX-Code
+ 
+\end_layout
+
+\begin_layout LyX-Code
+1.
+ Redistributions of source code must retain the above copyright notice,
+ this
+\end_layout
+
+\begin_layout LyX-Code
+   list of conditions and the following disclaimer.
+\end_layout
+
+\begin_layout LyX-Code
+2.
+ Redistributions in binary form must reproduce the above copyright notice,
+\end_layout
+
+\begin_layout LyX-Code
+   this list of conditions and the following disclaimer in the documentation
+\end_layout
+
+\begin_layout LyX-Code
+   and/or other materials provided with the distribution.
+\end_layout
+
+\begin_layout LyX-Code
+ 
+\end_layout
+
+\begin_layout LyX-Code
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ IS" AND
+\end_layout
+
+\begin_layout LyX-Code
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+\end_layout
+
+\begin_layout LyX-Code
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+\end_layout
+
+\begin_layout LyX-Code
+DISCLAIMED.
+ IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+\end_layout
+
+\begin_layout LyX-Code
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+\end_layout
+
+\begin_layout LyX-Code
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+\end_layout
+
+\begin_layout LyX-Code
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ AND
+\end_layout
+
+\begin_layout LyX-Code
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+\end_layout
+
+\begin_layout LyX-Code
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ THIS
+\end_layout
+
+\begin_layout LyX-Code
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+\end_layout
+
+\begin_layout Chapter
+Installation
+\end_layout
+
+\begin_layout Standard
+This chapter explains how to build the Elision rewriter.
+ Information about the rewriter can be obtained by visiting 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://stacyprowell.com/wiki/doku.php?id=elision
+\end_layout
+
+\end_inset
+
+.
+ Note that Elision contains Praboiled, a parser expression grammar (PEG)
+ library.
+ See 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+https://github.com/sirthias/parboiled/wiki
+\end_layout
+
+\end_inset
+
+ for details, including the license agreement.
+\end_layout
+
+\begin_layout Section
+Prerequisites
+\end_layout
+
+\begin_layout Standard
+Elision requires Scala 2.9 or later to build.
+ Be careful with later versions of Scala as the language is still changing
+ quite a bit.
+ Java 6 or later and Apache Ant 1.8 or later are also prerequisites.
+\end_layout
+
+\begin_layout Enumerate
+Install the Java 6 (or later) SDK.
+ Visit 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://java.oracle.com
+\end_layout
+
+\end_inset
+
+ to download the correct version for your platform.
+\end_layout
+
+\begin_layout Enumerate
+Install Scala 2.9.1 (or later).
+ Visit 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.scala-lang.org
+\end_layout
+
+\end_inset
+
+ to download the Scala distribution.
+\end_layout
+
+\begin_layout Enumerate
+Set the environment variable 
+\family typewriter
+SCALA_HOME
+\family default
+ to point to the root folder of your Scala installation (the folder that
+ contains the 
+\family typewriter
+bin
+\family default
+ and 
+\family typewriter
+lib
+\family default
+ folders).
+\end_layout
+
+\begin_layout Enumerate
+(Optional) It is recommended to get the Scala developer documentation package.
+ After you have installed Scala, run the following command at the prompt.
+ If you have installed Scala in a folder owned by root, you will need to
+ precede the command with 
+\family typewriter
+sudo
+\family default
+.
+\begin_inset Newline newline
+\end_inset
+
+
+\family typewriter
+sbaz install scala-devel-docs
+\end_layout
+
+\begin_layout Enumerate
+Install Apache Ant 1.8 (or later).
+ Visit 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://ant.apache.org
+\end_layout
+
+\end_inset
+
+ to download the Ant distribution.
+\end_layout
+
+\begin_layout Section
+Building
+\end_layout
+
+\begin_layout Standard
+To build the Elision jar file, 
+\family typewriter
+cd
+\family default
+ to the root folder of the Elision distribution and run the command 
+\family typewriter
+ant
+\family default
+.
+ This will build the jar file.
+ If you want to build the API documentation, then run the command 
+\family typewriter
+ant docs
+\family default
+.
+ To do both, use 
+\family typewriter
+ant all
+\family default
+.
+ To see what other targets are available, use 
+\family typewriter
+ant -p
+\family default
+.
+\end_layout
+
+\begin_layout Section
+REPL
+\end_layout
+
+\begin_layout Standard
+Elision comes with a read, evaluate, print loop interpreter (a REPL).
+ You can start it in any of the following ways.
+\end_layout
+
+\begin_layout Itemize
+Use the 
+\family typewriter
+repl.sh
+\family default
+ script found in the root folder of the Elision distribution.
+ This starts the REPL using the compiled class files in the 
+\family typewriter
+bin
+\family default
+ folder, and is the best way to run it if you are using a continuous build
+ system such as Eclipse.
+\end_layout
+
+\begin_layout Itemize
+To run the REPL from the jar file, execute the command 
+\family typewriter
+scala elision.jar
+\family default
+.
+ If the Scala library is available in 
+\family typewriter
+scala-library.jar
+\family default
+ then you can also run it with 
+\family typewriter
+java -cp scala-library.jar -jar elision.jar
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+To start the REPL from inside a program, invoke the 
+\family typewriter
+sjp.elision.repl.Repl.run()
+\family default
+ method.
+\end_layout
+
+\begin_layout Standard
+To exit from the REPL use 
+\family typewriter
+:quit
+\family default
+.
+ To get help use 
+\family typewriter
+help
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Eclipse
+\end_layout
+
+\begin_layout Standard
+The root folder of the Elision distribution contains an Eclipse project.
+ Before you attempt to import it into Eclipse you should do the following.
+\end_layout
+
+\begin_layout Itemize
+Install the Scala IDE.
+ At present the version of the Scala IDE for Scala 2.9 can be found at the
+ update site 
+\begin_inset CommandInset href
+LatexCommand href
+target "http://download.scala-ide.org/releases-29/stable/site"
+
+\end_inset
+
+.
+ Visit 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://scala-ide.org
+\end_layout
+
+\end_inset
+
+ for the latest version, documentation, etc.
+\end_layout
+
+\begin_layout Standard
+That is all that is required.
+ You may optionally install the following helpful plugins.
+\end_layout
+
+\begin_layout Itemize
+ShellEd is an excellent editor for working with shell scripts, but at present
+ it only works with Eclipse Indigo.
+ You can find out more at 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://sourceforge.net/apps/trac/shelled
+\end_layout
+
+\end_inset
+
+.
+ To install ShellEd you need to install components from the Linux Tools.
+ The update site is 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://download.eclipse.org/technology/linuxtools/update
+\end_layout
+
+\end_inset
+
+.
+ Add this update site first, but do not install anything.
+ The update site for ShellEd is 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.1/update
+\end_layout
+
+\end_inset
+
+.
+ After adding the update site for the Linux Tools, add this update site
+ and then install ShellEd; it will resolve the dependencies and get the
+ components from the Linux Tools that are actually required.
+\end_layout
+
+\begin_layout Itemize
+Copyright Wizard can be used to automatically and quickly update the copyrights
+ on all files and to make sure all new files have the correct copyright
+ information.
+ The distribution includes a configuration file for Copyright Wizard that
+ will be automatically discovered if you install Copyright Wizard.
+ Find out more at 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.wdev91.com/?p=cpw
+\end_layout
+
+\end_inset
+
+.
+ The update site is 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.wdev91.com/update
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Once you have installed the Scala IDE plugin, do the following.
+\end_layout
+
+\begin_layout Enumerate
+Unpack the Elision distribution into an Eclipse workspace, or create a 
+\family typewriter
+workspace
+\family default
+ folder and place the 
+\family typewriter
+Elision
+\family default
+ folder in it.
+\end_layout
+
+\begin_layout Enumerate
+Start Eclipse.
+ You will probably be propted to run the Scala Setup Diagnostics.
+ Click Yes to run them.
+ Make sure you open Eclipse in the correct workspace containing the Elision
+ distribution.
+\end_layout
+
+\begin_layout Enumerate
+Go to the workbench.
+ Right-click in the package explorer and choose New and then Project.
+ In the New Project wizard expand Scala Wizards and select Scala Project.
+ Click Next.
+\end_layout
+
+\begin_layout Enumerate
+In the New Scala Project dialog enter Elision as the project name.
+ If you have done everything correctly you should see a note at the bottom
+ of the dialog telling you the wizard is about to automatically configure
+ the project based on the existing source.
+ This is what you want, so click Finish.
+\end_layout
+
+\begin_layout Enumerate
+You may be asked if you want to switch to the Scala perspective.
+ You do, so click Yes.
+\end_layout
+
+\begin_layout Standard
+At this point Elision should automatically build, and you are ready to start
+ working with the code or running the REPL using 
+\family typewriter
+repl.sh
+\family default
+.
+\end_layout
+
+\begin_layout Chapter
+Interacting with the REPL
+\end_layout
+
+\begin_layout Standard
+The REPL is Elision's read, evaluate, print loop.
+ It provides a way to directly interact with the rewriter.
+\end_layout
+
+\begin_layout Section
+Starting the REPL
+\end_layout
+
+\begin_layout Standard
+You can start the REPL in any of the following ways.
+\end_layout
+
+\begin_layout Itemize
+Use the 
+\family typewriter
+repl.sh
+\family default
+ script found in the root folder of the Elision distribution.
+ This starts the REPL using the compiled class files in the 
+\family typewriter
+bin
+\family default
+ folder, and is the best way to run it if you are using a continuous build
+ system such as Eclipse.
+\end_layout
+
+\begin_layout Itemize
+To run the REPL from the jar file, execute the command 
+\family typewriter
+scala elision.jar
+\family default
+.
+ If the Scala library is available in 
+\family typewriter
+scala-library.jar
+\family default
+ then you can also run it with 
+\family typewriter
+java -cp scala-library.jar -jar elision.jar
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+To start the REPL from inside a program, invoke the 
+\family typewriter
+sjp.elision.repl.Repl.run()
+\family default
+ method.
+ This is useful from the Scala prompt, assuming you have the correct 
+\family typewriter
+CLASSPATH
+\family default
+.
+ You can use the 
+\family typewriter
+run.sh
+\family default
+ script found in the Elision root to start Scala with the correct 
+\family typewriter
+CLASSPATH
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+The most useful commands to know immediately are 
+\family typewriter
+help
+\family default
+ (to get help) and 
+\family typewriter
+:quit
+\family default
+ (to quit).
+\end_layout
+
+\begin_layout Standard
+The REPL commands (with the exception of 
+\family typewriter
+:quit
+\family default
+ and history recall) are actually Elision operators (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Operators"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+The REPL reads zero or more atoms per line, evaluates them, and displays
+ the output.
+ Several atoms can be present on a single line; in that case the REPL displays
+ each one.
+ Note that at present atoms cannot span multiple lines.
+\end_layout
+
+\begin_layout Section
+Binding
+\end_layout
+
+\begin_layout Standard
+The REPL keeps a set of bindings that are used to immediately rewrite any
+ atom parsed.
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+bind(
+\emph on
+v
+\emph default
+,
+\emph on
+a
+\emph default
+)
+\family default
+ command binds a variable 
+\family typewriter
+\emph on
+v
+\family default
+\emph default
+ to an atom 
+\family typewriter
+\emph on
+a
+\family default
+\emph default
+.
+ For instance, try 
+\family typewriter
+bind($x,7)
+\family default
+ and 
+\family typewriter
+bind($y,
+\backslash
+$x.%($x,$x))
+\family default
+.
+ Then try 
+\family typewriter
+$x
+\family default
+ and 
+\family typewriter
+$y
+\family default
+ at the prompt.
+ Then try 
+\family typewriter
+$y.$x
+\family default
+.
+ Variables can be rebound at any time.
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+unbind(
+\emph on
+v
+\emph default
+)
+\family default
+ command removes any binding for the variable 
+\family typewriter
+\emph on
+v
+\family default
+\emph default
+.
+ Try 
+\family typewriter
+unbind($x)
+\family default
+ and then repeat 
+\family typewriter
+$y.$x
+\family default
+.
+ No error is generated if a variable is not bound.
+\end_layout
+
+\begin_layout Standard
+Every time an atom is evaluated by the REPL, the result is displayed and
+ then bound to a new variable whose name starts with 
+\family typewriter
+$repl
+\family default
+.
+ These variables are displayed on the output, and are used to rewrite an
+ atom before it is displayed.
+ Try 
+\family typewriter
+$repl0
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Atom Display
+\end_layout
+
+\begin_layout Chapter
+Basic Atoms
+\end_layout
+
+\begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Operators"
+
+\end_inset
+
+Operators
+\end_layout
+
+\begin_layout Chapter
+Matching and Rewriting
+\end_layout
+
+\begin_layout Chapter
+Rules
+\end_layout
+
+\begin_layout Chapter
+Strategies
+\end_layout
+
+\begin_layout Chapter
+Extensions
+\end_layout
+
+\end_body
+\end_document
