@@ -1163,21 +1163,11 @@ extends Parser {
    * Parse a native operator definition.
    * {{{
    * { operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y)) }
-   * }}}
-   */
-  def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
-    "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
-  }
-  
-  /**
-   * Parse a functor definition.
-   * {{{
    * { macro body(\$x.$body:$T):$T = $body }
    * }}}
    */
-  def ParsedFunctorDefinition = rule {
-    "{ " ~ "macro " ~ ParsedMacroPrototype ~ ParsedImmediateDefinition ~
+  def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
+    "{ " ~ "operator " ~ ParsedMacroPrototype ~ ParsedImmediateDefinition ~
     "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
   }
   
