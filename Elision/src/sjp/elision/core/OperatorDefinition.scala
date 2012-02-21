@@ -44,7 +44,7 @@ class IllegalOperatorDefinition(msg: String) extends Exception(msg)
 abstract class OperatorDefinition(val proto: OperatorPrototype)
 extends BasicAtom {
   val theType = TypeUniverse
-  val deBrujinIndex = 0
+  val deBruijnIndex = 0
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     Fail("Operator definition matching is not implemented.", this, subject)
 	def rewrite(binds: Bindings) = (this, false)
@@ -121,7 +121,7 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
  * @param pars			The parameters.
  * @param typ				The type.
  */
-case class OperatorPrototype(name: String, pars: List[Variable], typ: BasicAtom) {
+case class OperatorPrototype(name: String, pars: List[BasicAtom], typ: BasicAtom) {
   def toParseString = name + pars.mkParseString("(", ",", ")") +
   	": " + typ.toParseString
   	

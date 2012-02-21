@@ -54,12 +54,12 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
   	guards.foldLeft(true)(_ && _.isConstant)
   
-  // The De Brujin index of a rewrite rule is equal to the maximum index of
+  // The De Bruijn index of a rewrite rule is equal to the maximum index of
   // the children of the rule.
-  val deBrujinIndex = {
+  val deBruijnIndex = {
     import scala.math._
-    val tmp = max(pattern.deBrujinIndex, rewrite.deBrujinIndex)
-    max(tmp, guards.foldLeft(0)((x,y) => x.max(y.deBrujinIndex)))
+    val tmp = max(pattern.deBruijnIndex, rewrite.deBruijnIndex)
+    max(tmp, guards.foldLeft(0)((x,y) => x.max(y.deBruijnIndex)))
   }
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =

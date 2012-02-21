@@ -48,7 +48,7 @@ import scala.collection.mutable.HashMap
 case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
-  val deBrujinIndex = 0
+  val deBruijnIndex = 0
   val isConstant = false
   
   /** By default, variables can be bound. */
@@ -76,8 +76,8 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
     // bound value.
     binds.get(name) match {
       case Some(atom) =>
-        // We don't rewrite De Brujin indices to different indices.
-        if (isDeBrujinIndex && atom.isDeBrujinIndex) (this, false)
+        // We don't rewrite De Bruijn indices to different indices.
+        if (isDeBruijnIndex && atom.isDeBruijnIndex) (this, false)
         else (atom, true)
       case None =>
         // While the atom is not bound, its type might have to be rewritten.

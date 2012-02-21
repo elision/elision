@@ -94,6 +94,9 @@ object Repl {
   /** Have we defined the operators.  This is used by the `run` method. */
   private var _opsDefined = false
   
+  /** Should stack traces be issued on exception. */
+  private var _stacktrace = false
+  
   /**
    * The entry point when started from the command line.  Print the current
    * version number, then invoke `run`.
@@ -196,6 +199,7 @@ object Repl {
     } catch {
       case ex:Exception =>
         println("ERROR (" + ex.getClass + "): " + ex.getMessage())
+        if (_stacktrace) ex.printStackTrace()
     }
   }
   
@@ -256,9 +260,8 @@ object Repl {
    */
   private def defineOps {
     // Bind.
-    val bindDef = NativeOperatorDefinition(
-        Proto("bind", ANYTYPE, 'a, 'v), Prop())
-    _context.operatorLibrary.add(bindDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("bind", ANYTYPE, 'a, 'v), Prop()))
     _context.operatorLibrary.register("bind",
         (_, list:AtomList) => list match {
           case Args(from:Variable, to:BasicAtom) =>
@@ -270,9 +273,8 @@ object Repl {
         })
 
     // Bind.
-    val equalDef = NativeOperatorDefinition(
-        Proto("equal", ANYTYPE, 'x, 'y), Prop(Commutative()))
-    _context.operatorLibrary.add(equalDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("equal", ANYTYPE, 'x, 'y), Prop(Commutative())))
     _context.operatorLibrary.register("equal",
         (_, list:AtomList) => list match {
           case Args(x:Variable, y:BasicAtom) =>
@@ -282,9 +284,8 @@ object Repl {
         })
         
     // Unbind.
-    val unbindDef = NativeOperatorDefinition(
-        Proto("unbind", ANYTYPE, 'v), Prop())
-    _context.operatorLibrary.add(unbindDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("unbind", ANYTYPE, 'v), Prop()))
     _context.operatorLibrary.register("unbind",
         (_, list:AtomList) => list match {
           case Args(from:Variable) =>
@@ -295,21 +296,42 @@ object Repl {
           case _ => Literal.FALSE
         })
         
-    // showbinds.
-    val showbindsDef = NativeOperatorDefinition(
-        Proto("showbinds", ANYTYPE), Prop())
-    _context.operatorLibrary.add(showbindsDef)
+    // Showbinds.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("showbinds", ANYTYPE), Prop()))
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomList) => list match {
+          case Args() => _binds
+          case _ => Literal.FALSE
+        })
+        
+    // Context.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("context", ANYTYPE), Prop()))
+    _context.operatorLibrary.register("context",
+        (_, list:AtomList) => list match {
           case Args() =>
-            _binds.toParseString()
+            println(_context.toParseString)
+            Literal.NOTHING
+          case _ => Literal.FALSE
+        })
+        
+    // Stacktrace.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("stacktrace", ANYTYPE), Prop()))
+    _context.operatorLibrary.register("stacktrace",
+        (_, list:AtomList) => list match {
+          case Args() =>
+            _stacktrace = !_stacktrace
+            println("Printing stack traces is " +
+                (if (_stacktrace) "ON" else "OFF") + ".") 
+            Literal.NOTHING
           case _ => Literal.FALSE
         })
         
     // Read.
-    val readDef = NativeOperatorDefinition(
-        Proto("read", ANYTYPE, 'filename), Prop())
-    _context.operatorLibrary.add(readDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("read", ANYTYPE, 'filename), Prop()))
     _context.operatorLibrary.register("read",
         (_, list:AtomList) => list match {
           case Args(filename:Literal) =>
@@ -320,9 +342,8 @@ object Repl {
         })
         
     // Write.
-    val writeDef = NativeOperatorDefinition(
-        Proto("write", ANYTYPE, 'filename), Prop())
-    _context.operatorLibrary.add(writeDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("write", ANYTYPE, 'filename), Prop()))
     _context.operatorLibrary.register("write",
         (_, list:AtomList) => list match {
           case Args(filename:Literal) =>
@@ -333,9 +354,8 @@ object Repl {
         })
         
     // Help.
-    val helpDef = NativeOperatorDefinition(
-        Proto("help", ANYTYPE), Prop())
-    _context.operatorLibrary.add(helpDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("help", ANYTYPE), Prop()))
     _context.operatorLibrary.register("help",
         (_, list:AtomList) => list match {
           case Args() =>
@@ -344,12 +364,15 @@ object Repl {
 		        		|Elision Help
 		        		|
 		            | bind(v,a) .................. Bind variable v to atom a.
-		        		| help ....................... Show this help text.
-		            | history .................... Show the history so far.
-		            | showprior .................. Toggle showing the unrewritten term.
-		            | showscala .................. Toggle showing the Scala term.
-		            | tracematch ................. Toggle match tracing.
-		            | traceparse ................. Toggle parser tracing.
+		            | context() .................. Display contents of the current context.
+		        		| help() ..................... Show this help text.
+		            | history() .................. Show the history so far.
+		            | showbinds() ................ Display the current set of bindings.
+		            | showprior() ................ Toggle showing the unrewritten term.
+		            | showscala() ................ Toggle showing the Scala term.
+		            | stacktrace() ............... Toggle printing stack traces on error.
+		            | tracematch() ............... Toggle match tracing.
+		            | traceparse() ............... Toggle parser tracing.
 		            | unbind(v) .................. Unbind variable v.
 		            |
 		            |Use ! followed by a number to re-execute a line from the history.
@@ -361,9 +384,8 @@ object Repl {
         })
         
     // Traceparse.
-    val traceparseDef = NativeOperatorDefinition(
-        Proto("traceparse", ANYTYPE), Prop())
-    _context.operatorLibrary.add(traceparseDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("traceparse", ANYTYPE), Prop()))
     _context.operatorLibrary.register("traceparse",
         (_, list:AtomList) => list match {
           case Args() =>
@@ -376,9 +398,8 @@ object Repl {
         })
         
     // Tracematch.
-    val tracematchDef = NativeOperatorDefinition(
-        Proto("tracematch", ANYTYPE), Prop())
-    _context.operatorLibrary.add(tracematchDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("tracematch", ANYTYPE), Prop()))
     _context.operatorLibrary.register("tracematch",
         (_, list:AtomList) => list match {
           case Args() =>
@@ -391,9 +412,8 @@ object Repl {
         })
         
     // Showscala.
-    val showscalaDef = NativeOperatorDefinition(
-        Proto("showscala", ANYTYPE), Prop())
-    _context.operatorLibrary.add(showscalaDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("showscala", ANYTYPE), Prop()))
     _context.operatorLibrary.register("showscala",
         (_, list:AtomList) => list match {
           case Args() =>
@@ -405,9 +425,8 @@ object Repl {
         })
         
     // Showprior.
-    val showpriorDef = NativeOperatorDefinition(
-        Proto("showprior", ANYTYPE), Prop())
-    _context.operatorLibrary.add(showpriorDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("showprior", ANYTYPE), Prop()))
     _context.operatorLibrary.register("showprior",
         (_, list:AtomList) => list match {
           case Args() =>
@@ -419,9 +438,8 @@ object Repl {
         })
         
     // History.
-    val historyDef = NativeOperatorDefinition(
-        Proto("history", ANYTYPE), Prop())
-    _context.operatorLibrary.add(historyDef)
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("history", ANYTYPE), Prop()))
     _context.operatorLibrary.register("history",
         (_, list:AtomList) => list match {
           case Args() =>

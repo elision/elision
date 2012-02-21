@@ -138,7 +138,7 @@ object AtomParser {
 	    val atom = op.interpret
 	    atom match {
 	      case Literal(_, SymVal(sval)) =>
-	        context.operatorLibrary(sval.name)(arg.interpret)
+	        Apply(context.operatorLibrary(sval.name),arg.interpret)
 	      case _ => Apply(atom, arg.interpret)
 	    }
 	  }
@@ -206,11 +206,24 @@ object AtomParser {
 	// Operator definition.
 	//----------------------------------------------------------------------
 	
+	/** A property node. */
+	sealed abstract class PropertyNode
+	/** Associative property. */
+	case class AssociativeNode() extends PropertyNode
+	/** Commutative property. */
+	case class CommutativeNode() extends PropertyNode
+	/** Idempotent property. */
+	case class IdempotentNode() extends PropertyNode
+	/** Absorber property. */
+	case class AbsorberNode(atom:AstNode) extends PropertyNode
+	/** Identity property. */
+	case class IdentityNode(atom:AstNode) extends PropertyNode
+	
 	/**
 	 * A data structure holding operator properties as they are discovered during
 	 * the parse.
 	 */
-	class OperatorPropertiesNode {
+	class OperatorPropertiesNode(props: Option[List[PropertyNode]]) {
 	  /** An identity, if any. */
 	  var withIdentity: Option[AstNode] = None
 	  /** An absorber, if any. */
@@ -221,6 +234,18 @@ object AtomParser {
 	  var isCommutative = false
 	  /** True iff this operator is associative. */
 	  var isAssociative = false
+	  
+	  // Process any properties we were given.
+	  if (props.isDefined) for (prop <- props.get) prop match {
+	    case AssociativeNode() => isAssociative = true
+	    case CommutativeNode() => isCommutative = true
+	    case IdempotentNode() => isIdempotent = true
+	    case AbsorberNode(ab) => withAbsorber = Some(ab)
+	    case IdentityNode(id) => withIdentity = Some(id)
+	  }
+	  
+	  /** Print this properties object as a string. */
+	  override def toString = interpret.toString
 	  
 	  /**
 	   * Get the optional identity.
@@ -256,7 +281,7 @@ object AtomParser {
 	 */
 	class OperatorPrototypeNode(
 	    val name: String,
-	    val pars: Option[List[VariableNode]],
+	    val pars: Option[List[AstNode]],
 	    val typ: AstNode) {
 	  def interpret = OperatorPrototype(
 	      name,
@@ -1145,11 +1170,29 @@ extends Parser {
     "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
   }
   
+  /**
+   * Parse a functor definition.
+   * {{{
+   * { macro body(\$x.$body:$T):$T = $body }
+   * }}}
+   */
+  def ParsedFunctorDefinition = rule {
+    "{ " ~ "macro " ~ ParsedMacroPrototype ~ ParsedImmediateDefinition ~
+    "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
+  }
+  
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
     ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ FirstAtom ~~>
     ((name:NakedSymbolNode, pars:Option[List[VariableNode]], typ:AstNode) =>
           new OperatorPrototypeNode(name.str, pars, typ))
+  }
+
+  /** Parse a macro prototype. */
+  def ParsedMacroPrototype = rule {
+    ESymbol ~ "( " ~ ParsedAtomList ~ ") " ~ ": " ~ FirstAtom ~~>
+    ((name:NakedSymbolNode, pars:AtomListNode, typ:AstNode) =>
+          new OperatorPrototypeNode(name.str, Some(pars.list), typ))
   }
 
   /** Parse a parameter list. */
@@ -1164,26 +1207,22 @@ extends Parser {
   }
   
   /** Parse a sequence of operator properties. */
-  def ParsedOperatorProperties = {
-    val pop = new OperatorPropertiesNode
-    rule {
-      optional("is " ~
-	    	ParsedOperatorProperty(pop) ~ zeroOrMore(
-	    	    ", " ~ ParsedOperatorProperty(pop))) ~~> (x => pop)
-    }
+  def ParsedOperatorProperties = rule {
+      optional("is " ~ ParsedOperatorProperty ~
+          zeroOrMore(", " ~ ParsedOperatorProperty) ~~> (_ :: _)) ~~>
+      (new OperatorPropertiesNode(_))
   }
   
   /**
    * Parse an operator property.
    * @param pop		An operator properties node to fill in.
    */
-  def ParsedOperatorProperty(pop: OperatorPropertiesNode) =
-    rule {
-      "associative " ~> (x => pop.isAssociative = true) |
-      "commutative " ~> (x => pop.isCommutative = true) |
-      "idempotent " ~> (x => pop.isIdempotent = true) |
-      "absorber " ~ Atom ~~> (abs => pop.withAbsorber = Some(abs)) |
-      "identity " ~ Atom ~~> (id => pop.withIdentity = Some(id)) ~~> (x => pop)
+  def ParsedOperatorProperty: Rule1[PropertyNode] = rule {
+      "associative " ~> (x => AssociativeNode()) |
+      "commutative " ~> (x => CommutativeNode()) |
+      "idempotent " ~> (x => IdempotentNode()) |
+      "absorber " ~ Atom ~~> (AbsorberNode(_)) |
+      "identity " ~ Atom ~~> (IdentityNode(_))
   	}
   
   //======================================================================

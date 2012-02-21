@@ -131,7 +131,7 @@ object Oper {
    * @return	The new operator application.
    */
   def apply(lib: OperatorLibrary, name: String, arg: BasicAtom*) =
-    lib(name).apply(AtomList(arg.toList))
+    Apply(lib(name), AtomList(arg.toList))
     
   /**
    * Make a new operator application.
@@ -141,7 +141,7 @@ object Oper {
    * @return	The new operator application.
    */
   def apply(op: Operator, arg: BasicAtom*) =
-    op.apply(AtomList(arg.toList))
+    Apply(op, AtomList(arg.toList))
     
   /**
    * Deconstruct an operator application into its components.  This works with

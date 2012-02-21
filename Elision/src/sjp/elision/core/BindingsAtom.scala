@@ -54,8 +54,8 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
   /** This atom is constant iff the bound value of each variable is constant. */
   val isConstant = mybinds.values.foldLeft(true)(_ && _.isConstant)
   
-  /** The De Brujin index is the maximum index of the bindings. */
-  val deBrujinIndex = mybinds.values.foldLeft(0)(_ max _.deBrujinIndex)
+  /** The De Bruijn index is the maximum index of the bindings. */
+  val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
 
   /**
    * Match this bindings atom against the provided atom.

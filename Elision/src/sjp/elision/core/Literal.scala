@@ -172,7 +172,7 @@ case class BooVal (val bool: Boolean) extends LitVal {
  */
 case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	val theType = typ
-	val deBrujinIndex = 0
+	val deBruijnIndex = 0
 	val isConstant = true
 
 	override val isTrue = value match {

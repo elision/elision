@@ -35,7 +35,7 @@ package sjp.elision.core
  */
 abstract class RootType extends BasicAtom {
 	// The index of a symbol or root type is zero.
-  val deBrujinIndex = 0
+  val deBruijnIndex = 0
   
   /**
    * Try to match this type against the provided atom.

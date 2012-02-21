@@ -40,12 +40,12 @@ package sjp.elision.core
  * 
  * ==Equality and Matching==
  * 
- * @param deBrujinIndex			The De Brujin index.
- * @param lvar							The lambda variable which must match the De Brujin
+ * @param deBruijnIndex			The De Bruijn index.
+ * @param lvar							The lambda variable which must match the De Bruijn
  * 													index.
  * @param body							The lambda body.
  */
-case class Lambda(deBrujinIndex: Int, lvar: Variable, body: BasicAtom)
+case class Lambda(deBruijnIndex: Int, lvar: Variable, body: BasicAtom)
 extends BasicAtom {
   // The type is a mapping from one type to another.
 	// val theType =
@@ -95,10 +95,10 @@ extends BasicAtom {
 object Lambda {
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
     /*
-     * Note on De Brujin indices.
+     * Note on De Bruijn indices.
      * 
-     * This apply method is the point at which new De Brujin indices are
-     * created.  Basically when a lambda is being created, the De Brujin
+     * This apply method is the point at which new De Bruijn indices are
+     * created.  Basically when a lambda is being created, the De Bruijn
      * index of the body is checked.  This is incremented and a new variable
      * created based on the index.  The original variable is then replaced
      * in the body with the new variable.
@@ -120,7 +120,7 @@ object Lambda {
      * \$x.$body  becomes  \$:1.$body
      * 
      * We then rewrite $body to \$x.fred($x,$y), itself rewritten to be
-     * \$:1.fred($:1,$y), with De Brujin index of one.  Thus since we are
+     * \$:1.fred($:1,$y), with De Bruijn index of one.  Thus since we are
      * building a new lambda (thanks to rewriting the body) we create new
      * variable $:2 and rewrite the body mapping the old variable $:1 to
      * the new one $:2.  We get the following.
@@ -135,25 +135,25 @@ object Lambda {
      * 
      * To get this we compute the index of the outer lambda as one more than
      * the index of the body (so it gets index 2).  We then do not rewrite the
-     * lambda body since the lambda variable is already a De Brujin index.
+     * lambda body since the lambda variable is already a De Bruijn index.
      * 
-     * The simple answer is that we do not rewrite De Brujin indices.  Terms
-     * are immutable, and the De Brujin indices were created (correctly) when
-     * the term was originally created.  So...  We reject rewriting De Brujin
+     * The simple answer is that we do not rewrite De Bruijn indices.  Terms
+     * are immutable, and the De Bruijn indices were created (correctly) when
+     * the term was originally created.  So...  We reject rewriting De Bruijn
      * indices when creating lambdas.
      * 
-     * Now, when evaluating lambdas, we have to rewrite De Brujin indices.  So
-     * we only block rewriting of one De Brujin index to a different De Brujin
+     * Now, when evaluating lambdas, we have to rewrite De Bruijn indices.  So
+     * we only block rewriting of one De Bruijn index to a different De Bruijn
      * index.  That logic can be found in the Variable class.
      */
     
-    // First compute the De Brujin index of the term.  It is equal to one
+    // First compute the De Bruijn index of the term.  It is equal to one
     // greater than the maximum index of the body.
-    val deBrujinIndex = body.deBrujinIndex + 1
+    val deBruijnIndex = body.deBruijnIndex + 1
     
-    // Now make a new De Brujin variable for the index.
-    val newvar = new Variable(lvar.theType, ":"+deBrujinIndex) {
-      override val isDeBrujinIndex = true
+    // Now make a new De Bruijn variable for the index.
+    val newvar = new Variable(lvar.theType, ":"+deBruijnIndex) {
+      override val isDeBruijnIndex = true
     }
     
     // Bind the old variable to the new one.
@@ -162,6 +162,6 @@ object Lambda {
     val (newbody, _) = body.rewrite(binds)
     
     // Make and return the new lambda.
-    Lambda(deBrujinIndex, newvar, newbody)
+    Lambda(deBruijnIndex, newvar, newbody)
   }
 }

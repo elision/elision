@@ -49,13 +49,13 @@ package sjp.elision.core
  *    `case class` will be sufficient, but if there are arguments that are
  *    primitive types, such as strings, whose toString method does not produce
  *    a parseable result, this must be adjusted.
- *  - Write code to specify the De Brujin index of the instance.  This can be
+ *  - Write code to specify the De Bruijn index of the instance.  This can be
  *    computed as follows.
- *    - Instances with no children have De Brujin index of zero.
+ *    - Instances with no children have De Bruijn index of zero.
  *    - Instances other than lambdas with children have index equal to the
  *      maximum index of their children.
  *    - Lambdas have index one greater than the index of their body, and the
- *      body must also be rewritten to replace the variable with a De Brujin
+ *      body must also be rewritten to replace the variable with a De Bruijn
  *      index variable.  The implementation of this is left to the lambda
  *      class.
  */
@@ -63,8 +63,8 @@ abstract class BasicAtom {
   /** The type for the atom. */
   val theType: BasicAtom
   
-  /** The De Brujin index. */
-  val deBrujinIndex: Int
+  /** The De Bruijn index. */
+  val deBruijnIndex: Int
 
   /** If true then this atom can be bound. */
   val isBindable: Boolean = false
@@ -75,8 +75,8 @@ abstract class BasicAtom {
   /** If true, this atom represents true. */
   val isTrue: Boolean = false
 
-  /** Iff true, this is a De Brujin index. */
-  val isDeBrujinIndex = false
+  /** Iff true, this is a De Bruijn index. */
+  val isDeBruijnIndex = false
   
   /** If true then this atom denotes a constant (it contains no variables). */
   val isConstant: Boolean

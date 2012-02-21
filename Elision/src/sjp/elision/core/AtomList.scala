@@ -100,9 +100,9 @@ case class AtomList(atoms: Seq[BasicAtom],
   // The list is constant iff all elements are constant.
   val isConstant = atoms.forall(_.isConstant)
   
-  // The De Brujin index is equal to the maximum index of the atoms in the
+  // The De Bruijn index is equal to the maximum index of the atoms in the
   // sequence.  Compute that now.
-  val deBrujinIndex = atoms.foldLeft(0)(_ max _.deBrujinIndex)
+  val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Ordered lists only match other ordered lists with matching elements in
