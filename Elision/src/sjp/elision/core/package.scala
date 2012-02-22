@@ -193,6 +193,9 @@ package object core {
   implicit def strToLiteral(string: String) = Literal(STRING, string)
   implicit def symToLiteral(symbol: Symbol) = Literal(SYMBOL, symbol)
   
+  implicit def ruleToStrategy(rule: RewriteRule) = RuleStrategy(rule)
+  implicit def strategyToRule(rs: RuleStrategy) = rs.rule
+  
   /**
    * Magically add a mkParseString, roughly equivalent to mkString, to every
    * sequence of objects that extend BasicAtom.  Try that with Java!

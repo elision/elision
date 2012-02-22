@@ -60,6 +60,25 @@ object SequenceMatcher {
         if (patterns.length != subjects.length)
           Fail("Sequences are not the same length.")
         else tryMatch(patterns, subjects, binds, 0)
+        
+  /**
+   * Rewrite a sequence of atoms by applying the given bindings to each.
+   * 
+   * @param subjects	The atoms to rewrite.
+   * @param binds			The bindings to apply.
+   * @return	A pair consisting of the rewritten sequence of atoms and a flag
+   * 					that is true if any rewrites succeeded.
+   */
+  def rewrite(subjects: Seq[BasicAtom], binds: Bindings) = {
+    var changed = false
+    def doit(atoms: List[BasicAtom]): List[BasicAtom] =
+      if (atoms.isEmpty) List() else {
+        val (newatom, change) = atoms.head.rewrite(binds)
+        changed |= change
+        newatom :: doit(atoms.tail)
+      }
+    (doit(subjects.toList), changed)
+  }
 
   /**
    * Match two sequences of atoms, in order.

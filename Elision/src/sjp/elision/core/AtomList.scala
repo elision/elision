@@ -126,14 +126,7 @@ case class AtomList(atoms: Seq[BasicAtom],
 
   def rewrite(binds: Bindings) = {
     // We must rewrite every child atom, and collect them into a new sequence.
-    var changed = false
-    def doit(atoms: List[BasicAtom]): List[BasicAtom] =
-      if (atoms.isEmpty) List() else {
-        val (newatom, change) = atoms.head.rewrite(binds)
-        changed |= change
-        newatom :: doit(atoms.tail)
-      }
-    val newlist = doit(atoms.toList)
+    val (newlist, changed) = SequenceMatcher.rewrite(atoms, binds)
     if (changed) (AtomList(newlist), true) else (this, false)
   }
 

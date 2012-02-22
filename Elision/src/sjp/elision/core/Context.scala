@@ -230,4 +230,17 @@ class Context(val allowUndeclared:Boolean = false) {
   def getRules(atom: BasicAtom) =
     for ((bits, rule) <- getRuleList(atom) ; if ((bits & _active) != 0))
       yield rule
+      
+  /**
+   * Get the list of rules that apply to the given atom and which are in any
+   * of the specified rulesets.
+   * @param atom	The atom to which to the rules may apply.
+   * @param name	The ruleset names.
+   * @return	A list of rules.
+   */
+  def getRules(atom: BasicAtom, names: List[String]) = {
+    val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
+    for ((bits, rule) <- getRuleList(atom); if ((bits & rsbits) != 0))
+      yield rule
+  }
 }
