@@ -103,6 +103,11 @@ case class AtomList(atoms: Seq[BasicAtom],
   // The De Bruijn index is equal to the maximum index of the atoms in the
   // sequence.  Compute that now.
   val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
+  
+  /**
+   * The depth is equal to the maximum depth of the child atoms, plus one.
+   */
+  val depth = atoms.foldLeft(0)(_ max _.depth) + 1
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Ordered lists only match other ordered lists with matching elements in

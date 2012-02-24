@@ -79,6 +79,9 @@ extends BasicAtom {
   
   /** The De Bruijn index is just the maximum of the operator and body. */
   val deBruijnIndex = op.deBruijnIndex.max(arg.deBruijnIndex)
+  
+  /** The depth is the maximum of the operator and body, plus one. */
+  val depth = (op.depth max arg.depth) + 1
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Only applies match other applies.

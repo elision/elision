@@ -56,11 +56,16 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   
   // The De Bruijn index of a rewrite rule is equal to the maximum index of
   // the children of the rule.
-  val deBruijnIndex = {
-    import scala.math._
-    val tmp = max(pattern.deBruijnIndex, rewrite.deBruijnIndex)
-    max(tmp, guards.foldLeft(0)((x,y) => x.max(y.deBruijnIndex)))
+  val deBruijnIndex =
+    guards.foldLeft(pattern.deBruijnIndex max rewrite.deBruijnIndex) {
+    _ max _.deBruijnIndex
   }
+  
+  /**
+   * The depth of a rewrite rule is equal to the maximum depth of the pattern,
+   * guard, and rewrite rules, plus one.
+   */
+  val depth = guards.foldLeft(pattern.depth max rewrite.depth)(_ max _.depth) + 1
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Rules match only other rules.

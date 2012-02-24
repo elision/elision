@@ -174,6 +174,9 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	val theType = typ
 	val deBruijnIndex = 0
 	val isConstant = true
+	
+	/** The depth of all literals is zero. */
+	val depth = 0
 
 	override val isTrue = value match {
 		case BooVal(true) => true

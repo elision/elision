@@ -32,6 +32,49 @@
 package sjp.elision.core
 
 /**
+ * An attempt was made to modify already-set atom data.  Atoms are immutable
+ * once constructed, with the exception that data can be set exactly once.
+ */
+class AtomDataModificationException(msg: String) extends Exception(msg)
+
+/**
+ * This is a helper class that holds additional data for an atom.  It must be
+ * constructible without providing any parameters.
+ */
+class AtomData
+
+/**
+ * A trait for something that holds a set once data item.
+ */
+trait HasData {
+  /** Private atom data member. */
+  private var _data: Option[AtomData] = None
+  
+  /**
+   * Set the atom data if it has not already been set.  If it has been set, then
+   * throw an exception.
+   * 
+   * @param data	The new atom data.
+   * @return	This atom.
+   * @throws	AtomDataModificationException
+   * 					The atom data is already set.
+   */
+  def data_=(data: AtomData) = {
+    // Atom data can be set exactly once.
+    if (_data == None) _data = Some(data)
+    else throw new AtomDataModificationException("Attempt to modify atom data.")
+    this
+  }
+  
+  /**
+   * Get the atom data.
+   * 
+   * @return	The optional atom data.
+   */
+  def data = _data
+}
+
+/**
  * The root of all atoms manipulated by the rewriter.
  *
  * To use this, extend the class as a new `case class`.  Then do the following.
@@ -82,6 +125,12 @@ abstract class BasicAtom {
   val isConstant: Boolean
   
   /**
+   * The depth of the atom.  An atom's depth is equal to the maximum depth
+   * of its children, plus one.  An atom with no children has depth zero.
+   */
+  val depth: Int
+  
+  /**
    * Attempt to match this atom, as a pattern, against the subject atom,
    * observing the bindings, if any.  The type is checked prior to trying
    * any matching.
@@ -90,9 +139,13 @@ abstract class BasicAtom {
    * @param binds		Any bindings that must be observed.  This is optional.
    * @return	The matching outcome.
    */
-  def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings) =
+  def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings) = {
+    // If this pattern has greater depth than the subject, reject immediately.
+    if (depth > subject.depth)
+      Fail("Depth of pattern greater than depth of subject.", this, subject)
     if (BasicAtom.traceMatching) traceMatch(subject, binds)
-    else doMatch(subject, binds)
+    else doMatch(subject, binds)    
+  }
   
   /**
    * Attempt to match this atom, as a pattern, against the subject atom,

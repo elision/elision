@@ -56,6 +56,9 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
   
   /** The De Bruijn index is the maximum index of the bindings. */
   val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
+  
+  /** The depth is equal to the maximum depth of the bindings, plus one. */
+  val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
 
   /**
    * Match this bindings atom against the provided atom.

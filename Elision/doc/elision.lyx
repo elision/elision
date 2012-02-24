@@ -693,9 +693,22 @@ CLASSPATH
 \end_layout
 
 \begin_layout Standard
+All of these methods will display the Elision banner and present you with
+ the REPL prompt 
+\family typewriter
+e>
+\family default
+.
+ You can enter text to be evaluated as an Elision atom (described in later
+ sections), interact with the history (using the up and down arrow keys),
+ or edit the current line.
+ Pressing Enter submits the line to the Elision parser for evaluation.
+\end_layout
+
+\begin_layout Standard
 The most useful commands to know immediately are 
 \family typewriter
-help
+help()
 \family default
  (to get help) and 
 \family typewriter
@@ -717,6 +730,17 @@ reference "chap:Operators"
 \end_inset
 
 ).
+ As such you must follow them with parentheses; otherwise the Elision REPL
+ will interpret them as symbols.
+ Try 
+\family typewriter
+history
+\family default
+ and then try 
+\family typewriter
+history()
+\family default
+.
 \end_layout
 
 \begin_layout Standard
@@ -732,8 +756,76 @@ Binding
 \end_layout
 
 \begin_layout Standard
-The REPL keeps a set of bindings that are used to immediately rewrite any
- atom parsed.
+We can tell the Elision system that we want to replace the variable 
+\family typewriter
+$x
+\family default
+ with the value 
+\family typewriter
+7
+\family default
+ wherever it appears.
+ We say the variable 
+\family typewriter
+$x
+\family default
+ is 
+\emph on
+bound
+\emph default
+ to 
+\family typewriter
+7
+\family default
+, and that the pair 
+\family typewriter
+$x
+\family default
+ and 
+\family typewriter
+7
+\family default
+ denotes a 
+\emph on
+binding
+\emph default
+, written 
+\family typewriter
+$x -> 7
+\family default
+.
+ When we replace the variable 
+\family typewriter
+$x
+\family default
+ with 
+\family typewriter
+7
+\family default
+ in some other term, we say we are 
+\emph on
+rewriting
+\emph default
+ the term with the binding.
+ The REPL keeps a set of bindings that are used to immediately rewrite any
+ atom after it is parsed.
+ For instance, if the variable 
+\family typewriter
+$x
+\family default
+ is bound to 
+\family typewriter
+7
+\family default
+, then entering 
+\family typewriter
+$x
+\family default
+ at the prompt results in the value 
+\family typewriter
+7
+\family default
+.
 \end_layout
 
 \begin_layout Standard
@@ -787,7 +879,15 @@ $y
 $y.$x
 \family default
 .
- Variables can be rebound at any time.
+ Variables can be rebound at any time, and there is no need to 
+\begin_inset Quotes eld
+\end_inset
+
+unbind
+\begin_inset Quotes erd
+\end_inset
+
+ them first.
 \end_layout
 
 \begin_layout Standard
@@ -824,18 +924,30 @@ Every time an atom is evaluated by the REPL, the result is displayed and
 \family typewriter
 $repl
 \family default
-.
+ followed by a number.
  These variables are displayed on the output, and are used to rewrite an
  atom before it is displayed.
  Try 
 \family typewriter
-$repl0
+$repl1
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+To see all the bindings being used by the shell, enter the command 
+\family typewriter
+showbinds()
 \family default
 .
 \end_layout
 
 \begin_layout Section
 Atom Display
+\end_layout
+
+\begin_layout Standard
+When you type an atom at the REPL prompt
 \end_layout
 
 \begin_layout Chapter

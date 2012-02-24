@@ -57,6 +57,9 @@ extends BasicAtom {
   
   // Constancy of a lambda depends only on the body.
   val isConstant = body.isConstant
+  
+  /** The depth is equal to the depth of the body, plus one. */
+  val depth = body.depth + 1
 	  	
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {

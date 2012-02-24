@@ -66,6 +66,9 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   lazy val name = opdef.proto.name
   
   val deBruijnIndex = 0
+  
+  /** The depth of an operator is zero. */
+  val depth = 0
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {

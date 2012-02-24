@@ -38,6 +38,11 @@ abstract class RootType extends BasicAtom {
   val deBruijnIndex = 0
   
   /**
+   * Unless overridden, the depth of all root types is zero.
+   */
+  val depth = 0
+  
+  /**
    * Try to match this type against the provided atom.
    * @param subject	The subject to match.
    * @param binds		The bindings to honor.

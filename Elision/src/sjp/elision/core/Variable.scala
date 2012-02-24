@@ -42,14 +42,19 @@ import scala.collection.mutable.HashMap
  * 
  * ==Equality and Matching==
  * 
- * @param typ		The variable type.
- * @param name	The variable name.
+ * @param typ			The variable type.
+ * @param name		The variable name.
+ * @param labels	Labels for this variable.
  */
-case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
+case class Variable(typ: BasicAtom, name: String,
+    labels: Set[String] = Set[String]()) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
   val deBruijnIndex = 0
   val isConstant = false
+  
+  /** The depth of a variable is zero. */
+  val depth = 0
   
   /** By default, variables can be bound. */
   override val isBindable = true
@@ -90,9 +95,11 @@ case class Variable(typ: BasicAtom, name: String) extends BasicAtom {
   }
 
   def toParseString = "$" + toESymbol(name) +
-  		(if (theType != ANYTYPE) ":" + typ.toParseString else "")
+  		(if (theType != ANYTYPE) ":" + typ.toParseString else "") +
+  		labels.map(" @" + toESymbol(_)).mkString("")
   
-  override def toString = "Variable(" + typ + "," + toEString(name) + ")"
+  override def toString = "Variable(" + typ + "," + toEString(name) +
+  	"," + labels.mkString("Set(", ",", ")") + ")"
   
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   

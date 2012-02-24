@@ -71,6 +71,9 @@ case class RuleStrategy(rule: RewriteRule) extends Strategy {
   val deBruijnIndex = rule.deBruijnIndex
   val isConstant = rule.isConstant
   
+  /** Depth is one plus the depth of the rewrite rule. */
+  val depth = rule.depth + 1
+  
   /**
    * Apply this strategy.  If the rule completes a rewrite then the returned
    * flag is true.  Otherwise it is false.
@@ -106,6 +109,9 @@ case class RulesetStrategy(context: Context, names: List[String])
 extends Strategy {
   val deBruijnIndex = 0
   val isConstant = true
+  
+  /** Depth is zero. */
+  val depth = 0
   
   /**
    * Apply this strategy.  If any rule completes then the returned flag is
@@ -149,6 +155,9 @@ case class WhileStrategy(child: Strategy) extends Strategy {
   val deBruijnIndex = child.deBruijnIndex
   val isConstant = child.isConstant
   
+  /** Depth is child depth plus one. */
+  val depth = child.depth + 1
+  
   /**
    * Apply this strategy.  The returned flag is always true.
    */
@@ -182,6 +191,9 @@ case class WhileStrategy(child: Strategy) extends Strategy {
 case class ThenStrategy(children: List[Strategy]) extends Strategy {
   val deBruijnIndex = children.foldLeft(0)(_ max _.deBruijnIndex)
   val isConstant = children.forall(_.isConstant)
+  
+  /** Depth is maximum child depth plus one. */
+  val depth = children.foldLeft(0)(_ max _.depth) + 1
   
   /**
    * Apply every strategy to the atom, in sequence.  The returned flag is the
@@ -234,6 +246,9 @@ case class ThenStrategy(children: List[Strategy]) extends Strategy {
 case class AndAlsoStrategy(children: List[Strategy]) extends Strategy {
   val deBruijnIndex = children.foldLeft(0)(_ max _.deBruijnIndex)
   val isConstant = children.forall(_.isConstant)
+  
+  /** Depth is maximum child depth plus one. */
+  val depth = children.foldLeft(0)(_ max _.depth) + 1
   
   /**
    * Apply each strategy to the atom, in order, stopping as soon as a strategy
@@ -288,6 +303,9 @@ case class AndAlsoStrategy(children: List[Strategy]) extends Strategy {
 case class OrElseStrategy(children: List[Strategy]) extends Strategy {
   val deBruijnIndex = children.foldLeft(0)(_ max _.deBruijnIndex)
   val isConstant = children.forall(_.isConstant)
+  
+  /** Depth is maximum child depth plus one. */
+  val depth = children.foldLeft(0)(_ max _.depth) + 1
   
   /**
    * Appy each strategy to the atom, in order, stopping as soon as a strategy
@@ -347,6 +365,10 @@ extends Strategy {
   val deBruijnIndex =
     test.deBruijnIndex max yes.deBruijnIndex max no.deBruijnIndex
   val isConstant = test.isConstant && yes.isConstant && no.isConstant
+  
+  /** Depth is one plus the maximum depth of the test, yes, and no. */
+  val depth = test.depth max yes.depth max no.depth
+  
   def apply(atom: BasicAtom, binds: Bindings) = {
     // Apply the first strategy and check the result.
     var (newatom, flag) = test.apply(atom, binds)

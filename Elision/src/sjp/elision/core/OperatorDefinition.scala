@@ -45,6 +45,12 @@ abstract class OperatorDefinition(val proto: OperatorPrototype)
 extends BasicAtom {
   val theType = TypeUniverse
   val deBruijnIndex = 0
+  
+  /**
+   * The depth of an operator definition is equal to the depth of the prototype.
+   */
+  val depth = proto.depth
+  
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     Fail("Operator definition matching is not implemented.", this, subject)
 	def rewrite(binds: Bindings) = (this, false)
@@ -124,6 +130,12 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
 case class OperatorPrototype(name: String, pars: List[BasicAtom], typ: BasicAtom) {
   def toParseString = name + pars.mkParseString("(", ",", ")") +
   	": " + typ.toParseString
+  	
+  /**
+   * We declare the depth of an operator prototype to be equal to the maximum
+   * depth of its parameters, plus one.
+   */
+  val depth = pars.foldLeft(0)(_ max _.depth) + 1
   	
   // To make a Scala parseable string we have to make the name parseable.
   override def toString = "OperatorPrototype(" + toEString(name) + ", " +

@@ -396,11 +396,13 @@ object AtomParser {
 	
 	/**
 	 * A node representing a variable reference.
-	 * @param typ		The type.
-	 * @param name	The variable name.
+	 * @param typ			The type.
+	 * @param name		The variable name.
+	 * @param labels	Labels associated with the variable.
 	 */
-	case class VariableNode(typ: AstNode, name: String) extends AstNode {
-	  def interpret = Variable(typ.interpret, name)
+	case class VariableNode(typ: AstNode, name: String, labels: Set[String])
+	extends AstNode {
+	  def interpret = Variable(typ.interpret, name, labels)
 	}
 	
 	//----------------------------------------------------------------------
@@ -726,7 +728,7 @@ extends Parser {
           funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
     ParsedMatch
   }
-
+  
   /**
    * Parse an atom, with the exception of the general operator application.
    */
@@ -911,12 +913,15 @@ extends Parser {
   }
   
   def ParsedTypedVariable = rule {
-    "$" ~ ESymbol ~ ": " ~ FirstAtom ~~> (
-      (sval: NakedSymbolNode, typ: AstNode) => VariableNode(typ, sval.str))
+    "$" ~ ESymbol ~ ": " ~ FirstAtom ~ zeroOrMore("@" ~ ESymbol) ~~> (
+      (sval: NakedSymbolNode, typ: AstNode, list: List[NakedSymbolNode]) =>
+        VariableNode(typ, sval.str, list.map(_.str).toSet))
   }
   
   def ParsedUntypedVariable = rule {
-    "$" ~ ESymbol ~~> (sval => VariableNode(SimpleTypeNode(ANYTYPE), sval.str))
+    "$" ~ ESymbol ~ zeroOrMore("@" ~ ESymbol) ~~> (
+      (sval, list) =>
+        VariableNode(SimpleTypeNode(ANYTYPE), sval.str, list.map(_.str).toSet))
   }
 
   //======================================================================
