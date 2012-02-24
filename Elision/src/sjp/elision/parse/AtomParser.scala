@@ -281,7 +281,7 @@ object AtomParser {
 	 */
 	class OperatorPrototypeNode(
 	    val name: String,
-	    val pars: Option[List[AstNode]],
+	    val pars: Option[List[VariableNode]],
 	    val typ: AstNode) {
 	  def interpret = OperatorPrototype(
 	      name,
@@ -294,17 +294,6 @@ object AtomParser {
 	
 	sealed abstract class OperatorDefinitionNode extends AstNode {
 	  def interpret: OperatorDefinition
-	}
-	
-	/**
-	 * Represent an immediate operator definition.
-	 * @param opn		The prototype node.
-	 * @param body	The body.
-	 */
-	case class ImmediateOperatorDefinitionNode(
-	    opn: OperatorPrototypeNode,
-	    body: AstNode) extends OperatorDefinitionNode {
-	  def interpret = ImmediateOperatorDefinition(opn.interpret, body.interpret)
 	}
 	
 	/**
@@ -1110,12 +1099,6 @@ extends Parser {
    * 
    * Operator definitions look as follows.
    * 
-   * An operator whose definition is provided by a body.  Whenever the operator
-   * is encountered, it is replaced at construction time by binding the formal
-   * parameters and then rewriting the body.  It is essentially a macro.
-   * {{{
-   *   { operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y)) }
-   * }}}
    * A symbolic operator whose properties are specified, if any.
    * {{{
    *   { operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE }
@@ -1133,8 +1116,7 @@ extends Parser {
    */
   def ParsedOperatorDefinition = rule {
     ParsedNativeOperatorDefinition |
-    ParsedSymbolicOperatorDefinition |
-    ParsedImmediateOperatorDefinition
+    ParsedSymbolicOperatorDefinition
   }
   
   /**
@@ -1164,18 +1146,6 @@ extends Parser {
     "} " ~~> (SymbolicOperatorDefinitionNode(_,_))
   }
   
-  /**
-   * Parse a native operator definition.
-   * {{{
-   * { operator abel($$x: STRING, $$y: ^TYPE): ^TYPE = cain($$x, seth($$y)) }
-   * { macro body(\$x.$body:$T):$T = $body }
-   * }}}
-   */
-  def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "{ " ~ "operator " ~ ParsedMacroPrototype ~ ParsedImmediateDefinition ~
-    "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
-  }
-  
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
     ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ FirstAtom ~~>
@@ -1183,22 +1153,10 @@ extends Parser {
           new OperatorPrototypeNode(name.str, pars, typ))
   }
 
-  /** Parse a macro prototype. */
-  def ParsedMacroPrototype = rule {
-    ESymbol ~ "( " ~ ParsedAtomList ~ ") " ~ ": " ~ FirstAtom ~~>
-    ((name:NakedSymbolNode, pars:AtomListNode, typ:AstNode) =>
-          new OperatorPrototypeNode(name.str, Some(pars.list), typ))
-  }
-
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
     ParsedTypedVariable ~
     zeroOrMore(", " ~ ParsedTypedVariable) ~~> (_ :: _)
-  }
-  
-  /** Parse an immediate definition for an operator. */
-  def ParsedImmediateDefinition = rule {
-    "= " ~ Atom
   }
   
   /** Parse a sequence of operator properties. */

@@ -47,7 +47,7 @@ sealed abstract class Strategy extends BasicAtom {
   def apply(atom: BasicAtom, binds: Bindings): (BasicAtom, Boolean)
   
   /**
-   * Rewrite the strategy by applying the bindings.  The resuls of rewriting
+   * Rewrite the strategy by applying the bindings.  The results of rewriting
    * a strategy is //always// itself a strategy.
    * 
    * @param binds	The bindings to apply.
@@ -393,33 +393,45 @@ extends Strategy {
 }
 
 /**
- * Apply a strategy, but only to atoms labeled with the specific key.
- * 
- * The syntax is:
- * {{{
- * { @K S }
- * }}}
- * where `K` is the key and `S` is the strategy to apply.
- * 
- * @param key		The key to match.
- * @param child	The strategy to apply.
- */
-//case class KeyStrategy(key: String, child: Strategy) extends Strategy
-
-/**
  * Apply a strategy, but only to an atom's children labeled with a specified
  * key.  If the key is omitted, then the strategy is applied to all children,
  * unconditionally.
  * 
  * The syntax is:
  * {{{
- * { @@K S }
- * { @@ S }
+ * { @K S }
+ * { @ S }
  * }}}
  * where `K` is the key and `S` is the strategy to apply.
  * 
- * @param key		The key to match.
+ * @param key		The optional key to match.
  * @param child	The strategy to apply.
  */
-//case class ChildKeyStrategy(key: Option[String], child: Strategy)
-//extends Strategy
+case class ChildKeyStrategy(key: Option[String], child: Strategy) extends Strategy {
+  val deBruijnIndex = child.deBruijnIndex
+  val isConstant = child.isConstant
+  private lazy val (keystringP, keystringS) = (key match {
+    case Some(str) => (toESymbol(str), "Some(" + toEString(str) + ")")
+    case None => ("", "None")
+  })
+  
+  /** Depth is one more than the child. */
+  val depth = child.depth + 1
+  
+  def apply(atom: BasicAtom, binds: Bindings) = atom match {
+    case Apply(op:Operator, AtomList(atoms, _)) => (atom, false)
+    case _ => (atom, false)
+  }
+  
+  def toParseString = "{ @" + keystringP + " " + child.toParseString + " }"
+  override def toString = "KeyStrategy(" + keystringS + "," + child.toString + ")"
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+    subject match {
+    case ChildKeyStrategy(okey, ochild) if okey == key => child.tryMatch(ochild)
+    case _ => Fail("Strategies do not match.", this, subject)
+  }
+  def rewrite(binds: Bindings) = {
+    val (newchild, changed) = child.rewrite(binds)
+    if (changed) (ChildKeyStrategy(key, newchild), true) else (this, false)
+  }
+}

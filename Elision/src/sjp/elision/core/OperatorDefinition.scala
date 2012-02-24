@@ -127,9 +127,23 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
  * @param pars			The parameters.
  * @param typ				The type.
  */
-case class OperatorPrototype(name: String, pars: List[BasicAtom], typ: BasicAtom) {
+case class OperatorPrototype(name: String, pars: List[Variable], typ: BasicAtom) {
   def toParseString = name + pars.mkParseString("(", ",", ")") +
   	": " + typ.toParseString
+
+	/**
+	 * This is a map from label name to the list of (zero-based) indices of the
+	 * parameters that have that particular label, in order.
+	 */
+  val labelmap = scala.collection.mutable.HashMap[String,ListBuffer[Int]]()
+  
+  // Extract the labels into a convenient form.  We build a map from label
+  // to the list of indices of the parameters that are marked with that label.
+  private var pos = 0
+  for (par <- pars; label <- par.labels) {
+    labelmap.getOrElseUpdate(label, ListBuffer[Int]()).append(pos)
+    pos += 1
+  }
   	
   /**
    * We declare the depth of an operator prototype to be equal to the maximum
