@@ -3,6 +3,9 @@
 \begin_document
 \begin_header
 \textclass amsbook
+\begin_preamble
+\usepackage{minted}
+\end_preamble
 \use_default_options true
 \begin_modules
 theorems-ams
@@ -250,8 +253,7 @@ http://stacyprowell.com/wiki/doku.php?id=elision
 \end_inset
 
 .
- Note that Elision contains Praboiled, a parser expression grammar (PEG)
- library.
+ Elision contains Praboiled, a parser expression grammar (PEG) library.
  See 
 \begin_inset Flex URL
 status collapsed
@@ -259,6 +261,19 @@ status collapsed
 \begin_layout Plain Layout
 
 https://github.com/sirthias/parboiled/wiki
+\end_layout
+
+\end_inset
+
+ for details, including the license agreement.
+ The Elision REPL uses JLine, a Java library for handling console input.
+ See 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://jline.sourceforge.net/
 \end_layout
 
 \end_inset
@@ -326,11 +341,262 @@ lib
  folders).
 \end_layout
 
+\begin_deeper
+\begin_layout Enumerate
+On Windows platforms you should edit the environment variable settings under
+ System, and add 
+\family typewriter
+%SCALA_HOME%
+\backslash
+bin
+\family default
+ to the 
+\family typewriter
+Path
+\family default
+ environment variable.
+ Open System Properties and click Advanced system settings.
+ Then on the Advanced tab click Environment Variables...
+ Under System Variables click New...
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\begin_inset Tabular
+<lyxtabular version="3" rows="2" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Variable name
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Variable value
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+SCALA_HOME
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+C:
+\backslash
+scala
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You should replace 
+\family typewriter
+C:
+\backslash
+scala
+\family default
+ with the directory where you installed Scala.
+ Next edit the value for 
+\family typewriter
+Path
+\family default
+ 
+\emph on
+carefully
+\emph default
+ to add 
+\family typewriter
+;%SCALA_HOME%
+\backslash
+bin
+\family default
+ on the end.
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+On MacOS X platforms you can edit the environment plist 
+\emph on
+or
+\emph default
+ follow the directions for UNIX below.
+ You can do this from the Terminal prompt with 
+\family typewriter
+open ~/.MacOSX/environment.plist
+\family default
+.
+ This will open the environment settings in the Property List Editor.
+ Add a new Item at the top level.
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\begin_inset Tabular
+<lyxtabular version="3" rows="2" columns="3">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Key
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Type
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Value
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+SCALA_HOME
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+String
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+/usr/local/scala
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You should replace 
+\family typewriter
+/usr/local/scala
+\family default
+ with the directory where you installed Scala.
+ Next edit the value for 
+\family typewriter
+PATH
+\family default
+ 
+\emph on
+carefully
+\emph default
+ to add 
+\family typewriter
+:$SCALA_HOME/bin
+\family default
+ on the end.
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+On modern UNIX systems (including MacOS X) and most Linux systems you can
+ create a 
+\family typewriter
+/etc/profile.d/scala.sh
+\family default
+ file with the following content:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+# Add Scala
+\begin_inset Newline newline
+\end_inset
+
+export SCALA_HOME=/usr/local/scala
+\begin_inset Newline newline
+\end_inset
+
+PATH=${PATH}:$SCALA_HOME/bin
+\end_layout
+
+\begin_layout Standard
+You should replace 
+\family typewriter
+/usr/local/scala
+\family default
+ with the directory where you installed Scala.
+\end_layout
+
+\end_deeper
+\end_deeper
 \begin_layout Enumerate
 (Optional) It is recommended to get the Scala developer documentation package.
  After you have installed Scala, run the following command at the prompt.
- If you have installed Scala in a folder owned by root, you will need to
- precede the command with 
+ If you have installed Scala in a folder owned by root on Linux or UNIX,
+ you will need to precede the command with 
 \family typewriter
 sudo
 \family default
@@ -357,6 +623,10 @@ http://ant.apache.org
 \end_inset
 
  to download the Ant distribution.
+\end_layout
+
+\begin_layout Enumerate
+If you want to use Eclipse, you should install Eclipse Indigo (or later).
 \end_layout
 
 \begin_layout Section
@@ -447,7 +717,72 @@ To exit from the REPL use
 .
  To get help use 
 \family typewriter
-help
+help()
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Emacs, Notepad-Plus, and Others
+\end_layout
+
+\begin_layout Standard
+Most editors now come with a Scala mode installed.
+ In case yours does not, you should look in the Scala distribution under
+ 
+\family typewriter
+misc/scala-tool-support
+\family default
+.
+ We will provide some instructions for Emacs here.
+\end_layout
+
+\begin_layout Standard
+The Emacs mode works for Emacs 21.1or later, and does not work on XEmacs.
+ Things change; consult the 
+\family typewriter
+README
+\family default
+ file in the folder for current details.
+ We will leave these files in place so they get magically updated when the
+ next version of Scala is installed.
+\end_layout
+
+\begin_layout Standard
+In your Emacs startup file (typically 
+\family typewriter
+~/.emacs
+\family default
+ on Linux or UNIX) add the following two lines.
+\end_layout
+
+\begin_layout LyX-Code
+(add-to-list 'load-path "/usr/local/scala/misc/scala-tool-support/emacs")
+\begin_inset Newline newline
+\end_inset
+
+(require 'scala-mode-auto)
+\end_layout
+
+\begin_layout Standard
+Adjust the first line as necessary to point to your Scala installation.
+ Now restart Emacs, and you should get the Scala mode when you open a file
+ ending with 
+\family typewriter
+.scala
+\family default
+.
+ You can compile the 
+\family typewriter
+.el
+\family default
+ files to 
+\family typewriter
+.elc
+\family default
+ files using the provided 
+\family typewriter
+Makefile
 \family default
 .
 \end_layout
@@ -462,7 +797,11 @@ The root folder of the Elision distribution contains an Eclipse project.
 \end_layout
 
 \begin_layout Itemize
-Install the Scala IDE.
+Install the 
+\series bold
+Scala IDE
+\series default
+.
  At present the version of the Scala IDE for Scala 2.9 can be found at the
  update site 
 \begin_inset CommandInset href
@@ -492,8 +831,12 @@ That is all that is required.
 \end_layout
 
 \begin_layout Itemize
-ShellEd is an excellent editor for working with shell scripts, but at present
- it only works with Eclipse Indigo.
+
+\series bold
+ShellEd
+\series default
+ is an excellent editor for working with shell scripts, but at present it
+ only works with Eclipse Indigo.
  You can find out more at 
 \begin_inset Flex URL
 status collapsed
@@ -538,9 +881,12 @@ https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.1/update
 \end_layout
 
 \begin_layout Itemize
-Copyright Wizard can be used to automatically and quickly update the copyrights
- on all files and to make sure all new files have the correct copyright
- information.
+
+\series bold
+Copyright Wizard
+\series default
+ can be used to automatically and quickly update the copyrights on all files
+ and to make sure all new files have the correct copyright information.
  The distribution includes a configuration file for Copyright Wizard that
  will be automatically discovered if you install Copyright Wizard.
  Find out more at 
@@ -620,6 +966,10 @@ At this point Elision should automatically build, and you are ready to start
 repl.sh
 \family default
 .
+\end_layout
+
+\begin_layout Section
+Scala Listings
 \end_layout
 
 \begin_layout Chapter
