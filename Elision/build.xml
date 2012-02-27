@@ -208,7 +208,7 @@ bin, lib, and other folders.</echo>
 
 	<!-- Build the jar files if they are out of date.  This builds a
 		 comprehensive jar file that contains all supporting jars from
-		 the lib folder. -->
+		 the lib folder.  It also packages up the current source. -->
 	<target name="jars" depends="jar-check" unless="jar.uptodate"
 		description="Build the jar files.">
 		<echo level="info">The ${build.jar} is out of date; rebuilding.</echo>
@@ -224,6 +224,13 @@ bin, lib, and other folders.</echo>
 					<fileset dir="${build.lib}" includes="**/*.jar"/>
 				</zips>
 			</archives>
+			<manifest>
+				<attribute name="Build-Date" value="${DSTAMP}"/>
+				<attribute name="Main-Class" value="sjp.elision.repl.Repl"/>
+			</manifest>
+		</jar>
+		<jar destfile = "${build.base}/${DSTAMP}/elision-src.jar">
+			<fileset dir="${build.src}"/>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
 				<attribute name="Main-Class" value="sjp.elision.repl.Repl"/>
