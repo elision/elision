@@ -277,7 +277,7 @@ object Repl {
         Proto("equal", ANYTYPE, 'x, 'y), Prop(Commutative())))
     _context.operatorLibrary.register("equal",
         (_, list:AtomList) => list match {
-          case Args(x:Variable, y:BasicAtom) =>
+          case Args(x:BasicAtom, y:BasicAtom) =>
             // Check for equality.
             if (x == y) Literal.TRUE else Literal.FALSE
           case _ => Literal.FALSE
