@@ -40,10 +40,49 @@ import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
 case class NoSuchRulesetException(msg: String) extends Exception(msg)
 
 /**
- * A context provides access to operator libraries and rules.
+ * A context provides access to operator libraries and rules, along with
+ * the global set of bindings in force at any time.
+ * 
  * @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
  */
 class Context(val allowUndeclared:Boolean = false) {
+  
+  //======================================================================
+  // Global bindings management.
+  //======================================================================
+  
+  /** The current bindings. */
+  private var _binds: Bindings = new Bindings()
+  
+  /**
+   * Bind a variable in this context.
+   * 
+   * @param vname		The variable name to bind.
+   * @param atom		The atom to bind to the variable.
+   * @return	This context.
+   */
+  def bind(vname: String, atom: BasicAtom) = {
+    _binds += (vname -> atom)
+    this
+  }
+  
+  /**
+   * Unbind a variable in this context.
+   * 
+   * @param vname		The variable name.
+   * @return	This context.
+   */
+  def unbind(vname: String) = {
+    _binds -= vname
+    this
+  }
+  
+  /**
+   * Get the current bindings for this context.
+   * 
+   * @return	The bindings for this context.
+   */
+  def binds = _binds
   
   //======================================================================
   // Operator library management.

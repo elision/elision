@@ -446,6 +446,15 @@ object AtomParser {
 	 */
 	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
 	  def interpret: BasicAtom = {
+	    // If there is no type, or the type is the type universe, then check the
+	    // symbol to see if it is a known root type.
+	    if (typ == None || typ.get.isInstanceOf[TypeUniverseNode]) {
+	      NamedRootType.get(sym) match {
+	        case Some(nrt) => return nrt
+	        case _ =>
+	      }
+	    }
+	    
 	    // There are interesting "untyped" cases.  Without type, true and false
 	    // should be made Booleans, and Nothing should have type ANYTYPE.
 	    if (typ == None) sym match {
@@ -742,6 +751,7 @@ extends Parser {
       ParsedApply |
       
       // Parse the special root types.
+      /*
       "STRING " ~ push(SimpleTypeNode(STRING)) |
       "SYMBOL " ~ push(SimpleTypeNode(SYMBOL)) |
       "INTEGER " ~ push(SimpleTypeNode(INTEGER)) |
@@ -750,6 +760,7 @@ extends Parser {
       "OPTYPE " ~ push(SimpleTypeNode(OPTYPE)) |
       "RULETYPE " ~ push(SimpleTypeNode(RULETYPE)) |
       "ANYTYPE " ~ push(SimpleTypeNode(ANYTYPE)) |
+      */
       
       // Parse a typed list.
       ParsedTypedList |

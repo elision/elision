@@ -115,7 +115,21 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
  * @param typ			The typ of this operator.
  * @param opdef		The operator definition.
  */
-case class ProtoOperator(typ: BasicAtom, override val opdef: OperatorDefinition)
+class ProtoOperator(typ: BasicAtom, override val opdef: OperatorDefinition)
 extends Operator(opdef) {
   override lazy val theType = typ
+}
+
+/**
+ * Companion object for the proto operator.
+ */
+object ProtoOperator {
+  /**
+   * Make a new proto operator.
+   * 
+	 * @param typ			The typ of this operator.
+	 * @param opdef		The operator definition.
+   */
+  def apply(typ: BasicAtom, opdef: OperatorDefinition) =
+    new ProtoOperator(typ, opdef)
 }
