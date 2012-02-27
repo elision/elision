@@ -31,52 +31,57 @@
 ======================================================================*/
 package sjp.elision
 
-/**
- * Basic definitions used in this package.
- * 
- * = Punch List =
- * This is the current punch list for Elision.  This list gets picked up by
- * Eclipse.
- * 
- * TODO: Revisit every atom class wrt case class or not.
- * TODO: Extract sequence rewriting. (?)
- * TODO: Implement pairs and smaps.
- * 
- * TODO: Bindings cleanup / doc.
- * TODO: Literal cleanup / doc.
- * TODO: Variable cleanup / doc.
- * TODO: Lambda cleanup / doc.
- * TODO: Apply cleanup / doc.
- * TODO: Context cleanup / doc.
- * TODO: OperatorDefinition cleanup / doc.
- * TODO: TypeUniverse cleanup / doc.
- * TODO: MatchIterator cleanup / doc.
- * TODO: Outcome cleanup / doc.
- * TODO: Operator cleanup / doc.
- * TODO: OperatorDefinition cleanup / doc.
- * TODO: AtomList cleanup / doc.
- * TODO: SequenceMatcher cleanup / doc.
- * TODO: RewriteRule cleanup / doc.
- * TODO: AtomParser cleanup / doc.
- * 
- * TODO: Ruleset change actions. DEFER.
- * TODO: Infix. DEFER.
- * TODO: AC matching. DEFER.
- * TODO: C matching. DEFER.
- * TODO: A matching. DEFER.
- * 
- * = Design Goals =
- *  * Every atom that can be programmatically created can be written using
- *    the toParseString, and the result can be parsed by AtomParser.
- *  * Every atom that can be programmatically created has a toString method
- *    that generates valid Scala code to reproduce the atom.
- *  * Avoid global data and singletons.
- *  * Simple API.
- */
 import scala.collection.immutable.HashMap
 import org.parboiled.errors.ParsingException
 import sjp.elision.parse.AtomParser
+
+/**
+ * Basic definitions used in this package.
+ * 
+ * == Punch List ==
+ * This is the current punch list for Elision.  This list gets picked up by
+ * Eclipse.
+ * 
+ *  - TODO: Revisit every atom class wrt case class or not.
+ *  - TODO: Implement pairs and smaps.
+ * 
+ *  - TODO: Pull common, but large, items out of toString and toParseString.
+ * 
+ *  - TODO: Bindings cleanup / doc.
+ *  - TODO: Literal cleanup / doc.
+ *  - TODO: Variable cleanup / doc.
+ *  - TODO: Lambda cleanup / doc.
+ *  - TODO: Apply cleanup / doc.
+ *  - TODO: Context cleanup / doc.
+ *  - TODO: OperatorDefinition cleanup / doc.
+ *  - TODO: TypeUniverse cleanup / doc.
+ *  - TODO: MatchIterator cleanup / doc.
+ *  - TODO: Outcome cleanup / doc.
+ *  - TODO: Operator cleanup / doc.
+ *  - TODO: OperatorDefinition cleanup / doc.
+ *  - TODO: AtomList cleanup / doc.
+ *  - TODO: SequenceMatcher cleanup / doc.
+ *  - TODO: RewriteRule cleanup / doc.
+ *  - TODO: AtomParser cleanup / doc.
+ * 
+ *  - TODO: Ruleset change actions. DEFER.
+ *  - TODO: Infix. DEFER.
+ *  - TODO: AC matching. DEFER.
+ *  - TODO: C matching. DEFER.
+ *  - TODO: A matching. DEFER.
+ * 
+ * == Design Goals ==
+ *  - Every atom that can be programmatically created can be written using
+ *    the toParseString, and the result can be parsed by AtomParser.
+ *  - Every atom that can be programmatically created has a toString method
+ *    that generates valid Scala code to reproduce the atom.
+ *  - Avoid global data and singletons.
+ *  - Simple API.
+ */
 package object core {
+  /** Provide a fancy name for the type universe. */
+  val `^TYPE` = TypeUniverse
+  
   /**
    * Bindings are used to store variable / value maps used during matching, and
    * as the result of a successful match.
@@ -85,6 +90,7 @@ package object core {
   
   /**
    * Attempt to parse the given string and return an atom.
+   * 
    * @param str			The string to parse.
    * @param context	The context.
    * @param trace		Whether to trace the parse.
@@ -108,8 +114,8 @@ package object core {
    * underscore.  If this is not the case, the symbol text must be enclosed in
    * backticks, and any contained backticks and quotation marks must be escaped.
    * {{{
-   * Fred				Johnny12				Cat_Dog				_Dog
-   * ``					` Jason`				`65$`
+   * Fred   Johnny12   Cat_Dog   _Dog
+   * ``     ` Jason`   `65$`
    * }}}
    * 
    * @param str	The symbol text.
@@ -176,6 +182,7 @@ package object core {
   /**
    * Issue a warning.  This should be wired to whatever error reporting
    * mechanism you want to use.
+   * 
    * @param text	The text of the warning.
    */
   def warn(text: String) {
@@ -186,19 +193,34 @@ package object core {
   // WARNING: Here be IMPLICITS!
   //======================================================================
   
+  /** Convert a Scala symbol to a variable. */
   implicit def symToVariable(symbol: Symbol) = Variable(ANYTYPE, symbol.name)
+  
+  /** Convert a variable to a Scala symbol. */
   implicit def variableToSym(variable: Variable) = Symbol(variable.name)
+  
+  /** Convert an integer to an integer literal. */
   implicit def intToLiteral(value: Int) = Literal(INTEGER, value)
+
+  /** Convert an integer to an integer literal. */
   implicit def intToLiteral(value: BigInt) = Literal(INTEGER, value)
+  
+  /** Convert a string to a string literal. */
   implicit def strToLiteral(string: String) = Literal(STRING, string)
+  
+  /** Convert a Scala symbol to a symbol literal. */
   implicit def symToLiteral(symbol: Symbol) = Literal(SYMBOL, symbol)
   
+  /** Convert a rewrite rule to a rule strategy. */
   implicit def ruleToStrategy(rule: RewriteRule) = RuleStrategy(rule)
+  
+  /** Convert a rule strategy to a rewrite rule. */
   implicit def strategyToRule(rs: RuleStrategy) = rs.rule
   
   /**
    * Magically add a mkParseString, roughly equivalent to mkString, to every
    * sequence of objects that extend BasicAtom.  Try that with Java!
+   * 
    * @param seq		The sequence to get the new method.
    */
   implicit def giveMkParseString[A <: BasicAtom](seq: Seq[A]): {
@@ -206,6 +228,7 @@ package object core {
   } = new {
     /**
      * Make a string from a sequence.
+     * 
      * @param pre		The prefix text, if any.
      * @param mid		The text to insert between each item.
      * @param post	The suffix text, if any.
@@ -217,6 +240,7 @@ package object core {
   
   /**
    * Where needed, convert a bindings object into a bindings atom (wrap).
+   * 
    * @param binds	The bindings.
    * @return	The new bindings atom.
    */
@@ -224,6 +248,7 @@ package object core {
   
   /**
    * Where needed, convert a bindings atom to a simple bindings object (unwrap).
+   * 
    * @param atom	The bindings atom.
    * @return	The bindings.
    */

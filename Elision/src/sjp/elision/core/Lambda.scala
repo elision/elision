@@ -35,27 +35,47 @@ package sjp.elision.core
  * A lambda creates an operator that binds a single variable in a term.
  * 
  * ==Structure and Syntax==
+ * A lambda is indicated by a backslash (`\`) followed by the lambda variable,
+ * a dot (`.`), and the lambda body.
+ * {{{
+ * \\$``x.7                -> Constant function
+ * \\$``x.$``x               -> Identity function
+ * \\$``x.add($``x,$``x)       -> Doubling function
+ * }}}
+ * In order to protect the lambda variable from rewriting or binding it is
+ * converted to a De Bruijn index as described in the documentation for
+ * [[sjp.elision.core.BasicAtom]] (see the field `deBruijnIndex`).
  * 
  * ==Type==
+ * The type of a lambda is a mapping from the type of the lambda variable to
+ * the type of the lambda body.  Of course either - or both - may be variables.
  * 
  * ==Equality and Matching==
+ * Lambdas are equal iff their variables and bodies are equal ''after'' the
+ * De Bruijn index substitution.  This means that the following two lambdas
+ * are equal.
+ * {{{
+ * \\$``x.$``x
+ * \\$``y.$``y
+ * }}}
+ * Both are rewritten to <code>\\$`:1`.$`:1`</code>.
  * 
  * @param deBruijnIndex			The De Bruijn index.
  * @param lvar							The lambda variable which must match the De Bruijn
  * 													index.
  * @param body							The lambda body.
  */
-case class Lambda(deBruijnIndex: Int, lvar: Variable, body: BasicAtom)
+case class Lambda private (deBruijnIndex: Int, lvar: Variable, body: BasicAtom)
 extends BasicAtom {
-  // The type is a mapping from one type to another.
-	// val theType =
-	//  Apply(OperatorLibrary.MAP, AtomList(Seq(lvar.theType, body.theType)))
-  // TODO Fix the lambda type.
-  // The difficulty here arises from the use of Context.  The type of the
-  // lambda must be supplied.
-  val theType = TypeUniverse
+  /** The type is a mapping from the variable type to the body type. */
+  val theType = OperatorLibrary.MAP(lvar.theType, body.theType)
   
-  // Constancy of a lambda depends only on the body.
+  /**
+   * A lambda is constant iff its body is constant.  This is different from
+   * saying that the lambda is itself constant.  The lambda `\\$``x.$``y`
+   * is a constant, but its body contains a variable, so it is not constant in
+   * this sense.
+   */
   val isConstant = body.isConstant
   
   /** The depth is equal to the depth of the body, plus one. */

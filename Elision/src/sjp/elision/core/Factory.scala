@@ -97,7 +97,8 @@ object Prop {
    */
   def apply(properties: OpProperty*) = {
     var (assoc, comm, idem) = (false, false, false)
-    var (absorber: Option[BasicAtom], identity: Option[BasicAtom]) = (None, None)
+    var absorber: Option[BasicAtom] = None
+    var identity: Option[BasicAtom] = None
     for (prop <- properties) prop match {
       case Associative() => assoc = true
       case Commutative() => comm = true
@@ -153,12 +154,12 @@ object Oper {
    */
   def unapply(apply: Apply) = apply match {
     case Apply(op:Operator, AtomList(list, _)) => list match {
-      case List() => Some(op.name)
-      case List(v1) => Some(op.name, v1)
-      case List(v1, v2) => Some(op.name, v1, v2)
-      case List(v1, v2, v3) => Some(op.name, v1, v2, v3)
-      case List(v1, v2, v3, v4) => Some(op.name, v1, v2, v3, v4)
-      case List(v1, v2, v3, v4, v5) => Some(op.name, v1, v2, v3, v4, v5)
+      case Seq() => Some(op.name)
+      case Seq(v1) => Some(op.name, v1)
+      case Seq(v1, v2) => Some(op.name, v1, v2)
+      case Seq(v1, v2, v3) => Some(op.name, v1, v2, v3)
+      case Seq(v1, v2, v3, v4) => Some(op.name, v1, v2, v3, v4)
+      case Seq(v1, v2, v3, v4, v5) => Some(op.name, v1, v2, v3, v4, v5)
       case _ => None
     }
     case _ => None

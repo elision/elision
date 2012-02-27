@@ -32,18 +32,21 @@ package sjp.elision.core
 /**
  * A "root type" is a simple type that is well-known and used globally in the
  * system.  It cannot be rewritten, and matches only itself.
+ * 
+ * The implementation of `RootType` does not allow these types to have children.
  */
 abstract class RootType extends BasicAtom {
-	// The index of a symbol or root type is zero.
+	/** The index of a symbol or root type is zero. */
   val deBruijnIndex = 0
   
-  /**
-   * Unless overridden, the depth of all root types is zero.
-   */
+  /** Unless overridden, the depth of all root types is zero. */
   val depth = 0
   
   /**
-   * Try to match this type against the provided atom.
+   * Try to match this type against the provided atom.  Note that root types
+   * match only themselves, so the match works iff the subject is equal to this
+   * pattern.
+   * 
    * @param subject	The subject to match.
    * @param binds		The bindings to honor.
    * @return	The outcome of the match.
@@ -54,7 +57,8 @@ abstract class RootType extends BasicAtom {
     else Fail("This type matches only itself.", this, subject)
 
   /**
-   * The root types cannot be rewritten.
+   * The root types cannot be rewritten, as they do not have children.
+   * 
    * @param binds	The bindings.
    * @return	This type.
    */
@@ -62,22 +66,65 @@ abstract class RootType extends BasicAtom {
 }
 
 /**
- * Trivial root type with a specified name and the type universe as its type.
+ * Provide a very simple implementation of `RootType`.  This is a trivial root
+ * type with a specified name and the type universe as its type.
+ * 
+ * Named root types assume they can be parsed by their name, only.  This means
+ * the rewriter must know about all named root types.  In order to make sure
+ * we know all the root types, we keep a //global// registry of them in the
+ * companion object.
+ * 
  * @param name	The name.
  */
 case class NamedRootType(name: String) extends RootType {
-  // All named root types are in the type universe.
+  // Save this instance in the registry.  This is essential so that the parser
+  // can find root types.
+  NamedRootType.set(this)
+  
+  /** All named root types are in the type universe. */
   val theType = TypeUniverse
   
+  /** All named root types are constants. */
   val isConstant = true
   
-  // The parse string is the name, as a symbol.
+  /**
+   * The parse string is the name of the root type, as a symbol.  For this to
+   * work the parser must know about all these types.
+   */
   def toParseString = toESymbol(name)
   
-  // We have to override the Scala to protect the string.
+  /** Generate the Scala, and protect the string. */
   override def toString = "NamedRootType(" + toEString(name) + ")"
   
+  /** Generate the hash code. */
   override lazy val hashCode = name.hashCode()
+}
+
+/**
+ * The companion object maintains a registry of the named root types that have
+ * been created.  This can be used during parsing to detect the use of named
+ * root types.
+ */
+object NamedRootType {
+  /** The map of names to known root types. */
+  private val _known = scala.collection.mutable.HashMap[String,NamedRootType]()
+  
+  /**
+   * Get the named root type, if it is known.
+   * 
+   * @param name	The potential root type name.
+   * @return	The root type, if there is one, or None if there is not.
+   */
+  def get(name: String) = _known.get(name)
+  
+  /**
+   * Save the named root type.
+   * 
+   * @param typ	The named root type.
+   * @return	The named root type.  This might be a different instance if
+   * 					the type has already been declared.
+   */
+  def set(typ: NamedRootType) = _known.getOrElseUpdate(typ.name, typ)
 }
 
 //======================================================================

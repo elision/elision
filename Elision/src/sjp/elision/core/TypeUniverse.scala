@@ -51,10 +51,7 @@ object TypeUniverse extends RootType {
   /** The type universe is constant. */
   val isConstant = true
 
-  /**
-   * The type universe is represented by ^TYPE.
-   * @return The string representation of the type universe.
-   */
+  /** The type universe is represented by ^TYPE. */
   def toParseString = "^TYPE"
 
   /**
@@ -68,7 +65,9 @@ object TypeUniverse extends RootType {
   override protected def matchTypes(subject: BasicAtom, binds: Bindings) =
     tryMatchWithoutTypes(subject, binds)
     
+  /** The type universe is known (in Scala) as `TypeUniverse`. */
   override def toString = "TypeUniverse"
     
+  /** Compute the hash code. */
   override lazy val hashCode = toParseString.hashCode
 }

@@ -44,19 +44,34 @@ class ArgumentListException(msg: String) extends Exception(msg)
  * Encapsulate an operator.
  * 
  * ==Structure and Syntax==
+ * An operator, by itself, is simply a name for a function that maps from some
+ * domain to some codomain.  An operator appears as a simple symbol whose type
+ * is designated as OPTYPE (to force looking up the operator).  Otherwise
+ * operators are detected when they are applied to some argument list.
  * 
  * ==Type==
+ * The type of an operator is taken from its definition.
  * 
  * ==Equality and Matching==
+ * Operators are equal iff their operator definitions are equal.  They match
+ * if their operator definitions match.
  * 
  * @param opdef	The operator definition.
  */
 case class Operator(opdef: OperatorDefinition) extends BasicAtom {
-  // The type of all operators is OPTYPE.  This is not a good thing; it should
-  // really be a MAP from the operator domain to the codomain.  Something to
-  // fix...
-  // TODO Fix operator type.
-  val theType = OPTYPE
+	import OperatorLibrary._
+
+	/**
+   * The type of an operator is a mapping from the operator domain to the
+   * operator codomain.
+   */
+  lazy val theType = opdef.proto.pars match {
+	  case Seq() => MAP(Literal.NOTHING, opdef.proto.typ)
+	  case Seq(atom) => MAP(atom.theType, opdef.proto.typ)
+	  case _ => MAP(xx(opdef.proto.pars.map(_.theType)), opdef.proto.typ)
+	}
+  
+  /** The operator is constant iff its definition is a constant. */
   val isConstant = opdef.isConstant
   
   /** The native handler, if one is declared. */
@@ -86,4 +101,21 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
     case op:Operator => opdef == op.opdef
     case _ => false
   }
+}
+
+/**
+ * A ''proto''operator is an operator whose type can be overridden.
+ * 
+ * Typically the type of an operator is inferred from the types of its
+ * parameter list, but the result would itself be an operator application
+ * (a MAP) and this means we could potentially have an infinite regress.
+ * To avoid that we define this class solely for use in defining the special
+ * operators that are used to specify the types of other operators.
+ * 
+ * @param typ			The typ of this operator.
+ * @param opdef		The operator definition.
+ */
+case class ProtoOperator(typ: BasicAtom, override val opdef: OperatorDefinition)
+extends Operator(opdef) {
+  override lazy val theType = typ
 }

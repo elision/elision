@@ -369,7 +369,7 @@ object Apply {
     val plen = pars.length
     val nlen = newlist.length
     if (nlen < plen) throw new ArgumentListException("Too few arguments (" +
-        nlen + ") to operator " + this +
+        nlen + ") to operator " + op +
         " after processing.  Argument list is now: " +
         newlist.mkParseString("(",", ",")") + ".")
 

@@ -37,10 +37,21 @@ import scala.collection.mutable.HashMap
  * Represent a variable.
  * 
  * ==Structure and Syntax==
+ * A variable is indicated with a leading dollar sign (`$`) followed by a
+ * valid symbol.  So the following are valid variables:
+ * - `$``x`
+ * - `$``Fred51_2`
+ * - <code>$`1`</code>
  * 
  * ==Type==
+ * Every variable must have a type, and the type can be `ANYTYPE`.
  * 
  * ==Equality and Matching==
+ * Variables are equal iff their name and type are equal.
+ * 
+ * Variables can be bound, so that gets checked during matching.  A variable
+ * pattern matches a subject iff it is already bound to that subject, or if it
+ * is unbound and the types match.
  * 
  * @param typ			The variable type.
  * @param name		The variable name.
@@ -50,7 +61,11 @@ case class Variable(typ: BasicAtom, name: String,
     labels: Set[String] = Set[String]()) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
+  
+  /** The De Bruijn index is zero. */
   val deBruijnIndex = 0
+  
+  /** Variables are not constant. */
   val isConstant = false
   
   /** The depth of a variable is zero. */
@@ -60,28 +75,40 @@ case class Variable(typ: BasicAtom, name: String,
   override val isBindable = true
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
-    // We don't need to worry about the types here.  We can bind the variable
     // if the variable allows binding, and it is not already bound to a
     // different atom.  We also allow the variable to match ANYTYPE.
     if (isBindable) binds.get(name) match {
       case None =>
         // This is tricky.  We don't bind if we match against ANYTYPE.  Are
-        // there unforseen consequences to this decision?
+        // there unforseen consequences to this decision?  Otherwise we have
+        // to add a binding of the variable name to the subject.
         if (subject == ANYTYPE) Match(binds)
         else Match(binds + (name -> subject))
-      case Some(atom) if atom == ANYTYPE || atom == subject => Match(binds)
-      case _ => Fail("Variable " + this.toParseString +
+      case Some(atom) if atom == ANYTYPE || atom == subject =>
+        // The variable is already bound, and it is bound to the subject, so
+        // the match succeeds with the bindings as they are.
+        Match(binds)
+      case _ =>
+        // The variable is already bound and it is bound to an unequal subject,
+        // so the match fails.
+        Fail("Variable " + this.toParseString +
           " is already bound to the term " + binds.get(name).get.toParseString +
           ".", this, subject)
     }
-    else Fail("Variable is not bindable.", this, subject)
+    else
+      // Variables that are not bindable cannot be bound, and cannot match
+      // any subject.  This is to prevent allowing them to "match" a bindable
+      // variable of the same name and type, and having chaos ensue.
+      Fail("Variable is not bindable.", this, subject)
 
   def rewrite(binds: Bindings) = {
     // If this variable is bound in the provided bindings, replace it with the
     // bound value.
     binds.get(name) match {
       case Some(atom) =>
-        // We don't rewrite De Bruijn indices to different indices.
+        // We don't rewrite De Bruijn indices to different indices.  So if this
+        // variable is a De Bruijn index, stop immediately without rewriting.
+        // Otherwise return the bound value.
         if (isDeBruijnIndex && atom.isDeBruijnIndex) (this, false)
         else (atom, true)
       case None =>
@@ -98,8 +125,11 @@ case class Variable(typ: BasicAtom, name: String,
   		(if (theType != ANYTYPE) ":" + typ.toParseString else "") +
   		labels.map(" @" + toESymbol(_)).mkString("")
   
-  override def toString = "Variable(" + typ + "," + toEString(name) +
-  	"," + labels.mkString("Set(", ",", ")") + ")"
+  override def toString =
+    "Variable(" +
+    typ + "," +
+    toEString(name) + "," +
+    labels.map(toEString(_)).mkString("Set(", ",", ")") + ")"
   
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   

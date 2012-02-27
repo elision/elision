@@ -185,12 +185,53 @@ class OperatorLibrary(
  	  od
  	}
  	
- 	// Certain operators are always defined.
- 	add(SymbolicOperatorDefinition(
- 	    OperatorPrototype(
- 	        "MAP",
- 	        List(Variable(TypeUniverse, "domain"),
- 	            Variable(TypeUniverse, "codomain")),
- 	        TypeUniverse),
- 	    OperatorProperties()))
+ 	// Get the well-known operators.
+ 	import OperatorLibrary._
+ 	
+ 	// Add the well-known operators.
+ 	_nameToOperator += (MapOperator.name -> MapOperator)
+ 	_nameToOperator += (CrossOperator.name -> CrossOperator)
+}
+
+object OperatorLibrary {
+    
+  //======================================================================
+  // Universally-known operators.
+  //======================================================================
+  
+ 	/**
+ 	 * The well-known map operator.  Every time an operator library is created,
+ 	 * it should explicitly add this operator to itself.
+ 	 */
+ 	private val MapOperator = ProtoOperator(TypeUniverse,
+ 	    SymbolicOperatorDefinition(
+ 	        OperatorPrototype(
+ 	            "MAP",
+		 	        List(Variable(ANYTYPE, "domain"),
+		 	            Variable(ANYTYPE, "codomain")),
+		 	        ANYTYPE),
+		 	    OperatorProperties()))
+  
+ 	/**
+ 	 * Construct a map type, given a domain and range.
+ 	 */
+  def MAP(dom: BasicAtom, ran: BasicAtom) =
+    Apply(MapOperator, AtomList(Seq(dom, ran)))
+
+  /**
+   * The well-known cross operator used to build operator types.
+   */
+  private val CrossOperator = ProtoOperator(TypeUniverse,
+      SymbolicOperatorDefinition(
+		      OperatorPrototype(
+		          "xx",
+		          List(Variable(ANYTYPE, "a")),
+		          ANYTYPE),
+		      OperatorProperties(assoc=true)))
+  
+  /**
+   * Make a cross type.
+   */
+  def xx(atoms: List[BasicAtom]) =
+    Apply(CrossOperator, AtomList(atoms))
 }
