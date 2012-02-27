@@ -702,7 +702,7 @@ object AtomParser {
 	  override def interpret: Strategy
 	}
 	
-	case class NoopStrategyNode extends StrategyNode {
+	case object NoopStrategyNode extends StrategyNode {
 	  def interpret = NoopStrategy
 	}
 	case class StrategyReferenceNode(context: Context, name: NakedSymbolNode)
@@ -835,6 +835,9 @@ extends Parser {
       
       // Parse a rule.
       ParsedRule |
+      
+      // Parse a strategy.
+      ParsedStrategy |
       
       // Parse a match.
       ParsedMatch |
@@ -1386,23 +1389,28 @@ extends Parser {
   //======================================================================
   
   def ParsedStrategyDeclaration = rule {
-    "{ " ~ "strategy " ~ ESymbol ~ "= " ~ ParsedStrategy ~ "} " ~~>
+    "{ " ~ "strategy " ~ ESymbol ~ "= " ~ ParsedSubStrategy ~ "} " ~~>
     (StrategyBindingNode(_,_))
+  }
+
+  def ParsedSubStrategy:Rule1[StrategyNode] = rule {
+    ParsedStrategy |
+    ParsedRuleStrategy |
+    ParsedNoopStrategy |
+    ESymbol ~~> (StrategyReferenceNode(context,_))
   }
   
   def ParsedStrategy:Rule1[StrategyNode] = rule {
-    ParsedRuleStrategy |
     ParsedRulesetStrategy |
     ParsedThenStrategy |
     ParsedAndAlsoStrategy |
     ParsedOrElseStrategy |
     ParsedIfThenElseStrategy |
-    ParsedWhileStrategy |
-    ESymbol ~~> (StrategyReferenceNode(context,_))
+    ParsedWhileStrategy
   }
   
   def ParsedNoopStrategy = rule {
-    "{ " ~ "} " ~ push(NoopStrategyNode())
+    "{ " ~ "} " ~ push(NoopStrategyNode)
   }
   
   def ParsedRuleStrategy = rule {
@@ -1416,31 +1424,31 @@ extends Parser {
   }
   
   def ParsedThenStrategy = rule {
-    "{ " ~ "then " ~ oneOrMore(ParsedStrategy) ~ "} " ~~>
+    "{ " ~ "then " ~ oneOrMore(ParsedSubStrategy) ~ "} " ~~>
     (ThenStrategyNode(_))
   }
   
   def ParsedAndAlsoStrategy = rule {
-    "{ " ~ "andalso " ~ oneOrMore(ParsedStrategy) ~ "} " ~~>
+    "{ " ~ "andalso " ~ oneOrMore(ParsedSubStrategy) ~ "} " ~~>
     (AndAlsoStrategyNode(_))
   }
   
   def ParsedOrElseStrategy = rule {
-    "{ " ~ "orelse " ~ oneOrMore(ParsedStrategy) ~ "} " ~~>
+    "{ " ~ "orelse " ~ oneOrMore(ParsedSubStrategy) ~ "} " ~~>
     (OrElseStrategyNode(_))
   }
   
   def ParsedIfThenElseStrategy = rule {
     "{ " ~
-    "if " ~ ParsedStrategy ~
-    "then " ~ ParsedStrategy ~
-    "else " ~ ParsedStrategy ~
+    "if " ~ ParsedSubStrategy ~
+    "then " ~ ParsedSubStrategy ~
+    "else " ~ ParsedSubStrategy ~
     "} " ~~>
     (IfThenElseStrategyNode(_,_,_))
   }
   
   def ParsedWhileStrategy = rule {
-    "{ " ~ "while " ~ ParsedStrategy ~ "} " ~~>
+    "{ " ~ "while " ~ ParsedSubStrategy ~ "} " ~~>
     (WhileStrategyNode(_))
   }
 
