@@ -58,8 +58,57 @@ sealed abstract class Strategy extends BasicAtom {
 }
 
 //======================================================================
+// Strategy definition.
+//======================================================================
+
+/**
+ * An atom denoting a strategy definition.
+ * 
+ * @param name		The strategy name.
+ * @param strat		The strategy.
+ */
+case class StrategyDefinition(name: String, strat: Strategy) extends BasicAtom {
+  val theType = TypeUniverse
+  val deBruijnIndex = strat.deBruijnIndex
+  val isConstant = strat.isConstant
+  val depth = strat.depth + 1
+  def toParseString =
+    "{ strategy " + toESymbol(name) + " " + strat.toParseString + " }"
+  override def toString = "StrategyDefinition(" + toEString(name) + "," + strat + ")"
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) = subject match {
+    case StrategyDefinition(oname, ostrat) =>
+      if (name != oname)
+        Fail("Names do not match.", this, subject)
+      else
+        strat.tryMatch(ostrat, binds)
+    case _ => Fail("Subject is not a strategy definition.", this, subject)
+  }
+  def rewrite(binds: Bindings) = strat.rewrite(binds) match {
+    case (newstrat, true) => (StrategyDefinition(name, newstrat), true)
+    case _ => (this, false)
+  }
+}
+
+//======================================================================
 // Strategy combinators.
 //======================================================================
+
+/**
+ * A special strategy that does nothing.  The flag is always true for this
+ * strategy.
+ */
+object NoopStrategy extends Strategy {
+  val deBruijnIndex = 0
+  val isConstant = true
+  val depth = 0
+  def apply(atom: BasicAtom, binds: Bindings) = (atom, true)
+  def toParseString = "{}"
+  override def toString = "NoopStrategy"
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+    if (subject == this) Match(binds)
+    else Fail("Strategies do not match.", this, subject)
+  def rewrite(binds: Bindings) = (this, false)
+}
 
 /**
  * This strategy applies a single rule.  The syntax is the same as for a

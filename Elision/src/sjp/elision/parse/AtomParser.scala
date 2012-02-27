@@ -37,7 +37,8 @@ import scala.collection.mutable.LinkedList
 import sjp.elision.core._
 
 /**
- * Provide abstract syntax tree nodes used during parsing.
+ * Provide abstract syntax tree nodes used during parsing, along with any
+ * supporting functions.
  */
 object AtomParser {
   
@@ -88,6 +89,11 @@ object AtomParser {
 	
 	//======================================================================
 	// Definitions for an abstract syntax tree for atoms.
+  //----------------------------------------------------------------------
+  // Here are all the myriad classes used to capture parts as they are 
+  // parsed.  The basic idea is that each thing represented by an AstNode
+  // must be interpretable as a BasicAtom, and this is the job of the
+  // interpret method.
 	//======================================================================
 	
 	/**
@@ -292,6 +298,9 @@ object AtomParser {
 	      typ.interpret)
 	}
 	
+	/**
+	 * The common root class for all operator definition nodes.
+	 */
 	sealed abstract class OperatorDefinitionNode extends AstNode {
 	  def interpret: OperatorDefinition
 	}
@@ -316,6 +325,17 @@ object AtomParser {
 	    opn: OperatorPrototypeNode,
 	    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
 	  def interpret = NativeOperatorDefinition(opn.interpret, prop.interpret)
+	}
+	
+	/**
+	 * Represent an immediate operator definition.
+	 * @param opn		The prototype node.
+	 * @param prop	The body.
+	 */
+	case class ImmediateOperatorDefinitionNode(
+	    opn: OperatorPrototypeNode,
+	    body: AstNode) extends OperatorDefinitionNode {
+	  def interpret = ImmediateOperatorDefinition(opn.interpret, body.interpret)
 	}
 	
 	//----------------------------------------------------------------------
@@ -668,6 +688,55 @@ object AtomParser {
 	  def retype(newtyp: AstNode) = FloatNode(sign, integer, fraction, radix, exp,
 	      newtyp)
 	}
+	
+	//----------------------------------------------------------------------
+	// Strategy nodes.
+	//----------------------------------------------------------------------
+	
+	case class StrategyBindingNode(name: NakedSymbolNode, strat: StrategyNode)
+	extends AstNode {
+	  def interpret = StrategyDefinition(name.str, strat.interpret)
+	}
+	
+	abstract sealed class StrategyNode extends AstNode {
+	  override def interpret: Strategy
+	}
+	
+	case class NoopStrategyNode extends StrategyNode {
+	  def interpret = NoopStrategy
+	}
+	case class StrategyReferenceNode(context: Context, name: NakedSymbolNode)
+	extends StrategyNode {
+	  def interpret = context.getStrategy(name.str) match {
+	    case Some(strat) => strat
+	    case None =>
+	      throw new ParsingException("No such named strategy: " + name.str + ".")
+	  }
+	}
+	case class RuleStrategyNode(rule: RuleNode) extends StrategyNode {
+	  def interpret = RuleStrategy(rule.interpret)
+	}
+	case class RulesetStrategyNode(context: Context,
+	    rulesets: List[NakedSymbolNode]) extends StrategyNode {
+	  def interpret = RulesetStrategy(context, rulesets.map(_.str))
+	}
+	case class ThenStrategyNode(list: List[StrategyNode]) extends StrategyNode {
+	  def interpret = ThenStrategy(list.map(_.interpret))
+	}
+	case class AndAlsoStrategyNode(list: List[StrategyNode]) extends StrategyNode {
+	  def interpret = AndAlsoStrategy(list.map(_.interpret))
+	}
+	case class OrElseStrategyNode(list: List[StrategyNode]) extends StrategyNode {
+	  def interpret = OrElseStrategy(list.map(_.interpret))
+	}
+	case class IfThenElseStrategyNode(test: StrategyNode, yes: StrategyNode,
+	    no: StrategyNode) extends StrategyNode {
+	  def interpret = IfThenElseStrategy(test.interpret, yes.interpret,
+	      no.interpret)
+	}
+	case class WhileStrategyNode(child: StrategyNode) extends StrategyNode {
+	  def interpret = child.interpret
+	}
 }
 
 //======================================================================
@@ -676,6 +745,7 @@ object AtomParser {
 
 /**
  * A parser to parse a single atom.
+ * 
  * @param context	The context for rulesets and operators.
  * @param trace 	If true, enable tracing.  Off by default.
  */
@@ -683,12 +753,26 @@ class AtomParser(val context: Context, val trace: Boolean = false)
 extends Parser {
   import AtomParser._
   
+  /** A parse result. */
   abstract sealed class Presult
+  
+  /**
+   * The parse was successful.
+   * 
+   * @param nodes	The nodes parsed.
+   */
   case class Success(nodes: List[AstNode]) extends Presult
+  
+  /**
+   * The parse failed.
+   * 
+   * @param err	The reason for the parsing failure.
+   */
   case class Failure(err: String) extends Presult
   
   /**
    * Entry point to parse all atoms from the given string.
+   * 
    * @param line	The string to parse.
    * @return	The parsing result.
    */
@@ -706,6 +790,21 @@ extends Parser {
 
   //======================================================================
   // Parse and build atoms.
+  //----------------------------------------------------------------------
+  // The basic approach is the following.
+  //
+  // We parse a sequence of atoms (so we parse everything in a line) using
+  // the AtomSeq rule.
+  // 
+  // Because we want the applicative dot (.) to bind with the least precedence,
+  // we next parse it in Atom.
+  //
+  // Most atoms are parsed with FirstAtom, including allowing parenthesized
+  // atoms (and thus matches and general application).
+  //
+  // For each "thing" processed, we create an instance of a subclass of
+  // AstNode and return it.  This has an interpret method that reads the
+  // AST to generate the concrete parsed "thing," whatever it should be.
   //======================================================================
   
   /**
@@ -723,8 +822,7 @@ extends Parser {
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
-    ParsedMatch
+          funlist.foldRight(lastarg)(ApplicationNode(context,_,_)))
   }
   
   /**
@@ -737,6 +835,12 @@ extends Parser {
       
       // Parse a rule.
       ParsedRule |
+      
+      // Parse a match.
+      ParsedMatch |
+      
+      // Parse a strategy definition.
+      ParsedStrategyDeclaration |
       
       // Parse an operator definition.
       ParsedOperatorDefinition |
@@ -775,6 +879,12 @@ extends Parser {
       ESymbol ~ ": " ~ "OPTYPE " ~~> (
           (sym: NakedSymbolNode) =>
             OperatorNode(sym.str, context.operatorLibrary)) |
+            
+      // A "naked" strategy is specified by explicitly giving the strategy
+      // type STRATTYPE.  Otherwise it is parsed as a symbol.
+      ESymbol ~ ": " ~ "STRATTYPE " ~~> (
+          (sym: NakedSymbolNode) =>
+            StrategyReferenceNode(context, sym)) |
        
       // Parse a literal.  A literal can take many forms, but it should be
       // possible to always detect the kind of literal during parse.  By
@@ -788,6 +898,11 @@ extends Parser {
       // Parse the special type universe.
       "^TYPE " ~> (x => TypeUniverseNode()))
   }
+  
+  //======================================================================
+  // Parse a simple operator application.  The other form of application
+  // (the more general kind) is parsed in Atom.
+  //======================================================================
 
   /**
    * Parse the "usual" operator application form.
@@ -806,6 +921,10 @@ extends Parser {
         ApplicationNode(context, op, arg))
   }
   
+  //======================================================================
+  // Parse a lambda.
+  //======================================================================
+
   /**
    * Parse a lambda expression.
    */
@@ -814,6 +933,10 @@ extends Parser {
         (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
   }
   
+  //======================================================================
+  // Parse trivial literals.
+  //======================================================================
+
   /**
    * Parse a literal symbol or a literal string.
    */
@@ -829,6 +952,52 @@ extends Parser {
       EString ~~>
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
   }
+
+  /** Parse a double-quoted string. */
+  def EString = rule {
+    val str = new StringBuilder()
+    "\"" ~ zeroOrMore(Character(str)) ~~> (x => construct(x)) ~ "\" "
+  }
+
+  /**
+   * Parse a character in a string.  The character is added to the end of the
+   * string passed in (if any) and the composite string is returned.  Escapes
+   * are interpreted here.
+   * 
+   * @param str		The string to get the new character.  May be unspecified.
+   * @return	The new string.
+   */
+  def Character(str: StringBuilder) = rule {
+    (EscapedCharacter | NormalCharacter) ~> (x => x)
+  }
+
+  /** Parse an escaped character. */
+  def EscapedCharacter = rule {
+    "\\" ~ anyOf("""`"nrt\""")
+  }
+
+  /** Parse a normal character. */
+  def NormalCharacter = rule { noneOf(""""\""") }
+
+  /** Parse a symbol. */
+  def ESymbol = rule {
+    val str = new StringBuilder()
+    "`" ~ zeroOrMore(SymChar) ~~> (x => NakedSymbolNode(construct(x))) ~ "` " |
+    group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
+      "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
+  }
+
+  /** Parse a character that is part of a symbol. */
+  def SymChar = rule {
+    (EscapedCharacter | SymNorm) ~> (x => x)
+  }
+  
+  /** Parse a "normal" non-escaped character that is part of a symbol. */
+  def SymNorm = rule { noneOf("""`\""") }
+
+  //======================================================================
+  // Parse lists of atoms.
+  //======================================================================
 
   /**
    * Parse a "typed" list.  That is, a list whose properties are specified.
@@ -872,6 +1041,10 @@ extends Parser {
         })
   }
 
+  //======================================================================
+  // Parse a rewrite rule.
+  //======================================================================
+
   /**
    * Parse a rule.
    */
@@ -890,9 +1063,7 @@ extends Parser {
     Atom ~ "-> " ~ Atom ~ zeroOrMore("if " ~ Atom) ~
 
     // Next the rule can be declared to be in zero or more rulesets.
-    optional((ignoreCase("rulesets") | ignoreCase("ruleset")) ~
-        WS ~ ESymbol ~ zeroOrMore(", " ~ ESymbol) ~~> (
-          (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)) ~
+    optional(ParsedRulesetList) ~
 
     // Finally the rule's cache level can be declared.  This must be the
     // last item, if present.
@@ -904,6 +1075,20 @@ extends Parser {
             _: List[AstNode],
             _: Option[List[NakedSymbolNode]],
             _: Option[UnsignedIntegerNode])))
+            
+  /**
+   * Parse a comma-separated list of ruleset names, introduced by the keyword
+   * `ruleset` or `rulesets`.
+   */
+  def ParsedRulesetList = rule {
+    (ignoreCase("rulesets") | ignoreCase("ruleset")) ~
+        WS ~ ESymbol ~ zeroOrMore(", " ~ ESymbol) ~~> (
+          (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)
+  }
+
+  //======================================================================
+  // Parse variables.
+  //======================================================================
 
   /**
    * Parse a variable.
@@ -932,56 +1117,6 @@ extends Parser {
   def WS = rule {
     zeroOrMore(anyOf(" \n\r\t\f"))
   }
-
-  //======================================================================
-  // Parse a string.
-  //======================================================================
-
-  /** Parse a double-quoted string. */
-  def EString = rule {
-    val str = new StringBuilder()
-    "\"" ~ zeroOrMore(Character(str)) ~~> (x => construct(x)) ~ "\" "
-  }
-
-  /**
-   * Parse a character in a string.  The character is added to the end of the
-   * string passed in (if any) and the composite string is returned.  Escapes
-   * are interpreted here.
-   * 
-   * @param str		The string to get the new character.  May be unspecified.
-   * @return	The new string.
-   */
-  def Character(str: StringBuilder) = rule {
-    (EscapedCharacter | NormalCharacter) ~> (x => x)
-  }
-
-  /** Parse an escaped character. */
-  def EscapedCharacter = rule {
-    "\\" ~ anyOf("""`"nrt\""")
-  }
-
-  /** Parse a normal character. */
-  def NormalCharacter = rule { noneOf(""""\""") }
-
-  //======================================================================
-  // Parse a symbol.
-  //======================================================================
-
-  /** Parse a symbol. */
-  def ESymbol = rule {
-    val str = new StringBuilder()
-    "`" ~ zeroOrMore(SymChar) ~~> (x => NakedSymbolNode(construct(x))) ~ "` " |
-    group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
-      "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
-  }
-
-  /** Parse a character that is part of a symbol. */
-  def SymChar = rule {
-    (EscapedCharacter | SymNorm) ~> (x => x)
-  }
-  
-  /** Parse a "normal" non-escaped character that is part of a symbol. */
-  def SymNorm = rule { noneOf("""`\""") }
 
   //======================================================================
   // Parse a number.
@@ -1110,30 +1245,37 @@ extends Parser {
    * 
    * Operator definitions look as follows.
    * 
+   * An operator whose definition is provided by a body.  Whenever the operator
+   * is encountered, it is replaced at construction time by binding the formal
+   * parameters and then rewriting the body.  It is essentially a macro.
+   * {{{
+   *   { operator abel(\$x: STRING, \$y: ^TYPE): ^TYPE = cain(\$x, seth(\$y)) }
+   * }}}
    * A symbolic operator whose properties are specified, if any.
    * {{{
-   *   { operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE }
-   *   { operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
+   *   { operator join(\$x: ^TYPE, \$y: ^TYPE): ^TYPE }
+   *   { operator product(\$x: NUMBER, \$y: NUMBER): NUMBER is
    *     associative, commutative, absorber 0, identity 1 }
-   *   { operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
+   *   { operator or(\$p: BOOLEAN, \$q: BOOLEAN): BOOLEAN is
    *     associative, commutative, idempotent, identity false, absorber true }
    * }}} 
    * An operator whose definition is provided by the runtime system - that is,
    * it is implemented in software.
    * {{{
-   *   { native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
+   *   { native operator `+`(\$x: NUMBER, \$y: NUMBER): NUMBER is
    *     associative, commutative, identity 0 }
    * }}}
    */
   def ParsedOperatorDefinition = rule {
     ParsedNativeOperatorDefinition |
-    ParsedSymbolicOperatorDefinition
+    ParsedSymbolicOperatorDefinition |
+    ParsedImmediateOperatorDefinition
   }
   
   /**
    * Parse a native operator definition.
    * {{{
-   * { native operator `+`($$x: NUMBER, $$y: NUMBER): NUMBER is
+   * { native operator `+`(\$x: NUMBER, \$y: NUMBER): NUMBER is
    *   associative, commutative, identity 0 }
    * }}}
    */
@@ -1145,16 +1287,28 @@ extends Parser {
   /**
    * Parse a symbolic operator definition.
    * {{{
-   * { operator join($$x: ^TYPE, $$y: ^TYPE): ^TYPE }
-   * { operator product($$x: NUMBER, $$y: NUMBER): NUMBER is
+   * { operator join(\$x: ^TYPE, \$y: ^TYPE): ^TYPE }
+   * { operator product(\$x: NUMBER, \$y: NUMBER): NUMBER is
    *   associative, commutative, absorber 0, identity 1 }
-   * { operator or($$p: BOOLEAN, $$q: BOOLEAN): BOOLEAN is
+   * { operator or(\$p: BOOLEAN, \$q: BOOLEAN): BOOLEAN is
    *   associative, commutative, idempotent, identity false, absorber true }
    * }}}
    */
   def ParsedSymbolicOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
     "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
     "} " ~~> (SymbolicOperatorDefinitionNode(_,_))
+  }
+  
+  /**
+   * Parse an immediate operator definition.
+   * {{{
+   * { operator abel(\$x: STRING, \$y: ^TYPE): ^TYPE = cain(\$x, seth(\$y)) }
+   * { macro body(\\$x.\$body:\$T):\$T = \$body }
+   * }}}
+   */
+  def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
+    "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
+    "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
   }
   
   /** Parse an operator prototype. */
@@ -1168,6 +1322,11 @@ extends Parser {
   def ParsedParameterList = rule {
     ParsedTypedVariable ~
     zeroOrMore(", " ~ ParsedTypedVariable) ~~> (_ :: _)
+  }
+  
+  /** Parse an immediate definition for an operator. */
+  def ParsedImmediateDefinition = rule {
+    "= " ~ Atom
   }
   
   /** Parse a sequence of operator properties. */
@@ -1220,6 +1379,69 @@ extends Parser {
   def ParsedMatch = rule {
     "{ " ~ "match " ~ FirstAtom ~ "-> " ~ FirstAtom ~ "} " ~~>
     ((pat,sub) => MatchNode(pat, sub))
+  }
+  
+  //======================================================================
+  // Parse strategies.
+  //======================================================================
+  
+  def ParsedStrategyDeclaration = rule {
+    "{ " ~ "strategy " ~ ESymbol ~ "= " ~ ParsedStrategy ~ "} " ~~>
+    (StrategyBindingNode(_,_))
+  }
+  
+  def ParsedStrategy:Rule1[StrategyNode] = rule {
+    ParsedRuleStrategy |
+    ParsedRulesetStrategy |
+    ParsedThenStrategy |
+    ParsedAndAlsoStrategy |
+    ParsedOrElseStrategy |
+    ParsedIfThenElseStrategy |
+    ParsedWhileStrategy |
+    ESymbol ~~> (StrategyReferenceNode(context,_))
+  }
+  
+  def ParsedNoopStrategy = rule {
+    "{ " ~ "} " ~ push(NoopStrategyNode())
+  }
+  
+  def ParsedRuleStrategy = rule {
+    ParsedRule ~~>
+    (RuleStrategyNode(_))
+  }
+  
+  def ParsedRulesetStrategy = rule {
+    "{ " ~ ParsedRulesetList ~ "} " ~~>
+    (RulesetStrategyNode(context, _))
+  }
+  
+  def ParsedThenStrategy = rule {
+    "{ " ~ "then " ~ oneOrMore(ParsedStrategy) ~ "} " ~~>
+    (ThenStrategyNode(_))
+  }
+  
+  def ParsedAndAlsoStrategy = rule {
+    "{ " ~ "andalso " ~ oneOrMore(ParsedStrategy) ~ "} " ~~>
+    (AndAlsoStrategyNode(_))
+  }
+  
+  def ParsedOrElseStrategy = rule {
+    "{ " ~ "orelse " ~ oneOrMore(ParsedStrategy) ~ "} " ~~>
+    (OrElseStrategyNode(_))
+  }
+  
+  def ParsedIfThenElseStrategy = rule {
+    "{ " ~
+    "if " ~ ParsedStrategy ~
+    "then " ~ ParsedStrategy ~
+    "else " ~ ParsedStrategy ~
+    "} " ~~>
+    (IfThenElseStrategyNode(_,_,_))
+  }
+  
+  def ParsedWhileStrategy = rule {
+    "{ " ~ "while " ~ ParsedStrategy ~ "} " ~~>
+    (WhileStrategyNode(_))
   }
 
   //======================================================================

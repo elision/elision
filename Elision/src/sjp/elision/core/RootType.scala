@@ -147,6 +147,8 @@ object BOOLEAN extends NamedRootType("BOOLEAN")
 object RULETYPE extends NamedRootType("RULETYPE")
 /** A type for all operators. */
 object OPTYPE extends NamedRootType("OPTYPE")
+/** A type for all strategies. */
+object STRATTYPE extends NamedRootType("STRATTYPE")
 
 /**
  * The unusual type ANY that matches anything.
