@@ -88,7 +88,7 @@ case class NamedRootType(name: String) extends RootType {
   val isConstant = true
   
   /** Root types contain no constant children. */
-  val constantPool = Map[Int, Int]()
+  val constantPool = None
   
   /**
    * The parse string is the name of the root type, as a symbol.  For this to

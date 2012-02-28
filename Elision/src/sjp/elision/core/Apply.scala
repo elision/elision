@@ -43,6 +43,7 @@ import scala.collection.mutable.ListBuffer
 case class DeferApply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
   val theType = op.theType
   val isConstant = op.isConstant && arg.isConstant
+  val constantPool = Some(BasicAtom.buildConstantPool(2, op, arg))
   val depth = (op.depth max arg.depth) + 1
   val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
   def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
@@ -106,6 +107,9 @@ extends BasicAtom {
   
   /** An apply is constant iff both the operator and argument are constant. */
   val isConstant = op.isConstant && arg.isConstant
+  
+  /** The constant pool is derived from the operator and argument. */
+  val constantPool = Some(BasicAtom.buildConstantPool(3, op, arg))
   
   /** The De Bruijn index is just the maximum of the operator and body. */
   val deBruijnIndex = op.deBruijnIndex.max(arg.deBruijnIndex)

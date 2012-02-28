@@ -100,6 +100,9 @@ case class AtomList(atoms: Seq[BasicAtom],
   // The list is constant iff all elements are constant.
   val isConstant = atoms.forall(_.isConstant)
   
+  /** The constant pool is derived from the children of the list. */
+  val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))
+  
   // The De Bruijn index is equal to the maximum index of the atoms in the
   // sequence.  Compute that now.
   val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)

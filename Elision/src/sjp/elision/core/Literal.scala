@@ -257,8 +257,8 @@ case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
 	/** The depth of all literals is zero. */
 	val depth = 0
   
-  /** Literals contain no constant children. */
-  val constantPool = Map[Int, Int]()
+  /** Literals contain no constant "children". */
+  val constantPool = None
 
 	override val isTrue = value match {
 		case BooVal(true) => true

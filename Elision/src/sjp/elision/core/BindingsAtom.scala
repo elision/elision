@@ -59,6 +59,13 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
   
   /** The depth is equal to the maximum depth of the bindings, plus one. */
   val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
+  
+  /**
+   * Build the constant pool.  This might be costly, and we might not need it
+   * that often, so we make it lazy.
+   */
+  lazy val constantPool =
+    Some(BasicAtom.buildConstantPool(theType.hashCode, mybinds.values.toSeq:_*))
 
   /**
    * Match this bindings atom against the provided atom.

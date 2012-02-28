@@ -35,6 +35,8 @@ package sjp.elision.core
 sealed abstract class Strategy extends BasicAtom {
   val theType = TypeUniverse
   
+  val constantPool:Option[Map[Int,Int]] = None
+  
   /**
    * Apply this strategy to the given atom, honoring the supplied bindings.
    * The result of this is a pair consisting of a (possibly new) atom and
@@ -72,6 +74,7 @@ case class StrategyDefinition(name: String, strat: Strategy) extends BasicAtom {
   val deBruijnIndex = strat.deBruijnIndex
   val isConstant = strat.isConstant
   val depth = strat.depth + 1
+  val constantPool = None
   def toParseString =
     "{ strategy " + toESymbol(name) + " " + strat.toParseString + " }"
   override def toString = "StrategyDefinition(" + toEString(name) + "," + strat + ")"

@@ -55,7 +55,7 @@ object TypeUniverse extends RootType {
   def toParseString = "^TYPE"
   
   /** The type universe contains no constant children. */
-  val constantPool = Map[Int, Int]()
+  val constantPool = None
 
   /**
    * Type universe matching is a special case, and the basis case, for matching

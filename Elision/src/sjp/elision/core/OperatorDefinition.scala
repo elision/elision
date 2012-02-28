@@ -47,6 +47,12 @@ extends BasicAtom {
   val deBruijnIndex = 0
   
   /**
+   * Operator definitions do not maintain a constant pool since they are seldom
+   * involved in matching.
+   */
+  val constantPool = None
+  
+  /**
    * The depth of an operator definition is equal to the depth of the prototype.
    */
   val depth = proto.depth
@@ -182,12 +188,19 @@ case class OperatorProperties(
     idem: Boolean = false,
     absorber: Option[BasicAtom] = None,
     identity: Option[BasicAtom] = None) {
+  /**
+   * The properties object is constant iff the absorber and identity are
+   * constants.
+   */
   lazy val isConstant = (absorber, identity) match {
     case (None, None) => true
     case (Some(atom), None) => atom.isConstant
     case (None, Some(atom)) => atom.isConstant
     case (Some(a1), Some(a2)) => a1.isConstant && a2.isConstant
   }
+  
+  /** Operator properties do not keep around a constant pool. */
+  val constantPool = None
   
   // Absorbers, identities, and idempotency are only allowed when an operator
   // is associative.

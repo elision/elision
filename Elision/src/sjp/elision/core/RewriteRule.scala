@@ -53,6 +53,10 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
   
   lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
   	guards.foldLeft(true)(_ && _.isConstant)
+  	
+  val constantPool =
+    Some(BasicAtom.buildConstantPool(theType.hashCode,
+        (pattern +: rewrite +: guards):_*))
   
   // The De Bruijn index of a rewrite rule is equal to the maximum index of
   // the children of the rule.

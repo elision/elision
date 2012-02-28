@@ -82,8 +82,8 @@ extends BasicAtom {
   val depth = body.depth + 1
   
   /** A lambda's body may be a constant. */
-  val constantPool = (if (body.isConstant) Map[Int, Int](body.hashCode -> 0)
-  		else Map[Int,Int]())
+  val constantPool =
+    Some(BasicAtom.buildConstantPool(theType.hashCode, lvar, body))
 	  	
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     subject match {

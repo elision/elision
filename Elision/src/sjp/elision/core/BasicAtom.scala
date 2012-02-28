@@ -143,6 +143,8 @@ trait HasData {
  *    }}}
  */
 abstract class BasicAtom {
+  import scala.collection.mutable.{Map => MMap}
+  
   /** The type for the atom. */
   val theType: BasicAtom
   
@@ -187,7 +189,30 @@ abstract class BasicAtom {
    * constant pool can be omitted by setting it to `None`.
    * 
    * For nodes that have atom children each child should be queried to determine
-   * if it is a constant.  If so, get its hash code, merge it with the 
+   * if it is a constant.  If so, get its hash code, merge it with the atom's
+   * own top level code (the name of an operator or some other relevant item),
+   * and store it in the pool.
+   * 
+   * If a child is not a constant, get its constant pool and iterate over it,
+   * adding the atom's own top level code to each hash code, and putting the
+   * result in the pool.
+   * 
+   * See the function `buildConstantPool` in the companion object for help with
+   * all this.  That function should be sufficient for nearly all atoms.
+   * 
+   * Suppose you have a complicated case, such as two distinguished children
+   * alice and bob, and then a litter of others.  Your constructor might be
+   * {{{
+   * class Klaus(alice: BasicAtom, bob: BasicAtom, litter: BasicAtom*)
+   * }}}
+   * Computing the constant pool for this using the `buildConstantPool` works
+   * like this.
+   * {{{
+   * val constantPool =
+   *     Some(BasicAtom.buildConstantPool("Klaus".hashCode,
+   *         (pattern +: rewrite +: guards):_*))
+   * }}}
+   * Everything else should be significantly easier!
    */
   val constantPool: Option[Map[Int, Int]]
   
@@ -344,4 +369,32 @@ abstract class BasicAtom {
 object BasicAtom {
   /** Enable (if true) or disable (if false) match tracing. */
   var traceMatching = false
+  
+  /**
+   * Provide a convenience method to compute the constant pool map for an atom.
+   * Invoke this with your top-level hash (probably your operator name or some
+   * similar simple thing) and then provide the children as arguments, or just
+   * provide the list of children, expanded for the vararg method.
+   * 
+   * @param myhash		Your top-level hash.  The constant hash for constants.
+   * @param children	The children.
+   * @return	The constant pool map.
+   */
+  def buildConstantPool(myhash: Int, children: BasicAtom*): Map[Int,Int] = {
+    // Provide a specialized method to deal with the logic for children.  This
+    // could be folded into the expression later, but is broken out here for
+    // slightly improved readability.
+    def handleChild(child: BasicAtom, index: Int) =
+      if (child.isConstant)
+        List(hashify(myhash, child) -> index)
+      else
+        child.constantPool.getOrElse(Map.empty).keySet.map {
+        	(hashify(myhash,_) -> index)
+        }
+    
+    // Compute the map.
+    children.zip(0 until children.length).map {
+      pair => handleChild(pair._1, pair._2)
+    }.flatten.toMap
+  }
 }

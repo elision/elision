@@ -74,6 +74,12 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   /** The operator is constant iff its definition is a constant. */
   val isConstant = opdef.isConstant
   
+  /**
+   * Since operator definitions do not maintain a constant pool, neither does
+   * an operator.
+   */
+  val constantPool = None
+  
   /** The native handler, if one is declared. */
   protected[core] var handler: Option[(String,AtomList) => BasicAtom] = None
   
