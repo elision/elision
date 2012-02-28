@@ -34,6 +34,36 @@ package sjp.elision.core
 import scala.collection.mutable.ListBuffer
 
 /**
+ * Provide a deferred apply.  This is an apply that is only evaluated if it
+ * is successfully rewritten.
+ * 
+ * @param op		The operator.
+ * @param arg		The argument.
+ */
+case class DeferApply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
+  val theType = op.theType
+  val isConstant = op.isConstant && arg.isConstant
+  val depth = (op.depth max arg.depth) + 1
+  val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
+  def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
+  override lazy val hashCode = op.hashCode * 31 + arg.hashCode
+  override def equals(other: Any) = other match {
+    case DeferApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
+    case _ => false
+  }
+  def rewrite(binds: Bindings) = {
+    val (nop, nof) = op.rewrite(binds)
+    val (narg, naf) = arg.rewrite(binds)
+    if (nof || naf) (Apply(nop, narg), true) else (this, false)
+  }
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) = subject match {
+    case DeferApply(oop, oarg) =>
+      SequenceMatcher.tryMatch(Seq(op, arg), Seq(oop, oarg), binds)
+    case _ => Fail("Deferred apply does not match.", this, subject)
+  }
+}
+
+/**
  * An apply represents applying an operator to an argument.
  * 
  * ==Structure and Syntax==

@@ -180,6 +180,18 @@ abstract class BasicAtom {
   val isConstant: Boolean
   
   /**
+   * A mapping from known constant descendants to their child index.
+   * 
+   * This works as follows.  For constants, and for atoms that do not have any
+   * atom children, the constant pool is empty.  In fact, to conserve space the
+   * constant pool can be omitted by setting it to `None`.
+   * 
+   * For nodes that have atom children each child should be queried to determine
+   * if it is a constant.  If so, get its hash code, merge it with the 
+   */
+  val constantPool: Option[Map[Int, Int]]
+  
+  /**
    * The depth of the atom.  An atom's depth is equal to the maximum depth
    * of its children, plus one.  An atom with no children has depth zero.
    */

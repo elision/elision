@@ -73,6 +73,9 @@ case class Variable(typ: BasicAtom, name: String,
   
   /** By default, variables can be bound. */
   override val isBindable = true
+  
+  /** Variables contain no constant children. */
+  val constantPool = Map[Int, Int]()
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // if the variable allows binding, and it is not already bound to a

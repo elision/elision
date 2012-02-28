@@ -151,20 +151,23 @@ object AtomParser {
 	}
 	
 	/**
-	 * Provide alternate ways to create an application node.
+	 * A node representing the deferred application of an operator to an argument.
+	 * @param context	The context.
+	 * @param op			The operator.
+	 * @param arg			The argument.
 	 */
-	object ApplicationNode {
-	  /**
-	   * Create an application node for a binary operator.
-	   * @param context	The context.
-	   * @param op			The binary operator.
-	   * @param arg1		First argument.
-	   * @param arg2		Second argument.
-	   * @return	The new application node.
-	   */
-	  def apply(context: Context, op: AstNode,
-	      arg1: AstNode, arg2: AstNode): ApplicationNode =
-	    ApplicationNode(context, op, AtomListNode(List(arg1, arg2)))
+	case class DeferApplicationNode(context: Context, op: AstNode, arg: AstNode)
+	extends AstNode {
+	  def interpret = {
+	    // If the operator provided is a symbol, then we will try to interpret it
+	    // as an operator.
+	    val atom = op.interpret
+	    atom match {
+	      case Literal(_, SymVal(sval)) =>
+	        DeferApply(context.operatorLibrary(sval.name),arg.interpret)
+	      case _ => DeferApply(atom, arg.interpret)
+	    }
+	  }
 	}
 	
 	/**
@@ -820,9 +823,14 @@ extends Parser {
   def Atom: Rule1[AstNode] = rule {
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
-    zeroOrMore(FirstAtom ~ WS ~ ".") ~ FirstAtom ~~> (
+    zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(ApplicationNode(context,_,_)))
+          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
+    // Handle the special case of a defered operator application.  These also
+    // bind to the right.
+    zeroOrMore(FirstAtom ~ WS ~ ".. ") ~ FirstAtom ~~> (
+        (funlist: List[AstNode], lastarg: AstNode) =>
+          funlist.foldRight(lastarg)(DeferApplicationNode(context,_,_)))
   }
   
   /**

@@ -41,7 +41,7 @@ abstract class RootType extends BasicAtom {
   
   /** Unless overridden, the depth of all root types is zero. */
   val depth = 0
-  
+
   /**
    * Try to match this type against the provided atom.  Note that root types
    * match only themselves, so the match works iff the subject is equal to this
@@ -86,6 +86,9 @@ case class NamedRootType(name: String) extends RootType {
   
   /** All named root types are constants. */
   val isConstant = true
+  
+  /** Root types contain no constant children. */
+  val constantPool = Map[Int, Int]()
   
   /**
    * The parse string is the name of the root type, as a symbol.  For this to
