@@ -48,8 +48,8 @@ import scala.collection.mutable.ListBuffer
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
   require(mybinds != null, "Bindings are null.")
   
-  /** The type of a bindings atom is just ^TYPE. */
-  val theType = TypeUniverse
+  /** The type of a bindings atom is the special bindings type. */
+  val theType = BINDINGS
   
   /** This atom is constant iff the bound value of each variable is constant. */
   val isConstant = mybinds.values.foldLeft(true)(_ && _.isConstant)

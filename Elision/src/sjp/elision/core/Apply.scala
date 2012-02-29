@@ -208,11 +208,27 @@ object Apply {
 	    case rule:RewriteRule =>
 	      // Try to apply the rewrite rule.  Whatever we get back is the result.
 	      //println("Rewriting with rule.")
-	      rule.tryRewrite(arg)._1
+	      val result = rule.tryRewrite(arg)
+	      var binds = new Bindings
+	      binds += (
+	          "atom" -> result._1,
+	          "flag" -> (if (result._2) Literal.TRUE else Literal.FALSE))
+	      binds
 	    case binds:BindingsAtom =>
-	      // Try to rewrite the argument using the bindings and whatever we get
-	      // back is the result.
-	      arg.rewrite(binds)._1
+	      // Check the argument to see if it is a single symbol.
+	      arg match {
+	        case Literal(SYMBOL, SymVal(sym)) =>
+	          // Try to extract the symbol from the binding.  If it is not there,
+	          // then the answer is Nothing.
+	          binds.get(sym.name) match {
+	            case Some(atom) => atom
+	            case _ => Literal.NOTHING
+	          }
+	        case _ =>
+			      // Try to rewrite the argument using the bindings and whatever we get
+			      // back is the result.
+			      arg.rewrite(binds)._1
+	      }
 	    case _ =>
 	      //println("Rewriting vanilla.")
 	      new Apply(op, arg)

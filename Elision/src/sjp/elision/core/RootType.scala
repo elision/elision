@@ -151,7 +151,9 @@ object RULETYPE extends NamedRootType("RULETYPE")
 /** A type for all operators. */
 object OPTYPE extends NamedRootType("OPTYPE")
 /** A type for all strategies. */
-object STRATTYPE extends NamedRootType("STRATTYPE")
+object STRATEGY extends NamedRootType("STRATEGY")
+/** A type for all bindings. */
+object BINDINGS extends NamedRootType("BINDINGS")
 
 /**
  * The unusual type ANY that matches anything.
