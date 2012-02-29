@@ -98,22 +98,37 @@ object Repl {
   private var _stacktrace = false
   
   /**
+   * Whether to suppress most printing.  Errors and warnings are not suppressed,
+   * and explicitly requested output is also not suppressed.
+   */
+  private var _quiet = false
+  
+  /** Write a message, unless quiet is enabled. */
+  private def emitln(msg: String) { if (!_quiet) println(msg) }
+  
+  /** Emit an error message, with the ERROR prefix. */
+  private def error(msg: String) { println("ERROR: " + msg) }
+  
+  /** Emit a warning message, with the WARNING prefix. */
+  private def warn(msg: String) { println("WARNING: " + msg) }
+  
+  /**
    * The entry point when started from the command line.  Print the current
    * version number, then invoke `run`.
    * @param args	The command line arguments.
    */
   def main(args: Array[String]) {
     run
-    println("")
-    println("Context: ")
-    println(_context.toParseString)
+    emitln("")
+    emitln("Context: ")
+    emitln(_context.toParseString)
   }
   
   /**
    * Display the banner.
    */
   private def banner() {
-    println("""|      _ _     _
+    emitln("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
 							 ||  __/ | \__ \ | (_) | | | |
@@ -143,20 +158,28 @@ object Repl {
     // Display the banner
     banner()
     
+    // Cause the named types to be constructed.
+    BOOLEAN
+    
     // Define the operators.
     if (!_opsDefined) defineOps
     
     // Bootstrap now.
-    println("Bootstrapping Strategies...")
+    val qt = _quiet
+    emitln("Bootstrapping Strategies...")
+    _quiet = true
     execute(bootstrap.Strategies.defs)
-    println("Bootstrapping Scheme...")
+    _quiet = qt
+    emitln("Bootstrapping Scheme...")
+    _quiet = true
     execute(bootstrap.Scheme.defs)
+    _quiet = qt
 
     // Show the prompt and read a line.
     val cr = new jline.ConsoleReader
     cr.setHistory(_hist)
     while(true) {
-      val line = cr.readLine("e> ")
+      val line = cr.readLine(if (_quiet) "q> " else "e> ")
       if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
       execute(line)
     }
@@ -175,8 +198,10 @@ object Repl {
    *    Print help text.
    * 
    * @param line	The line to execute.
+   * @param quiet	If true, suppress printing of the atoms.  Errors are still
+   * 							printed.
    */
-  def execute(line: String) {
+  def execute(line: String, quiet: Boolean = false) {
     var lline = line.trim
     // Skip blank lines.
     if (lline == "") return
@@ -189,7 +214,7 @@ object Repl {
       	lline = _hist.getHistory(num)
       } catch {
         case ex:IndexOutOfBoundsException =>
-          println("ERROR: No such history item.")
+          error("No such history item.")
           return
       }
     }
@@ -204,7 +229,7 @@ object Repl {
 	    }
     } catch {
       case ex:Exception =>
-        println("ERROR (" + ex.getClass + "): " + ex.getMessage())
+        error("(" + ex.getClass + ") " + ex.getMessage())
         if (_stacktrace) ex.printStackTrace()
     }
   }
@@ -219,7 +244,7 @@ object Repl {
       case Some(name) => "$" + name + " = "
     }
     if (_showScala) println("Scala: " + pre + atom)
-    println(pre + atom.toParseString)
+    emitln(pre + atom.toParseString)
     checkParseString(atom)
   }
   
@@ -240,23 +265,23 @@ object Repl {
       case _parser.Success(list) =>
         // If there is more than one atom, then we have a failure.
         if (list.length == 0)
-          println("ERROR: Round-trip parse failure for atom " +
+          error("Round-trip parse failure for atom " +
               atom.toString + ".  No atoms returned on parse.")
         if (list.length > 1) {
-          println("ERROR: Round-trip parse failure for atom " +
+          error("Round-trip parse failure for atom " +
               atom.toString + ".  Too many atoms returned on parse.")
           for (node <- list) println(" -> " + node.interpret.toParseString)
         }
         // The result must be equal to the original atom.
         val newatom = list(0).interpret
         if (atom != newatom) {
-          println("ERROR: Round-trip parse failure for atom " +
+          error("Round-trip parse failure for atom " +
               atom.toString + ".  Atom unequal to original.")
           println("  original: " + atom.toParseString)
           println("  result:   " + newatom.toParseString)
         }
       case _parser.Failure(msg) =>
-        println("ERROR: Round-trip parse failure for atom " + atom.toString +
+        error("Round-trip parse failure for atom " + atom.toString +
             ".\nParse failed: " + msg)
     }
   }
@@ -273,7 +298,7 @@ object Repl {
           case Args(from:Variable, to:BasicAtom) =>
           	// Bind the variable in this context.
             _binds += (from.name -> to)
-            println("Bound " + from.toParseString)
+            emitln("Bound " + from.toParseString)
             to
           case _ => Literal.FALSE
         })
@@ -297,7 +322,7 @@ object Repl {
           case Args(from:Variable) =>
           	// Unbind the variable in this context.
             _binds -= from.name
-            println("Unbound " + from.toParseString)
+            emitln("Unbound " + from.toParseString)
             TypeUniverse
           case _ => Literal.FALSE
         })
@@ -329,7 +354,7 @@ object Repl {
         (_, list:AtomList) => list match {
           case Args() =>
             _stacktrace = !_stacktrace
-            println("Printing stack traces is " +
+            emitln("Printing stack traces is " +
                 (if (_stacktrace) "ON" else "OFF") + ".") 
             Literal.NOTHING
           case _ => Literal.FALSE
@@ -342,7 +367,7 @@ object Repl {
         (_, list:AtomList) => list match {
           case Args(filename:Literal) =>
             // TODO Read the content of the file.
-            println("Not implemented.")
+            emitln("Not implemented.")
             Literal.FALSE
           case _ => Literal.FALSE
         })
@@ -354,7 +379,7 @@ object Repl {
         (_, list:AtomList) => list match {
           case Args(filename:Literal) =>
             // TODO Write the content to the file.
-            println("Not implemented.")
+            emitln("Not implemented.")
             Literal.FALSE
           case _ => Literal.FALSE
         })
@@ -398,7 +423,7 @@ object Repl {
 		        // Toggle tracing.
 		        _trace = !_trace
 		        _parser = new AtomParser(_context, _trace)
-		        println("Tracing is " + (if (_trace) "ON." else "OFF."))
+		        emitln("Tracing is " + (if (_trace) "ON." else "OFF."))
 		        Literal.NOTHING
           case _ => Literal.FALSE
         })
@@ -411,7 +436,7 @@ object Repl {
           case Args() =>
 		        // Toggle tracing.
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
-		        println("Match tracing is " +
+		        emitln("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
 		        Literal.NOTHING
           case _ => Literal.FALSE
@@ -425,7 +450,7 @@ object Repl {
           case Args() =>
 		        // Toggle showing the Scala term.
 		        _showScala = !_showScala
-		        println("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
+		        emitln("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
 		        Literal.NOTHING
           case _ => Literal.FALSE
         })
@@ -438,7 +463,7 @@ object Repl {
           case Args() =>
 		        // Toggle showing the prior term.
 		        _showPrior = !_showPrior
-		        println("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
+		        emitln("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
 		        Literal.NOTHING
           case _ => Literal.FALSE
         })
@@ -455,6 +480,19 @@ object Repl {
 		        }
 		        println("Persistent history is found in: " + _filename)
 		        Literal.NOTHING
+          case _ => Literal.FALSE
+        })
+        
+    // Quiet.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("quiet", ANYTYPE), Prop()))
+    _context.operatorLibrary.register("quiet",
+        (_, list:AtomList) => list match {
+          case Args() =>
+            // Enable quiet.
+            _quiet = !_quiet
+            emitln("Quiet is " + (if (_quiet) "enabled." else "disabled."))
+            Literal.NOTHING
           case _ => Literal.FALSE
         })
         
