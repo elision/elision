@@ -344,17 +344,19 @@ object AtomParser {
 	//----------------------------------------------------------------------
 	// Object and binding nodes.
 	//----------------------------------------------------------------------
-	
+
 	/**
 	 * Represent a bindings atom.
 	 * @param map	The bindings.
 	 */
-	case class BindingsNode(map: Map[String,AstNode]) extends AstNode {
+	case class BindingsNode(map: List[(NakedSymbolNode,AstNode)]) extends AstNode {
 	  def interpret = {
 	    var binds = new Bindings
 	    for ((str,node) <- map) {
-	      binds += (str -> node.interpret)
+	      binds += (str.str -> node.interpret)
 	    }
+	    println("Parsed Map  : " + map)
+	    println("Parsed Binds: " + binds.toParseString)
 	    BindingsAtom(binds)
 	  }
 	}
@@ -1352,18 +1354,16 @@ extends Parser {
   /**
    * Parse a set of bindings.
    */
-  def ParsedBindings = {
-    var binds = Map[String,AstNode]()
-    rule {
-      ("{ " ~ "bind " ~
-      optional(ESymbol ~ "-> " ~ FirstAtom ~~>
-      	((sym: NakedSymbolNode, atom: AstNode) =>
-      	  binds += (sym.str -> atom)) ~
-      zeroOrMore(", " ~ ESymbol ~ "-> " ~ FirstAtom ~~>
-      	((sym: NakedSymbolNode, atom: AstNode) =>
-      	  binds += (sym.str -> atom)))) ~
-      "} ") ~~> (x => BindingsNode(binds))
-    }
+  def ParsedBindings = rule {
+    "{ " ~ "bind " ~ ParsedBind ~ zeroOrMore(", " ~ ParsedBind) ~ "} " ~~>
+    ((x:(NakedSymbolNode, AstNode), rest) => BindingsNode(x :: rest))
+  }
+
+  /**
+   * Parse a single bind.
+   */
+  def ParsedBind = rule {
+    ESymbol ~ "-> " ~ Atom ~~> (_ -> _)
   }
   
   //======================================================================
