@@ -355,8 +355,6 @@ object AtomParser {
 	    for ((str,node) <- map) {
 	      binds += (str.str -> node.interpret)
 	    }
-	    println("Parsed Map  : " + map)
-	    println("Parsed Binds: " + binds.toParseString)
 	    BindingsAtom(binds)
 	  }
 	}

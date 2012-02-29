@@ -35,8 +35,6 @@ package bootstrap
 object Strategies {
 
   val defs = """
-    BOOLEAN
-    
   { rulesets IF, STRAT }
     
   { operator if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T }
