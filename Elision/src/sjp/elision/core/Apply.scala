@@ -194,38 +194,45 @@ object Apply {
     //println("  op -> " + op)
     //println(" arg -> " + arg)
 	  op match {
+	    case app:Applicable =>
+	      // The operator is applicable; invoke its apply method.
+	      val binds = app.doApply(arg)
+	      if (binds.size == 1) binds.get("atom") match {
+	        case Some(atom) => atom
+	        case _ => binds
+	      } else binds
 	    case oper:Operator =>
 	      // Applying an operator to an argument is a special, but probably usual,
 	      // case.
 	      opApply(oper, arg)
-	    case Lambda(_, lvar, body) =>
-	      // Curry the lambda body by binding the variable to the argument and then
-	      // rewriting the body.
-	      body.rewrite((new Bindings) + (lvar.name -> arg))._1
-	    case rule:RewriteRule =>
-	      // Try to apply the rewrite rule.  Whatever we get back is the result.
-	      //println("Rewriting with rule.")
-	      val result = rule.tryRewrite(arg)
-	      var binds = new Bindings
-	      binds += (
-	          "atom" -> result._1,
-	          "flag" -> (if (result._2) Literal.TRUE else Literal.FALSE))
-	      binds
-	    case binds:BindingsAtom =>
-	      // Check the argument to see if it is a single symbol.
-	      arg match {
-	        case Literal(SYMBOL, SymVal(sym)) =>
-	          // Try to extract the symbol from the binding.  If it is not there,
-	          // then the answer is Nothing.
-	          binds.get(sym.name) match {
-	            case Some(atom) => atom
-	            case _ => Literal.NOTHING
-	          }
-	        case _ =>
-			      // Try to rewrite the argument using the bindings and whatever we get
-			      // back is the result.
-			      arg.rewrite(binds)._1
-	      }
+//	    case Lambda(_, lvar, body) =>
+//	      // Curry the lambda body by binding the variable to the argument and then
+//	      // rewriting the body.
+//	      body.rewrite((new Bindings) + (lvar.name -> arg))._1
+//	    case rule:RewriteRule =>
+//	      // Try to apply the rewrite rule.  Whatever we get back is the result.
+//	      //println("Rewriting with rule.")
+//	      val result = rule.tryRewrite(arg)
+//	      var binds = new Bindings
+//	      binds += (
+//	          "atom" -> result._1,
+//	          "flag" -> (if (result._2) Literal.TRUE else Literal.FALSE))
+//	      binds
+//	    case binds:BindingsAtom =>
+//	      // Check the argument to see if it is a single symbol.
+//	      arg match {
+//	        case Literal(SYMBOL, SymVal(sym)) =>
+//	          // Try to extract the symbol from the binding.  If it is not there,
+//	          // then the answer is Nothing.
+//	          binds.get(sym.name) match {
+//	            case Some(atom) => atom
+//	            case _ => Literal.NOTHING
+//	          }
+//	        case _ =>
+//			      // Try to rewrite the argument using the bindings and whatever we get
+//			      // back is the result.
+//			      arg.rewrite(binds)._1
+//	      }
 	    case _ =>
 	      //println("Rewriting vanilla.")
 	      new Apply(op, arg)

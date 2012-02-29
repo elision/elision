@@ -422,6 +422,20 @@ object AtomParser {
 	//----------------------------------------------------------------------
 	
 	/**
+	 * A node representing the declaration of zero or more rulesets.
+	 * 
+	 * @param context		The context to get the rulesets.
+	 * @param rulesets	The ruleset names.
+	 */
+	case class RulesetDeclarationNode(context: Context,
+	    rulesets: List[NakedSymbolNode]) extends AstNode {
+	  def interpret = {
+	    rulesets.foreach(nsn => context.declareRuleset(nsn.str))
+	    Literal.TRUE
+	  }
+	}
+	
+	/**
 	 * A node representing a rewrite rule.
 	 * @param decls			Optional pattern variable declarations.
 	 * @param pattern		The pattern to match.
@@ -456,6 +470,17 @@ object AtomParser {
 	        rs,
 	        cl)
 	  }
+	}
+	
+	/**
+	 * A node representing a ruleset strategy.
+	 * 
+	 * @param context		A context to supply the rules.
+	 * @param rulesets	Names of the rulesets to use.
+	 */
+	case class RulesetsNode(context: Context, rulesets: List[NakedSymbolNode])
+	extends AstNode {
+	  def interpret = RulesetStrategy(context, rulesets.map(_.str))
 	}
 	
 	//----------------------------------------------------------------------
@@ -792,8 +817,14 @@ extends Parser {
       // Handle parenthetical expressions.
       "( " ~ Atom ~ ") " |
       
+      // Declare a ruleset.
+      ParsedRulesetDeclaration |
+      
       // Parse a rule.
       ParsedRule |
+      
+      // Parse a ruleset strategy.
+      ParsedRulesetStrategy |
       
       // Parse a match.
       ParsedMatch |
@@ -994,6 +1025,14 @@ extends Parser {
   //======================================================================
   // Parse a rewrite rule.
   //======================================================================
+  
+  /**
+   * Parse a ruleset declaration.
+   */
+  def ParsedRulesetDeclaration = rule {
+    "{ " ~ ParsedRulesetList ~ "} " ~~>
+    (RulesetDeclarationNode(context, _))
+  }
 
   /**
    * Parse a rule.
@@ -1034,6 +1073,14 @@ extends Parser {
     (ignoreCase("rulesets") | ignoreCase("ruleset")) ~
         WS ~ ESymbol ~ zeroOrMore(", " ~ ESymbol) ~~> (
           (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)
+  }
+  
+  /**
+   * Parse a ruleset strategy.
+   */
+  def ParsedRulesetStrategy = rule {
+    "{ " ~ "apply " ~ ParsedRulesetList ~ "} " ~~>
+    (RulesetsNode(context, _))
   }
 
   //======================================================================

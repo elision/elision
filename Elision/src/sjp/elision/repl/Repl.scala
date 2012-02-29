@@ -145,6 +145,12 @@ object Repl {
     
     // Define the operators.
     if (!_opsDefined) defineOps
+    
+    // Bootstrap now.
+    println("Bootstrapping Strategies...")
+    execute(bootstrap.Strategies.defs)
+    println("Bootstrapping Scheme...")
+    execute(bootstrap.Scheme.defs)
 
     // Show the prompt and read a line.
     val cr = new jline.ConsoleReader

@@ -66,7 +66,7 @@ package sjp.elision.core
  * @param body							The lambda body.
  */
 case class Lambda private (deBruijnIndex: Int, lvar: Variable, body: BasicAtom)
-extends BasicAtom {
+extends BasicAtom with Applicable {
   /** The type is a mapping from the variable type to the body type. */
   val theType = OperatorLibrary.MAP(lvar.theType, body.theType)
   
@@ -114,6 +114,11 @@ extends BasicAtom {
       body == lambda.body
     case _ => false
   }
+  
+  def doApply(atom: BasicAtom, binds: Bindings) =
+	      // Curry the lambda body by binding the variable to the argument and then
+	      // rewriting the body.
+	      Applicable.bind1(body.rewrite(binds + (lvar.name -> atom))._1)
 }
 
 /**

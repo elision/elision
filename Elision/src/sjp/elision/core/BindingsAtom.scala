@@ -45,7 +45,7 @@ import scala.collection.mutable.ListBuffer
  * ==Equality and Matching==
  * 
  */
-case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
+case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
   /** The type of a bindings atom is the special bindings type. */
@@ -139,4 +139,20 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom {
     case BindingsAtom(obinds) if (obinds == mybinds) => true
     case _ => false
   }
+  
+  def doApply(atom: BasicAtom, binds: Bindings) =
+    // Check the argument to see if it is a single symbol.
+    atom match {
+      case Literal(SYMBOL, SymVal(sym)) =>
+        // Try to extract the symbol from the binding.  If it is not there,
+        // then the answer is Nothing.
+        binds.get(sym.name) match {
+          case Some(oatom) => Applicable.bind1(oatom)
+          case _ => Applicable.bind1(Literal.NOTHING)
+        }
+      case _ =>
+	      // Try to rewrite the argument using the bindings and whatever we get
+	      // back is the result.
+	      Applicable.bind1(atom.rewrite(mybinds)._1)
+    }
 }

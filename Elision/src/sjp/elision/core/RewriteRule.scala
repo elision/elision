@@ -32,6 +32,52 @@
 package sjp.elision.core
 
 /**
+ * This strategy applies the rules in a ruleset.  The first rule, in declared
+ * order, to rewrite the atom wins.  At most one rewrite is performed.
+ * 
+ * The basic syntax is:
+ * {{{
+ * { rulesets NAME1, NAME2, ..., NAMEn }
+ * }}}
+ * This applies rules from the named rulesets.  The listing order of the
+ * rulesets is //not// significant; only the declaration order of the rules.
+ * 
+ * @param context	The context supplying the rules.
+ * @param names		The names of the rulesets to apply.
+ */
+case class RulesetStrategy(context: Context, names: List[String])
+extends BasicAtom with Applicable {
+  val theType = STRATEGY
+  val isConstant = true
+  val constantPool = None
+  val deBruijnIndex = 0
+  val depth = 0
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) = subject match {
+    case RulesetStrategy(_, onames) if names == onames => Match(binds)
+    case _ => Fail("Ruleset strategies do not match.", this, subject)
+  }
+  def rewrite(binds: Bindings) = (this, false)
+  def toParseString = names.map(toEString(_)).mkString("{ rulesets ", ", ", " }")
+  override def toString = "RulesetStrategy(" + context + ", " +
+  		names.map(toEString(_)).mkString(", ") + ")"
+  		
+  /**
+   * Apply this strategy.  If any rule completes then the returned flag is
+   * true.  Otherwise it is false.
+   */
+  def doApply(atom: BasicAtom, binds: Bindings): Bindings = {
+    // Get the rules.
+    val rules = context.getRules(atom, names)
+    // Now try every rule until one applies.
+    for (rule <- rules) {
+      val (newatom, applied) = rule.tryRewrite(atom, binds)
+      if (applied) return Applicable.bind2(newatom, applied)
+    }
+    return Applicable.bind2(atom, false)
+  }
+}
+
+/**
  * Encapsulate a rewrite rule.
  * 
  * ==Structure and Syntax==
@@ -48,8 +94,8 @@ package sjp.elision.core
  */
 case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
-    extends BasicAtom {
-  val theType = RULETYPE
+    extends BasicAtom with Applicable {
+  val theType = STRATEGY
   
   lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
   	guards.foldLeft(true)(_ && _.isConstant)
@@ -174,5 +220,12 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
       guards == orule.guards &&
       rulesets == orule.rulesets
     case _ => false
+  }
+  
+  def doApply(atom: BasicAtom, binds: Bindings) = {
+    // Try to apply the rewrite rule.  Whatever we get back is the result.
+    //println("Rewriting with rule.")
+    val result = tryRewrite(atom)
+    Applicable.bind2(result._1, result._2)
   }
 }

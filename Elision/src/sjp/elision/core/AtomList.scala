@@ -135,7 +135,7 @@ case class AtomList(atoms: Seq[BasicAtom],
   def rewrite(binds: Bindings) = {
     // We must rewrite every child atom, and collect them into a new sequence.
     val (newlist, changed) = SequenceMatcher.rewrite(atoms, binds)
-    if (changed) (AtomList(newlist), true) else (this, false)
+    if (changed) (AtomList(newlist, props), true) else (this, false)
   }
 
   // An atom list is just the list of atoms, separated by commas.  The list may
