@@ -119,37 +119,6 @@ class Context(val allowUndeclared:Boolean = false) {
   }
   
   //======================================================================
-  // Strategy management.
-  //======================================================================
-  
-  import scala.collection.mutable.{Map => MMap}
-  
-  /** The named strategies. */
-  private val _strategies = MMap[String, Strategy]()
-  
-  /**
-   * Add a named strategy to the known strategies.  If the strategy name is
-   * in use, an error is generated.
-   * 
-   * @param sd	The strategy definition.
-   * @return	This context.
-   */
-  def add(sd: StrategyDefinition) = _strategies.get(sd.name) match {
-    case None => _strategies += (sd.name -> sd.strat)
-    case Some(s) => throw new StrategyRedefinitionException(
-        "Attempt to redefine strategy " + sd.name +
-        ".  Prior strategy is " + s.toParseString + ".")
-  }
-  
-  /**
-   * Try to get a named strategy.
-   * 
-   * @param name	The strategy name.
-   * @return	The strategy.
-   */
-  def getStrategy(name: String) = _strategies.get(name)
-  
-  //======================================================================
   // Controlling active rulesets.
   //======================================================================
 

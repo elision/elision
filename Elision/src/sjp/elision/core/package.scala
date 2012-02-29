@@ -237,12 +237,6 @@ package object core {
   /** Convert a Scala symbol to a symbol literal. */
   implicit def symToLiteral(symbol: Symbol) = Literal(SYMBOL, symbol)
   
-  /** Convert a rewrite rule to a rule strategy. */
-  implicit def ruleToStrategy(rule: RewriteRule) = RuleStrategy(rule)
-  
-  /** Convert a rule strategy to a rewrite rule. */
-  implicit def strategyToRule(rs: RuleStrategy) = rs.rule
-  
   /**
    * Magically add a mkParseString, roughly equivalent to mkString, to every
    * sequence of objects that extend BasicAtom.  Try that with Java!

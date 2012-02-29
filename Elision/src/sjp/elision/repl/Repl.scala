@@ -469,10 +469,6 @@ object Repl {
       	// Put operator definitions in the operator library.
         _library.add(od)
         true
-      case sd:StrategyDefinition =>
-        // Put strategy definitions in the context.
-        _context.add(sd)
-        true
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)

@@ -691,55 +691,6 @@ object AtomParser {
 	  def retype(newtyp: AstNode) = FloatNode(sign, integer, fraction, radix, exp,
 	      newtyp)
 	}
-	
-	//----------------------------------------------------------------------
-	// Strategy nodes.
-	//----------------------------------------------------------------------
-	
-	case class StrategyBindingNode(name: NakedSymbolNode, strat: StrategyNode)
-	extends AstNode {
-	  def interpret = StrategyDefinition(name.str, strat.interpret)
-	}
-	
-	abstract sealed class StrategyNode extends AstNode {
-	  override def interpret: Strategy
-	}
-	
-	case object NoopStrategyNode extends StrategyNode {
-	  def interpret = NoopStrategy
-	}
-	case class StrategyReferenceNode(context: Context, name: NakedSymbolNode)
-	extends StrategyNode {
-	  def interpret = context.getStrategy(name.str) match {
-	    case Some(strat) => strat
-	    case None =>
-	      throw new ParsingException("No such named strategy: " + name.str + ".")
-	  }
-	}
-	case class RuleStrategyNode(rule: RuleNode) extends StrategyNode {
-	  def interpret = RuleStrategy(rule.interpret)
-	}
-	case class RulesetStrategyNode(context: Context,
-	    rulesets: List[NakedSymbolNode]) extends StrategyNode {
-	  def interpret = RulesetStrategy(context, rulesets.map(_.str))
-	}
-	case class ThenStrategyNode(list: List[StrategyNode]) extends StrategyNode {
-	  def interpret = ThenStrategy(list.map(_.interpret))
-	}
-	case class AndAlsoStrategyNode(list: List[StrategyNode]) extends StrategyNode {
-	  def interpret = AndAlsoStrategy(list.map(_.interpret))
-	}
-	case class OrElseStrategyNode(list: List[StrategyNode]) extends StrategyNode {
-	  def interpret = OrElseStrategy(list.map(_.interpret))
-	}
-	case class IfThenElseStrategyNode(test: StrategyNode, yes: StrategyNode,
-	    no: StrategyNode) extends StrategyNode {
-	  def interpret = IfThenElseStrategy(test.interpret, yes.interpret,
-	      no.interpret)
-	}
-	case class WhileStrategyNode(child: StrategyNode) extends StrategyNode {
-	  def interpret = child.interpret
-	}
 }
 
 //======================================================================
@@ -844,14 +795,8 @@ extends Parser {
       // Parse a rule.
       ParsedRule |
       
-      // Parse a strategy.
-      ParsedStrategy |
-      
       // Parse a match.
       ParsedMatch |
-      
-      // Parse a strategy definition.
-      ParsedStrategyDeclaration |
       
       // Parse an operator definition.
       ParsedOperatorDefinition |
@@ -890,12 +835,6 @@ extends Parser {
       ESymbol ~ ": " ~ "OPTYPE " ~~> (
           (sym: NakedSymbolNode) =>
             OperatorNode(sym.str, context.operatorLibrary)) |
-            
-      // A "naked" strategy is specified by explicitly giving the strategy
-      // type STRATTYPE.  Otherwise it is parsed as a symbol.
-      ESymbol ~ ": " ~ "STRATTYPE " ~~> (
-          (sym: NakedSymbolNode) =>
-            StrategyReferenceNode(context, sym)) |
        
       // Parse a literal.  A literal can take many forms, but it should be
       // possible to always detect the kind of literal during parse.  By
@@ -1390,74 +1329,6 @@ extends Parser {
   def ParsedMatch = rule {
     "{ " ~ "match " ~ FirstAtom ~ "-> " ~ FirstAtom ~ "} " ~~>
     ((pat,sub) => MatchNode(pat, sub))
-  }
-  
-  //======================================================================
-  // Parse strategies.
-  //======================================================================
-  
-  def ParsedStrategyDeclaration = rule {
-    "{ " ~ "strategy " ~ ESymbol ~ "= " ~ ParsedSubStrategy ~ "} " ~~>
-    (StrategyBindingNode(_,_))
-  }
-
-  def ParsedSubStrategy:Rule1[StrategyNode] = rule {
-    ParsedStrategy |
-    ParsedRuleStrategy |
-    ParsedNoopStrategy |
-    ESymbol ~~> (StrategyReferenceNode(context,_))
-  }
-  
-  def ParsedStrategy:Rule1[StrategyNode] = rule {
-    ParsedRulesetStrategy |
-    ParsedThenStrategy |
-    ParsedAndAlsoStrategy |
-    ParsedOrElseStrategy |
-    ParsedIfThenElseStrategy |
-    ParsedWhileStrategy
-  }
-  
-  def ParsedNoopStrategy = rule {
-    "{ " ~ "} " ~ push(NoopStrategyNode)
-  }
-  
-  def ParsedRuleStrategy = rule {
-    ParsedRule ~~>
-    (RuleStrategyNode(_))
-  }
-  
-  def ParsedRulesetStrategy = rule {
-    "{ " ~ ParsedRulesetList ~ "} " ~~>
-    (RulesetStrategyNode(context, _))
-  }
-  
-  def ParsedThenStrategy = rule {
-    "{ " ~ "then " ~ oneOrMore(ParsedSubStrategy) ~ "} " ~~>
-    (ThenStrategyNode(_))
-  }
-  
-  def ParsedAndAlsoStrategy = rule {
-    "{ " ~ "andalso " ~ oneOrMore(ParsedSubStrategy) ~ "} " ~~>
-    (AndAlsoStrategyNode(_))
-  }
-  
-  def ParsedOrElseStrategy = rule {
-    "{ " ~ "orelse " ~ oneOrMore(ParsedSubStrategy) ~ "} " ~~>
-    (OrElseStrategyNode(_))
-  }
-  
-  def ParsedIfThenElseStrategy = rule {
-    "{ " ~
-    "if " ~ ParsedSubStrategy ~
-    "then " ~ ParsedSubStrategy ~
-    "else " ~ ParsedSubStrategy ~
-    "} " ~~>
-    (IfThenElseStrategyNode(_,_,_))
-  }
-  
-  def ParsedWhileStrategy = rule {
-    "{ " ~ "while " ~ ParsedSubStrategy ~ "} " ~~>
-    (WhileStrategyNode(_))
   }
 
   //======================================================================

@@ -153,7 +153,7 @@ object OPTYPE extends NamedRootType("OPTYPE")
 /** A type for all strategies. */
 object STRATEGY extends NamedRootType("STRATEGY")
 /** A type for all bindings. */
-object BINDINGS extends NamedRootType("BINDINGS")
+object BINDING extends NamedRootType("BINDING")
 
 /**
  * The unusual type ANY that matches anything.

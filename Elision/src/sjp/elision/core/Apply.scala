@@ -202,9 +202,6 @@ object Apply {
 	      // Curry the lambda body by binding the variable to the argument and then
 	      // rewriting the body.
 	      body.rewrite((new Bindings) + (lvar.name -> arg))._1
-	    case strat:Strategy =>
-	      // Try to apply the strategy.  Whatever we get back is the result.
-	      strat.apply(arg, new Bindings())._1
 	    case rule:RewriteRule =>
 	      // Try to apply the rewrite rule.  Whatever we get back is the result.
 	      //println("Rewriting with rule.")
