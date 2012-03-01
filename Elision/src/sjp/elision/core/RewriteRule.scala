@@ -77,6 +77,34 @@ extends BasicAtom with Applicable {
   }
 }
 
+case class MapStrategy(labels: List[String], lhs: BasicAtom)
+extends BasicAtom with Applicable {
+	val theType = STRATEGY
+	
+	val isConstant = lhs.isConstant
+	val deBruijnIndex = lhs.deBruijnIndex
+	val depth = lhs.depth + 1
+	val constantPool =
+	  Some(BasicAtom.buildConstantPool(theType.hashCode, lhs))
+	  
+	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+	  Fail("Not implemented.", this, subject)
+	  
+	def rewrite(binds: Bindings) = (this, false)
+	
+	def toParseString = "{ map " +
+			labels.map("@" + _).mkString(" ") +
+			" " + lhs.toParseString + " }"
+			
+  override def toString = "MapStrategy(List[String](" +
+  		labels.map(toEString(_)).mkString(", ") +
+  		", " + lhs.toString + ")"
+  		
+  override def hashCode = lhs.hashCode
+	
+	def doApply(atom: BasicAtom, binds: Bindings) = Applicable.bind1(atom)
+}
+
 /**
  * Encapsulate a rewrite rule.
  * 
@@ -174,23 +202,24 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
       true
     }
     
-    // Local function to perform the rewrite if the rule fires.
-    def doRewrite(candidate: Bindings) = rewrite.rewrite(candidate)
+    // Local function to perform the rewrite if the rule fires.  We return
+    // true in the pair no matter what, since the rule fired.
+    def doRewrite(candidate: Bindings) = (rewrite.rewrite(candidate)._1, true)
     
     // First we try to match the given atom against the pattern.
     pattern.tryMatch(subject, binds) match {
-      case fail:Fail => (subject, false)
+      case fail:Fail => return (subject, false)
       case Match(newbinds) =>
         // We got a match.  Check the guards.
-        if (checkGuards(newbinds)) doRewrite(newbinds)
-        else (subject, false)
+        if (checkGuards(newbinds)) return doRewrite(newbinds)
+        else return (subject, false)
       case Many(iter) =>
         // We might have many matches.  We search through them until we find
         // one that satisfies the guards, or until we run out of candidates.
         for (newbinds <- iter) {
-          if (checkGuards(newbinds)) doRewrite(newbinds)
+          if (checkGuards(newbinds)) return doRewrite(newbinds)
         }
-        (subject, false)
+        return (subject, false)
     }
   }
   

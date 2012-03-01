@@ -483,6 +483,17 @@ object AtomParser {
 	  def interpret = RulesetStrategy(context, rulesets.map(_.str))
 	}
 	
+	/**
+	 * A node representing the map strategy.
+	 * 
+	 * @param labels	The labels to receive the mapping.
+	 * @param atom		The atom to map.
+	 */
+	case class MapNode(labels: List[NakedSymbolNode], atom: AstNode)
+	extends AstNode {
+	  def interpret = atom.interpret
+	}
+	
 	//----------------------------------------------------------------------
 	// Literal nodes - that is, nodes that hold literal values.
 	//----------------------------------------------------------------------
@@ -1081,6 +1092,14 @@ extends Parser {
   def ParsedRulesetStrategy = rule {
     "{ " ~ "apply " ~ ParsedRulesetList ~ "} " ~~>
     (RulesetsNode(context, _))
+  }
+  
+  /**
+   * Parse a map strategy.
+   */
+  def ParsedMap = rule {
+    "{ " ~ "map " ~ zeroOrMore("@ " ~ ESymbol) ~ Atom ~ "} " ~~>
+    (MapNode(_,_))
   }
 
   //======================================================================
