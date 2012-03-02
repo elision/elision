@@ -487,11 +487,13 @@ object AtomParser {
 	 * A node representing the map strategy.
 	 * 
 	 * @param labels	The labels to receive the mapping.
+	 * @param exclude	Labels to exclude from the mapping.
 	 * @param atom		The atom to map.
 	 */
-	case class MapNode(labels: List[NakedSymbolNode], atom: AstNode)
-	extends AstNode {
-	  def interpret = atom.interpret
+	case class MapNode(include: List[NakedSymbolNode],
+	    exclude: List[NakedSymbolNode], atom: AstNode) extends AstNode {
+	  def interpret = MapStrategy(
+	      include.map(_.str).toSet, exclude.map(_.str).toSet, atom.interpret)
 	}
 	
 	//----------------------------------------------------------------------
@@ -837,6 +839,9 @@ extends Parser {
       // Parse a ruleset strategy.
       ParsedRulesetStrategy |
       
+      // Parse a map strategy.
+      ParsedMap |
+      
       // Parse a match.
       ParsedMatch |
       
@@ -1098,8 +1103,11 @@ extends Parser {
    * Parse a map strategy.
    */
   def ParsedMap = rule {
-    "{ " ~ "map " ~ zeroOrMore("@ " ~ ESymbol) ~ Atom ~ "} " ~~>
-    (MapNode(_,_))
+    "{ " ~ "map " ~
+    zeroOrMore("@ " ~ ESymbol) ~
+    zeroOrMore("- " ~ "@ " ~ ESymbol) ~
+    Atom ~ "} " ~~>
+    (MapNode(_,_,_))
   }
 
   //======================================================================

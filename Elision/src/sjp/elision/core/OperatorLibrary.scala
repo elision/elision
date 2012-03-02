@@ -117,7 +117,8 @@ class OperatorLibrary(
  	 * 								argument list, post processing for identities and such,
  	 * 								and generate a new atom.
  	 */
- 	def register(name: String, handler: (String, AtomList) => BasicAtom) = {
+ 	def register(name: String,
+ 	    handler: (String, AtomList, Option[Bindings]) => BasicAtom) = {
  	  // Go fetch the operator.  It must be defined.
  	  _nameToOperator.get(name) match {
  	    case None =>

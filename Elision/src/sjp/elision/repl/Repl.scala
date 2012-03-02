@@ -294,7 +294,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("bind", ANYTYPE, 'a, 'v), Prop()))
     _context.operatorLibrary.register("bind",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
           	// Bind the variable in this context.
             _binds += (from.name -> to)
@@ -307,7 +307,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("equal", ANYTYPE, 'x, 'y), Prop(Commutative())))
     _context.operatorLibrary.register("equal",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args(x:BasicAtom, y:BasicAtom) =>
             // Check for equality.
             if (x == y) Literal.TRUE else Literal.FALSE
@@ -318,7 +318,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("unbind", ANYTYPE, 'v), Prop()))
     _context.operatorLibrary.register("unbind",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args(from:Variable) =>
           	// Unbind the variable in this context.
             _binds -= from.name
@@ -331,7 +331,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("showbinds", ANYTYPE), Prop()))
     _context.operatorLibrary.register("showbinds",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() => _binds
           case _ => Literal.FALSE
         })
@@ -340,7 +340,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("context", ANYTYPE), Prop()))
     _context.operatorLibrary.register("context",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
             println(_context.toParseString)
             Literal.NOTHING
@@ -351,7 +351,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("stacktrace", ANYTYPE), Prop()))
     _context.operatorLibrary.register("stacktrace",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
             _stacktrace = !_stacktrace
             emitln("Printing stack traces is " +
@@ -364,7 +364,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("read", ANYTYPE, 'filename), Prop()))
     _context.operatorLibrary.register("read",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args(filename:Literal) =>
             // TODO Read the content of the file.
             emitln("Not implemented.")
@@ -376,7 +376,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("write", ANYTYPE, 'filename), Prop()))
     _context.operatorLibrary.register("write",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args(filename:Literal) =>
             // TODO Write the content to the file.
             emitln("Not implemented.")
@@ -388,7 +388,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("help", ANYTYPE), Prop()))
     _context.operatorLibrary.register("help",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
           	// Give some help.
 		        println("""
@@ -418,7 +418,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("traceparse", ANYTYPE), Prop()))
     _context.operatorLibrary.register("traceparse",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
 		        // Toggle tracing.
 		        _trace = !_trace
@@ -432,7 +432,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("tracematch", ANYTYPE), Prop()))
     _context.operatorLibrary.register("tracematch",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
 		        // Toggle tracing.
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
@@ -446,7 +446,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("showscala", ANYTYPE), Prop()))
     _context.operatorLibrary.register("showscala",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
 		        // Toggle showing the Scala term.
 		        _showScala = !_showScala
@@ -459,7 +459,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("showprior", ANYTYPE), Prop()))
     _context.operatorLibrary.register("showprior",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
 		        // Toggle showing the prior term.
 		        _showPrior = !_showPrior
@@ -472,7 +472,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("history", ANYTYPE), Prop()))
     _context.operatorLibrary.register("history",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
 		        // Show the history.
 		        for (index <- 1 until _hist.getCurrentIndex()) {
@@ -487,7 +487,7 @@ object Repl {
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("quiet", ANYTYPE), Prop()))
     _context.operatorLibrary.register("quiet",
-        (_, list:AtomList) => list match {
+        (_, list:AtomList, _) => list match {
           case Args() =>
             // Enable quiet.
             _quiet = !_quiet

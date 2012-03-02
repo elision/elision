@@ -81,7 +81,8 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   val constantPool = None
   
   /** The native handler, if one is declared. */
-  protected[core] var handler: Option[(String,AtomList) => BasicAtom] = None
+  protected[core]
+  var handler: Option[(String,AtomList,Option[Bindings]) => BasicAtom] = None
   
   /** Provide quick access to the operator name. */
   lazy val name = opdef.proto.name

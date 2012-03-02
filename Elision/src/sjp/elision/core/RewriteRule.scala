@@ -57,9 +57,10 @@ extends BasicAtom with Applicable {
     case _ => Fail("Ruleset strategies do not match.", this, subject)
   }
   def rewrite(binds: Bindings) = (this, false)
-  def toParseString = names.map(toEString(_)).mkString("{ rulesets ", ", ", " }")
+  def toParseString =
+    names.map(toESymbol(_)).mkString("{ apply rulesets ", ", ", " }")
   override def toString = "RulesetStrategy(" + context + ", " +
-  		names.map(toEString(_)).mkString(", ") + ")"
+  		names.map(toESymbol(_)).mkString(", ") + ")"
   		
   /**
    * Apply this strategy.  If any rule completes then the returned flag is
@@ -77,8 +78,8 @@ extends BasicAtom with Applicable {
   }
 }
 
-case class MapStrategy(labels: List[String], lhs: BasicAtom)
-extends BasicAtom with Applicable {
+case class MapStrategy(include: Set[String], exclude: Set[String],
+    lhs: BasicAtom) extends BasicAtom with Applicable {
 	val theType = STRATEGY
 	
 	val isConstant = lhs.isConstant
@@ -88,21 +89,47 @@ extends BasicAtom with Applicable {
 	  Some(BasicAtom.buildConstantPool(theType.hashCode, lhs))
 	  
 	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
-	  Fail("Not implemented.", this, subject)
+  	subject match {
+	  case MapStrategy(oin, oex, olhs) =>
+	    if (include != oin || exclude != oex)
+	      Fail("Labels do not match.", this, subject)
+      else
+        lhs.tryMatch(olhs, binds)
+	  case _ => Fail("Subject is not a match strategy.", this, subject)
+	}
 	  
-	def rewrite(binds: Bindings) = (this, false)
+	def rewrite(binds: Bindings) = lhs.rewrite(binds) match {
+	  case (newlhs, true) => (MapStrategy(include, exclude, newlhs), true)
+	  case _ => (this, false)
+	}
 	
 	def toParseString = "{ map " +
-			labels.map("@" + _).mkString(" ") +
+			include.map("@" + toESymbol(_)).mkString(" ") +
+			exclude.map("-@" + toESymbol(_)).mkString(" ") +
 			" " + lhs.toParseString + " }"
 			
-  override def toString = "MapStrategy(List[String](" +
-  		labels.map(toEString(_)).mkString(", ") +
+  override def toString = "MapStrategy(" +
+  		include.map(toEString(_)).mkString("List(", ", ", ")") +
+  		exclude.map(toEString(_)).mkString("List(", ", ", ")") +
   		", " + lhs.toString + ")"
   		
   override def hashCode = lhs.hashCode
 	
-	def doApply(atom: BasicAtom, binds: Bindings) = Applicable.bind1(atom)
+	def doApply(atom: BasicAtom, binds: Bindings) = atom match {
+	  // We only process two kinds of atoms here: atom lists and operator
+	  // applications.  Figure out what we have.
+	  case AtomList(atoms, props) =>
+	    // All we can do is apply the lhs to each atom in the list.
+	    Applicable.bind2(AtomList(atoms.map(Apply(lhs,_)), props), true)
+	  case Apply(op, AtomList(atoms, props)) =>
+      // We apply the lhs to each argument whose parameter meets the
+      // label criteria.  This is modestly tricky.
+      Applicable.bind2(
+          Apply(op, AtomList(atoms.map(Apply(lhs,_)), props)), true)
+	  case _ =>
+	    // Do nothing in this case.
+	    Applicable.bind2(atom, false)
+	}
 }
 
 /**

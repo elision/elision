@@ -92,17 +92,22 @@ case class DeferApply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
  * 
  * Two applies match if the respective operators and arguments match.
  * 
- * @param op		The operator.
- * @param arg		The argument.
+ * @param op			The operator.
+ * @param arg			The argument.
  */
-class Apply private (val op: BasicAtom, val arg: BasicAtom)
-extends BasicAtom {
-  /** The type is taken from the operator. */
-  val theType = op match {
+class Apply private (val op: BasicAtom, val arg: BasicAtom,
+    val pabind: Option[Bindings] = None) extends BasicAtom {
+  private val rawType = op match {
     case Operator(NativeOperatorDefinition(proto, _)) => proto.typ
     case Operator(SymbolicOperatorDefinition(proto, _)) => proto.typ
     case Operator(ImmediateOperatorDefinition(proto, _)) => proto.typ
     case _ => op.theType
+  }
+
+  /** The type is taken from the operator. */
+  val theType = pabind match {
+    case None => rawType
+    case Some(binds) => rawType.rewrite(binds)._1
   }
   
   /** An apply is constant iff both the operator and argument are constant. */
@@ -338,18 +343,21 @@ object Apply {
       // To check the argument list, we match the prototype argument list
       // against the provided argument list.  If they match, then all is
       // well.  If they do not match, then we immediately throw an exception.
-      SequenceMatcher.tryMatch(op.opdef.proto.pars, al.atoms) match {
+      // We need to capture and save the bindings of parameter to argument.
+      val pabind = SequenceMatcher.tryMatch(op.opdef.proto.pars, al.atoms) match {
         case fail:Fail =>
           // The argument list does not match the formal parameters.
           throw new ArgumentListException(
               "Incorrect argument list at position " + fail.index + ": " +
               fail.theReason )
-        case _ =>
-          // The argument list matches.  Make and return the apply.
-          return op.handler match {
-            case Some(closure) => closure(op.name, al)
-            case None => new Apply(op, al)
-          }
+        case Match(binds) => binds
+        case Many(iter) => iter.next
+      }
+      
+      // The argument list matches.  Make and return the apply.
+      return op.handler match {
+        case Some(closure) => closure(op.name, al, Some(pabind))
+        case None => new Apply(op, al, Some(pabind))
       }
     }
     
@@ -417,19 +425,22 @@ object Apply {
       parameters append Variable(last.theType, "::"+count)
       count += 1
     }
-    SequenceMatcher.tryMatch(parameters, newlist) match {
+    val pabind = SequenceMatcher.tryMatch(parameters, newlist) match {
       case fail:Fail =>
         // The argument list does not match the formal parameters.
         throw new ArgumentListException(
             "Incorrect argument list at position " + fail.index + ": " +
             fail.theReason )
-      case _ =>
-        // The argument list matches.  Make and return the apply.
-        return op.handler match {
-          case Some(closure) =>
-            closure(op.name, AtomList(newlist, Some((assoc, comm))))
-          case None => new Apply(op, AtomList(newlist, Some((assoc, comm))))
-        }
+      case Match(bind) => bind
+      case Many(iter) => iter.next
+    }
+
+    // The argument list matches.  Make and return the apply.
+    return op.handler match {
+      case Some(closure) =>
+        closure(op.name, AtomList(newlist, Some((assoc, comm))), Some(pabind))
+      case None =>
+        new Apply(op, AtomList(newlist, Some((assoc, comm))), Some(pabind))
     }
   }
 }

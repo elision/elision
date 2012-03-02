@@ -27,46 +27,27 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bootstrap
+package sjp.elision.core
+
+import scala.collection.immutable.HashMap
 
 /**
- * Bootstrap the strategies.
+ * A ''rewriter'' is an atom that can be applied to some other atom to generate
+ * a potentially new atom.
+ * 
+ * A rewriter has a name that uniquely identifies it, and may have zero or more
+ * classes C1, C2, ..., Cn, of arguments.  Each class may have zero or more
+ * associated arguments, each of which is an atom.
+ * 
+ * {{{
+ * { name C1: a11, a12, ..., a1j C2: a21, a22, ..., a2k ... }
+ * }}}
+ * 
+ * Argument classes are indicated with a symbol followed by a colon.
+ * 
+ * A rewriter must provide two closures: the first is used to validate an
+ * instance when it is parsed, and the second is used to execute the rewriter
+ * on some atom.
  */
-object Strategies {
-
-  val defs = """
-  { rulesets IF, STRAT }
-    
-  { operator if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T }
-  { rule if(true, $thenpart, $elsepart) -> $thenpart ruleset IF level 2 }
-  { rule if(false, $thenpart, $elsepart) -> $elsepart ruleset IF level 2 }
-    
-  { operator s_noop(): STRATEGY }
-  { rule (s_noop().$a) -> { bind atom->$a, flag->true } ruleset STRAT level 1 }
-    
-  { operator s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
-  	$elsepart: STRATEGY @lazy): STRATEGY }
-  { rule (s_if($test, $thenpart, $elsepart).$a) ->
-    ($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom))
-    ruleset STRAT level 1 }
-    
-  { operator s_while($test: STRATEGY): STRATEGY }
-  { rule (s_while($test).$a) ->
-    (s_if($test, s_while($test), s_noop()).$a) ruleset STRAT level 1 }
-    
-  { operator s_then($part: STRATEGY): STRATEGY is associative }
-  { rule (s_then($p, $q).$a) ->
-    ($q.(($p.$a).$atom)) ruleset STRAT level 1 }
-    
-  { operator s_and($part: STRATEGY): STRATEGY is associative }
-  { rule (s_and($p, $q).$a) ->
-    (s_if($p, $q, s_noop()).$a) ruleset STRAT level 1 }
-    
-  { operator s_or($part: STRATEGY): STRATEGY is associative }
-  { rule (s_or($p, $q).$a) ->
-    (s_if($p, s_noop(), $q).$a) ruleset STRAT level 1 }
-    
-  { operator s_td($part: STRATEGY): STRATEGY}
-  { rule s_td($s).$a -> s_then($s,{map s_td($s)}).$a ruleset STRAT level 1}
-  """
+abstract class Rewriter extends BasicAtom with Applicable {
 }
