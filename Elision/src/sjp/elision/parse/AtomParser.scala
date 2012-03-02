@@ -803,8 +803,8 @@ extends Parser {
    * Parse all the atoms that can be found in the input.
    */
   def AtomSeq = rule {
-    zeroOrMore(Atom) ~ EOI
-  }
+    zeroOrMore(Atom) ~ WS ~ EOI
+  }.label("a sequence of atoms")
 
   /**
    * Parse an atom.
@@ -820,7 +820,7 @@ extends Parser {
     zeroOrMore(FirstAtom ~ WS ~ ".. ") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
           funlist.foldRight(lastarg)(DeferApplicationNode(context,_,_)))
-  }
+  }.label("an atom")
   
   /**
    * Parse an atom, with the exception of the general operator application.
@@ -894,7 +894,7 @@ extends Parser {
 
       // Parse the special type universe.
       "^TYPE " ~> (x => TypeUniverseNode()))
-  }
+  }.label("a simple atom")
   
   //======================================================================
   // Parse a simple operator application.  The other form of application
@@ -916,7 +916,7 @@ extends Parser {
     ESymbol ~ "( " ~ ParsedAtomList ~ ") " ~~> (
       (op: NakedSymbolNode, arg: AtomListNode) =>
         ApplicationNode(context, op, arg))
-  }
+  }.label("an operator application")
   
   //======================================================================
   // Parse a lambda.
@@ -928,7 +928,7 @@ extends Parser {
   def ParsedLambda = rule {
     "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> (
         (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
-  }
+  }.label("a lambda expression")
   
   //======================================================================
   // Parse trivial literals.
@@ -948,13 +948,13 @@ extends Parser {
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
-  }
+  }.label("a literal expression")
 
   /** Parse a double-quoted string. */
   def EString = rule {
     val str = new StringBuilder()
     "\"" ~ zeroOrMore(Character(str)) ~~> (x => construct(x)) ~ "\" "
-  }
+  }.label("a string")
 
   /**
    * Parse a character in a string.  The character is added to the end of the
@@ -966,15 +966,15 @@ extends Parser {
    */
   def Character(str: StringBuilder) = rule {
     (EscapedCharacter | NormalCharacter) ~> (x => x)
-  }
+  }.label("a single character")
 
   /** Parse an escaped character. */
   def EscapedCharacter = rule {
     "\\" ~ anyOf("""`"nrt\""")
-  }
+  }.label("a character escape sequence")
 
   /** Parse a normal character. */
-  def NormalCharacter = rule { noneOf(""""\""") }
+  def NormalCharacter = rule { noneOf(""""\""") }.label("a character")
 
   /** Parse a symbol. */
   def ESymbol = rule {
@@ -982,15 +982,15 @@ extends Parser {
     "`" ~ zeroOrMore(SymChar) ~~> (x => NakedSymbolNode(construct(x))) ~ "` " |
     group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
       "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
-  }
+  }.label("a symbol")
 
   /** Parse a character that is part of a symbol. */
   def SymChar = rule {
     (EscapedCharacter | SymNorm) ~> (x => x)
-  }
+  }.label("a single character")
   
   /** Parse a "normal" non-escaped character that is part of a symbol. */
-  def SymNorm = rule { noneOf("""`\""") }
+  def SymNorm = rule { noneOf("""`\""") }.label("a character")
 
   //======================================================================
   // Parse lists of atoms.
@@ -1022,7 +1022,7 @@ extends Parser {
         (list: AtomListNode) => list.setProperties(false, true)) |
       WS ~ "( " ~ ParsedAtomList ~ ") " ~~> (
         (list: AtomListNode) => list.setProperties(false, false)))
-  }
+  }.label("a typed list of atoms")
   
   /**
    * Parse a list of atoms, separated by commas.  No concept of associativity,
@@ -1036,7 +1036,7 @@ extends Parser {
           case Some((head:AstNode, tail)) =>
             AtomListNode(head :: tail)
         })
-  }
+  }.label("a comma-separated list of atoms")
 
   //======================================================================
   // Parse a rewrite rule.
@@ -1048,7 +1048,7 @@ extends Parser {
   def ParsedRulesetDeclaration = rule {
     "{ " ~ ParsedRulesetList ~ "} " ~~>
     (RulesetDeclarationNode(context, _))
-  }
+  }.label("a ruleset declaration")
 
   /**
    * Parse a rule.
@@ -1079,7 +1079,7 @@ extends Parser {
             _: AstNode,
             _: List[AstNode],
             _: Option[List[NakedSymbolNode]],
-            _: Option[UnsignedIntegerNode])))
+            _: Option[UnsignedIntegerNode]))).label("a rewrite rule")
             
   /**
    * Parse a comma-separated list of ruleset names, introduced by the keyword
@@ -1089,7 +1089,7 @@ extends Parser {
     (ignoreCase("rulesets") | ignoreCase("ruleset")) ~
         WS ~ ESymbol ~ zeroOrMore(", " ~ ESymbol) ~~> (
           (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)
-  }
+  }.label("a comma-separated ruleset list")
   
   /**
    * Parse a ruleset strategy.
@@ -1097,7 +1097,7 @@ extends Parser {
   def ParsedRulesetStrategy = rule {
     "{ " ~ "apply " ~ ParsedRulesetList ~ "} " ~~>
     (RulesetsNode(context, _))
-  }
+  }.label("a ruleset application")
   
   /**
    * Parse a map strategy.
@@ -1108,7 +1108,7 @@ extends Parser {
     zeroOrMore("- " ~ "@ " ~ ESymbol) ~
     Atom ~ "} " ~~>
     (MapNode(_,_,_))
-  }
+  }.label("a map expression")
 
   //======================================================================
   // Parse variables.
@@ -1119,28 +1119,33 @@ extends Parser {
    */
   def ParsedVariable = rule {
     ParsedTypedVariable | ParsedUntypedVariable
-  }
+  }.label("a variable")
   
   def ParsedTypedVariable = rule {
     "$" ~ ESymbol ~ ": " ~ FirstAtom ~ zeroOrMore("@" ~ ESymbol) ~~> (
       (sval: NakedSymbolNode, typ: AstNode, list: List[NakedSymbolNode]) =>
         VariableNode(typ, sval.str, list.map(_.str).toSet))
-  }
+  }.label("a variable with type information")
   
   def ParsedUntypedVariable = rule {
     "$" ~ ESymbol ~ zeroOrMore("@" ~ ESymbol) ~~> (
       (sval, list) =>
         VariableNode(SimpleTypeNode(ANYTYPE), sval.str, list.map(_.str).toSet))
-  }
+  }.label("an untyped variable")
 
   //======================================================================
   // Parse whitespace.
   //======================================================================
 
   /** Parse ignorable whitespace. */
-  def WS = rule {
-    zeroOrMore(anyOf(" \n\r\t\f"))
-  }
+  def WS: Rule0 = rule { SuppressNode
+    zeroOrMore(
+        // Whitesapce.
+        oneOrMore(anyOf(" \n\r\t\f")) |
+        "/*" ~ zeroOrMore(!"*/") ~ "*/" |
+        "//" ~ zeroOrMore(!anyOf("\r\n")) ~ ("\r\n" | "\r" | "\n" | EOI)
+        )
+  }.label("whitespace or comments")
 
   //======================================================================
   // Parse a number.
@@ -1157,7 +1162,7 @@ extends Parser {
       DNumber |
       ONumber) ~ WS ~~> (NumberNode(_:Option[Boolean],_:UnsignedIntegerNode,
           _:Option[UnsignedIntegerNode],_:Option[SignedIntegerNode]))
-  }
+  }.label("an integer or floating point number")
 
   /**
    * Parse a hexadecimal number that may be either an integer or a float.
@@ -1166,7 +1171,7 @@ extends Parser {
     HInteger ~
       optional("." ~ zeroOrMore(HDigit) ~> (UnsignedIntegerNode(_, 16))) ~
       optional(ignoreCase("p") ~ Exponent)
-  }
+  }.label("a hexadecimal number")
 
   /**
    * Parse a binary number that may be either an integer or a float.
@@ -1175,7 +1180,7 @@ extends Parser {
     BInteger ~
       optional("." ~ zeroOrMore(BDigit) ~> (UnsignedIntegerNode(_, 2))) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
-  }
+  }.label("a binary number")
 
   /**
    * Parse a decimal number that may be either an integer or a float.
@@ -1184,7 +1189,7 @@ extends Parser {
     DInteger ~
       optional("." ~ zeroOrMore(DDigit) ~> (UnsignedIntegerNode(_, 10))) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
-  }
+  }.label("a decimal number")
 
   /**
    * Parse an octal number that may be either an integer or a float.
@@ -1193,7 +1198,7 @@ extends Parser {
     OInteger ~
       optional("." ~ zeroOrMore(ODigit) ~> (UnsignedIntegerNode(_, 8))) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
-  }
+  }.label("an octal number")
 
   /**
    * Parse an exponent expression.  The expression does not include the
@@ -1202,7 +1207,7 @@ extends Parser {
   def Exponent = rule {
       optional("+" ~ push(true) | "-" ~ push(false)) ~
       AnyInteger ~~> (SignedIntegerNode(_, _))
-  }
+  }.label("an exponent")
 
   /**
    * Parse an integer in hexadecimal, decimal, octal, or binary.
@@ -1213,7 +1218,7 @@ extends Parser {
     BInteger |
     DInteger |
     OInteger ) ~ WS
-  }
+  }.label("an integer")
 
   /**
    * Parse a hexadecimal integer.
@@ -1221,7 +1226,7 @@ extends Parser {
    */
   def HInteger = rule {
     ignoreCase("0x") ~ oneOrMore(HDigit) ~> (UnsignedIntegerNode(_: String, 16))
-  }
+  }.label("a hexadecimal integer")
 
   /**
    * Parse a binary integer.
@@ -1229,7 +1234,7 @@ extends Parser {
    */
   def BInteger = rule {
     ignoreCase("0b") ~ oneOrMore(BDigit) ~> (UnsignedIntegerNode(_: String, 2))
-  }
+  }.label("a binary integer")
 
   /**
    * Parse a decimal integer.
@@ -1238,7 +1243,7 @@ extends Parser {
   def DInteger = rule {
     group(("1" - "9") ~ zeroOrMore(DDigit)) ~>
     (UnsignedIntegerNode(_: String, 10))
-  }
+  }.label("a decimal integer")
 
   /**
    * Parse an octal integer.
@@ -1246,19 +1251,21 @@ extends Parser {
    */
   def OInteger = rule {
     group("0" ~ zeroOrMore(ODigit)) ~> (UnsignedIntegerNode(_: String, 8))
-  }
+  }.label("an octal integer")
 
   /** Parse a decimal digit. */
-  def DDigit = rule { "0" - "9" }
+  def DDigit = rule { "0" - "9" }.label("a decimal digit")
   
   /** Parse an octal digit. */
-  def ODigit = rule { "0" - "7" }
+  def ODigit = rule { "0" - "7" }.label("an octal digit")
   
   /** Parse a hexadecimal digit. */
-  def HDigit = rule { "0" - "9" | "a" - "f" | "A" - "F" }
+  def HDigit = rule {
+    "0" - "9" | "a" - "f" | "A" - "F"
+  }.label("a hexadecimal digit")
   
   /** Parse a binary digit. */
-  def BDigit = rule { "0" | "1" }
+  def BDigit = rule { "0" | "1" }.label("a binary digit")
   
   //======================================================================
   // Define an operator.
@@ -1294,7 +1301,7 @@ extends Parser {
     ParsedNativeOperatorDefinition |
     ParsedSymbolicOperatorDefinition |
     ParsedImmediateOperatorDefinition
-  }
+  }.label("an operator definition")
   
   /**
    * Parse a native operator definition.
@@ -1306,7 +1313,7 @@ extends Parser {
   def ParsedNativeOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
     "{ " ~ "native " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
     "} " ~~> (NativeOperatorDefinitionNode(_,_))
-  }
+  }.label("a native operator definition")
   
   /**
    * Parse a symbolic operator definition.
@@ -1321,7 +1328,7 @@ extends Parser {
   def ParsedSymbolicOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
     "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
     "} " ~~> (SymbolicOperatorDefinitionNode(_,_))
-  }
+  }.label("a symbolic operator definition")
   
   /**
    * Parse an immediate operator definition.
@@ -1333,32 +1340,32 @@ extends Parser {
   def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
     "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
     "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
-  }
+  }.label("an immediate operator definition")
   
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
     ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ FirstAtom ~~>
     ((name:NakedSymbolNode, pars:Option[List[VariableNode]], typ:AstNode) =>
           new OperatorPrototypeNode(name.str, pars, typ))
-  }
+  }.label("an operator prototype")
 
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
     ParsedTypedVariable ~
     zeroOrMore(", " ~ ParsedTypedVariable) ~~> (_ :: _)
-  }
+  }.label("an operator parameter list")
   
   /** Parse an immediate definition for an operator. */
   def ParsedImmediateDefinition = rule {
     "= " ~ Atom
-  }
+  }.label("equal (=) and the immediate operator's body")
   
   /** Parse a sequence of operator properties. */
   def ParsedOperatorProperties = rule {
       optional("is " ~ ParsedOperatorProperty ~
           zeroOrMore(", " ~ ParsedOperatorProperty) ~~> (_ :: _)) ~~>
       (new OperatorPropertiesNode(_))
-  }
+  }.label("the operator properties")
   
   /**
    * Parse an operator property.
@@ -1370,7 +1377,7 @@ extends Parser {
       "idempotent " ~> (x => IdempotentNode()) |
       "absorber " ~ Atom ~~> (AbsorberNode(_)) |
       "identity " ~ Atom ~~> (IdentityNode(_))
-  	}
+  	}.label("an operator property")
   
   //======================================================================
   // Bindings.
@@ -1382,14 +1389,14 @@ extends Parser {
   def ParsedBindings = rule {
     "{ " ~ "bind " ~ ParsedBind ~ zeroOrMore(", " ~ ParsedBind) ~ "} " ~~>
     ((x:(NakedSymbolNode, AstNode), rest) => BindingsNode(x :: rest))
-  }
+  }.label("a binding expression")
 
   /**
    * Parse a single bind.
    */
   def ParsedBind = rule {
     ESymbol ~ "-> " ~ Atom ~~> (_ -> _)
-  }
+  }.label("a single binding")
   
   //======================================================================
   // Matching.
@@ -1401,7 +1408,7 @@ extends Parser {
   def ParsedMatch = rule {
     "{ " ~ "match " ~ FirstAtom ~ "-> " ~ FirstAtom ~ "} " ~~>
     ((pat,sub) => MatchNode(pat, sub))
-  }
+  }.label("a match expression")
 
   //======================================================================
   // Other methods affecting the parse.

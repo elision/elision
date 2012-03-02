@@ -95,7 +95,7 @@ object Repl {
   private var _opsDefined = false
   
   /** Should stack traces be issued on exception. */
-  private var _stacktrace = false
+  private var _stacktrace = true
   
   /**
    * Whether to suppress most printing.  Errors and warnings are not suppressed,
@@ -177,6 +177,7 @@ object Repl {
 
     // Show the prompt and read a line.
     val cr = new jline.ConsoleReader
+    cr.flushConsole()
     cr.setHistory(_hist)
     while(true) {
       val line = cr.readLine(if (_quiet) "q> " else "e> ")

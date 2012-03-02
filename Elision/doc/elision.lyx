@@ -4,7 +4,7 @@
 \begin_header
 \textclass amsbook
 \begin_preamble
-\usepackage{minted}
+%%\usepackage{minted}
 \end_preamble
 \use_default_options true
 \begin_modules
@@ -32,7 +32,7 @@ figs-within-sections
 \output_sync 0
 \bibtex_command default
 \index_command default
-\paperfontsize default
+\paperfontsize 12
 \spacing single
 \use_hyperref false
 \papersize default
@@ -156,8 +156,11 @@ Redistribution and use in source and binary forms, with or without
 \end_layout
 
 \begin_layout LyX-Code
-modification, are permitted provided that the following conditions are met:
- 
+modification, are permitted provided that the following conditions
+\end_layout
+
+\begin_layout LyX-Code
+are met: 
 \end_layout
 
 \begin_layout LyX-Code
@@ -166,25 +169,28 @@ modification, are permitted provided that the following conditions are met:
 
 \begin_layout LyX-Code
 1.
- Redistributions of source code must retain the above copyright notice,
- this
+ Redistributions of source code must retain the above copyright
 \end_layout
 
 \begin_layout LyX-Code
-   list of conditions and the following disclaimer.
+   notice, this list of conditions and the following disclaimer.
 \end_layout
 
 \begin_layout LyX-Code
 2.
- Redistributions in binary form must reproduce the above copyright notice,
+ Redistributions in binary form must reproduce the above
 \end_layout
 
 \begin_layout LyX-Code
-   this list of conditions and the following disclaimer in the documentation
+   copyright notice, this list of conditions and the following
 \end_layout
 
 \begin_layout LyX-Code
-   and/or other materials provided with the distribution.
+   disclaimer in the documentation and/or other materials provided
+\end_layout
+
+\begin_layout LyX-Code
+   with the distribution.
 \end_layout
 
 \begin_layout LyX-Code
@@ -192,47 +198,52 @@ modification, are permitted provided that the following conditions are met:
 \end_layout
 
 \begin_layout LyX-Code
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
- IS" AND
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 \end_layout
 
 \begin_layout LyX-Code
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 \end_layout
 
 \begin_layout LyX-Code
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
 \end_layout
 
 \begin_layout LyX-Code
-DISCLAIMED.
- IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ IN NO EVENT SHALL THE
 \end_layout
 
 \begin_layout LyX-Code
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
 \end_layout
 
 \begin_layout LyX-Code
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 \end_layout
 
 \begin_layout LyX-Code
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- AND
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 \end_layout
 
 \begin_layout LyX-Code
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 \end_layout
 
 \begin_layout LyX-Code
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- THIS
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
 \end_layout
 
 \begin_layout LyX-Code
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+\end_layout
+
+\begin_layout LyX-Code
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+\end_layout
+
+\begin_layout LyX-Code
+POSSIBILITY OF SUCH DAMAGE.
 \end_layout
 
 \begin_layout Chapter
