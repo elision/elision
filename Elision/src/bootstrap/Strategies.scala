@@ -44,6 +44,11 @@ object Strategies {
   { operator s_noop(): STRATEGY }
   { rule (s_noop().$a) -> { bind atom->$a, flag->true } ruleset STRAT level 1 }
     
+  { operator s_true($s: STRATEGY): STRATEGY }
+  { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom, flag->true} }
+  { operator s_false($s: STRATEGY): STRATEGY }
+  { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom, flag->false} }
+    
   { operator s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
   	$elsepart: STRATEGY @lazy): STRATEGY }
   { rule (s_if($test, $thenpart, $elsepart).$a) ->

@@ -76,8 +76,28 @@ trait HasData {
   def data = _data
 }
 
+/**
+ * A ''rewriter'' is an atom that can be applied to some other atom to generate
+ * a potentially new atom.  It also needs to report its ''success'' via a flag.
+ */
+trait Rewriter {
+  /**
+   * Apply this rewriter to the given atom, yielding a potentially new atom.
+   * The rewriter must also provide a flag indicating whether it ''succeeded''
+   * in some appropriate sense.
+   * 
+   * @param atom	The atom to rewrite.
+   * @return	A pair consisting of a potentially new atom and a flag indicating
+   * 					success or failure.
+   */
+  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean)
+}
+
+/**
+ * An ''applicable'' is an atom that can be applied to some other atom to
+ * generate a potentially new atom.
+ */
 trait Applicable {
-  import Applicable._
   /**
    * Apply this object, whatever it is, to the given atom with the provided
    * bindings.
@@ -87,44 +107,9 @@ trait Applicable {
    * the right-hand side passed as the atom.
    * 
    * @param atom		The atom to apply this to.
-   * @param binds		Bindings that should be honored.  This is optional.
-   * @return	A binding.  The binding can be anything you want, but it will
-   * 					often include a binding for `atom` to indicate that an atom is
-   * 					being returned, and a binding for `flag` to pass a Boolean flag.
-   * 					If only `atom` is present, then the binding is discarded and the
-   * 					atom is regarded as the result.
+   * @return	A potentially new atom.
    */
-  def doApply(atom: BasicAtom, binds: Bindings = new Bindings): Bindings
-}
-
-object Applicable {
-  /**
-   * Common single-item bind.
-   */
-  def bind1(atom: BasicAtom) = {
-    var binds = new Bindings
-    binds += ("atom" -> atom)
-    binds
-  }
-  
-  /**
-   * Common two-item bind.
-   */
-  def bind2(atom: BasicAtom, flag: Boolean) = {
-    var binds = new Bindings
-    binds += ("atom" -> atom,
-        "flag" -> (if (flag) Literal.TRUE else Literal.FALSE))
-    binds
-  }
-    
-  /**
-   * Quick binding construction.
-   */
-  def bind(maps: (String, BasicAtom)*) = {
-    var binds = new Bindings
-    for (map <- maps) binds += map
-    binds
-  }
+  def doApply(atom: BasicAtom): BasicAtom
 }
 
 /**

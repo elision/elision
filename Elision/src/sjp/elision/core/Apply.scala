@@ -34,34 +34,174 @@ package sjp.elision.core
 import scala.collection.mutable.ListBuffer
 
 /**
- * Provide a deferred apply.  This is an apply that is only evaluated if it
- * is successfully rewritten.
+ * The common root for all application atoms.
  * 
- * @param op		The operator.
- * @param arg		The argument.
+ * An ''apply'' takes two atoms and applies the first (as an operator,
+ * rewriter, etc.) to the second (as the argument).  Elements common across
+ * all types are found here.
+ * 
+ * @param op		The left-hand element of the apply (operator).
+ * @param arg		The right-hand element of the apply (argument).
  */
-case class DeferApply(op: BasicAtom, arg: BasicAtom) extends BasicAtom {
-  val theType = op.theType
+abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
+  /** The apply is constant iff its parts are. */
   val isConstant = op.isConstant && arg.isConstant
+  
+  /** The constant pool aggregated from the children. */
   val constantPool = Some(BasicAtom.buildConstantPool(2, op, arg))
+  
+  /** The depth is one more than the depth of the children. */
   val depth = (op.depth max arg.depth) + 1
+  
+  /** The De Bruijn index computed from the children. */
   val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
-  def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
+  
+  /** The hash code for this apply. */
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
+  
+  /**
+   * Applications are equal to each other iff their parts are equal.
+   */
   override def equals(other: Any) = other match {
     case DeferApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
     case _ => false
   }
+  
+  /**
+   * Rewrite this apply with the bindings.  Each part is rewritten, and then
+   * a new apply is generated.
+   */
   def rewrite(binds: Bindings) = {
     val (nop, nof) = op.rewrite(binds)
     val (narg, naf) = arg.rewrite(binds)
     if (nof || naf) (Apply(nop, narg), true) else (this, false)
   }
+  
+  /**
+   * By default applications match iff their parts match
+   */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) = subject match {
-    case DeferApply(oop, oarg) =>
+    case Apply(oop, oarg) =>
       SequenceMatcher.tryMatch(Seq(op, arg), Seq(oop, oarg), binds)
-    case _ => Fail("Deferred apply does not match.", this, subject)
+    case _ => Fail("The forms do not match.", this, subject)
   }
+}
+
+/**
+ * Provide construction and extraction for an ''apply''.  Deferred applications
+ * are handled elsewhere.  See [[sjp.elision.core.DeferApply]].
+ */
+object Apply {
+  /**
+   * Extract the components of an apply and return them.
+   * 
+   * @param apply	The apply.
+   * @return	A pair consisting of the operator and argument, in order.
+   */
+  def unapply(apply: Apply) = Some(apply.op, apply.arg)
+  
+  /**
+   * Construct an application.  We key off the left hand side (the operator)
+   * to decide how to handle this.
+   * 
+   * @param op		The lhs of the apply, typically an operator.
+   * @param arg		The rhs of the apply, typically an argument.
+   */
+  def apply(op: BasicAtom, arg: BasicAtom) = {
+    op match {
+	    case app:Applicable =>
+	      // The lhs is applicable; invoke its apply method
+	      val binds = app.doApply(arg)
+	      if (binds.size == 1) binds.get("atom") match {
+	        case Some(atom) => atom
+	        case _ => binds
+	      } else binds
+	    case oper:Operator =>
+	      // Applying an operator to an argument is a special, but probably usual,
+	      // case.
+	      opApply(oper, arg)
+	    case _ =>
+	      //println("Rewriting vanilla.")
+	      new Apply(op, arg)
+    }
+  }
+}
+
+/**
+ * Provide a ''deferred apply''.  This is an apply that is only evaluated if it
+ * is successfully rewritten.
+ * 
+ * == Structure and Syntax ==
+ * Deferred applications are similar to regular applications, except that 
+ * they are not evaluated until they are first successfully rewritten.  This
+ * triggers constructing a regular apply.
+ * 
+ * The syntax for a deferred apply is identical to that of a regular apply,
+ * except that two dots are used.
+ * {{{
+ * add:OPTYPE .. %?($x,$y)
+ * }}}
+ * This will be transformed into a regular apply if either (or both) of the
+ * variables are rewritten.
+ * 
+ * == Type ==
+ * The type of a deferred apply is taken from the operator.  Since no final
+ * bindings have happened, the type may be a variable, complicating matching.
+ * 
+ * == Equality and Matching ==
+ * See the `equals` and `tryMatchWithoutTypes` methods.
+ * 
+ * @param op		The operator.
+ * @param arg		The argument.
+ */
+case class DeferApply(op: BasicAtom, arg: BasicAtom) extends Apply(op, arg) {
+  /**
+   * The type is taken from the operator.  Until we have evaluated the apply
+   * we do not know the real type.  This can be a problem for matching.
+   */
+  val theType = op.theType
+  
+  /** The parse string for this deferred apply. */
+  def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
+}
+
+/**
+ * An ''operator apply''.  This is the common case of applying a known operator
+ * to some argument list.
+ * 
+ * @param op			The operator.
+ * @param arg			The argument list.
+ * @param pabinds	The bindings from parameter name to argument.  Note that
+ * 								if the operator is associative, some parameters may be
+ * 								synthetic!
+ */
+case class OpApply(op: Operator, arg: AtomList, pabinds: Bindings)
+extends Apply(op, arg) {
+  /**
+   * Compute the type from the type specified by the operator, and the bindings
+   * provided during parameter matching.  This allows rewriting otherwise
+   * abstract type information to get a proper type.
+   */
+  val theType = op.opdef.proto.typ.rewrite(pabinds)._1
+  
+  /**
+   * Generate a parseable string.
+   */
+  def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
+}
+
+case class SimpleApply(op: Operator, arg: AtomList) extends Apply(op, arg) {
+  /**
+   * We take the type from the operator.  This may be an incomplete type, but
+   * we cannot rewrite it yet because we don't know the full bindings.  This
+   * might cause trouble with matching.
+   */
+  val theType = op.theType
+  
+  /**
+   * Generate a parseable string.
+   */
+  def toParseString = "(" + op.toParseString + "." + arg.toParseString + ")"
 }
 
 /**
