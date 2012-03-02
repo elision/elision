@@ -60,14 +60,6 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   
   /**
-   * Applications are equal to each other iff their parts are equal.
-   */
-  override def equals(other: Any) = other match {
-    case DeferApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
-    case _ => false
-  }
-  
-  /**
    * Rewrite this apply with the bindings.  Each part is rewritten, and then
    * a new apply is generated.
    */
@@ -411,6 +403,14 @@ extends Apply(op, arg) {
    */
   val theType = op.theType
   
+  /**
+   * Applications are equal to each other iff their parts are equal.
+   */
+  override def equals(other: Any) = other match {
+    case DeferApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
+    case _ => false
+  }
+  
   /** The parse string for this deferred apply. */
   def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
 }
@@ -435,6 +435,14 @@ case class OpApply(override val op: Operator, override val arg: AtomList,
   val theType = op.opdef.proto.typ.rewrite(pabinds)._1
   
   /**
+   * Applications are equal to each other iff their parts are equal.
+   */
+  override def equals(other: Any) = other match {
+    case OpApply(oop, oarg, _) => op.equals(oop) && arg.equals(oarg)
+    case _ => false
+  }
+  
+  /**
    * Generate a parseable string.
    */
   def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
@@ -448,6 +456,14 @@ extends Apply(op, arg) {
    * might cause trouble with matching.
    */
   val theType = op.theType
+  
+  /**
+   * Applications are equal to each other iff their parts are equal.
+   */
+  override def equals(other: Any) = other match {
+    case SimpleApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
+    case _ => false
+  }
   
   /**
    * Generate a parseable string.
