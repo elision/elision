@@ -140,19 +140,19 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
     case _ => false
   }
   
-  def doApply(atom: BasicAtom, binds: Bindings) =
+  def doApply(atom: BasicAtom) =
     // Check the argument to see if it is a single symbol.
     atom match {
       case Literal(SYMBOL, SymVal(sym)) =>
         // Try to extract the symbol from the binding.  If it is not there,
         // then the answer is Nothing.
-        binds.get(sym.name) match {
-          case Some(oatom) => Applicable.bind1(oatom)
-          case _ => Applicable.bind1(Literal.NOTHING)
+        mybinds.get(sym.name) match {
+          case Some(oatom) => oatom
+          case _ => Literal.NOTHING
         }
       case _ =>
 	      // Try to rewrite the argument using the bindings and whatever we get
 	      // back is the result.
-	      Applicable.bind1(atom.rewrite(mybinds)._1)
+	      atom.rewrite(mybinds)._1
     }
 }

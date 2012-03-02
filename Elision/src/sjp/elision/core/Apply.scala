@@ -80,188 +80,6 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   /**
    * By default applications match iff their parts match
    */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) = subject match {
-    case Apply(oop, oarg) =>
-      SequenceMatcher.tryMatch(Seq(op, arg), Seq(oop, oarg), binds)
-    case _ => Fail("The forms do not match.", this, subject)
-  }
-}
-
-/**
- * Provide construction and extraction for an ''apply''.  Deferred applications
- * are handled elsewhere.  See [[sjp.elision.core.DeferApply]].
- */
-object Apply {
-  /**
-   * Extract the components of an apply and return them.
-   * 
-   * @param apply	The apply.
-   * @return	A pair consisting of the operator and argument, in order.
-   */
-  def unapply(apply: Apply) = Some(apply.op, apply.arg)
-  
-  /**
-   * Construct an application.  We key off the left hand side (the operator)
-   * to decide how to handle this.
-   * 
-   * @param op		The lhs of the apply, typically an operator.
-   * @param arg		The rhs of the apply, typically an argument.
-   */
-  def apply(op: BasicAtom, arg: BasicAtom) = {
-    op match {
-	    case app:Applicable =>
-	      // The lhs is applicable; invoke its apply method
-	      val binds = app.doApply(arg)
-	      if (binds.size == 1) binds.get("atom") match {
-	        case Some(atom) => atom
-	        case _ => binds
-	      } else binds
-	    case oper:Operator =>
-	      // Applying an operator to an argument is a special, but probably usual,
-	      // case.
-	      opApply(oper, arg)
-	    case _ =>
-	      //println("Rewriting vanilla.")
-	      new Apply(op, arg)
-    }
-  }
-}
-
-/**
- * Provide a ''deferred apply''.  This is an apply that is only evaluated if it
- * is successfully rewritten.
- * 
- * == Structure and Syntax ==
- * Deferred applications are similar to regular applications, except that 
- * they are not evaluated until they are first successfully rewritten.  This
- * triggers constructing a regular apply.
- * 
- * The syntax for a deferred apply is identical to that of a regular apply,
- * except that two dots are used.
- * {{{
- * add:OPTYPE .. %?($x,$y)
- * }}}
- * This will be transformed into a regular apply if either (or both) of the
- * variables are rewritten.
- * 
- * == Type ==
- * The type of a deferred apply is taken from the operator.  Since no final
- * bindings have happened, the type may be a variable, complicating matching.
- * 
- * == Equality and Matching ==
- * See the `equals` and `tryMatchWithoutTypes` methods.
- * 
- * @param op		The operator.
- * @param arg		The argument.
- */
-case class DeferApply(op: BasicAtom, arg: BasicAtom) extends Apply(op, arg) {
-  /**
-   * The type is taken from the operator.  Until we have evaluated the apply
-   * we do not know the real type.  This can be a problem for matching.
-   */
-  val theType = op.theType
-  
-  /** The parse string for this deferred apply. */
-  def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
-}
-
-/**
- * An ''operator apply''.  This is the common case of applying a known operator
- * to some argument list.
- * 
- * @param op			The operator.
- * @param arg			The argument list.
- * @param pabinds	The bindings from parameter name to argument.  Note that
- * 								if the operator is associative, some parameters may be
- * 								synthetic!
- */
-case class OpApply(op: Operator, arg: AtomList, pabinds: Bindings)
-extends Apply(op, arg) {
-  /**
-   * Compute the type from the type specified by the operator, and the bindings
-   * provided during parameter matching.  This allows rewriting otherwise
-   * abstract type information to get a proper type.
-   */
-  val theType = op.opdef.proto.typ.rewrite(pabinds)._1
-  
-  /**
-   * Generate a parseable string.
-   */
-  def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
-}
-
-case class SimpleApply(op: Operator, arg: AtomList) extends Apply(op, arg) {
-  /**
-   * We take the type from the operator.  This may be an incomplete type, but
-   * we cannot rewrite it yet because we don't know the full bindings.  This
-   * might cause trouble with matching.
-   */
-  val theType = op.theType
-  
-  /**
-   * Generate a parseable string.
-   */
-  def toParseString = "(" + op.toParseString + "." + arg.toParseString + ")"
-}
-
-/**
- * An apply represents applying an operator to an argument.
- * 
- * ==Structure and Syntax==
- * There are two forms of apply.
- * 
- * The usual form in which an operator is applied to a list of arguments that
- * match formal parameters, written with the operator identified by a symbol,
- * and the arguments in parentheses juxtaposed with the operator.
- *  - `max(5,9)`
- *  
- * The second form is the more general form, where some atom is treated as
- * an operator, and applied to another atom.  These atoms may be anything.
- * The application is written by interposing a dot (.) between the two atoms.
- *  - `max.%(5,9)`
- *  - `\$op.\$arg`
- * 
- * The second form is right associative.
- *  - `x.y.z` = `x.(y.x)`
- *  
- * ==Type==
- * The type is taken from the operator.
- *  
- * ==Equality and Matching==
- * Two applies are equal iff their operator and argument are equal.
- * 
- * Two applies match if the respective operators and arguments match.
- * 
- * @param op			The operator.
- * @param arg			The argument.
- */
-class Apply private (val op: BasicAtom, val arg: BasicAtom,
-    val pabind: Option[Bindings] = None) extends BasicAtom {
-  private val rawType = op match {
-    case Operator(NativeOperatorDefinition(proto, _)) => proto.typ
-    case Operator(SymbolicOperatorDefinition(proto, _)) => proto.typ
-    case Operator(ImmediateOperatorDefinition(proto, _)) => proto.typ
-    case _ => op.theType
-  }
-
-  /** The type is taken from the operator. */
-  val theType = pabind match {
-    case None => rawType
-    case Some(binds) => rawType.rewrite(binds)._1
-  }
-  
-  /** An apply is constant iff both the operator and argument are constant. */
-  val isConstant = op.isConstant && arg.isConstant
-  
-  /** The constant pool is derived from the operator and argument. */
-  val constantPool = Some(BasicAtom.buildConstantPool(3, op, arg))
-  
-  /** The De Bruijn index is just the maximum of the operator and body. */
-  val deBruijnIndex = op.deBruijnIndex.max(arg.deBruijnIndex)
-  
-  /** The depth is the maximum of the operator and body, plus one. */
-  val depth = (op.depth max arg.depth) + 1
-
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Only applies match other applies.
     subject match {
@@ -283,89 +101,57 @@ class Apply private (val op: BasicAtom, val arg: BasicAtom,
       case _ => Fail("Applications only match other applications.",
           this, subject)
     }
-
-  def rewrite(binds: Bindings) = {
-    val (newop, opchanged) = op.rewrite(binds)
-    val (newarg, argchanged) = arg.rewrite(binds)
-    if (opchanged || argchanged) (Apply(newop, newarg), true)
-    else (this, false)
-  }
-
-  def toParseString =
-    // If the operator is an actual operator instance, and if the argument is
-    // an atom list, then we generate the "friendly" version of the apply.
-    // Otherwise we generate the more general form of the apply.
-    op match {
-	    case actual:Operator =>
-	      arg match {
-	        case al:AtomList =>
-	          toESymbol(actual.name) + "(" + al.toNakedString + ")"
-	        case _ =>
-	          "(" + op.toParseString + "." + arg.toParseString + ")"
-	      }
-	    case _ =>
-	      "(" + op.toParseString + "." + arg.toParseString + ")"
-	  }
-  
-  override def toString = "Apply(" + op.toString + ", " + arg.toString + ")"
-  
-  override lazy val hashCode = op.hashCode * 31 + arg.hashCode
-  
-  override def equals(other: Any) = other match {
-    case Apply(oop, oarg) =>
-      oop == op && oarg == arg
-    case _ => false
-  }
 }
 
 /**
- * Provide additional constructors for an apply.
+ * Provide construction and extraction for an ''apply''.  Deferred applications
+ * are handled elsewhere.  See [[sjp.elision.core.DeferApply]].
  */
 object Apply {
   /**
-   * Construct an operator application, handling special cases.  This is the
-   * correct place to come to apply "something" to "something else." Specific
-   * cases handled are:
-   * * Applying an operator to an argument of any kind.
-   * * Currying a lambda.
-   * * Applying a rewrite rule to an atom.
-   * * Extracting a value from a binding set.
+   * Extract the components of an apply and return them.
    * 
-   * @param op			The operator.
-   * @param arg			The argument.
-   */
-  def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = {
-    //println("Building an apply:")
-    //println("  op -> " + op)
-    //println(" arg -> " + arg)
-	  op match {
-	    case app:Applicable =>
-	      // The operator is applicable; invoke its apply method.
-	      val binds = app.doApply(arg)
-	      if (binds.size == 1) binds.get("atom") match {
-	        case Some(atom) => atom
-	        case _ => binds
-	      } else binds
-	    case oper:Operator =>
-	      // Applying an operator to an argument is a special, but probably usual,
-	      // case.
-	      opApply(oper, arg)
-	    case _ =>
-	      //println("Rewriting vanilla.")
-	      new Apply(op, arg)
-	  } 
-  }
-  
-  /**
-   * Unpack an operator application.
-   * @param apply	The application.
-   * @return	The pair of operator and argument.
+   * @param apply	The apply.
+   * @return	A pair consisting of the operator and argument, in order.
    */
   def unapply(apply: Apply) = Some(apply.op, apply.arg)
   
   /**
+   * Construct an application.  We key off the left hand side (the operator)
+   * to decide how to handle this.
+   * 
+   * @param op		The lhs of the apply, typically an operator.
+   * @param arg		The rhs of the apply, typically an argument.
+   * @return	The basic atom resulting from the application.
+   */
+  def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = {
+    op match {
+      case oper:Operator =>
+        // The lhs is an operator; this is a highly likely case.
+      	opApply(oper, arg)
+	    case app:Applicable =>
+	      // The lhs is applicable; invoke its apply method.  This will return
+	      // some atom, and that atom is the overall result.
+	      app.doApply(arg)
+	    case rew:Rewriter =>
+	      // The lhs is a rewriter; invoke its rewrite method.  This will return
+	      // a pair.  We need to convert the pair to a binding.
+	      val (r_atom, r_flag) = rew.doRewrite(arg)
+	      BindingsAtom(new Bindings() +
+	          ("atom" -> r_atom) +
+	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
+	    case _ =>
+	      // The lhs is something else.  It may be a variable or some other
+	      // expression that we have yet to evaluate.  Just build a simple
+	      // apply of the lhs and rhs.
+	      SimpleApply(op, arg)
+    }
+  }
+  
+  /**
    * Apply an operator to the given argument.  This is the correct way to
-   * apply an operator.  The argument can be any atom.
+   * apply an operator.  The argument can be any atom, but if the argument
+   * is an atom list, special things are done.
    * 
    * @param op	The operator.
    * @param arg	The argument.
@@ -419,13 +205,17 @@ object Apply {
       // The following will compute the correct atom for the apply.
       op.opdef match {
         case NativeOperatorDefinition(_, props) =>
+          // This is a native operator.
           val (assoc, comm) = al.props.getOrElse(props.assoc, props.comm)
           checkProto(op, props, al, assoc, comm)
         case SymbolicOperatorDefinition(_, props) =>
+          // This is a symbolic operator.
           val (assoc, comm) = al.props.getOrElse(props.assoc, props.comm)
           checkProto(op, props, al, assoc, comm)
         case ImmediateOperatorDefinition(_, body) =>
-          // Match the arguments against the formal parameters.
+          // Match the arguments against the formal parameters.  This will
+          // allow us to rewrite the body with the resulting bindings to
+          // obtain the final result.
           val bind = SequenceMatcher.tryMatch(op.opdef.proto.pars, al.atoms) match {
             case Fail(reason, index) =>
             	throw new ArgumentListException("Incorrect argument list at " +
@@ -435,10 +225,11 @@ object Apply {
           }
           body.rewrite(bind)._1
       }
+      
     case _ =>
       // If not an atom list, immediately make and return an apply.  Note that
       // we cannot use any native handler here.
-      new Apply(op, arg)
+      SimpleApply(op, arg)
   }
   
   /**
@@ -497,7 +288,7 @@ object Apply {
       // The argument list matches.  Make and return the apply.
       return op.handler match {
         case Some(closure) => closure(op.name, al, Some(pabind))
-        case None => new Apply(op, al, Some(pabind))
+        case None => OpApply(op, al, pabind)
       }
     }
     
@@ -580,7 +371,86 @@ object Apply {
       case Some(closure) =>
         closure(op.name, AtomList(newlist, Some((assoc, comm))), Some(pabind))
       case None =>
-        new Apply(op, AtomList(newlist, Some((assoc, comm))), Some(pabind))
+        OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
     }
   }
+}
+
+/**
+ * Provide a ''deferred apply''.  This is an apply that is only evaluated if it
+ * is successfully rewritten.
+ * 
+ * == Structure and Syntax ==
+ * Deferred applications are similar to regular applications, except that 
+ * they are not evaluated until they are first successfully rewritten.  This
+ * triggers constructing a regular apply.
+ * 
+ * The syntax for a deferred apply is identical to that of a regular apply,
+ * except that two dots are used.
+ * {{{
+ * add:OPTYPE .. %?($x,$y)
+ * }}}
+ * This will be transformed into a regular apply if either (or both) of the
+ * variables are rewritten.
+ * 
+ * == Type ==
+ * The type of a deferred apply is taken from the operator.  Since no final
+ * bindings have happened, the type may be a variable, complicating matching.
+ * 
+ * == Equality and Matching ==
+ * See the `equals` and `tryMatchWithoutTypes` methods.
+ * 
+ * @param op		The operator.
+ * @param arg		The argument.
+ */
+case class DeferApply(override val op: BasicAtom, override val arg: BasicAtom)
+extends Apply(op, arg) {
+  /**
+   * The type is taken from the operator.  Until we have evaluated the apply
+   * we do not know the real type.  This can be a problem for matching.
+   */
+  val theType = op.theType
+  
+  /** The parse string for this deferred apply. */
+  def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
+}
+
+/**
+ * An ''operator apply''.  This is the common case of applying a known operator
+ * to some argument list.
+ * 
+ * @param op			The operator.
+ * @param arg			The argument list.
+ * @param pabinds	The bindings from parameter name to argument.  Note that
+ * 								if the operator is associative, some parameters may be
+ * 								synthetic!
+ */
+case class OpApply(override val op: Operator, override val arg: AtomList,
+    pabinds: Bindings) extends Apply(op, arg) {
+  /**
+   * Compute the type from the type specified by the operator, and the bindings
+   * provided during parameter matching.  This allows rewriting otherwise
+   * abstract type information to get a proper type.
+   */
+  val theType = op.opdef.proto.typ.rewrite(pabinds)._1
+  
+  /**
+   * Generate a parseable string.
+   */
+  def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
+}
+
+case class SimpleApply(override val op: BasicAtom, override val arg: BasicAtom)
+extends Apply(op, arg) {
+  /**
+   * We take the type from the operator.  This may be an incomplete type, but
+   * we cannot rewrite it yet because we don't know the full bindings.  This
+   * might cause trouble with matching.
+   */
+  val theType = op.theType
+  
+  /**
+   * Generate a parseable string.
+   */
+  def toParseString = "(" + op.toParseString + "." + arg.toParseString + ")"
 }

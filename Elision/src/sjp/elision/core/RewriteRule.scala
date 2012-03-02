@@ -46,7 +46,7 @@ package sjp.elision.core
  * @param names		The names of the rulesets to apply.
  */
 case class RulesetStrategy(context: Context, names: List[String])
-extends BasicAtom with Applicable {
+extends BasicAtom with Rewriter {
   val theType = STRATEGY
   val isConstant = true
   val constantPool = None
@@ -66,20 +66,20 @@ extends BasicAtom with Applicable {
    * Apply this strategy.  If any rule completes then the returned flag is
    * true.  Otherwise it is false.
    */
-  def doApply(atom: BasicAtom, binds: Bindings): Bindings = {
+  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean) = {
     // Get the rules.
     val rules = context.getRules(atom, names)
     // Now try every rule until one applies.
     for (rule <- rules) {
-      val (newatom, applied) = rule.tryRewrite(atom, binds)
-      if (applied) return Applicable.bind2(newatom, applied)
+      val (newatom, applied) = rule.tryRewrite(atom)
+      if (applied) return (newatom, applied)
     }
-    return Applicable.bind2(atom, false)
+    return (atom, false)
   }
 }
 
 case class MapStrategy(include: Set[String], exclude: Set[String],
-    lhs: BasicAtom) extends BasicAtom with Applicable {
+    lhs: BasicAtom) extends BasicAtom with Rewriter {
 	val theType = STRATEGY
 	
 	val isConstant = lhs.isConstant
@@ -115,20 +115,19 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
   		
   override def hashCode = lhs.hashCode
 	
-	def doApply(atom: BasicAtom, binds: Bindings) = atom match {
+	def doRewrite(atom: BasicAtom) = atom match {
 	  // We only process two kinds of atoms here: atom lists and operator
 	  // applications.  Figure out what we have.
 	  case AtomList(atoms, props) =>
 	    // All we can do is apply the lhs to each atom in the list.
-	    Applicable.bind2(AtomList(atoms.map(Apply(lhs,_)), props), true)
+	    (AtomList(atoms.map(Apply(lhs,_)), props), true)
 	  case Apply(op, AtomList(atoms, props)) =>
       // We apply the lhs to each argument whose parameter meets the
       // label criteria.  This is modestly tricky.
-      Applicable.bind2(
-          Apply(op, AtomList(atoms.map(Apply(lhs,_)), props)), true)
+      (Apply(op, AtomList(atoms.map(Apply(lhs,_)), props)), true)
 	  case _ =>
 	    // Do nothing in this case.
-	    Applicable.bind2(atom, false)
+	    (atom, false)
 	}
 }
 
@@ -149,7 +148,7 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
  */
 case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
-    extends BasicAtom with Applicable {
+    extends BasicAtom with Rewriter {
   val theType = STRATEGY
   
   lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
@@ -201,6 +200,8 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     else (this, false)
   }
   
+  def doRewrite(atom: BasicAtom) = tryRewrite(atom)
+  
   /**
    * Attempt to apply this rule to a given atom.
    * 
@@ -231,20 +232,20 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     
     // Local function to perform the rewrite if the rule fires.  We return
     // true in the pair no matter what, since the rule fired.
-    def doRewrite(candidate: Bindings) = (rewrite.rewrite(candidate)._1, true)
+    def doRuleRewrite(candidate: Bindings) = (rewrite.rewrite(candidate)._1, true)
     
     // First we try to match the given atom against the pattern.
     pattern.tryMatch(subject, binds) match {
       case fail:Fail => return (subject, false)
       case Match(newbinds) =>
         // We got a match.  Check the guards.
-        if (checkGuards(newbinds)) return doRewrite(newbinds)
+        if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
         else return (subject, false)
       case Many(iter) =>
         // We might have many matches.  We search through them until we find
         // one that satisfies the guards, or until we run out of candidates.
         for (newbinds <- iter) {
-          if (checkGuards(newbinds)) return doRewrite(newbinds)
+          if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
         }
         return (subject, false)
     }
@@ -278,10 +279,10 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     case _ => false
   }
   
-  def doApply(atom: BasicAtom, binds: Bindings) = {
+  def doRewrite(atom: BasicAtom, binds: Bindings) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
     val result = tryRewrite(atom)
-    Applicable.bind2(result._1, result._2)
+    (result._1, result._2)
   }
 }

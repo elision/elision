@@ -115,10 +115,10 @@ extends BasicAtom with Applicable {
     case _ => false
   }
   
-  def doApply(atom: BasicAtom, binds: Bindings) =
+  def doApply(atom: BasicAtom) =
 	      // Curry the lambda body by binding the variable to the argument and then
 	      // rewriting the body.
-	      Applicable.bind1(body.rewrite(binds + (lvar.name -> atom))._1)
+	      body.rewrite(new Bindings() + (lvar.name -> atom))._1
 }
 
 /**
