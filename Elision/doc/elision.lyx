@@ -5,6 +5,8 @@
 \textclass amsbook
 \begin_preamble
 %%\usepackage{minted}
+\definecolor{shadecolor}{rgb}{0.8,0.8,1}
+\sloppypar
 \end_preamble
 \use_default_options true
 \begin_modules
@@ -19,7 +21,7 @@ figs-within-sections
 \fontencoding global
 \font_roman default
 \font_sans default
-\font_typewriter default
+\font_typewriter cmtl
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
@@ -32,7 +34,7 @@ figs-within-sections
 \output_sync 0
 \bibtex_command default
 \index_command default
-\paperfontsize 12
+\paperfontsize 11
 \spacing single
 \use_hyperref false
 \papersize default
@@ -63,6 +65,7 @@ figs-within-sections
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
+\listings_params "fancyvrb=true,language=Java,numbers=left"
 \tracking_changes false
 \output_changes false
 \html_math_output 0
@@ -366,9 +369,31 @@ bin
 Path
 \family default
  environment variable.
- Open System Properties and click Advanced system settings.
- Then on the Advanced tab click Environment Variables...
- Under System Variables click New...
+ Open 
+\family sans
+System Properties
+\family default
+ and click 
+\family sans
+Advanced system settings
+\family default
+.
+ Then on the 
+\family sans
+Advanced
+\family default
+ tab click 
+\family sans
+Environment Variables...
+
+\family default
+ Under 
+\family sans
+System Variables
+\family default
+ click 
+\family sans
+New...
 \end_layout
 
 \begin_deeper
@@ -383,6 +408,8 @@ Path
 \begin_inset Text
 
 \begin_layout Plain Layout
+
+\family sans
 Variable name
 \end_layout
 
@@ -392,6 +419,8 @@ Variable name
 \begin_inset Text
 
 \begin_layout Plain Layout
+
+\family sans
 Variable value
 \end_layout
 
@@ -468,8 +497,16 @@ or
 open ~/.MacOSX/environment.plist
 \family default
 .
- This will open the environment settings in the Property List Editor.
- Add a new Item at the top level.
+ This will open the environment settings in the 
+\family sans
+Property List Editor
+\family default
+.
+ Add a new 
+\family sans
+Item
+\family default
+ at the top level.
 \end_layout
 
 \begin_deeper
@@ -485,6 +522,8 @@ open ~/.MacOSX/environment.plist
 \begin_inset Text
 
 \begin_layout Plain Layout
+
+\family sans
 Key
 \end_layout
 
@@ -494,6 +533,8 @@ Key
 \begin_inset Text
 
 \begin_layout Plain Layout
+
+\family sans
 Type
 \end_layout
 
@@ -503,6 +544,8 @@ Type
 \begin_inset Text
 
 \begin_layout Plain Layout
+
+\family sans
 Value
 \end_layout
 
@@ -768,7 +811,11 @@ In your Emacs startup file (typically
 \end_layout
 
 \begin_layout LyX-Code
-(add-to-list 'load-path "/usr/local/scala/misc/scala-tool-support/emacs")
+(add-to-list 'load-path
+\end_layout
+
+\begin_layout LyX-Code
+  "/usr/local/scala/misc/scala-tool-support/emacs")
 \begin_inset Newline newline
 \end_inset
 
@@ -980,7 +1027,55 @@ repl.sh
 \end_layout
 
 \begin_layout Section
-Scala Listings
+Scala Code
+\end_layout
+
+\begin_layout Standard
+Elision is written in Scala, and provides a Scala API.
+ The Scala API will be discussed in each section, highlighed in blue.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Elision's classes live in packages under 
+\family typewriter
+sjp.elision
+\family default
+.
+ Throughout this document packages, classes, objects, traits, etc., will
+ be discussed in reference to this top-level package.
+ Thus 
+\family typewriter
+core.BasicAtom
+\family default
+ refers to the fully-qualified class name (FQCN) 
+\family typewriter
+sjp.elision.core.BasicAtom
+\family default
+.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter
@@ -1315,6 +1410,2285 @@ When you type an atom at the REPL prompt
 Basic Atoms
 \end_layout
 
+\begin_layout Standard
+The objects manipulated by Elision are called 
+\emph on
+atoms
+\emph default
+, and they exist in several forms.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Literals
+\emph default
+ that denote a simple, fixed value.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Variables
+\emph default
+ denote an unspecified atom, perhaps with type information.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Lambdas
+\emph default
+ denote simple unnamed functions of one parameter.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Applies
+\emph default
+ denote an ordered pair consisting of a left-hand element often called the
+ 
+\emph on
+operator
+\emph default
+ and a right-hand element often called the 
+\emph on
+argument
+\emph default
+.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Operators
+\emph default
+ denote a mapping.
+\end_layout
+
+\begin_layout Itemize
+
+\emph on
+Rewriters
+\emph default
+ transform an atom into a potentially new form, reporting whether this transform
+ation succeeded.
+\end_layout
+
+\begin_layout Standard
+Atoms can be combined to make composite atoms
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+No, not mollecules.
+ This is not chemistry.
+\end_layout
+
+\end_inset
+
+ in a variety of ways.
+ These are discussed in the following sections and chapters.
+\end_layout
+
+\begin_layout Section
+Types
+\end_layout
+
+\begin_layout Standard
+Every atom has an associated 
+\emph on
+type
+\emph default
+, which is itself just another atom.
+ Since every atom has a type, and every type is an atom, we have a potential
+ infinite regress.
+ To avoid this the special 
+\emph on
+type universe
+\emph default
+ atom, denoted 
+\family typewriter
+^TYPE
+\family default
+, is its own type.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+As has been pointed out, 
+\begin_inset Quotes eld
+\end_inset
+
+it's turtles all the way down.
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\family typewriter
+^TYPE
+\family default
+ is the turtle that stands on its own head.
+\end_layout
+
+\end_inset
+
+ The fact that atom 
+\begin_inset Formula $a$
+\end_inset
+
+ has type 
+\begin_inset Formula $T$
+\end_inset
+
+ is denoted by joining the atom and its type with a colon: 
+\begin_inset Formula $a:T$
+\end_inset
+
+.
+ The type colon is right associative, so 
+\begin_inset Formula $a:B:C$
+\end_inset
+
+ denoes 
+\begin_inset Formula $a:(B:C)$
+\end_inset
+
+.
+ In fact, this is the only way the colon can work.
+ Since an atom has exactly one type, 
+\begin_inset Formula $(a:B):C$
+\end_inset
+
+ is effectively meaningless, and generates an error in Elision.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Every atom is an instance of a class extending 
+\family typewriter
+core.BasicAtom
+\family default
+.
+ All atoms are immutable after construction.
+ The type of an atom must be specified at construction time, and can be
+ accessed later via the public field 
+\family typewriter
+theType
+\family default
+.
+ The type universe can be accessed in two ways: 
+\family typewriter
+core.TypeUniverse
+\family default
+ is a singleton implementing the type universe, and it can be accessed via
+ the alias 
+\family typewriter
+`^TYPE`
+\family default
+ provided by the 
+\family typewriter
+core
+\family default
+ package.
+ Backticks must be used since 
+\family typewriter
+^TYPE
+\family default
+ is not a valid Scala symbol.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Literals
+\end_layout
+
+\begin_layout Standard
+Elision directly supports several kinds of literals.
+ These are indivisible, simple-valued atoms.
+\end_layout
+
+\begin_layout Subsection
+Symbols
+\end_layout
+
+\begin_layout Standard
+Symbols start with an underscore or letter, followed by any number of letters,
+ digits, and underscores.
+ The following are legal symbol literals.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="1" columns="4">
+<features tabularvalignment="middle" tabularwidth="90col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+A
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+x
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+_21
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+Fred21
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Other characters may occur in symbols, but the entire symbol must be enclosed
+ in backticks, which are not themselves part of the symbol.
+ Several escape sequences are interpreted; these are listed in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Escape-Codes"
+
+\end_inset
+
+.
+\begin_inset Float table
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Escape-Codes"
+
+\end_inset
+
+Escape Codes
+\end_layout
+
+\end_inset
+
+
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="2">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+f
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Form Feed Character
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+n
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Newline
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+r
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Carriage Return
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+t
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Tab Character
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+`
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Backtick
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Double Quotation Mark
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+
+\backslash
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Backslash
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ Using the backtick notation the following are also legal symbol literals.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="1" columns="4">
+<features tabularvalignment="middle" tabularwidth="90col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+`1`
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+`$_4`
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+`
+\backslash
+`Fred
+\backslash
+``
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+``
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Symbols are created via the 
+\family typewriter
+core.Literal(SYMBOL,sym)
+\family default
+ method, where 
+\family typewriter
+sym
+\family default
+ is a Scala symbol.
+\end_layout
+
+\begin_layout Plain Layout
+Take care! Scala symbols are automatically converted to Elision 
+\emph on
+variables
+\emph default
+, not symbol literals.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Strings
+\end_layout
+
+\begin_layout Standard
+A string is a sequence of characters enclosed in double quotation marks,
+ which are not themselves part of the symbol.
+ As with backtick-quoted symbols, escape codes are interpreted in the string.
+ The escape codes are listed in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Escape-Codes"
+
+\end_inset
+
+.
+ The following are legal string literals.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="1" columns="4">
+<features tabularvalignment="middle" tabularwidth="90col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+""
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+"Fred"
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+"`21,` she said."
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+"
+\backslash
+"Yes,
+\backslash
+" he replied."
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Strings are created via the 
+\family typewriter
+core.Literal(STRING,str)
+\family default
+ method, where 
+\family typewriter
+str
+\family default
+ is a Scala string.
+\end_layout
+
+\begin_layout Plain Layout
+Scala strings are automatically converted to Elision string literals as
+ necessary.
+ Thus it is possible to pass 
+\family typewriter
+"$"
+\family default
+ to a method expecting an Elision atom.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Numbers
+\end_layout
+
+\begin_layout Standard
+Numbers may be expressed in binary, octal, decimal, hexadecimal (the 
+\emph on
+radix
+\emph default
+).
+ Binary numbers are indicated by the prefix 
+\family typewriter
+0b
+\family default
+, octal numbers are indicated by a leading 
+\family typewriter
+0
+\family default
+, decimal numbers are indicated by a leading non-zero digit, and hexadecimal
+ numbers are indicated by the prefix 
+\family typewriter
+0x
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Floating point numbers are supported in all radices, and are indicated either
+ by a decimal point, an exponent, or both.
+ The exponent is typically indicated by an 
+\family typewriter
+e
+\family default
+, must be an integer, and may be in a different radix.
+ Because 
+\family typewriter
+e
+\family default
+ is a valid hexadecimal digit, 
+\family typewriter
+p
+\family default
+ may also be used to indicate an exponent (and must be for hexadecimal numbers).
+ Numbers are 
+\emph on
+not
+\emph default
+ case sensitive.
+ If the floating point number consists of significand 
+\begin_inset Formula $s$
+\end_inset
+
+, exponent 
+\begin_inset Formula $e$
+\end_inset
+
+, and radix 
+\begin_inset Formula $r$
+\end_inset
+
+, then the number denoted is given by the following equation.
+\begin_inset Formula 
+\[
+s\times r^{e}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following are legal number literals.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="3" columns="4">
+<features tabularvalignment="middle" tabularwidth="90col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+0
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+-1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+05743645134635
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+-0x232
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+2.5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+0b10.1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+0x2.8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+02.4
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+21e-6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+0b10101e-0b110
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+0x15e-0x6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+025e-06
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+Keep in mind that the radix of the significand and the exponent must both
+ be specified.
+\end_layout
+
+\begin_layout Standard
+The number undergoes a conversion to place it in a consistent radix.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+This conversion takes place during parsing.
+\end_layout
+
+\end_inset
+
+ This conversion is performed as follows.
+ Let the number be 
+\begin_inset Formula $i.f\mathtt{e}e$
+\end_inset
+
+, where 
+\begin_inset Formula $i$
+\end_inset
+
+ is the integer portion of the significand, 
+\begin_inset Formula $f$
+\end_inset
+
+ is the fractional portion of the significand, and 
+\begin_inset Formula $e$
+\end_inset
+
+ is the exponent.
+ We note that 
+\begin_inset Formula $i.f$
+\end_inset
+
+ is in one radix, which we denote 
+\begin_inset Formula $r$
+\end_inset
+
+, and the exponent may be in a different radix.
+ If the length of 
+\begin_inset Formula $f$
+\end_inset
+
+ is 
+\begin_inset Formula $|f|$
+\end_inset
+
+, then the entire significand is multiplied by 
+\begin_inset Formula $r_{s}^{|f|}$
+\end_inset
+
+ to convert it to an integer.
+ The exponent is then converted to radix 
+\begin_inset Formula $r$
+\end_inset
+
+, yielding 
+\begin_inset Formula $e'$
+\end_inset
+
+, and 
+\begin_inset Formula $n$
+\end_inset
+
+ is subtracted from it.
+\begin_inset Formula 
+\[
+n=i.f\mathtt{e}e=(i.f)r^{|f|}\mathtt{e}e'
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Integers are created via the 
+\family typewriter
+core.Literal(INTEGER,i)
+\family default
+ method, where 
+\family typewriter
+i
+\family default
+ is a Scala 
+\family typewriter
+BigInt
+\family default
+.
+ Floating point numbers can be created either via the 
+\family typewriter
+core.Literal(FLOAT,f)
+\family default
+ method, where 
+\family typewriter
+f
+\family default
+ is a Scala 
+\family typewriter
+Float
+\family default
+ or 
+\family typewriter
+Double
+\family default
+, or via the 
+\family typewriter
+core.Literal(FLOAT,sig,exp,rad)
+\family default
+ method, where 
+\family typewriter
+sig
+\family default
+ is the significand (a Scala 
+\family typewriter
+BigInt
+\family default
+), 
+\family typewriter
+exp
+\family default
+ is the exponent (a Scala 
+\family typewriter
+Int
+\family default
+), and 
+\family typewriter
+rad
+\family default
+ is the radix (one of 2, 8, 10, or 16).
+ The latter method is preferred; the former may result in loss of precision
+ in the current system.
+\end_layout
+
+\begin_layout Plain Layout
+Scala 
+\family typewriter
+Int
+\family default
+ and 
+\family typewriter
+BigInt
+\family default
+ are automatically converted to Elision integer literals as necessary.
+ Thus it is possible to pass 
+\family typewriter
+17
+\family default
+ to a method expecting an Elision atom.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Booleans
+\end_layout
+
+\begin_layout Standard
+Boolean literals come in two forms: 
+\family typewriter
+true
+\family default
+ and 
+\family typewriter
+false
+\family default
+.
+ Both have the type 
+\family typewriter
+BOOLEAN
+\family default
+.
+ If you want an Elision symbol named 
+\family typewriter
+true
+\family default
+ or 
+\family typewriter
+false
+\family default
+, you must override the type, and write 
+\family typewriter
+true:SYMBOL
+\family default
+, for instance.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+The Boolean literals can be obtained as 
+\family typewriter
+Literal.TRUE
+\family default
+ and 
+\family typewriter
+Literal.FALSE
+\family default
+.
+ Scala Booleans are automatically converted to Elision Boolean literals
+ as necessary.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Special Symbols
+\end_layout
+
+\begin_layout Standard
+Certain symbols are interpreted differently from others.
+ Three have already been discussed: 
+\family typewriter
+^TYPE
+\family default
+ denoting the type universe, 
+\family typewriter
+true
+\family default
+, and 
+\family typewriter
+false
+\family default
+.
+ Others denote named root types.
+ A 
+\emph on
+root type
+\emph default
+ is an atom whose type is 
+\family typewriter
+^TYPE
+\family default
+.
+ 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Special-Root-Type"
+
+\end_inset
+
+ lists the named root types declared by the current system.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Special-Root-Type"
+
+\end_inset
+
+Special Root Type Symbols
+\end_layout
+
+\end_inset
+
+
+\begin_inset Tabular
+<lyxtabular version="3" rows="10" columns="2">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Elision Symbol
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Interpretation
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+ANYTYPE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The wildcard.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+BINDING
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all bindings.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+BOOLEAN
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all Booleans.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+FLOAT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all floating point numbers.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+INTEGER
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all integer numbers.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+OPTYPE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+A root type for indicating that a symbol denotes an operator.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+STRATEGY
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all strategies and rewrite rules.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+STRING
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all strings.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+SYMBOL
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The root type for all symbols.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The special atom 
+\family typewriter
+ANYTYPE
+\family default
+ matches any atom, and any atom matches it, so it can be treated as a wildcard
+ during matching.
+ It is also the assumed type of otherwise untyped atoms.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+All the symbols listed in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Special-Root-Type"
+
+\end_inset
+
+ are also Scala objects that extend 
+\family typewriter
+core.NamedRootType
+\family default
+.
+ They can be used directly, so 
+\family typewriter
+SYMBOL
+\family default
+ is a Scala value denoting the Elision 
+\family typewriter
+SYMBOL
+\family default
+ type.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Variables
+\end_layout
+
+\begin_layout Standard
+Variables are indicated by a leading dollar sign followed by the variable
+ name, which is a symbol.
+ The following are legal variables.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="1" columns="4">
+<features tabularvalignment="middle" tabularwidth="90col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+$x
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+$_21
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+$`1`
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+$`$_4`
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Variables are looked up by name, but matched by 
+\emph on
+both
+\emph default
+ name and type.
+ This means that you should never use the same variable name with different
+ types in a single atom, as it will break matching in unusual ways.
+ If no type is specified for a variable, Elision assigns it the special
+ wildcard 
+\family typewriter
+ANYTYPE
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Variables are created using 
+\family typewriter
+core.Variable(typ,name)
+\family default
+, where 
+\family typewriter
+typ
+\family default
+ is the variable type, and 
+\family typewriter
+name
+\family default
+ is the variable name.
+ Thus the Elision variable 
+\family typewriter
+$x:INTEGER
+\family default
+ can be created with 
+\family typewriter
+Variable(INTEGER,"x")
+\family default
+.
+ Scala symbols are also automatically converted to variables of type 
+\family typewriter
+ANYTYPE
+\family default
+, so it is possible to pass a Scala symbol to methods expecting an atom.
+ Thus 
+\family typewriter
+$x:ANYTYPE
+\family default
+ can also be written (depending on context) as 
+\family typewriter
+'x
+\family default
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Lambdas
+\end_layout
+
+\begin_layout Standard
+A lambda expression denotes a function with a single parameter, and consists
+ of a variable called the 
+\emph on
+lambda parameter
+\emph default
+ and an atom called the 
+\emph on
+body
+\emph default
+.
+ The lambda is 
+\emph on
+evaluated
+\emph default
+ (or 
+\emph on
+curried
+\emph default
+) by applying it to another atom, called the 
+\emph on
+argument
+\emph default
+, and then replacing instances of the lambda parameter in the body with
+ the argument.
+ This is all much simpler than it sounds.
+\end_layout
+
+\begin_layout Standard
+Lambdas are introduced by a backslash (
+\family typewriter
+
+\backslash
+
+\family default
+), the parameter (a variable), a dot (
+\family typewriter
+.
+\family default
+), and the body (an atom).
+ The following is a lambda that denotes a constant function whose value
+ is 7 no matter what argument is provided.
+\end_layout
+
+\begin_layout LyX-Code
+
+\backslash
+$x.7
+\end_layout
+
+\begin_layout Standard
+The following denotes the identity function that returns the atom it is
+ applied to.
+\end_layout
+
+\begin_layout LyX-Code
+
+\backslash
+$x.$x
+\end_layout
+
+\begin_layout Standard
+The following is a lambda that creates constant functions.
+ When applied to an argument, the result is a function that always returns
+ the argument.
+\end_layout
+
+\begin_layout LyX-Code
+
+\backslash
+$x.
+\backslash
+$y.$x
+\end_layout
+
+\begin_layout Standard
+To apply the lambda to an atom, join the lambda and the atom with a dot
+ (
+\family typewriter
+.
+\family default
+).
+ The lambda dot binds more tightly than the application dot.
+ 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Lambdas"
+
+\end_inset
+
+ shows some examples of lambda applications and the results.
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Lambdas"
+
+\end_inset
+
+Lambdas
+\end_layout
+
+\end_inset
+
+
+\begin_inset Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Lambda Expression
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Value
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x.7.12
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+7
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x.$x.12
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x.
+\backslash
+$y.$x.12
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$y.12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+A lambda parameter is 
+\emph on
+matched
+\emph default
+ against the argument, and the result is used to 
+\emph on
+rewrite
+\emph default
+ the body.
+ This is all explained in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Matching-and-Rewriting"
+
+\end_inset
+
+, but in practice it means that if you specify the type of the parameter,
+ then Elision will enforce this.
+ Thus the lambda expression 
+\family typewriter
+
+\backslash
+$x:INTEGER.$x.7
+\family default
+ will succeed with the value 7, while the lambda expression 
+\family typewriter
+
+\backslash
+$x:INTEGER.$x."Fred"
+\family default
+ will fail with an error.
+ This also means that the type of an atom can be extracted using a lambda.
+ The following lambda will extract the type of any atom it is applied to.
+\end_layout
+
+\begin_layout LyX-Code
+
+\backslash
+$x:$T.$T
+\end_layout
+
+\begin_layout Standard
+Thus the expression 
+\family typewriter
+
+\backslash
+$x:$T.$T."Fred"
+\family default
+ evaluates to 
+\family typewriter
+STRING
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Because the applicative dot binds right to left, multiple parameter lambda
+ expressions must be parenthesized when applied, as with the following.
+\end_layout
+
+\begin_layout LyX-Code
+
+\backslash
+$first.(
+\backslash
+$second.%($first,$second).2).1
+\end_layout
+
+\begin_layout Standard
+This evaluates to the atom list 
+\family typewriter
+%(1,2)
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+To create a lambda use 
+\family typewriter
+core.Lambda(param,body)
+\family default
+, where 
+\family typewriter
+param
+\family default
+ is the lambda parameter and 
+\family typewriter
+body
+\family default
+ is the lambda body.
+ To apply a lambda to an argument, use 
+\family typewriter
+core.Apply(lambda,arg)
+\family default
+, where 
+\family typewriter
+lambda
+\family default
+ is the lambda expression and 
+\family typewriter
+arg
+\family default
+ is the argument.
+ The following shows how several lambda expressions can be created in Scala.
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="6" columns="2">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Lambda Expression
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Scala Code
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x.7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+Lambda('x,7)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x.$x
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+Lambda('x,'x)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x.
+\backslash
+$y.$x
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+Lambda('x,Lambda('y,'x))
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x:INTEGER.$x.7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+Apply(Lambda(Variable(INTEGER,"x"),'x),7)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+
+\backslash
+$x:$T.$T."Fred"
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+Apply(Lambda(Variable('T,"x"),'T),"Fred")
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Chapter
 \begin_inset CommandInset label
 LatexCommand label
@@ -1325,20 +3699,1490 @@ name "chap:Operators"
 Operators
 \end_layout
 
+\begin_layout Standard
+In general, operators denote mappings on atoms.
+ However, Elision manipulates operators symbolically, so they should be
+ regarded as mathematical functions, and not necessarily in the computer
+ language sense.
+ Elision supports three kinds of operator.
+\end_layout
+
+\begin_layout Itemize
+A 
+\emph on
+symbolic
+\emph default
+ operator is simply an atom that is manipulated by the system through rewriting.
+\end_layout
+
+\begin_layout Itemize
+A 
+\emph on
+native
+\emph default
+ operator uses a closure to construct instances of the operator application.
+ This is how arithmetic operators, for example, are implemented.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+If no closure is provided for a native operator, it is treated as a symbolic
+ operator.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+An 
+\emph on
+immediate
+\emph default
+ operator denotes a kind of macro.
+ Once the parameters are bound to arguments, this binding is used to rewrite
+ a provided body, which is the result of the operator application.
+\end_layout
+
+\begin_layout Section
+Operator Prototypes
+\end_layout
+
+\begin_layout Standard
+Prior to use, operators must be defined.
+ All operator definitions must have a 
+\emph on
+prototype
+\emph default
+ that specifies the operator name, parameters, and type information.
+ Symbolic and native operator definitions must provide the operator 
+\emph on
+properties
+\emph default
+, if any.
+ Immediate operator definitions must provide a 
+\emph on
+body
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+Operator prototypes specify the operator name as a symbol, and give a comma-sepa
+rated list of named parameters in parentheses.
+ Each parameter is a variable, and the type must be specified (though it
+ may be 
+\family typewriter
+ANYTYPE
+\family default
+).
+ Following the closing parenthesis the type of the fully-applied operator
+ must be given.
+ For instance, if the operator 
+\family typewriter
+foo
+\family default
+ takes two integer arguments and returns an integer value, we would write
+ its prototype as: 
+\family typewriter
+foo($x: INTEGER, $y: INTEGER): INTEGER
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Operator prototypes are not, by themselves, atoms, and they cannot be specified
+ using the alternate notation for operator application (the applicative
+ dot to be discussed later).
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Operator prototypes are created with 
+\family typewriter
+core.OperatorPrototype
+\family default
+.
+ Pass the name, a list of 
+\family typewriter
+core.Variable
+\family default
+ instances as parameters, and the type.
+ The following defines the 
+\family typewriter
+foo
+\family default
+ prototype given above.
+\end_layout
+
+\begin_layout LyX-Code
+OperatorPrototype("foo",
+\end_layout
+
+\begin_layout LyX-Code
+  List(Variable(INTEGER,"x"), Variable(INTEGER,"y")),
+\end_layout
+
+\begin_layout LyX-Code
+  INTEGER)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Operator Properties
+\end_layout
+
+\begin_layout Standard
+Both symbolic and native operator definitions may provide a comma-separated
+ list of operator properties, introduced with the keyword 
+\family typewriter
+is
+\family default
+.
+ The allowable properties are the following.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+associative
+\family default
+: The operator is associative, meaning that the arguments can be arbitrarily
+ grouped, but not necessarily re-ordered.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+commutative
+\family default
+: The operator is commutative, meaning that the arguments can be arbitrarily
+ re-ordered, but not necessarily re-grouped.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+idempotent
+\family default
+: The operator is idempotent, meaning that repeated arguments can be replaced
+ with a single instance.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+identity A
+\family default
+: The operator has an identity, given by the atom 
+\family typewriter
+A
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+absorber A
+\family default
+: The operator has an absorber, given by the atom 
+\family typewriter
+A
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+For example, the property statement for addition is: 
+\family typewriter
+is associative, commutative, identity 0
+\family default
+.
+ The property statement for multiplication is: 
+\family typewriter
+is associative, commutative, identity 1, absorber 0
+\family default
+.
+ The property statement for Boolean logical or is: 
+\family typewriter
+is associative, commutative, idempotent, identity false, absorber true
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Each property is described in more detail in the following subsections.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Operator properties are specified by 
+\family typewriter
+core.OperatorProperties
+\family default
+.
+ For each of associative, commutative, and idempotent, pass that name and
+ set it to true.
+ For identities or absorbers, pass the property name and set it to the appropria
+te atom, wrapped by 
+\family typewriter
+Some
+\family default
+.
+ The following builds the properties for addition, given above.
+\end_layout
+
+\begin_layout LyX-Code
+OperatorProperties(associative=true,
+\end_layout
+
+\begin_layout LyX-Code
+  commutative=true, identity=Some(0))
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Associativity
+\end_layout
+
+\begin_layout Standard
+An associative operator 
+\begin_inset Formula $f$
+\end_inset
+
+ can have its arguments grouped arbitrarily.
+ Thus 
+\begin_inset Formula $f(a,b,c)=f(f(a,b),c)=f(a,f(b,c))$
+\end_inset
+
+.
+ Note that any argument could be replaced with another application, so any
+ number of arguments is possible (though not necessarily fewer than specified
+ in the prototype).
+\end_layout
+
+\begin_layout Standard
+Suppose we define operator 
+\begin_inset Formula $f$
+\end_inset
+
+ to have prototype 
+\begin_inset Formula $f(a:A,b:B):F$
+\end_inset
+
+.
+ Since we can replace either 
+\begin_inset Formula $a$
+\end_inset
+
+ or 
+\begin_inset Formula $b$
+\end_inset
+
+ with another application of 
+\begin_inset Formula $f$
+\end_inset
+
+, we conclude that 
+\begin_inset Formula $F\subseteq A$
+\end_inset
+
+ and 
+\begin_inset Formula $F\subseteq B$
+\end_inset
+
+.
+ We further note the following, by associativity.
+\begin_inset Formula 
+\[
+f(f(c:A,d:B),b:B)=f(c:A,f(d:B,b:B))
+\]
+
+\end_inset
+
+Thus it must be the case that 
+\begin_inset Formula $B\subseteq A$
+\end_inset
+
+.
+ By a similar argument we conclude that 
+\begin_inset Formula $A\subseteq B$
+\end_inset
+
+, and thus 
+\begin_inset Formula $A=B$
+\end_inset
+
+.
+ For these reasons we require that all parameters of an associative operator
+ have the same type, and that the parameter type must be the same as the
+ overall operator type.
+ Thus the following associative operator prototypes are rejected by the
+ system.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+bad1($x: INTEGER, $y: STRING): INTEGER
+\family default
+
+\begin_inset Newline newline
+\end_inset
+
+The parameters do not have the same type.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+bad2($x: INTEGER): STRING
+\family default
+
+\begin_inset Newline newline
+\end_inset
+
+The operator type is not the same as the parameter type.
+\end_layout
+
+\begin_layout Standard
+Because of these restrictions, the recommended way to declare an associative
+ operator is to provide exactly one typed argument.
+ The following is the--somewhat unusual--prototype for integer add.
+ In fact, the system imposes the restriction by discarding all but the first
+ parameter.
+\end_layout
+
+\begin_layout LyX-Code
+add($x: INTEGER): INTEGER
+\end_layout
+
+\begin_layout Standard
+Associativity is 
+\emph on
+required
+\emph default
+ by other properties, such as idempotency, identities, and absorbers.
+\end_layout
+
+\begin_layout Standard
+Finally, if an associative operator is provided with a single argument the
+ operator 
+\begin_inset Quotes eld
+\end_inset
+
+dissolves
+\begin_inset Quotes erd
+\end_inset
+
+ and we obtain just that element.
+ That is, 
+\begin_inset Formula $f(a)=a$
+\end_inset
+
+.
+ This arises from the notion that we can parenthesize arbitrarily, even
+ a single argument.
+\end_layout
+
+\begin_layout Subsection
+Commutativity
+\end_layout
+
+\begin_layout Standard
+A commutative (or abelian) operator 
+\begin_inset Formula $f$
+\end_inset
+
+ can have its arguments re-ordered arbitrarily.
+ Thus 
+\begin_inset Formula $f(a,b)=f(b,a)$
+\end_inset
+
+.
+ If we provide type information, we see the following: 
+\begin_inset Formula $f(a:A,b:B)=f(b:B,a:A)$
+\end_inset
+
+, and we conclude that 
+\begin_inset Formula $A\subseteq B$
+\end_inset
+
+ and 
+\begin_inset Formula $B\subseteq A$
+\end_inset
+
+, or 
+\begin_inset Formula $A=B$
+\end_inset
+
+.
+ We thus require that all arguments to a commutative operator have the same
+ type, though this need not be the type of the fully-applied operator.
+ The following commutative operator prototype is rejected by the system.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+bad($x: INTEGER, $y: STRING): STRING
+\family default
+
+\begin_inset Newline newline
+\end_inset
+
+The parameters do not have the same type.
+\end_layout
+
+\begin_layout Subsection
+Idempotency
+\end_layout
+
+\begin_layout Standard
+An idempotent operator 
+\begin_inset Formula $f$
+\end_inset
+
+ has the property that 
+\begin_inset Formula $f(a,a)=f(a)$
+\end_inset
+
+, so repeated arguments are discarded.
+ Because the length of the argument list can change, idempotent operators
+ are required to be associative.
+ An example of an idempotent operator is the Boolean inclusive 
+\emph on
+or
+\emph default
+, since 
+\begin_inset Formula $\mbox{or}(x,y,x)=\mbox{or}(x,y)$
+\end_inset
+
+.
+ Idempotency imposes no additional restrictions on an operator beyond associativ
+ity.
+\end_layout
+
+\begin_layout Subsection
+Identity
+\end_layout
+
+\begin_layout Standard
+An operator 
+\begin_inset Formula $f$
+\end_inset
+
+ can have an associated identity element 
+\begin_inset Formula $e$
+\end_inset
+
+, with the property that 
+\begin_inset Formula $f(x,e)=f(e,x)=f(x)$
+\end_inset
+
+.
+ Instances of the identity are discarded from the argument list.
+ Because the length of the argument list can change, only associative operators
+ can have an identity.
+\end_layout
+
+\begin_layout Standard
+Identity elements include zero for addition, one for multiplication, false
+ for Boolean inclusive or, and true for Boolean and.
+\end_layout
+
+\begin_layout Standard
+Further, while 
+\begin_inset Formula $f()$
+\end_inset
+
+ has no particular meaning for a general associative operator, it is regarded
+ as an alternate name for the identity 
+\begin_inset Formula $e$
+\end_inset
+
+.
+ Thus an associative operator with identity can have any number of elements,
+ including none.
+\end_layout
+
+\begin_layout Subsection
+Absorber
+\end_layout
+
+\begin_layout Standard
+An operator 
+\begin_inset Formula $f$
+\end_inset
+
+ can have an associated absorber element 
+\begin_inset Formula $z$
+\end_inset
+
+, with the property that 
+\begin_inset Formula $f(x,z)=f(z,x)=z$
+\end_inset
+
+.
+ If an absorber is present in the argument list then the entire operator
+ application is reduced to the absorber.
+ Elision currently requires that operators with absorbers be associative,
+ though this is not essential for any mathematical reason.
+\end_layout
+
+\begin_layout Standard
+Absorber elements include zero for multiplication, true for Boolean inclusive
+ or, and false for Boolean and.
+\end_layout
+
+\begin_layout Section
+Operator Declarations
+\end_layout
+
+\begin_layout Standard
+One declares a symbolic operator by giving the prototype and properties
+ in a complete declaration, as follows.
+\end_layout
+
+\begin_layout LyX-Code
+{ operator or($x: BOOLEAN): BOOLEAN
+\end_layout
+
+\begin_layout LyX-Code
+  is associative, commutative, idempotent,
+\end_layout
+
+\begin_layout LyX-Code
+     identity false, absorber true }
+\end_layout
+
+\begin_layout Standard
+The form for declaring a native operator is the same, with the exception
+ that the keyword 
+\family typewriter
+operator
+\family default
+ is replaced with 
+\family typewriter
+native
+\family default
+.
+\end_layout
+
+\begin_layout LyX-Code
+{ native add($x: INTEGER): INTEGER
+\end_layout
+
+\begin_layout LyX-Code
+  is associative, commutative, identity 0 }
+\end_layout
+
+\begin_layout Standard
+Finally, an immediate operator declaration provides a prototype and a body,
+ but no properties, as the properties are implicit in the declared body.
+ A simple example is the 
+\family typewriter
+typeof
+\family default
+ operator that extracts and returns the type of its argument.
+\end_layout
+
+\begin_layout LyX-Code
+{ operator typeof($x:$T:$U):$U = $T }
+\end_layout
+
+\begin_layout Standard
+All these declarations are used when an operator application is 
+\emph on
+constructed
+\emph default
+, meaning when the operator is applied to an argument list.
+ In the case of symbolic and native operators, the argument list is processed
+ based on the properties.
+ For a native operator, this happens prior to invoking the closure.
+ If the operator has an absorber or identity, the closure might not be invoked
+ at all.
+\end_layout
+
+\begin_layout Standard
+The following are some examples of operator construction.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+or($x,or($y,$z))
+\family default
+ becomes 
+\family typewriter
+or($x,$y,$z)
+\family default
+ because associative applications are 
+\begin_inset Quotes eld
+\end_inset
+
+flattened.
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+add(5,0,2)
+\family default
+ becomes 
+\family typewriter
+add(5,2)
+\family default
+ because identities are discarded.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+or(true,false,$x)
+\family default
+ becomes 
+\family typewriter
+true
+\family default
+ because 
+\family typewriter
+true
+\family default
+ is an absorber.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+add(0,0,0)
+\family default
+ becomes 
+\family typewriter
+0
+\family default
+ because discarding identities leaves 
+\family typewriter
+add()
+\family default
+, which is equal to the identity 
+\family typewriter
+0
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+typeof(true)
+\family default
+ becomes 
+\family typewriter
+BOOLEAN
+\family default
+ because the immediate definition is applied at construction time.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+To create a definition of a symbolic or native operator, use
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+core.SymbolicOperatorDefinition(proto,props)
+\family default
+, or
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+core.NativeOperatorDefinition(proto,props)
+\family default
+,
+\end_layout
+
+\begin_layout Standard
+where 
+\family typewriter
+proto
+\family default
+ is the operator prototype and 
+\family typewriter
+props
+\family default
+ is the operator properties.
+ The following code creates the two examples given previously (the 
+\family typewriter
+or
+\family default
+ and 
+\family typewriter
+add
+\family default
+ operators).
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset listings
+lstparams "frame=lines"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+import sjp.elision.core._
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Make the Boolean inclusive or operator definition.
+\end_layout
+
+\begin_layout Plain Layout
+
+val orProto = OperatorPrototype("or", 
+\end_layout
+
+\begin_layout Plain Layout
+
+                List(Variable(BOOLEAN, "x")), BOOLEAN)
+\end_layout
+
+\begin_layout Plain Layout
+
+val orProps = OperatorProperties(associative=true,
+\end_layout
+
+\begin_layout Plain Layout
+
+                commutative=true, idempotent=true,
+\end_layout
+
+\begin_layout Plain Layout
+
+                identity=Some(false), absorber=Some(false))
+\end_layout
+
+\begin_layout Plain Layout
+
+val orOp = SymbolicOperatorDefinition(opProto, opProps)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Make the integer add operator definition.
+\end_layout
+
+\begin_layout Plain Layout
+
+val addProto = OperatorPrototype("add", 
+\end_layout
+
+\begin_layout Plain Layout
+
+                List(Variable(INTEGER, "x")), INTEGER)
+\end_layout
+
+\begin_layout Plain Layout
+
+val addProps = OperatorProperties(
+\end_layout
+
+\begin_layout Plain Layout
+
+                associative=true,
+\end_layout
+
+\begin_layout Plain Layout
+
+                commutative=true,
+\end_layout
+
+\begin_layout Plain Layout
+
+                identity=Some(Literal(INTEGER,0)))
+\end_layout
+
+\begin_layout Plain Layout
+
+val addOp = SymbolicOperatorDefinition(addProto, addProps)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+To create a definition of an immediate operator, use 
+\family typewriter
+core.ImmediateOperatorDefinition(proto, body)
+\family default
+, where 
+\family typewriter
+proto
+\family default
+ is the operator prototype and 
+\family typewriter
+body
+\family default
+ is the immediate operator body.
+ The following code creates the 
+\family typewriter
+typeof
+\family default
+ example given previously.
+ This will use some constructors not previously discussed.
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset listings
+lstparams "frame=lines"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+import sjp.elision.core._
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Make the typeof operator definition.
+\end_layout
+
+\begin_layout Plain Layout
+
+val typeofProto = OperatorPrototype("typeof", 
+\end_layout
+
+\begin_layout Plain Layout
+
+                List(Variable(Variable(Variable(ANYTYPE, "U"),
+\end_layout
+
+\begin_layout Plain Layout
+
+                  "T"), "x")), BOOLEAN)
+\end_layout
+
+\begin_layout Plain Layout
+
+val typeofOp = ImmediateOperatorDefinition(typeofProto,
+\end_layout
+
+\begin_layout Plain Layout
+
+                OperatorProperties())
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Operator definitions 
+\emph on
+are
+\emph default
+ atoms, so they could be matched and rewritten.
+ In practice, this is not currently supported, primarily due to the fact
+ that their components (the prototype and properties objects) are not atoms.
+ This may change in a future version of Elision.
+\end_layout
+
+\begin_layout Plain Layout
+Operator definitions should be installed in an instance of 
+\family typewriter
+core.OperatorLibrary
+\family default
+, typically found in an instance of 
+\family typewriter
+core.Context
+\family default
+.
+ A context is automatically created and provided by the REPL, so if you
+ are interacting with the REPL you do not need to worry about this.
+ Contexts and operator libraries are explained in more detail in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Contexts"
+
+\end_inset
+
+.
+ If you have a context instance, you can install a new operator by first
+ getting the operator library from the context with 
+\family typewriter
+operatorLibrary
+\family default
+, and then invoking 
+\family typewriter
+add(opdef)
+\family default
+ on the instance, where 
+\family typewriter
+opdef
+\family default
+ is the operator definition.
+\end_layout
+
+\begin_layout Plain Layout
+For instance, if 
+\family typewriter
+context
+\family default
+ is an instance of 
+\family typewriter
+core.Context
+\family default
+, then the operators defined above can be installed with the following lines
+ of code.
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset listings
+lstparams "frame=lines"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// Install definitions.
+\end_layout
+
+\begin_layout Plain Layout
+
+context.operatorLibrary.add(orOp)
+\end_layout
+
+\begin_layout Plain Layout
+
+context.operatorLibrary.add(addOp)
+\end_layout
+
+\begin_layout Plain Layout
+
+context.operatorLibrary.add(typeofOp)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+The operator library is also where you register the closure for a native
+ operator (though there is another method explained in the next section).
+ The closure must take a triple, consisting of the operator name as a string,
+ the argument list as an instance of 
+\family typewriter
+core.AtomList
+\family default
+, and an optional instance of 
+\family typewriter
+core.Bindings
+\family default
+.
+ The bindings are the result of matching the operator parameters against
+ the arguments, and may be useful in some case.
+ The closure may then return any atom.
+ Matching, binding, and rewriting are all explained in more detail in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Matching-and-Rewriting"
+
+\end_inset
+
+.
+ The following actually implements addition as a native operator.
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset listings
+lstparams "frame=lines"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// Define add as a native operator.
+\end_layout
+
+\begin_layout Plain Layout
+
+val opdef = NativeOperatorDefinition(
+\end_layout
+
+\begin_layout Plain Layout
+
+  OperatorPrototype("add", List(Variable(INTEGER, "x")), INTEGER),
+\end_layout
+
+\begin_layout Plain Layout
+
+  OperatorProperties(associative=true, commutative=true,
+\end_layout
+
+\begin_layout Plain Layout
+
+    identity=Some(Literal(INTEGER, 0))))
+\end_layout
+
+\begin_layout Plain Layout
+
+// Create a closure to perform the addition.
+\end_layout
+
+\begin_layout Plain Layout
+
+def doadd(op: Operator, args: AtomList,
+\end_layout
+
+\begin_layout Plain Layout
+
+    binds: Option[Bindings]) = {
+\end_layout
+
+\begin_layout Plain Layout
+
+  // Accumulate the integer literals found.
+\end_layout
+
+\begin_layout Plain Layout
+
+  var lits:BigInt = 0
+\end_layout
+
+\begin_layout Plain Layout
+
+  // Accumulate other atoms found.
+\end_layout
+
+\begin_layout Plain Layout
+
+  var other = ListBuffer[BasicAtom]()
+\end_layout
+
+\begin_layout Plain Layout
+
+  // Traverse the list and divide the atoms.
+\end_layout
+
+\begin_layout Plain Layout
+
+  args.atoms.foreach {
+\end_layout
+
+\begin_layout Plain Layout
+
+    x => x match {
+\end_layout
+
+\begin_layout Plain Layout
+
+      case Literal(_, IntVal(value)) => lits += value
+\end_layout
+
+\begin_layout Plain Layout
+
+      case _ => other += x
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+  }
+\end_layout
+
+\begin_layout Plain Layout
+
+  // Now add the accumulated literals to the list.
+\end_layout
+
+\begin_layout Plain Layout
+
+  other += Literal(INTEGER, lits)
+\end_layout
+
+\begin_layout Plain Layout
+
+  // Construct and return a new operator application.
+\end_layout
+
+\begin_layout Plain Layout
+
+  OpApply(op, AtomList(other))
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+// Register the operator and its handler.
+\end_layout
+
+\begin_layout Plain Layout
+
+context.operatorLibrary.add(opdef)
+\end_layout
+
+\begin_layout Plain Layout
+
+context.operatorLibrary.register("add", doadd)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Operator Applications
+\end_layout
+
+\begin_layout Standard
+Once an operator is defined, it can be applied to arguments.
+ If the arguments match the parameters then the operator is fully applied
+ and a new atom is created called an 
+\emph on
+apply
+\emph default
+.
+ Assuming the 
+\family typewriter
+and
+\family default
+, 
+\family typewriter
+or
+\family default
+, and 
+\family typewriter
+typeof
+\family default
+ operators given in the previous section are defined, the following are
+ all valid applications.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="1" columns="4">
+<features tabularvalignment="middle" tabularwidth="90col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+add(4,5,$x)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+or($x,false)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+typeof(6)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+typeof(add($x,9))
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Because of the properties of the 
+\family typewriter
+or
+\family default
+ operator, the second term 
+\family typewriter
+or($x,false)
+\family default
+ immediately reduces to 
+\family typewriter
+$x
+\family default
+.
+ The last two reduce immediately to 
+\family typewriter
+INTEGER
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Operator applications can be nested, provided types match.
+ The following is an example.
+\end_layout
+
+\begin_layout LyX-Code
+or(equal(add($x,21),64),equal(add($y,17),32))
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Before an operator can be applied, you must get an instance of that operator.
+ If you have installed 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+The Applicative Dot
+\end_layout
+
 \begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Special-Forms"
+
+\end_inset
+
+Special Forms
+\end_layout
+
+\begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Matching-and-Rewriting"
+
+\end_inset
+
 Matching and Rewriting
 \end_layout
 
 \begin_layout Chapter
-Rules
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Rules-and-Strategies"
+
+\end_inset
+
+Rules and Strategies
 \end_layout
 
 \begin_layout Chapter
-Strategies
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Contexts"
+
+\end_inset
+
+Contexts
 \end_layout
 
 \begin_layout Chapter
-Extensions
+\start_of_appendix
+BasicAtom
 \end_layout
 
 \end_body
