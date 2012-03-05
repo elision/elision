@@ -113,12 +113,13 @@ class OperatorLibrary(
  	 * @param name		The operator name.  This is always passed to the handler
  	 * 								as the first argument.  This makes it possible to write
  	 * 								a single handler for many similar operators.
- 	 * @param handler	The handler.  It must take the operator name and the
- 	 * 								argument list, post processing for identities and such,
- 	 * 								and generate a new atom.
+ 	 * @param handler	The handler.  It must take the operator and the argument
+ 	 * 								list, and will be passed the bindings resulting from
+ 	 * 								matching the parameters against the arguments.  It must
+ 	 * 								return a new atom.
  	 */
  	def register(name: String,
- 	    handler: (String, AtomList, Option[Bindings]) => BasicAtom) = {
+ 	    handler: (Operator, AtomList, Option[Bindings]) => BasicAtom) = {
  	  // Go fetch the operator.  It must be defined.
  	  _nameToOperator.get(name) match {
  	    case None =>
@@ -160,7 +161,7 @@ class OperatorLibrary(
  	        		name,
  	        		List(Variable(TypeUniverse, "x"), Variable(TypeUniverse, "y")),
  	        		TypeUniverse),
- 	        OperatorProperties(assoc = true))
+ 	        OperatorProperties(associative = true))
  	    add(od)
  	    get(name)
  	  case _ => None
@@ -228,7 +229,7 @@ object OperatorLibrary {
 		          "xx",
 		          List(Variable(ANYTYPE, "a")),
 		          ANYTYPE),
-		      OperatorProperties(assoc=true)))
+		      OperatorProperties(associative=true)))
   
   /**
    * Make a cross type.

@@ -32,6 +32,11 @@
 package sjp.elision.core
 
 /**
+ * A lambda variable does not match the body.
+ */
+case class LambdaVariableMismatchException(msg: String) extends Exception(msg)
+
+/**
  * A lambda creates an operator that binds a single variable in a term.
  * 
  * ==Structure and Syntax==
@@ -115,10 +120,21 @@ extends BasicAtom with Applicable {
     case _ => false
   }
   
-  def doApply(atom: BasicAtom) =
-	      // Curry the lambda body by binding the variable to the argument and then
-	      // rewriting the body.
-	      body.rewrite(new Bindings() + (lvar.name -> atom))._1
+  def doApply(atom: BasicAtom) = {
+    // Make it possible to check types by matching the variable against the
+    // argument instead of just binding.  For pure binding without checking
+    // types, use a bind.
+    lvar.tryMatch(atom) match {
+      case fail:Fail =>
+        throw new LambdaVariableMismatchException(
+            "Lambda variable does not match body: " + fail.theReason)
+      case Match(binds) =>
+        // Great!  Now rewrite the body with the bindings.
+	      body.rewrite(binds)._1
+      case Many(iter) =>
+        body.rewrite(iter.next)._1
+    }
+  }
 }
 
 /**

@@ -170,7 +170,7 @@ extends LitVal {
  * Represent the value of a floating point number.
  * @param fval	The floating point value.
  */
-case class FltVal(fval: Float) extends LitVal {
+case class FltVal(fval: Double) extends LitVal {
 	def toParseString = fval.toString
 	override lazy val hashCode = fval.hashCode
 	override def equals(other: Any) = other match {
@@ -321,7 +321,17 @@ object Literal {
 	 * @param typ		The type.
 	 * @param ival	The integer value.
 	 */
-	def apply(typ: BasicAtom, ival: BigInt) = new Literal(typ, IntVal(ival))
+	def apply(typ: BasicAtom, ival: Int): Literal =
+	  new Literal(typ, IntVal(ival))
+
+	/**
+	 * Make a integer value.
+	 * 
+	 * @param typ		The type.
+	 * @param ival	The integer value.
+	 */
+	def apply(typ: BasicAtom, ival: BigInt): Literal =
+	  new Literal(typ, IntVal(ival))
 	
 	/**
 	 * Make a floating point value.  The value represented is equal to
@@ -341,7 +351,7 @@ object Literal {
 	 * @param typ		The type.
 	 * @param fval	The float value.
 	 */
-	def apply(typ: BasicAtom, fval: Float) = new Literal(typ, FltVal(fval))
+	def apply(typ: BasicAtom, fval: Double) = new Literal(typ, FltVal(fval))
 	
 	/** The value true. */
 	val TRUE = new Literal(BOOLEAN, BooVal(true))

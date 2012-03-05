@@ -183,9 +183,9 @@ case class OperatorPrototype(name: String, pars: List[Variable],
  * @param identity	The identity, if any.  Default is None.
  */
 case class OperatorProperties(
-    assoc: Boolean = false,
-    comm: Boolean = false,
-    idem: Boolean = false,
+    associative: Boolean = false,
+    commutative: Boolean = false,
+    idempotent: Boolean = false,
     absorber: Option[BasicAtom] = None,
     identity: Option[BasicAtom] = None) {
   /**
@@ -204,8 +204,8 @@ case class OperatorProperties(
   
   // Absorbers, identities, and idempotency are only allowed when an operator
   // is associative.
-  if (!assoc) {
-    if (idem) throw new IllegalOperatorDefinition(
+  if (!associative) {
+    if (idempotent) throw new IllegalOperatorDefinition(
         "Idempotent operators must be associative.")
     if (absorber != None) throw new IllegalOperatorDefinition(
         "Operators with an absorber must be associative.")
@@ -218,9 +218,9 @@ case class OperatorProperties(
    */
   private lazy val propstr = {
     var list = ListBuffer[String]()
-    if (assoc) list += "associative"
-    if (comm) list += "commutative"
-    if (idem) list += "idempotent"
+    if (associative) list += "associative"
+    if (commutative) list += "commutative"
+    if (idempotent) list += "idempotent"
     absorber match {
       case Some(atom) => list += "absorber " + atom.toParseString
       case None =>
@@ -234,14 +234,14 @@ case class OperatorProperties(
   
   def toParseString = if (propstr.length > 0) "is " + propstr else ""
     
-  override lazy val hashCode = (((assoc.hashCode * 31 + comm.hashCode) * 31 +
-      idem.hashCode) * 31 + absorber.hashCode) * 31 + identity.hashCode
+  override lazy val hashCode = (((associative.hashCode * 31 + commutative.hashCode) * 31 +
+      idempotent.hashCode) * 31 + absorber.hashCode) * 31 + identity.hashCode
 
   override def equals(other: Any) = other match {
     case op:OperatorProperties =>
-      assoc == op.assoc &&
-      comm == op.comm &&
-      idem == op.idem &&
+      associative == op.associative &&
+      commutative == op.commutative &&
+      idempotent == op.idempotent &&
       absorber == op.absorber &&
       identity == op.identity
     case _ => false

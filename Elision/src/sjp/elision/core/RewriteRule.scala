@@ -95,7 +95,7 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
 	      Fail("Labels do not match.", this, subject)
       else
         lhs.tryMatch(olhs, binds)
-	  case _ => Fail("Subject is not a match strategy.", this, subject)
+	  case _ => Fail("Subject is not a map strategy.", this, subject)
 	}
 	  
 	def rewrite(binds: Bindings) = lhs.rewrite(binds) match {
@@ -125,6 +125,48 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
       // We apply the lhs to each argument whose parameter meets the
       // label criteria.  This is modestly tricky.
       (Apply(op, AtomList(atoms.map(Apply(lhs,_)), props)), true)
+	  case _ =>
+	    // Do nothing in this case.
+	    (atom, false)
+	}
+}
+
+case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
+	val theType = STRATEGY
+	
+	val isConstant = rhs.isConstant
+	val deBruijnIndex = rhs.deBruijnIndex
+	val depth = rhs.depth + 1
+	val constantPool =
+	  Some(BasicAtom.buildConstantPool(theType.hashCode, rhs))
+	  
+	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  	subject match {
+	  case RMapStrategy(orhs) => rhs.tryMatch(orhs, binds)
+	  case _ => Fail("Subject is not an rmap strategy.", this, subject)
+	}
+	  
+	def rewrite(binds: Bindings) = rhs.rewrite(binds) match {
+	  case (newrhs, true) => (RMapStrategy(newrhs), true)
+	  case _ => (this, false)
+	}
+	
+	def toParseString = "{ rmap " + rhs.toParseString + " }"
+			
+  override def toString = "RMapStrategy(" + rhs.toString + ")"
+  		
+  override def hashCode = rhs.hashCode
+	
+	def doRewrite(atom: BasicAtom) = atom match {
+	  // We only process two kinds of atoms here: atom lists and operator
+	  // applications.  Figure out what we have.
+	  case AtomList(atoms, props) =>
+	    // All we can do is apply the rhs to each atom in the list.
+	    (AtomList(atoms.map(Apply(_,rhs)), props), true)
+	  case Apply(op, AtomList(atoms, props)) =>
+      // We apply the rhs to each argument whose parameter meets the
+      // label criteria.  This is modestly tricky.
+      (Apply(op, AtomList(atoms.map(Apply(_,rhs)), props)), true)
 	  case _ =>
 	    // Do nothing in this case.
 	    (atom, false)

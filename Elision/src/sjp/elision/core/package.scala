@@ -234,8 +234,8 @@ package object core {
   /** Convert a string to a string literal. */
   implicit def strToLiteral(string: String) = Literal(STRING, string)
   
-  /** Convert a Scala symbol to a symbol literal. */
-  implicit def symToLiteral(symbol: Symbol) = Literal(SYMBOL, symbol)
+  /** Convert a Scala Boolean to a Boolean literal. */
+  implicit def boolToLiteral(bool: Boolean) = Literal(BOOLEAN, bool)
   
   /**
    * Magically add a mkParseString, roughly equivalent to mkString, to every

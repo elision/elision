@@ -140,6 +140,60 @@ class Context(val allowUndeclared:Boolean = false) {
   def disableRuleset(name: String) = _active -= getRulesetBit(name) ; this
   
   //======================================================================
+  // Rewriting.
+  //======================================================================
+
+  /** The rewrite limit. */
+  private var _limit: BigInt = 100
+  
+  /**
+   * Set the limit for the number of rewrites.
+   * @param limit	The limit of the number of rewrites.
+   * @return	This context.
+   */
+  def setLimit(limit: BigInt) = _limit = limit ; this
+  
+  /**
+   * Rewrite the provided atom once, if possible.
+   * @param atom	The atom to rewrite.
+   * @return	The rewritten atom, and true iff any rules were successfully
+   * 					applied.
+   */
+  def rewriteOnce(atom: BasicAtom): (BasicAtom, Boolean) = {
+    // Get the rules.
+    val rules = getRules(atom)
+    // Now try every rule until one applies.
+    for (rule <- rules) {
+      val (newatom, applied) = rule.tryRewrite(atom)
+      if (applied) return (newatom, applied)
+    }
+    return (atom, false)
+  }
+  
+  /**
+   * Rewrite the given atom, repeatedly applying the rules of the active
+   * rulesets.  This is limited by the rewrite limit.
+   * @param atom	The atom to rewrite.
+   */
+  def rewrite(atom: BasicAtom) = doRewrite(atom)
+
+  /**
+   * Rewrite the given atom, repeatedly applying the rules of the active
+   * rulesets.  This is limited by the rewrite limit.
+   * @param atom	The atom to rewrite.
+   * @param bool	Flag used for tracking whether any rules have succeeded.
+   * @param limit	The remaining rewrite limit.
+   */
+  private def doRewrite(atom: BasicAtom, bool: Boolean = false,
+      limit: BigInt = _limit): (BasicAtom, Boolean) = {
+    if (limit <= 0) return (atom, bool)
+    else rewriteOnce(atom) match {
+      case (newatom, false) => (newatom, bool)
+      case (newatom, true) => doRewrite(newatom, true, limit-1)
+    }
+  }
+  
+  //======================================================================
   // Ruleset management.
   //======================================================================
 

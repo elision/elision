@@ -117,7 +117,7 @@ object Prop {
    * 					idempotence, any absorber, and any identity.
    */
   def unapply(properties: OperatorProperties) =
-    Some(properties.assoc, properties.comm, properties.idem,
+    Some(properties.associative, properties.commutative, properties.idempotent,
         properties.absorber, properties.identity)
 }
 

@@ -35,26 +35,37 @@ package bootstrap
 object Strategies {
 
   val defs = """
+  // Declare the rulesets.
   { rulesets IF, STRAT }
     
+  // Declare the if operator and the rules to make it work.
   { operator if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T }
   { rule if(true, $thenpart, $elsepart) -> $thenpart ruleset IF level 2 }
   { rule if(false, $thenpart, $elsepart) -> $elsepart ruleset IF level 2 }
     
+  // The no-op strategy leaves atoms unmodified.  The flag is always set to
+  // true.
   { operator s_noop(): STRATEGY }
   { rule (s_noop().$a) -> { bind atom->$a, flag->true } ruleset STRAT level 1 }
     
+  // Declare operators to modify the flag returned from a strategy.
   { operator s_true($s: STRATEGY): STRATEGY }
   { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom, flag->true} }
   { operator s_false($s: STRATEGY): STRATEGY }
   { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom, flag->false} }
     
+  // Declare the if strategy.  This executes the first strategy, and checks
+  // the flag.  If it is true, the second strategy is executed.  Otherwise the
+  // third strategy is executed.  The flag is the result of the last strategy
+  // executed.
   { operator s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
   	$elsepart: STRATEGY @lazy): STRATEGY }
   { rule (s_if($test, $thenpart, $elsepart).$a) ->
     ($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom))
     ruleset STRAT level 1 }
     
+  // The while strategy executes the subordinate strategy for as long as it
+  // yields the true flag.
   { operator s_while($test: STRATEGY): STRATEGY }
   { rule (s_while($test).$a) ->
     (s_if($test, s_while($test), s_noop()).$a) ruleset STRAT level 1 }

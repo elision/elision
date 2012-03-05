@@ -496,6 +496,15 @@ object AtomParser {
 	      include.map(_.str).toSet, exclude.map(_.str).toSet, atom.interpret)
 	}
 	
+	/**
+	 * A node representing the right map strategy.
+	 * 
+	 * @param atom		The atom to map.
+	 */
+	case class RMapNode(atom: AstNode) extends AstNode {
+	  def interpret = RMapStrategy(atom.interpret)
+	}
+	
 	//----------------------------------------------------------------------
 	// Literal nodes - that is, nodes that hold literal values.
 	//----------------------------------------------------------------------
@@ -691,7 +700,7 @@ object AtomParser {
 	   */
 	  lazy val norm = {
 	    // Correct the significand by adding the integer and fractional part
-	    // together.
+	    // together.  This looks odd, but remember that they are still strings.
 	    val significand = integer + fraction
 	    // Now get the exponent, and adjust it to account for the fractional part.
 	    // Since the decimal moves right, we subtract from the original exponent.
@@ -703,7 +712,7 @@ object AtomParser {
 	    val newsign = exponent >= 0
 	    exponent = exponent.abs
 	    // Construct the new exponent as a signed integer node.  We use the same
-	    // radix as before.
+	    // radix as the significand.
 	    val newexp = SignedIntegerNode(newsign,
 	        exponent.toString(exp.radix), exp.radix)
 	    // Done.  Return the significand and exponent.  Note these two might have
@@ -841,6 +850,9 @@ extends Parser {
       
       // Parse a map strategy.
       ParsedMap |
+      
+      // Parse a right-map strategy.
+      ParsedRMap |
       
       // Parse a match.
       ParsedMatch |
@@ -1109,6 +1121,14 @@ extends Parser {
     Atom ~ "} " ~~>
     (MapNode(_,_,_))
   }.label("a map expression")
+  
+  /**
+   * Parse a rmap strategy.
+   */
+  def ParsedRMap = rule {
+    "{ " ~ "rmap " ~ Atom ~ "} " ~~>
+    (RMapNode(_))
+  }.label("a right-map expression")
 
   //======================================================================
   // Parse variables.
@@ -1142,8 +1162,8 @@ extends Parser {
     zeroOrMore(
         // Whitesapce.
         oneOrMore(anyOf(" \n\r\t\f")) |
-        "/*" ~ zeroOrMore(!"*/") ~ "*/" |
-        "//" ~ zeroOrMore(!anyOf("\r\n")) ~ ("\r\n" | "\r" | "\n" | EOI)
+        "/*" ~ zeroOrMore(&(!"*/") ~ ANY) ~ "*/" |
+        "//" ~ zeroOrMore(&(!anyOf("\r\n")) ~ ANY) ~ ("\r\n" | "\r" | "\n" | EOI)
         )
   }.label("whitespace or comments")
 

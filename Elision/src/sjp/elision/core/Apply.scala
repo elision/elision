@@ -112,15 +112,16 @@ object Apply {
    * Construct an application.  We key off the left hand side (the operator)
    * to decide how to handle this.
    * 
-   * @param op		The lhs of the apply, typically an operator.
-   * @param arg		The rhs of the apply, typically an argument.
+   * @param op			The lhs of the apply, typically an operator.
+   * @param arg			The rhs of the apply, typically an argument.
+   * @param bypass	If true, bypass native operator handler invocations.
    * @return	The basic atom resulting from the application.
    */
-  def apply(op: BasicAtom, arg: BasicAtom): BasicAtom = {
+  def apply(op: BasicAtom, arg: BasicAtom, bypass: Boolean = false): BasicAtom = {
     op match {
       case oper:Operator =>
         // The lhs is an operator; this is a highly likely case.
-      	opApply(oper, arg)
+      	opApply(oper, arg, bypass)
 	    case app:Applicable =>
 	      // The lhs is applicable; invoke its apply method.  This will return
 	      // some atom, and that atom is the overall result.
@@ -149,7 +150,8 @@ object Apply {
    * @param arg	The argument.
    * @return	A new atom.
    */
-  private def opApply(op: Operator, arg: BasicAtom): BasicAtom = arg match {
+  private def opApply(op: Operator, arg: BasicAtom,
+      bypass: Boolean): BasicAtom = arg match {
     /*
      * How Operator Applications Get Created
      * 
@@ -198,12 +200,14 @@ object Apply {
       op.opdef match {
         case NativeOperatorDefinition(_, props) =>
           // This is a native operator.
-          val (assoc, comm) = al.props.getOrElse(props.assoc, props.comm)
-          checkProto(op, props, al, assoc, comm)
+          val (assoc, comm) = al.props.getOrElse(props.associative,
+              props.commutative)
+          checkProto(op, props, al, assoc, comm, bypass)
         case SymbolicOperatorDefinition(_, props) =>
           // This is a symbolic operator.
-          val (assoc, comm) = al.props.getOrElse(props.assoc, props.comm)
-          checkProto(op, props, al, assoc, comm)
+          val (assoc, comm) = al.props.getOrElse(props.associative,
+              props.commutative)
+          checkProto(op, props, al, assoc, comm,bypass)
         case ImmediateOperatorDefinition(_, body) =>
           // Match the arguments against the formal parameters.  This will
           // allow us to rewrite the body with the resulting bindings to
@@ -239,23 +243,24 @@ object Apply {
    * @param al			The original atom list.
    * @param assoc		True iff associative.
    * @param comm		True iff commutative.
+   * @param bypass	If true, bypass native constructor invocation.
    * @return	An argument list modified according to the specified properties.
    * @throws	ArgumentListException
    * 					The properties do not match.
    */
   private def checkProto(op: Operator, props: OperatorProperties, al: AtomList,
-      assoc: Boolean, comm: Boolean): BasicAtom = {
+      assoc: Boolean, comm: Boolean, bypass: Boolean): BasicAtom = {
     // Check the properties and throw an exception if they do not match.
-    if (props.assoc && !assoc)
+    if (props.associative && !assoc)
       throw new ArgumentListException("Non-associative argument list " +
       		"passed to associative operator.")
-    else if (props.comm && !comm)
+    else if (props.commutative && !comm)
       throw new ArgumentListException("Non-commutative argument list " +
       		"passed to commutative operator.")
-    else if (assoc && !props.assoc)
+    else if (assoc && !props.associative)
       throw new ArgumentListException("Associative argument list passed " +
       		"to non-associative operator.")
-    else if (comm && !props.comm)
+    else if (comm && !props.commutative)
       throw new ArgumentListException("Commutative argument list passed " +
       		"to non-commutative operator.")
     
@@ -278,9 +283,13 @@ object Apply {
       }
       
       // The argument list matches.  Make and return the apply.
-      return op.handler match {
-        case Some(closure) => closure(op.name, al, Some(pabind))
-        case None => OpApply(op, al, pabind)
+      if (bypass) {
+        OpApply(op, al, pabind)
+      } else { 
+	      return op.handler match {
+	        case Some(closure) => closure(op, al, Some(pabind))
+	        case None => OpApply(op, al, pabind)
+	      }
       }
     }
     
@@ -359,11 +368,15 @@ object Apply {
     }
 
     // The argument list matches.  Make and return the apply.
-    return op.handler match {
-      case Some(closure) =>
-        closure(op.name, AtomList(newlist, Some((assoc, comm))), Some(pabind))
-      case None =>
-        OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
+    if (bypass) {
+      return OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
+    } else { 
+	    return op.handler match {
+	      case Some(closure) =>
+	        closure(op, AtomList(newlist, Some((assoc, comm))), Some(pabind))
+	      case None =>
+	        OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
+	    }
     }
   }
 }

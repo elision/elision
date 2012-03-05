@@ -95,13 +95,18 @@ object Repl {
   private var _opsDefined = false
   
   /** Should stack traces be issued on exception. */
-  private var _stacktrace = true
+  private var _stacktrace = false
   
   /**
    * Whether to suppress most printing.  Errors and warnings are not suppressed,
    * and explicitly requested output is also not suppressed.
    */
   private var _quiet = false
+  
+  /**
+   * Whether or not rewriting is enabled.
+   */
+  private var _rewrite = true
   
   /** Write a message, unless quiet is enabled. */
   private def emitln(msg: String) { if (!_quiet) println(msg) }
@@ -203,10 +208,13 @@ object Repl {
    * 							printed.
    */
   def execute(line: String, quiet: Boolean = false) {
+    // Eliminate leading and trailing whitepsace.
     var lline = line.trim
+    
     // Skip blank lines.
     if (lline == "") return
-    // See if this is a history reference.
+    
+    // See if this is a history reference and, if so, execute it.
     if (lline.startsWith("!")) {
       // This is a history reference.  The rest of the line is probably
       // a number, so try to parse it as such.
@@ -219,7 +227,8 @@ object Repl {
           return
       }
     }
-    // First parse the line and see what we get.
+    
+    // Parse the line.  Handle each atom obtained.
     try {
 	    val result = _parser.parseAtoms(lline)
 	    result match {
@@ -397,10 +406,16 @@ object Repl {
 		        		|
 		            | bind(v,a) .................. Bind variable v to atom a.
 		            | context() .................. Display contents of the current context.
+		            | disable(r) ................. Disable ruleset r.
+		            | enable(r) .................. Enable ruleset r.
 		        		| help() ..................... Show this help text.
 		            | history() .................. Show the history so far.
+		            | quiet() .................... Toggle suppressing most output.
+		            | rewrite() .................. Toggle automatic rewriting.
+		            | setlimit(l) ................ Set the rewrite limit to l successes.
 		            | showbinds() ................ Display the current set of bindings.
 		            | showprior() ................ Toggle showing the unrewritten term.
+		            | showrules(a) ............... Show the list of rules that apply to atom a.
 		            | showscala() ................ Toggle showing the Scala term.
 		            | stacktrace() ............... Toggle printing stack traces on error.
 		            | tracematch() ............... Toggle match tracing.
@@ -497,6 +512,97 @@ object Repl {
           case _ => Literal.FALSE
         })
         
+    // Enable a ruleset.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("enable", ANYTYPE, 'x), Prop()))
+    _context.operatorLibrary.register("enable",
+        (_, list:AtomList, _) => list match {
+          case Args(Literal(_,SymVal(sym))) =>
+            // Enable the specified ruleset.
+            _context.enableRuleset(sym.name)
+            Literal.TRUE
+          case _ => Literal.FALSE
+        })
+        
+    // Disable a ruleset.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("disable", ANYTYPE, 'x), Prop()))
+    _context.operatorLibrary.register("disable",
+        (_, list:AtomList, _) => list match {
+          case Args(Literal(_,SymVal(sym))) =>
+            // Disable the specified ruleset.
+            _context.disableRuleset(sym.name)
+            Literal.TRUE
+          case _ => Literal.FALSE
+        })
+        
+    // Set the limit on automatic rewrites.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("setlimit", ANYTYPE, 'x), Prop()))
+    _context.operatorLibrary.register("setlimit",
+        (_, list:AtomList, _) => list match {
+          case Args(Literal(_,IntVal(count))) =>
+            // Enable the specified ruleset.
+            _context.setLimit(count)
+            Literal.TRUE
+          case _ => Literal.FALSE
+        })
+        
+    // Enable or disable the rewriter.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("rewrite", ANYTYPE), Prop()))
+    _context.operatorLibrary.register("rewrite",
+        (_, list:AtomList, _) => list match {
+          case Args() =>
+            // Toggle rewriting.
+            _rewrite = !_rewrite
+            emitln("Automatic rewriting is " +
+                (if (_rewrite) "ON." else "OFF."))
+            Literal.TRUE
+          case _ => Literal.FALSE
+        })
+        
+    // See what rules are in scope.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("showrules", ANYTYPE, 'x), Prop()))
+    _context.operatorLibrary.register("showrules",
+        (_, list:AtomList, _) => list match {
+          case Args(atom) =>
+            // Get the rules, and print each one.
+            for (rule <- _context.getRules(atom)) {
+              println(rule.toParseString)
+            }
+            Literal.TRUE
+          case _ => Literal.FALSE
+        })
+    
+    // Define add as a native operator.
+		val opdef = NativeOperatorDefinition(
+		  OperatorPrototype("add", List(Variable(INTEGER, "x")), INTEGER),
+		  OperatorProperties(associative=true, commutative=true,
+		    identity=Some(Literal(INTEGER, 0))))
+		// Create a closure to perform the addition.
+		def doadd(op: Operator, args: AtomList, binds: Option[Bindings]) = {
+		  // Accumulate the integer literals found.
+		  var lits:BigInt = 0
+		  // Accumulate other atoms found.
+		  var other = ListBuffer[BasicAtom]()
+		  // Traverse the list and divide the atoms.
+		  args.atoms.foreach {
+		    x => x match {
+		      case Literal(_, IntVal(value)) => lits += value
+		      case _ => other += x
+		    }
+		  }
+		  // Now add the accumulated literals to the list.
+		  other += Literal(INTEGER, lits)
+		  // Construct and return a new operator application.
+		  Apply(op, AtomList(other), true)
+		}
+		// Register the operator and its handler.
+		_context.operatorLibrary.add(opdef)
+		_context.operatorLibrary.register("add", doadd)
+        
     // The operator are defined.
     _opsDefined = true
   }
@@ -518,7 +624,9 @@ object Repl {
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)
 		    // Apply the global bindings to get the possibly-rewritten atom.
-		    val (newatom,_) = atom.rewrite(_binds)
+		    var (newatom,_) = atom.rewrite(_binds)
+		    // Rewrite it using the active rulesets of the context.
+		    if (_rewrite) newatom = _context.rewrite(newatom)._1
 		    // Get the next bind variable name.
 		    _binds += ("repl"+_bindNumber -> newatom)
 		    // Now write out the new atom.
