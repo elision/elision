@@ -204,8 +204,7 @@ extends Literal[Symbol](typ) {
 	}
   override def toString = "SymbolLiteral(" + typ +
   		", Symbol(" + toEString(value.name) + ")"
-  def toParseString = toESymbol(value.name) +
-    (if (typ != SYMBOL) ":" + typ.toParseString else "") 
+  def toParseString = toESymbol(value.name) + ":" + typ.toParseString 
 }
 
 case class BooleanLiteral(typ: BasicAtom, value: Boolean)
