@@ -126,8 +126,8 @@ object Repl {
   def main(args: Array[String]) {
     run
     emitln("")
-    emitln("Context: ")
-    emitln(_context.toParseString)
+//    emitln("Context: ")
+//    emitln(_context.toParseString)
   }
   
   /**
