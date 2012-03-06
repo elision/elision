@@ -578,7 +578,8 @@ object Repl {
     
     // Define add as a native operator.
 		val opdef = NativeOperatorDefinition(
-		  OperatorPrototype("add", List(Variable(INTEGER, "x")), INTEGER),
+		  OperatorPrototype("add",
+		      List(Variable(INTEGER, "x"), Variable(INTEGER, "y")), INTEGER),
 		  OperatorProperties(associative=true, commutative=true,
 		    identity=Some(Literal(INTEGER, 0))))
 		// Create a closure to perform the addition.

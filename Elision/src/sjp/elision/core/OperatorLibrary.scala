@@ -227,7 +227,7 @@ object OperatorLibrary {
       SymbolicOperatorDefinition(
 		      OperatorPrototype(
 		          "xx",
-		          List(Variable(ANYTYPE, "a")),
+		          List(Variable(ANYTYPE, "a"), Variable(ANYTYPE, "b")),
 		          ANYTYPE),
 		      OperatorProperties(associative=true)))
   

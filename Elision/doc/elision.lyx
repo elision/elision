@@ -65,7 +65,7 @@ figs-within-sections
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
-\listings_params "fancyvrb=true,language=Java,numbers=left"
+\listings_params "language=Java,numbers=left"
 \tracking_changes false
 \output_changes false
 \html_math_output 0
@@ -1645,11 +1645,11 @@ Symbols start with an underscore or letter, followed by any number of letters,
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="1" columns="4">
-<features tabularvalignment="middle" tabularwidth="90col%">
+<features tabularvalignment="middle" tabularwidth="80col%">
 <column alignment="left" valignment="top" width="0pt">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="0">
-<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
 <row>
 <cell alignment="left" valignment="top" usebox="none">
 \begin_inset Text
@@ -1930,11 +1930,11 @@ Backslash
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="1" columns="4">
-<features tabularvalignment="middle" tabularwidth="90col%">
+<features tabularvalignment="middle" tabularwidth="80col%">
 <column alignment="left" valignment="top" width="0pt">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="0">
-<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
 <row>
 <cell alignment="left" valignment="top" usebox="none">
 \begin_inset Text
@@ -2059,11 +2059,11 @@ reference "tab:Escape-Codes"
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="1" columns="4">
-<features tabularvalignment="middle" tabularwidth="90col%">
+<features tabularvalignment="middle" tabularwidth="80col%">
 <column alignment="left" valignment="top" width="0pt">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="0">
-<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
 <row>
 <cell alignment="left" valignment="top" usebox="none">
 \begin_inset Text
@@ -2246,11 +2246,11 @@ The following are legal number literals.
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="3" columns="4">
-<features tabularvalignment="middle" tabularwidth="90col%">
+<features tabularvalignment="middle" tabularwidth="80col%">
 <column alignment="left" valignment="top" width="0pt">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="0">
-<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
 <row>
 <cell alignment="left" valignment="top" usebox="none">
 \begin_inset Text
@@ -3020,11 +3020,11 @@ Variables are indicated by a leading dollar sign followed by the variable
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="1" columns="4">
-<features tabularvalignment="middle" tabularwidth="90col%">
+<features tabularvalignment="middle" tabularwidth="80col%">
 <column alignment="left" valignment="top" width="0pt">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="0">
-<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
 <row>
 <cell alignment="left" valignment="top" usebox="none">
 \begin_inset Text
@@ -3158,6 +3158,12 @@ $x:ANYTYPE
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Lambdas"
+
+\end_inset
+
 Lambdas
 \end_layout
 
@@ -4082,7 +4088,7 @@ The parameters do not have the same type.
 \begin_layout Itemize
 
 \family typewriter
-bad2($x: INTEGER): STRING
+bad2($x: INTEGER, $y: INTEGER): STRING
 \family default
 
 \begin_inset Newline newline
@@ -4092,15 +4098,16 @@ The operator type is not the same as the parameter type.
 \end_layout
 
 \begin_layout Standard
-Because of these restrictions, the recommended way to declare an associative
- operator is to provide exactly one typed argument.
- The following is the--somewhat unusual--prototype for integer add.
- In fact, the system imposes the restriction by discarding all but the first
- parameter.
+An associative operator must declare 
+\emph on
+exactly
+\emph default
+ two parameters.
+ The following is an example.
 \end_layout
 
 \begin_layout LyX-Code
-add($x: INTEGER): INTEGER
+add($x: INTEGER, $y: INTEGER): INTEGER
 \end_layout
 
 \begin_layout Standard
@@ -4108,7 +4115,7 @@ Associativity is
 \emph on
 required
 \emph default
- by other properties, such as idempotency, identities, and absorbers.
+ by other the other properties idempotency, identities, and absorbers.
 \end_layout
 
 \begin_layout Standard
@@ -4180,6 +4187,14 @@ bad($x: INTEGER, $y: STRING): STRING
 The parameters do not have the same type.
 \end_layout
 
+\begin_layout Standard
+A commutative operator must declare 
+\emph on
+at least
+\emph default
+ two parameters.
+\end_layout
+
 \begin_layout Subsection
 Idempotency
 \end_layout
@@ -4205,8 +4220,8 @@ or
 \end_inset
 
 .
- Idempotency imposes no additional restrictions on an operator beyond associativ
-ity.
+ Idempotency imposes no additional restrictions on an operator beyond those
+ imposed by associativity, which is required.
 \end_layout
 
 \begin_layout Subsection
@@ -4291,7 +4306,7 @@ One declares a symbolic operator by giving the prototype and properties
 \end_layout
 
 \begin_layout LyX-Code
-{ operator or($x: BOOLEAN): BOOLEAN
+{ operator or($p: BOOLEAN, $q: BOOLEAN): BOOLEAN
 \end_layout
 
 \begin_layout LyX-Code
@@ -4316,7 +4331,7 @@ native
 \end_layout
 
 \begin_layout LyX-Code
-{ native add($x: INTEGER): INTEGER
+{ native add($p: INTEGER, $q: BOOLEAN): INTEGER
 \end_layout
 
 \begin_layout LyX-Code
@@ -4528,7 +4543,12 @@ val orProto = OperatorPrototype("or",
 
 \begin_layout Plain Layout
 
-                List(Variable(BOOLEAN, "x")), BOOLEAN)
+                List(Variable(BOOLEAN, "p"),
+\end_layout
+
+\begin_layout Plain Layout
+
+                     Variable(BOOLEAN, "q")), BOOLEAN)
 \end_layout
 
 \begin_layout Plain Layout
@@ -4567,7 +4587,12 @@ val addProto = OperatorPrototype("add",
 
 \begin_layout Plain Layout
 
-                List(Variable(INTEGER, "x")), INTEGER)
+                List(Variable(INTEGER, "p"),
+\end_layout
+
+\begin_layout Plain Layout
+
+                     Variable(BOOLEAN, "q")), INTEGER)
 \end_layout
 
 \begin_layout Plain Layout
@@ -4797,9 +4822,9 @@ context.operatorLibrary.add(typeofOp)
 
 \begin_layout Plain Layout
 The operator library is also where you register the closure for a native
- operator (though there is another method explained in the next section).
- The closure must take a triple, consisting of the operator name as a string,
- the argument list as an instance of 
+ operator.
+ The closure must take a triple, consisting of the operator, the argument
+ list as an instance of 
 \family typewriter
 core.AtomList
 \family default
@@ -4809,8 +4834,8 @@ core.Bindings
 \family default
 .
  The bindings are the result of matching the operator parameters against
- the arguments, and may be useful in some case.
- The closure may then return any atom.
+ the arguments, and may be indispensble in some cases.
+ The closure must then return an atom.
  Matching, binding, and rewriting are all explained in more detail in 
 \begin_inset CommandInset ref
 LatexCommand formatted
@@ -4819,7 +4844,8 @@ reference "chap:Matching-and-Rewriting"
 \end_inset
 
 .
- The following actually implements addition as a native operator.
+ The following actually implements addition as a native operator, though
+ it uses some methods not explained just yet.
 \end_layout
 
 \begin_layout Plain Layout
@@ -4847,7 +4873,17 @@ val opdef = NativeOperatorDefinition(
 
 \begin_layout Plain Layout
 
-  OperatorPrototype("add", List(Variable(INTEGER, "x")), INTEGER),
+  OperatorPrototype("add",
+\end_layout
+
+\begin_layout Plain Layout
+
+    List(Variable(INTEGER, "x"),
+\end_layout
+
+\begin_layout Plain Layout
+
+         Variable(BOOLEAN, "y")), INTEGER),
 \end_layout
 
 \begin_layout Plain Layout
@@ -4943,11 +4979,22 @@ def doadd(op: Operator, args: AtomList,
 \begin_layout Plain Layout
 
   // Construct and return a new operator application.
+  It is
 \end_layout
 
 \begin_layout Plain Layout
 
-  OpApply(op, AtomList(other))
+  // critical to pass true as the optional third argument, as
+\end_layout
+
+\begin_layout Plain Layout
+
+  // this avoids calling this constructor again.
+\end_layout
+
+\begin_layout Plain Layout
+
+  Apply(op, AtomList(other), true)
 \end_layout
 
 \begin_layout Plain Layout
@@ -4980,6 +5027,104 @@ context.operatorLibrary.register("add", doadd)
 \end_inset
 
 
+\end_layout
+
+\begin_layout Plain Layout
+It is the job of the 
+\family typewriter
+core.Apply
+\family default
+ class to create operator (and other) applications.
+ While this is explained in more detail in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:The-Applicative-Dot"
+
+\end_inset
+
+, we note some important things here.
+\end_layout
+
+\begin_layout Plain Layout
+First, 
+\family typewriter
+core.Apply
+\family default
+ understands how to use the operator prototype to process absorbers and
+ identities, etc., and this processing is performed 
+\emph on
+first
+\emph default
+.
+ Thus it is possible to attempt to construct a native operator application
+ and never have the native processing get performed.
+ For instance, 
+\family typewriter
+add(0)
+\family default
+ is immediately rewritten to 
+\family typewriter
+0
+\family default
+, and the native handler above is never invoked.
+\end_layout
+
+\begin_layout Plain Layout
+Second, the native handler may 
+\emph on
+re
+\emph default
+-invoke 
+\family typewriter
+core.Apply
+\family default
+, as is done in the handler for 
+\family typewriter
+add
+\family default
+.
+ This can simplify the native handler, since it does not have to worry about
+ identities, etc.
+ In the 
+\family typewriter
+add
+\family default
+ handler, the result for 
+\family typewriter
+lits
+\family default
+ might be zero.
+ By re-invoking 
+\family typewriter
+core.Apply
+\family default
+ it will get correctly processed.
+\end_layout
+
+\begin_layout Plain Layout
+This second case leads to a potential problem.
+ The 
+\family typewriter
+core.Apply
+\family default
+ processing will invoke the native handler, and our native handler invokes
+ 
+\family typewriter
+core.Apply
+\family default
+.
+ To prevent this we pass 
+\family typewriter
+true
+\family default
+ as the optional third argument to 
+\family typewriter
+core.Apply
+\family default
+ to prevent re-invoking the native handler.
+ It is thus possible to write a native handler that does some processing,
+ lets itself get re-invoked, does more processing, etc., until it finally
+ terminates the cycle.
 \end_layout
 
 \end_inset
@@ -5019,11 +5164,11 @@ typeof
 \align center
 \begin_inset Tabular
 <lyxtabular version="3" rows="1" columns="4">
-<features tabularvalignment="middle" tabularwidth="90col%">
+<features tabularvalignment="middle" tabularwidth="80col%">
 <column alignment="left" valignment="top" width="0pt">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="0">
-<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
 <row>
 <cell alignment="left" valignment="top" usebox="none">
 \begin_inset Text
@@ -5127,8 +5272,80 @@ Scala
 \end_layout
 
 \begin_layout Plain Layout
+Operator application is explained in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:The-Applicative-Dot"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
 Before an operator can be applied, you must get an instance of that operator.
- If you have installed 
+ If you have installed the operator definition in an operator library, you
+ can retrieve it via the 
+\family typewriter
+get(name)
+\family default
+ method of 
+\family typewriter
+core.OperatorLibrary
+\family default
+, where 
+\family typewriter
+name
+\family default
+ is the operator name.
+ This will return an instance of 
+\family typewriter
+core.Operator
+\family default
+.
+ The operator definition, and thus the prototype and properties (or body
+ depending on the kind of defintion), can be obtained from the operator
+ instance.
+\end_layout
+
+\begin_layout Plain Layout
+The argument list must be built and wrapped as an instance of 
+\family typewriter
+core.AtomList
+\family default
+.
+ This takes two arguments: a list of atoms and an optional pair of Boolean
+ values.
+ Invoke this as 
+\family typewriter
+AtomList(atoms, props)
+\family default
+, where 
+\family typewriter
+atoms
+\family default
+ is the list of arguments, and 
+\family typewriter
+props
+\family default
+ may be either 
+\family typewriter
+None
+\family default
+ or 
+\family typewriter
+Some(assoc, comm)
+\family default
+.
+ In the latter case 
+\family typewriter
+assoc
+\family default
+ is true iff the argument list is associative and 
+\family typewriter
+comm
+\family default
+ is true iff the argument list is commutative.
 \end_layout
 
 \end_inset
@@ -5137,7 +5354,327 @@ Before an operator can be applied, you must get an instance of that operator.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:The-Applicative-Dot"
+
+\end_inset
+
 The Applicative Dot
+\end_layout
+
+\begin_layout Standard
+Operator applications can be written in two forms: 
+\family typewriter
+add(4,5,$x)
+\family default
+ and 
+\family typewriter
+add.%?(4,5,$x)
+\family default
+.
+ This second form uses the 
+\emph on
+applicative dot
+\emph default
+ and an 
+\emph on
+atom list
+\emph default
+ to apply an operator to arguments.
+ The two forms are equivalent; they are alternative ways to represent the
+ same atom.
+ The first form is actually a shorthand notation for the second.
+ Both operators and atom lists are themselves atoms, and can be manipulated
+ by the system.
+ In 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Matching-and-Rewriting"
+
+\end_inset
+
+ the applicative dot notation will turn out to be very useful.
+\end_layout
+
+\begin_layout Standard
+While operators are atoms, if you just evaluate 
+\family typewriter
+add
+\family default
+ Elision will interpret this as a symbol of type 
+\family typewriter
+ANYTYPE
+\family default
+.
+ To force Elision to look this operator up, write 
+\family typewriter
+add:OPTYPE
+\family default
+.
+ The 
+\family typewriter
+OPTYPE
+\family default
+ is not actually the type of the operator, but just a hint to force the
+ Elision parser to look up the operator in the parser's context.
+\end_layout
+
+\begin_layout Standard
+The actual type of an operator is a 
+\emph on
+mapping
+\emph default
+ from some domain to some range, deduced from the operator prototype.
+ This can be obtained using the lambda trick presented in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Lambdas"
+
+\end_inset
+
+.
+ With 
+\family typewriter
+add
+\family default
+ defined in the current REPL session, try the following.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+
+\backslash
+$x:$T.$T.add:OPTYPE
+\end_layout
+
+\begin_layout LyX-Code
+repl0 = MAP(xx(INTEGER, INTEGER), INTEGER)
+\end_layout
+
+\begin_layout Standard
+The type for the 
+\family typewriter
+add
+\family default
+ operator is a mapping from pairs of integers to integers, and not 
+\family typewriter
+OPTYPE
+\family default
+.
+ The above expression parses correctly because the applicative dot binds
+ the most weakly of all connectors; more weakly than the lambda dot, for
+ instance, which binds more weakly than the type colon.
+ Thus the expression is equal to the following.
+\end_layout
+
+\begin_layout LyX-Code
+(
+\backslash
+$x:$T.$T).(add:OPTYPE)
+\end_layout
+
+\begin_layout Standard
+The applicative dot can be used to 
+\begin_inset Quotes eld
+\end_inset
+
+glue
+\begin_inset Quotes erd
+\end_inset
+
+ any two atoms together.
+ The atom to the left of the dot is the 
+\emph on
+left-hand side (lhs)
+\emph default
+, while the atom to the right of the dot is the 
+\emph on
+right-hand side (rhs)
+\emph default
+.
+ For instance the following are perfectly legal applications, though it
+ is not entirely clear what the first and last examples 
+\begin_inset Quotes eld
+\end_inset
+
+mean.
+\begin_inset Quotes erd
+\end_inset
+
+ The parentheses are used in the first example to prevent 
+\family typewriter
+7.
+
+\family default
+ from being interpreted as a floating point number; a space between the
+ 
+\family typewriter
+7
+\family default
+ and the dot would also work.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="1" columns="4">
+<features tabularvalignment="middle" tabularwidth="80col%">
+<column alignment="left" valignment="top" width="0pt">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0pt">
+<row>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+(7).$x
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+(
+\backslash
+$x:$T.$T).add:OPTYPE
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+add.%?(5,6)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+$x.$y
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Just as an operator can stand by itself (
+\family typewriter
+add:OPTYPE
+\family default
+), so can an argument list.
+ The odd notation 
+\family typewriter
+%?(4,5,$x)
+\family default
+ specifies an atom list whose elements are, in order, 
+\family typewriter
+4
+\family default
+, 
+\family typewriter
+5
+\family default
+, and 
+\family typewriter
+$x
+\family default
+.
+ Using tools discussed later, it is possible to take an atom like 
+\family typewriter
+add(4,5,$x)
+\family default
+ and divide it into the operator and the argument list.
+ Because the argument list can become detached from the operator, we allow
+ specifying the associativity and commutativity of the argument list independent
+ly of the operator.
+ The following are the various kinds of atom lists.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%(4,5,$x)
+\family default
+ is a list that is neither associative nor commutative.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%A(4,5,$x)
+\family default
+ is a list that is associative but not commutative.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%C(4,5,$x)
+\family default
+ is a list that is commutative but not associative.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%AC(4,5,$x)
+\family default
+ is a list that is both associative and commutative.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%?(4,5,$x)
+\family default
+ is a list that whose properties are unspecified.
+\end_layout
+
+\begin_layout Standard
+The last case is the one we have been using, as it allows the argument list
+ to 
+\begin_inset Quotes eld
+\end_inset
+
+inherit
+\begin_inset Quotes erd
+\end_inset
+
+ the properties of the operator applied.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Special-Forms"
+
+\end_inset
+
+ will introduce several other uses of the applicative dot.
 \end_layout
 
 \begin_layout Chapter

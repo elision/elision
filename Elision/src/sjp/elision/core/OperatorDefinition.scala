@@ -60,6 +60,45 @@ extends BasicAtom {
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     Fail("Operator definition matching is not implemented.", this, subject)
 	def rewrite(binds: Bindings) = (this, false)
+  
+  protected def check(proto: OperatorPrototype, props: OperatorProperties) {
+    if (!props.associative && !props.commutative) return
+    
+    // Associative operators must have exactly two parameters, and the
+    // parameters must have the same type, and this type must match the
+    // type of the fully-applied operator.
+    
+    // All parameters of a commutative operator must have the same type.
+    
+    // Both associative and commutative operators must have at least two
+    // parameters.  An associative operator must have exactly two parameters.
+    val pars = proto.pars
+    if (props.associative && pars.length != 2) {
+      throw new IllegalOperatorDefinition(
+          "Illegal definition for operator " + proto.toParseString +
+          ".  Associative operators must have exactly two parameters.")
+    }
+    if (props.commutative && pars.length < 2) {
+      throw new IllegalOperatorDefinition(
+          "Illegal definition for operator " + proto.toParseString +
+          ".  Commutative operators must have at least two parameters.")
+    }
+    
+    // All parameters must have the same type.
+    val typ = pars(0).theType
+    if (pars.exists(_.theType != typ))
+      throw new IllegalOperatorDefinition(
+          "Illegal definition for operator " + proto.toParseString +
+          ".  All parameters of an associative or commutative operator must " +
+          "have the same type.")
+    
+    // An associative operator must have the same type.
+    if (props.associative && proto.typ != typ)
+      throw new IllegalOperatorDefinition(
+          "Illegal definition for operator " + proto.toParseString +
+          ".  The type an associative operator must be the same as the type " +
+          "of the parameters.")
+  }
 }
 
 /**
@@ -76,6 +115,7 @@ extends BasicAtom {
  */
 case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
     props: OperatorProperties) extends OperatorDefinition(proto) {
+  check(proto, props)
   lazy val isConstant = props.isConstant
 	def toParseString =
 	  "{ operator " + proto.toParseString + " " + props.toParseString + " }"
@@ -114,6 +154,7 @@ case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
  */
 case class NativeOperatorDefinition(override val proto: OperatorPrototype,
     props: OperatorProperties) extends OperatorDefinition(proto) {
+  check(proto, props)
   lazy val isConstant = props.isConstant
 	def toParseString =
 	  "{ native " + proto.toParseString + " " + props.toParseString + " }"

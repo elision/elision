@@ -70,15 +70,15 @@ object Strategies {
   { rule (s_while($test).$a) ->
     (s_if($test, s_while($test), s_noop()).$a) ruleset STRAT level 1 }
     
-  { operator s_then($part: STRATEGY): STRATEGY is associative }
+  { operator s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
   { rule (s_then($p, $q).$a) ->
     ($q.(($p.$a).$atom)) ruleset STRAT level 1 }
     
-  { operator s_and($part: STRATEGY): STRATEGY is associative }
+  { operator s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
   { rule (s_and($p, $q).$a) ->
     (s_if($p, $q, s_noop()).$a) ruleset STRAT level 1 }
     
-  { operator s_or($part: STRATEGY): STRATEGY is associative }
+  { operator s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
   { rule (s_or($p, $q).$a) ->
     (s_if($p, s_noop(), $q).$a) ruleset STRAT level 1 }
     
