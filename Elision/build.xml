@@ -240,6 +240,16 @@ bin, lib, and other folders.</echo>
 			todir="${build.base}/${DSTAMP}"/>
 		<echo level="info">New ${build.jar} built in ${build.latest}.</echo>
 	</target>
+	
+	
+	<!-- Build a distributable zip file. -->
+	<target name="dist" depends="all">
+		<tar destfile="${build.base}/elision-${DSTAMP}.tgz" compression="gzip">
+			<tarfileset dir="${build.base}"
+				prefix="elision-${DSTAMP}"
+				includes="src/**,lib/**,doc/**,build.xml,README.txt,*.sh"/>
+		</tar>
+	</target>
 
 
 	<!-- Execute the REPL.  This runs out of the bin folder, so the jar file
