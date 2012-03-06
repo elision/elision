@@ -31,18 +31,19 @@
 ======================================================================*/
 package sjp.elision.core
 import scala.collection.mutable.{Map => MMap}
+import sjp.elision.ElisionException
 
 /**
  * Indicate an attempt to re-define an already-known operator.
  * @param msg		A human readable message.
  */
-case class OperatorRedefinitionError(msg: String) extends Exception(msg)
+class OperatorRedefinitionException(msg: String) extends ElisionException(msg)
 
 /**
  * A requested operator was not found, and could not be created.
  * @param msg		A human readable message.
  */
-case class UndefinedOperatorException(msg: String) extends Exception(msg)
+class UndefinedOperatorException(msg: String) extends ElisionException(msg)
 
 /**
  * An operator library holds information about the known operators.  Operators
@@ -180,7 +181,7 @@ class OperatorLibrary(
  	    if (allowRedefinition)
  	      println("WARNING: Redefining operator " + od.proto.name)
  	    // Reject this!  The operator is already defined.
- 	    else throw OperatorRedefinitionError(
+ 	    else throw new OperatorRedefinitionException(
  	        "Attempt to re-define known operator " + name + ".")
     // Accept this and store it in the map.  Return the definition.
     _nameToOperator += (name -> Operator(od))

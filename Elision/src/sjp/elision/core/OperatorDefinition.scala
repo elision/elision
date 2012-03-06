@@ -32,11 +32,12 @@
 package sjp.elision.core
 import scala.collection.mutable.LinkedList
 import scala.collection.mutable.ListBuffer
+import sjp.elision.ElisionException
 
 /**
  * An exception indicating an illegal operator definition.
  */
-class IllegalOperatorDefinition(msg: String) extends Exception(msg)
+class IllegalOperatorDefinition(msg: String) extends ElisionException(msg)
 
 /**
  * Common root class for an operator definition.

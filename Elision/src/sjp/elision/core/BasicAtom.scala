@@ -32,51 +32,6 @@
 package sjp.elision.core
 
 /**
- * An attempt was made to modify already-set data.  Atoms are immutable
- * once constructed, with the exception that data can be set exactly once.
- */
-class AtomDataModificationException(msg: String) extends Exception(msg)
-
-/**
- * This is a helper class that holds additional data for an atom.  It must be
- * constructible without providing any parameters.
- */
-class AtomData
-
-/**
- * A trait for something that holds a set once data item.  Note this is not
- * automatically part of an atom; if you want to use it, you need to use it
- * with your atom via `with HashData`.
- */
-trait HasData {
-  /** Private atom data member. */
-  private var _data: Option[AtomData] = None
-  
-  /**
-   * Set the atom data if it has not already been set.  If it has been set, then
-   * throw an exception.
-   * 
-   * @param data	The new atom data.
-   * @return	This atom.
-   * @throws	AtomDataModificationException
-   * 					The atom data is already set.
-   */
-  def data_=(data: AtomData) = {
-    // Atom data can be set exactly once.
-    if (_data == None) _data = Some(data)
-    else throw new AtomDataModificationException("Attempt to modify atom data.")
-    this
-  }
-  
-  /**
-   * Get the atom data.
-   * 
-   * @return	The optional atom data.
-   */
-  def data = _data
-}
-
-/**
  * A ''rewriter'' is an atom that can be applied to some other atom to generate
  * a potentially new atom.  It also needs to report its ''success'' via a flag.
  */

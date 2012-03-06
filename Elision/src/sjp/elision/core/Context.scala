@@ -32,18 +32,19 @@
 package sjp.elision.core
 
 import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
+import sjp.elision.ElisionException
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
  * @param msg		A human readable message.
  */
-case class NoSuchRulesetException(msg: String) extends Exception(msg)
+class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 
 /**
  * Indicate an attempt to re-define a strategy.
  * @param msg		A human readable message.
  */
-case class StrategyRedefinitionException(msg: String) extends Exception(msg)
+class StrategyRedefinitionException(msg: String) extends ElisionException(msg)
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -223,7 +224,7 @@ class Context(val allowUndeclared:Boolean = false) {
   private def getRulesetBit(name: String) =
     _rs2bit.getOrElseUpdate(name, (
         if (allowUndeclared) bump()
-        else throw NoSuchRulesetException(
+        else throw new NoSuchRulesetException(
             "The ruleset " + name + " has not been declared.")))
   
   /**

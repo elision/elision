@@ -35,6 +35,7 @@ import scala.collection.mutable.ListBuffer
 import sjp.elision.parse.AtomParser
 import jline.History
 import java.io.File
+import sjp.elision.ElisionException
 
 /**
  * Provide a REPL to experiment with the new term rewriter.
@@ -182,11 +183,14 @@ object Repl {
 
     // Show the prompt and read a line.
     val cr = new jline.ConsoleReader
+    val term = cr.getTerminal
+    term.initializeTerminal()
     cr.flushConsole()
     cr.setHistory(_hist)
     while(true) {
       val line = cr.readLine(if (_quiet) "q> " else "e> ")
       if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
+      cr.flushConsole()
       execute(line)
     }
   }
@@ -238,6 +242,8 @@ object Repl {
 	      case _parser.Failure(msg) => println(msg)
 	    }
     } catch {
+      case ElisionException(msg) =>
+        error(msg)
       case ex:Exception =>
         error("(" + ex.getClass + ") " + ex.getMessage())
         if (_stacktrace) ex.printStackTrace()

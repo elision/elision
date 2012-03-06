@@ -33,12 +33,13 @@ package sjp.elision.core
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
+import sjp.elision.ElisionException
 
 /**
  * An incorrect argument list was supplied to an operator.
  * @param msg	The human-readable message describing the problem.
  */
-class ArgumentListException(msg: String) extends Exception(msg)
+class ArgumentListException(msg: String) extends ElisionException(msg)
 
 /**
  * Encapsulate an operator.
