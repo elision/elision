@@ -375,7 +375,7 @@ object Repl {
         Proto("read", ANYTYPE, 'filename), Prop()))
     _context.operatorLibrary.register("read",
         (_, list:AtomList, _) => list match {
-          case Args(filename:Literal) =>
+          case Args(filename:StringLiteral) =>
             // TODO Read the content of the file.
             emitln("Not implemented.")
             Literal.FALSE
@@ -387,7 +387,7 @@ object Repl {
         Proto("write", ANYTYPE, 'filename), Prop()))
     _context.operatorLibrary.register("write",
         (_, list:AtomList, _) => list match {
-          case Args(filename:Literal) =>
+          case Args(filename:StringLiteral) =>
             // TODO Write the content to the file.
             emitln("Not implemented.")
             Literal.FALSE
@@ -517,7 +517,7 @@ object Repl {
         Proto("enable", ANYTYPE, 'x), Prop()))
     _context.operatorLibrary.register("enable",
         (_, list:AtomList, _) => list match {
-          case Args(Literal(_,SymVal(sym))) =>
+          case Args(SymbolLiteral(_, sym)) =>
             // Enable the specified ruleset.
             _context.enableRuleset(sym.name)
             Literal.TRUE
@@ -529,7 +529,7 @@ object Repl {
         Proto("disable", ANYTYPE, 'x), Prop()))
     _context.operatorLibrary.register("disable",
         (_, list:AtomList, _) => list match {
-          case Args(Literal(_,SymVal(sym))) =>
+          case Args(SymbolLiteral(_, sym)) =>
             // Disable the specified ruleset.
             _context.disableRuleset(sym.name)
             Literal.TRUE
@@ -541,7 +541,7 @@ object Repl {
         Proto("setlimit", ANYTYPE, 'x), Prop()))
     _context.operatorLibrary.register("setlimit",
         (_, list:AtomList, _) => list match {
-          case Args(Literal(_,IntVal(count))) =>
+          case Args(IntegerLiteral(_, count)) =>
             // Enable the specified ruleset.
             _context.setLimit(count)
             Literal.TRUE
@@ -591,7 +591,7 @@ object Repl {
 		  // Traverse the list and divide the atoms.
 		  args.atoms.foreach {
 		    x => x match {
-		      case Literal(_, IntVal(value)) => lits += value
+		      case IntegerLiteral(_, value) => lits += value
 		      case _ => other += x
 		    }
 		  }

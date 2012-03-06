@@ -143,7 +143,7 @@ object AtomParser {
 	    // as an operator.
 	    val atom = op.interpret
 	    atom match {
-	      case Literal(_, SymVal(sval)) =>
+	      case SymbolLiteral(_, sval) =>
 	        Apply(context.operatorLibrary(sval.name),arg.interpret)
 	      case _ => Apply(atom, arg.interpret)
 	    }
@@ -163,7 +163,7 @@ object AtomParser {
 	    // as an operator.
 	    val atom = op.interpret
 	    atom match {
-	      case Literal(_, SymVal(sval)) =>
+	      case SymbolLiteral(_, sval) =>
 	        DeferApply(context.operatorLibrary(sval.name),arg.interpret)
 	      case _ => DeferApply(atom, arg.interpret)
 	    }
@@ -390,7 +390,7 @@ object AtomParser {
 	 * @param str	The symbol text.
 	 */
 	case class NakedSymbolNode(str: String) extends AstNode {
-	  def interpret = Literal(ANYTYPE, SymVal(Symbol(str)))
+	  def interpret = SymbolLiteral(SYMBOL, Symbol(str))
 	}
 	
 	/**
@@ -531,7 +531,7 @@ object AtomParser {
 	      case "Nothing" => return Literal.NOTHING
 	      case "true" => return Literal.TRUE
 	      case "false" => return Literal.FALSE
-	      case _ => Literal(ANYTYPE, Symbol(sym))
+	      case _ => Literal(SYMBOL, Symbol(sym))
 	    } else {
 	      typ.get.interpret match {
 	        case ANYTYPE if sym == "Nothing" => return Literal.NOTHING

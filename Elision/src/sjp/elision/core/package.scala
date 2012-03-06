@@ -226,16 +226,16 @@ package object core {
   implicit def variableToSym(variable: Variable) = Symbol(variable.name)
   
   /** Convert an integer to an integer literal. */
-  implicit def intToLiteral(value: Int) = Literal(INTEGER, value)
+  implicit def intToLiteral(value: Int) = Literal(value)
 
   /** Convert an integer to an integer literal. */
-  implicit def intToLiteral(value: BigInt) = Literal(INTEGER, value)
+  implicit def intToLiteral(value: BigInt) = Literal(value)
   
   /** Convert a string to a string literal. */
-  implicit def strToLiteral(string: String) = Literal(STRING, string)
+  implicit def strToLiteral(string: String) = Literal(string)
   
   /** Convert a Scala Boolean to a Boolean literal. */
-  implicit def boolToLiteral(bool: Boolean) = Literal(BOOLEAN, bool)
+  implicit def boolToLiteral(bool: Boolean) = Literal(bool)
   
   /**
    * Magically add a mkParseString, roughly equivalent to mkString, to every
