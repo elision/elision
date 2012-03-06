@@ -143,7 +143,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   def doApply(atom: BasicAtom) =
     // Check the argument to see if it is a single symbol.
     atom match {
-      case Literal(SYMBOL, SymVal(sym)) =>
+      case SymbolLiteral(SYMBOL, sym) =>
         // Try to extract the symbol from the binding.  If it is not there,
         // then the answer is Nothing.
         mybinds.get(sym.name) match {

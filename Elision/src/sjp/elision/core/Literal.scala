@@ -1,196 +1,35 @@
-/*======================================================================
- *       _ _     _
+/*       _ _     _
  *   ___| (_)___(_) ___  _ __
  *  / _ \ | / __| |/ _ \| '_ \
  * |  __/ | \__ \ | (_) | | | |
  *  \___|_|_|___/_|\___/|_| |_|
- * The Elision Term Rewriter
- * 
- * Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com)
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
- * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *
+ * Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
+ * All rights reserved.  http://stacyprowell.com
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *  - Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *  - Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package sjp.elision.core
 
-import scala.collection.mutable.HashMap
-
-/**
- * Literals can be an integer, a string, or a floating point number.
- * 
- * In order to deal with different kinds of literals without having to convert
- * to a string, we build a special case class here that is used to manage the
- * value of the literal.
- */
-sealed abstract class LitVal {
-  /**
-   * Every literal value must provide a parse string.  This is required here
-   * since each kind of literal has a different representation.
-   * 
-   * @return A string that is parseable to re-create the literal.
-   */
-  def toParseString: String
-}
-
-/**
- * Represent the value of an integer literal.
- * 
- * @param ival	The integer value.
- */
-case class IntVal(ival: BigInt) extends LitVal {
-	def toParseString = ival.toString
-	override lazy val hashCode = ival.hashCode
-	override def equals(other: Any) = other match {
-	  case value: IntVal => ival == value.ival
-	  case _ => false
-	}
-}
-
-/**
- * Represent the value of a string literal.
- * 
- * @param sval	The string value.
- */
-case class StrVal(sval: String) extends LitVal {
-	def toParseString = toEString(sval)
-	override def toString = toEString(sval)
-	override lazy val hashCode = sval.hashCode
-	override def equals(other: Any) = other match {
-	  case value: StrVal => sval == value.sval
-	  case _ => false
-	}
-}
-
-/**
- * Represent the value of a literal as a Scala symbol.
- * 
- * @param sval	The Scala symbol.
- */
-case class SymVal(sval: Symbol) extends LitVal {
-	def toParseString = toESymbol(sval.name)
-	override def toString = "SymVal(Symbol(" + toEString(sval.name) + "))"
-	override lazy val hashCode = sval.hashCode
-	override def equals(other: Any) = other match {
-	  case value: SymVal => sval == value.sval
-	  case _ => false
-	}
-}
-
-/**
- * Represent the value of a floating point number as a significand and exponent,
- * using a specified radix.  The radix is limited; you ''must'' use a radix of
- * 2, 8, 10, or 16.  Otherwise you will generate an exception here.
- * 
- * @param significand		The significand.
- * @param exponent		The exponent.  This is zero by default.
- * @param radix				The radix.  This is ten by default.
- */
-case class ExpandedFloatVal(significand:BigInt, exponent:Int = 0, radix:Int = 10) 
-extends LitVal {
-  /** The prefix to use, indicating the known radix. */
-  private val _prefix = radix match {
-    case 16 => "0x"
-    case 10 => ""
-    case 8 => "0"
-    case 2 => "0b"
-    case _ => require(false)
-  }
-  
-  /**
-   * Whether the significand is negative.  This is used to build the parse
-   * string, since the sign has to go before the prefix.
-   */
-  private val _mneg = significand < 0
-  
-  /**
-   * Positive significand.  This avoids a method call.
-   */
-  private val _possignificand = if (_mneg) -significand else significand
-  
-  /**
-   * Whether the exponent is negative.  This is used to build the parse
-   * string, since the sign has to go before the prefix.
-   */
-  private val _eneg = exponent < 0
-  
-  /**
-   * Positive exponent.  This avoids a method call.
-   */
-  private val _posexponent = if (_eneg) -exponent else exponent
-  
-  def toParseString = (if (_mneg) "-" else "") + _prefix +
-  	_possignificand.toString(radix) +
-  	(if (radix == 16) "P" else "e") +
-  	(if (_eneg) "-" else "") + _prefix + Integer.toString(_posexponent, radix)
-  	
-  /**
-   * Get a simple native floating point representation of this number.
-   * 
-   * '''WARNING''': This is potentially lossy.  Certain floating point numbers
-   * may not have a terminating representation in a different radix.  Further,
-   * there is no limit on the significand (it is a `BigInt`), while there is a
-   * fixed limit on the precision of the significand here. 
-   */
-  def toFloat = significand * BigInt(radix).pow(exponent)
-  
-  override lazy val hashCode = (significand.hashCode * 31 +
-  	exponent.hashCode) * 31 + radix.hashCode
-  	
-  override def equals(other: Any) = other match {
-    // Two extended floating point numbers are equal iff their significands,
-    // exponents, and radices are equal.  If you require a "fuzzier" version
-    // of equals, such as numeric equality, use `toFloat` and compare.
-    case value:ExpandedFloatVal =>
-      value.significand == significand &&
-      value.exponent == exponent &&
-      value.radix == radix
-    case _ => false
-  }
-}
-
-/**
- * Represent the value of a floating point number.
- * @param fval	The floating point value.
- */
-case class FltVal(fval: Double) extends LitVal {
-	def toParseString = fval.toString
-	override lazy val hashCode = fval.hashCode
-	override def equals(other: Any) = other match {
-	  case value:FltVal => fval == value.fval
-	  case _ => false
-	}
-}
-
-/**
- * Represent the value of a Boolean.
- * @param bool	The boolean value.
- */
-case class BooVal (val bool: Boolean) extends LitVal {
-	def toParseString = bool.toString
-	override lazy val hashCode = bool.hashCode
-	override def equals(other: Any) = other match {
-	  case value:BooVal => bool == value.bool
-	  case _ => false
-	}
-}
+import scala.collection.immutable.HashMap
 
 /**
  * Represent a literal.
@@ -242,131 +81,171 @@ case class BooVal (val bool: Boolean) extends LitVal {
  * Two instances are equal iff their types and values are equal.  Literals
  * match iff their types match and their values match.
  * 
- * @param typ		The type of the literal.
- * @param value	The value for the literal.
+ * @param TYPE	The type of data stored in this literal.
+ * @param typ		The Elision type of this literal.
  */
-case class Literal(typ: BasicAtom, value: LitVal) extends BasicAtom {
-	val theType = typ
-	
-	/** The De Bruijn index is zero. */
-	val deBruijnIndex = 0
-	
-	/** Literals are constant. */
-	val isConstant = true
-	
-	/** The depth of all literals is zero. */
-	val depth = 0
+abstract class Literal[TYPE](typ: BasicAtom) extends BasicAtom {
+  /** The type. */
+  val theType = typ
   
-  /** Literals contain no constant "children". */
+  /** Literals are constants. */
+  val isConstant = true
+  
+  /** Literals have no children. */
   val constantPool = None
-
-	override val isTrue = value match {
-		case BooVal(true) => true
-		case _ => false
-	}
-
-	override val isFalse = value match {
-		case BooVal(false) => true
-		case _ => false
-	}
-
-	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
-		subject match {
-		case Literal(_, ovalue) if ovalue == value => Match(binds)
-		case _ => Fail("Literals do not match.", this, subject)
-	}
-
-	def rewrite(binds: Bindings) = {
-		// Even though literals cannot be rewritten, there is a chance their type
-		// can be rewritten, so check that.
-	  val (newtype, changed) = theType.rewrite(binds)
-		if (changed) (Literal(newtype, value), true) else (this, false)
-	}
-
-	override def toParseString = value.toParseString + ":" + theType.toParseString
-	
-	override lazy val hashCode = 31 * theType.hashCode + value.hashCode
-	
-	override def equals(other: Any) = other match {
-	  case lit:Literal =>
-	    typ == lit.typ &&
-	    value == lit.value
-	  case _ => false
-	}
+  
+  /** The depth of all literals is zero. */
+  val depth = 0
+  
+  /** The De Bruijn index of all literals is zero. */
+  val deBruijnIndex = 0
+  
+  /** The value stored in this literal. */
+  val value:TYPE
+  
+  /**
+   * Two literals match iff their values are equal.
+   * 
+   * @param subject	The subject.
+   * @param binds		Bindings to honor.
+   * @return	The match outcome.
+   */
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+    subject match {
+    case lit: Literal[_] if value == lit.value => Match(binds)
+    case _ => Fail("Literal pattern does not match subject.", this, subject)
+  }
+  
+  /**
+   * The hash code is computed from the type and the value.
+   */
+  override lazy val hashCode = theType.hashCode * 31 + value.hashCode
+  
+  /**
+   * Two literals are equal iff their types are equal and their values are
+   * equal.
+   */
+  override def equals(other: Any) = other match {
+    case lit: Literal[_] => typ == lit.theType && value == lit.value
+    case _ => false
+  }
 }
 
 /**
- * Extend the literal object to add some convenient constructors.
+ * Provide more convenient ways to construct and extract literals. 
  */
 object Literal {
-	/**
-	 * Make a string value.
-	 * 
-	 * @param typ		The type.
-	 * @param sval	The string value.
-	 */
-	def apply(typ: BasicAtom, sval: String) = new Literal(typ, StrVal(sval))
+	def apply(value: BigInt): IntegerLiteral = new IntegerLiteral(value)
+	def apply(value: Int): IntegerLiteral = new IntegerLiteral(value)
+	def apply(value: String): StringLiteral = new StringLiteral(value)
+	def apply(value: Symbol): SymbolLiteral = new SymbolLiteral(value)
+	def apply(value: Boolean): BooleanLiteral = if (value) TRUE else FALSE
+	def apply(significand: BigInt, exponent: Int, radix: Int): FloatLiteral =
+	  new FloatLiteral(significand, exponent, radix)
+	def apply(typ: BasicAtom, value: BigInt): IntegerLiteral =
+	  IntegerLiteral(typ, value)
+	def apply(typ: BasicAtom, value: Int): IntegerLiteral =
+	  IntegerLiteral(typ, value)
+	def apply(typ: BasicAtom, value: String): StringLiteral =
+	  StringLiteral(typ, value)
+	def apply(typ: BasicAtom, value: Symbol): SymbolLiteral =
+	  SymbolLiteral(typ, value)
+	def apply(typ: BasicAtom, value: Boolean): BooleanLiteral =
+	  BooleanLiteral(typ, value)
+	def apply(typ: BasicAtom, significand: BigInt, exponent: Int,
+	    radix: Int): FloatLiteral = FloatLiteral(typ, significand, exponent, radix)
+	val TRUE = new BooleanLiteral(BOOLEAN, true)
+	val FALSE = new BooleanLiteral(BOOLEAN, false)
+	val NOTHING = new SymbolLiteral(ANYTYPE, Symbol("Nothing"))
+}
 
-	/**
-	 * Make a symbol value.
-	 * 
-	 * @param typ		The type.
-	 * @param sval	The symbol value.
-	 */
-	def apply(typ: BasicAtom, sval: Symbol) = new Literal(typ, SymVal(sval))
+/**
+ * Provide an integer literal.
+ * 
+ * @param typ		The type.
+ * @param value	The value.
+ */
+case class IntegerLiteral(typ: BasicAtom, value: BigInt)
+extends Literal[BigInt](typ) {
+  def this(value: BigInt) = this(INTEGER, value)
+  def this(value: Int) = this(INTEGER, value)
+  def rewrite(binds: Bindings) = theType.rewrite(binds) match {
+	  case (newtype, true) =>
+	    (Literal(newtype, value), true)
+	  case _ =>
+	    (this, false)
+	}
+  def toParseString = value.toString +
+    (if (typ != INTEGER) ":" + typ.toParseString else "") 
+}
 
-	/**
-	 * Make a integer value.
-	 * 
-	 * @param typ		The type.
-	 * @param ival	The integer value.
-	 */
-	def apply(typ: BasicAtom, ival: Int): Literal =
-	  new Literal(typ, IntVal(ival))
+case class StringLiteral(typ: BasicAtom, value: String)
+extends Literal[String](typ) {
+  def this(value: String) = this(STRING, value)
+  def rewrite(binds: Bindings) = theType.rewrite(binds) match {
+	  case (newtype, true) =>
+	    (Literal(newtype, value), true)
+	  case _ =>
+	    (this, false)
+	}
+  override def toString = "StringLiteral(" + typ + ", " + toEString(value) + ")"
+  def toParseString = toEString(value) +
+    (if (typ != STRING) ":" + typ.toParseString else "") 
+}
 
-	/**
-	 * Make a integer value.
-	 * 
-	 * @param typ		The type.
-	 * @param ival	The integer value.
-	 */
-	def apply(typ: BasicAtom, ival: BigInt): Literal =
-	  new Literal(typ, IntVal(ival))
-	
-	/**
-	 * Make a floating point value.  The value represented is equal to
-	 * significand * scala.math.pow(exponent, radix).
-	 * 
-	 * @param typ					The type.
-	 * @param significand	The significand.
-	 * @param exponent		The exponent.
-	 * @param radix				The radix.
-	 */
-	def apply(typ: BasicAtom, significand: BigInt, exponent: Int, radix: Int) =
-	  new Literal(typ, ExpandedFloatVal(significand, exponent, radix))
+case class SymbolLiteral(typ: BasicAtom, value: Symbol)
+extends Literal[Symbol](typ) {
+  def this(value: Symbol) = this(SYMBOL, value)
+  def rewrite(binds: Bindings) = theType.rewrite(binds) match {
+	  case (newtype, true) =>
+	    (Literal(newtype, value), true)
+	  case _ =>
+	    (this, false)
+	}
+  override def toString = "SymbolLiteral(" + typ +
+  		", Symbol(" + toEString(value.name) + ")"
+  def toParseString = toESymbol(value.name) + ":" + typ.toParseString 
+}
 
-	/**
-	 * Make a float value.
-	 * 
-	 * @param typ		The type.
-	 * @param fval	The float value.
-	 */
-	def apply(typ: BasicAtom, fval: Double) = new Literal(typ, FltVal(fval))
-	
-	/** The value true. */
-	val TRUE = new Literal(BOOLEAN, BooVal(true))
-	
-	/** The value false. */
-	val FALSE = new Literal(BOOLEAN, BooVal(false))
-	
-	/** The special Nothing value. */
-	val NOTHING = new Literal(ANYTYPE, SymVal(Symbol("Nothing")))
+case class BooleanLiteral(typ: BasicAtom, value: Boolean)
+extends Literal[Boolean](typ) {
+  def this(value: Boolean) = this(BOOLEAN, value)
+  def rewrite(binds: Bindings) = theType.rewrite(binds) match {
+	  case (newtype, true) =>
+	    (Literal(newtype, value), true)
+	  case _ =>
+	    (this, false)
+	}
+  override def toParseString = value.toString +
+    (if (typ != BOOLEAN) ":" + typ.toParseString else "")
+}
 
-	/**
-	 * Make a Boolean value.
-	 * 
-	 * @param typ		The type.
-	 * @param bool	The Boolean value.
-	 */
-	def apply(typ: BasicAtom, bool: Boolean) = if (bool) TRUE else FALSE
+case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
+    radix: Int) extends Literal[(BigInt, Int, Int)](typ) {
+  private lazy val _prefix = radix match {
+    case 16 => "0x"
+    case 10 => ""
+    case 8  => "0"
+    case 2  => "0b"
+    case _  => require(false, "Invalid radix.")
+  }
+  private val _sneg = significand < 0
+  private val _eneg = exponent < 0
+  private val _spos = if (_sneg) -significand else significand
+  private val _epos = if (_eneg) -exponent else exponent
+  override def toParseString =
+    (if (_sneg) "-" else "") + _prefix + _spos.toString(radix) +
+    (if (radix == 16) "P" else "e") +
+    (if (_eneg) "-" else "") + _prefix + Integer.toString(_epos, radix) +
+    (if (typ != FLOAT) ":" + typ.toParseString else "")
+  def toFloat = significand.toDouble * scala.math.pow(radix, exponent)
+  val value = (significand, exponent, radix)
+  def this(significand: BigInt, exponent: Int, radix: Int) =
+    this(FLOAT, significand, exponent, radix)
+  def rewrite(binds: Bindings) = theType.rewrite(binds) match {
+	  case (newtype, true) =>
+	    (Literal(newtype, significand, exponent, radix), true)
+	  case _ =>
+	    (this, false)
+	}
 }
