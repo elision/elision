@@ -287,7 +287,7 @@ object Apply {
         OpApply(op, al, pabind)
       } else { 
 	      return op.handler match {
-	        case Some(closure) => closure(op, al, Some(pabind))
+	        case Some(closure) => closure(op, al, pabind)
 	        case None => OpApply(op, al, pabind)
 	      }
       }
@@ -373,7 +373,7 @@ object Apply {
     } else { 
 	    return op.handler match {
 	      case Some(closure) =>
-	        closure(op, AtomList(newlist, Some((assoc, comm))), Some(pabind))
+	        closure(op, AtomList(newlist, Some((assoc, comm))), pabind)
 	      case None =>
 	        OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
 	    }

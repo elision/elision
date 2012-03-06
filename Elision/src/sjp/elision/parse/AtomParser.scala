@@ -31,6 +31,7 @@
 ======================================================================*/
 package sjp.elision.parse
 
+import java.nio.charset.Charset
 import org.parboiled.scala._
 import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
@@ -770,6 +771,17 @@ extends Parser {
    * @param err	The reason for the parsing failure.
    */
   case class Failure(err: String) extends Presult
+  
+//  def parseAtoms(filename: String,
+//      charset: Charset = Charset.forName("UTF8")): Presult = {
+//    // Read all the text from the file.
+//    var text = 
+//    val fis = new java.io.FileInputStream(filename)
+//    
+//    // Get a parse runnger.
+//    val tr = ReportingParseRunner(AtomSeq)
+//    val parsingResult = tr.run()
+//  }
   
   /**
    * Entry point to parse all atoms from the given string.

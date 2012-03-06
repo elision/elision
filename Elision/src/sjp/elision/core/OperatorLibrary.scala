@@ -120,7 +120,7 @@ class OperatorLibrary(
  	 * 								return a new atom.
  	 */
  	def register(name: String,
- 	    handler: (Operator, AtomList, Option[Bindings]) => BasicAtom) = {
+ 	    handler: (Operator, AtomList, Bindings) => BasicAtom) = {
  	  // Go fetch the operator.  It must be defined.
  	  _nameToOperator.get(name) match {
  	    case None =>
@@ -171,7 +171,7 @@ class OperatorLibrary(
  	/**
  	 * Add an operator definition to this library.
  	 * @param od		The operator definition to add.
- 	 * @return	The operator definition just added, to enable chaining if desired.
+ 	 * @return	The operator just added, to enable chaining if desired.
  	 * @throws OperatorRedefinitionError
  	 * 					The operator is already defined and redefinitions are not allowed.
  	 */
@@ -184,8 +184,29 @@ class OperatorLibrary(
  	    else throw new OperatorRedefinitionException(
  	        "Attempt to re-define known operator " + name + ".")
     // Accept this and store it in the map.  Return the definition.
-    _nameToOperator += (name -> Operator(od))
- 	  od
+ 	  val op = Operator(od)
+    _nameToOperator += (name -> op)
+ 	  op
+ 	}
+ 	
+ 	/**
+ 	 * Add an operator definition to this library.
+ 	 * @param op		The operator to add.
+ 	 * @return	The operator just added, to enable chaining if desired.
+ 	 * @throws OperatorRedefinitionError
+ 	 * 					The operator is already defined and redefinitions are not allowed.
+ 	 */
+ 	def add(op: Operator) = {
+ 	  val name = op.name
+ 	  if (_nameToOperator.contains(name))
+ 	    if (allowRedefinition)
+ 	      println("WARNING: Redefining operator " + op.name)
+ 	    // Reject this!  The operator is already defined.
+ 	    else throw new OperatorRedefinitionException(
+ 	        "Attempt to re-define known operator " + name + ".")
+ 	  // Accept this and store it in the map.  Return the operator.
+ 	  _nameToOperator += (name -> op)
+ 	  op
  	}
  	
  	// Get the well-known operators.

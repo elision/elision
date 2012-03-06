@@ -231,11 +231,20 @@ package object core {
   /** Convert an integer to an integer literal. */
   implicit def intToLiteral(value: BigInt) = Literal(value)
   
+  /** Convert an integer literal to an integer. */
+  implicit def literalToInt(value: IntegerLiteral) = value.value
+  
   /** Convert a string to a string literal. */
   implicit def strToLiteral(string: String) = Literal(string)
   
+  /** Convert a string literal to a string. */
+  implicit def literalToStr(value: StringLiteral) = value.value
+  
   /** Convert a Scala Boolean to a Boolean literal. */
   implicit def boolToLiteral(bool: Boolean) = Literal(bool)
+  
+  /** Convert a Boolean literal to a Scala Boolean. */
+  implicit def literalToBool(value: BooleanLiteral) = value.value
   
   /**
    * Magically add a mkParseString, roughly equivalent to mkString, to every

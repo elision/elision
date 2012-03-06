@@ -36,6 +36,7 @@ import sjp.elision.parse.AtomParser
 import jline.History
 import java.io.File
 import sjp.elision.ElisionException
+import java.io.FileWriter
 
 /**
  * Provide a REPL to experiment with the new term rewriter.
@@ -55,14 +56,24 @@ import sjp.elision.ElisionException
  * and special operations.
  */
 object Repl {
+  /** Access to system properties. */
+  private val _prop = new scala.sys.SystemProperties
+  
+  /** The user's home folder. */
+  private val _home = _prop("user.home")
   
   /** Figure out the location to store the history. */
   private val _filename = {
-    val prop = new scala.sys.SystemProperties
-    val home = prop("user.home")
-    val fname = (if (prop("path.separator") == ":") ".elision"
+    val fname = (if (_prop("path.separator") == ":") ".elision"
       else "elision.ini")
-    home + prop("file.separator") + fname
+    _home + _prop("file.separator") + fname
+  }
+  
+  /** Figure out where to stash the context on exit. */
+  private val _lastcontext = {
+    val fname = (if (_prop("path.separator") == ":") ".elision-context.mpl2"
+      else "elision.context.mpl2")
+    _home + _prop("file.separator") + fname
   }
   
   /** Get a history to use for the line editor. */
@@ -128,6 +139,14 @@ object Repl {
     emitln("")
 //    emitln("Context: ")
 //    emitln(_context.toParseString)
+    val cfile = new FileWriter(_lastcontext)
+    if (cfile != null) {
+      cfile.write(_context.toParseString)
+      cfile.flush()
+      cfile.close()
+    } else {
+      warn("Unable to save context.")
+    }
   }
   
   /**
@@ -308,7 +327,7 @@ object Repl {
   private def defineOps {
     // Bind.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("bind", ANYTYPE, 'a, 'v), Prop()))
+        Proto("bind", ANYTYPE, ("a", ANYTYPE), ("v", ANYTYPE))))
     _context.operatorLibrary.register("bind",
         (_, list:AtomList, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
@@ -321,7 +340,8 @@ object Repl {
 
     // Bind.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("equal", ANYTYPE, 'x, 'y), Prop(Commutative())))
+        Proto("equal", ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
+        Props(Commutative)))
     _context.operatorLibrary.register("equal",
         (_, list:AtomList, _) => list match {
           case Args(x:BasicAtom, y:BasicAtom) =>
@@ -332,7 +352,7 @@ object Repl {
         
     // Unbind.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("unbind", ANYTYPE, 'v), Prop()))
+        Proto("unbind", ANYTYPE, ("v", ANYTYPE))))
     _context.operatorLibrary.register("unbind",
         (_, list:AtomList, _) => list match {
           case Args(from:Variable) =>
@@ -345,7 +365,7 @@ object Repl {
         
     // Showbinds.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showbinds", ANYTYPE), Prop()))
+        Proto("showbinds", ANYTYPE)))
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomList, _) => list match {
           case Args() => _binds
@@ -354,7 +374,7 @@ object Repl {
         
     // Context.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("context", ANYTYPE), Prop()))
+        Proto("context", ANYTYPE)))
     _context.operatorLibrary.register("context",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -365,7 +385,7 @@ object Repl {
         
     // Stacktrace.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("stacktrace", ANYTYPE), Prop()))
+        Proto("stacktrace", ANYTYPE)))
     _context.operatorLibrary.register("stacktrace",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -378,10 +398,10 @@ object Repl {
         
     // Read.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("read", ANYTYPE, 'filename), Prop()))
+        Proto("read", ANYTYPE, ("filename", STRING))))
     _context.operatorLibrary.register("read",
         (_, list:AtomList, _) => list match {
-          case Args(filename:StringLiteral) =>
+          case Args(StringLiteral(_, filename)) =>
             // TODO Read the content of the file.
             emitln("Not implemented.")
             Literal.FALSE
@@ -390,10 +410,10 @@ object Repl {
         
     // Write.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("write", ANYTYPE, 'filename), Prop()))
+        Proto("write", ANYTYPE, ("filename", STRING))))
     _context.operatorLibrary.register("write",
         (_, list:AtomList, _) => list match {
-          case Args(filename:StringLiteral) =>
+          case Args(StringLiteral(_, filename)) =>
             // TODO Write the content to the file.
             emitln("Not implemented.")
             Literal.FALSE
@@ -402,7 +422,7 @@ object Repl {
         
     // Help.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("help", ANYTYPE), Prop()))
+        Proto("help", ANYTYPE)))
     _context.operatorLibrary.register("help",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -438,7 +458,7 @@ object Repl {
         
     // Traceparse.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("traceparse", ANYTYPE), Prop()))
+        Proto("traceparse", ANYTYPE)))
     _context.operatorLibrary.register("traceparse",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -452,7 +472,7 @@ object Repl {
         
     // Tracematch.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("tracematch", ANYTYPE), Prop()))
+        Proto("tracematch", ANYTYPE)))
     _context.operatorLibrary.register("tracematch",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -466,7 +486,7 @@ object Repl {
         
     // Showscala.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showscala", ANYTYPE), Prop()))
+        Proto("showscala", ANYTYPE)))
     _context.operatorLibrary.register("showscala",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -479,7 +499,7 @@ object Repl {
         
     // Showprior.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showprior", ANYTYPE), Prop()))
+        Proto("showprior", ANYTYPE)))
     _context.operatorLibrary.register("showprior",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -492,7 +512,7 @@ object Repl {
         
     // History.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("history", ANYTYPE), Prop()))
+        Proto("history", ANYTYPE)))
     _context.operatorLibrary.register("history",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -507,7 +527,7 @@ object Repl {
         
     // Quiet.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("quiet", ANYTYPE), Prop()))
+        Proto("quiet", ANYTYPE)))
     _context.operatorLibrary.register("quiet",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -520,7 +540,7 @@ object Repl {
         
     // Enable a ruleset.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("enable", ANYTYPE, 'x), Prop()))
+        Proto("enable", ANYTYPE, ("x", SYMBOL))))
     _context.operatorLibrary.register("enable",
         (_, list:AtomList, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -532,7 +552,7 @@ object Repl {
         
     // Disable a ruleset.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("disable", ANYTYPE, 'x), Prop()))
+        Proto("disable", ANYTYPE, ("x", SYMBOL))))
     _context.operatorLibrary.register("disable",
         (_, list:AtomList, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -544,7 +564,7 @@ object Repl {
         
     // Set the limit on automatic rewrites.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("setlimit", ANYTYPE, 'x), Prop()))
+        Proto("setlimit", ANYTYPE, ("limit", INTEGER))))
     _context.operatorLibrary.register("setlimit",
         (_, list:AtomList, _) => list match {
           case Args(IntegerLiteral(_, count)) =>
@@ -556,7 +576,7 @@ object Repl {
         
     // Enable or disable the rewriter.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("rewrite", ANYTYPE), Prop()))
+        Proto("rewrite", ANYTYPE)))
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -570,7 +590,7 @@ object Repl {
         
     // See what rules are in scope.
     _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showrules", ANYTYPE, 'x), Prop()))
+        Proto("showrules", ANYTYPE, ("a", ANYTYPE))))
     _context.operatorLibrary.register("showrules",
         (_, list:AtomList, _) => list match {
           case Args(atom) =>
@@ -581,34 +601,38 @@ object Repl {
             Literal.TRUE
           case _ => Literal.FALSE
         })
-    
+        
+    // Define mod as a native operator.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("mod", INTEGER, ("x", INTEGER), ("y", INTEGER))))
+    _context.operatorLibrary.register("mod",
+        (op: Operator, args: AtomList, _) => args.atoms match {
+          case List(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
+          case _ => Apply(op, args, true)
+        })
+        
     // Define add as a native operator.
-		val opdef = NativeOperatorDefinition(
-		  OperatorPrototype("add",
-		      List(Variable(INTEGER, "x"), Variable(INTEGER, "y")), INTEGER),
-		  OperatorProperties(associative=true, commutative=true,
-		    identity=Some(Literal(INTEGER, 0))))
-		// Create a closure to perform the addition.
-		def doadd(op: Operator, args: AtomList, binds: Option[Bindings]) = {
-		  // Accumulate the integer literals found.
-		  var lits:BigInt = 0
-		  // Accumulate other atoms found.
-		  var other = ListBuffer[BasicAtom]()
-		  // Traverse the list and divide the atoms.
-		  args.atoms.foreach {
-		    x => x match {
-		      case IntegerLiteral(_, value) => lits += value
-		      case _ => other += x
-		    }
-		  }
-		  // Now add the accumulated literals to the list.
-		  other += Literal(INTEGER, lits)
-		  // Construct and return a new operator application.
-		  Apply(op, AtomList(other), true)
-		}
-		// Register the operator and its handler.
-		_context.operatorLibrary.add(opdef)
-		_context.operatorLibrary.register("add", doadd)
+		_context.operatorLibrary.add(NativeOperatorDefinition(
+		    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
+		    Props(Associative, Commutative, Identity(0))))
+		_context.operatorLibrary.register("add",
+      (op: Operator, args: AtomList, _) => {
+			  // Accumulate the integer literals found.
+			  var lits:BigInt = 0
+			  // Accumulate other atoms found.
+			  var other = ListBuffer[BasicAtom]()
+			  // Traverse the list and divide the atoms.
+			  args.atoms.foreach {
+			    x => x match {
+			      case IntegerLiteral(_, value) => lits += value
+			      case _ => other += x
+			    }
+			  }
+			  // Now add the accumulated literals to the list.
+			  other += Literal(INTEGER, lits)
+			  // Construct and return a new operator application.
+			  Apply(op, AtomList(other), true)
+      })
         
     // The operator are defined.
     _opsDefined = true

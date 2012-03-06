@@ -154,7 +154,7 @@ case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
  * @param props		Operator properties.
  */
 case class NativeOperatorDefinition(override val proto: OperatorPrototype,
-    props: OperatorProperties) extends OperatorDefinition(proto) {
+    props: OperatorProperties = Noprops) extends OperatorDefinition(proto) {
   check(proto, props)
   lazy val isConstant = props.isConstant
 	def toParseString =
@@ -216,6 +216,9 @@ case class OperatorPrototype(name: String, pars: List[Variable],
   }
 }
 
+/** A "no properties" object. */
+object Noprops extends OperatorProperties(false, false, false, None, None)
+
 /**
  * Encapsulate operator properties.
  * @param assoc			True iff associative.  Default is false.
@@ -230,6 +233,7 @@ case class OperatorProperties(
     idempotent: Boolean = false,
     absorber: Option[BasicAtom] = None,
     identity: Option[BasicAtom] = None) {
+  
   /**
    * The properties object is constant iff the absorber and identity are
    * constants.
@@ -288,4 +292,64 @@ case class OperatorProperties(
       identity == op.identity
     case _ => false
   }
+}
+
+/** Operator properties. */
+sealed abstract class OpProperty
+
+/** Indicate that an operator is associative. */
+object Associative extends OpProperty
+
+/** Indicate that an operator is commutative. */
+object Commutative extends OpProperty
+
+/** Indicate that an operator is idempotent. */
+object Idempotent extends OpProperty
+
+/**
+ * Indicate that an operator has an identity.
+ * 
+ * @param id	The identity.
+ */
+case class Identity(id: BasicAtom) extends OpProperty
+
+/**
+ * Indicate that an operator has an absorber.
+ * 
+ * @param ab	The absorber.
+ */
+case class Absorber(ab: BasicAtom) extends OpProperty
+
+/** Simple operator properties creation and pattern matching. */
+object Props {
+  /**
+   * Make a new operator properties object by passing the individual properties.
+   * 
+   * @param properties	The operator properties.
+   * @return	The new operator properties object.
+   */
+  def apply(properties: OpProperty*) = {
+    var (assoc, comm, idem) = (false, false, false)
+    var absorber: Option[BasicAtom] = None
+    var identity: Option[BasicAtom] = None
+    for (prop <- properties) prop match {
+      case Associative => assoc = true
+      case Commutative => comm = true
+      case Idempotent => idem = true
+      case Identity(id) => identity = Some(id)
+      case Absorber(ab) => absorber = Some(ab)
+    }
+    new OperatorProperties(assoc, comm, idem, absorber, identity)
+  }
+  
+  /**
+   * Deconstruct an operator properties object into its components.
+   * 
+   * @param	properties	The operator properties object.
+   * @return	The properties, in order, as associativity, commutativity,
+   * 					idempotence, any absorber, and any identity.
+   */
+  def unapply(properties: OperatorProperties) =
+    Some(properties.associative, properties.commutative, properties.idempotent,
+        properties.absorber, properties.identity)
 }

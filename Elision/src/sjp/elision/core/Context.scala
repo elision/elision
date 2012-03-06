@@ -261,13 +261,18 @@ class Context(val allowUndeclared:Boolean = false) {
    */
   def toParseString = {
     val buf = new StringBuilder
+    buf append "// START of context.\n"
+    buf append "// Operator library.\n"
     buf append operatorLibrary.toParseString
-    for ((_,list) <- _kind2rules) {
+    for ((kind,list) <- _kind2rules) {
+      buf append ("// Rules for " + kind.toString + ".\n")
       buf append list.map(_._2).mkParseString("","\n","\n")
     }
-    for ((_,list) <- _op2rules) {
+    for ((name,list) <- _op2rules) {
+      buf append ("// Rules for operator " + name + ".\n")
       buf append list.map(_._2).mkParseString("","\n","\n")
     }
+    buf append "// END of context.\n"
     buf.toString()
   }
   

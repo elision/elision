@@ -34,13 +34,13 @@ object Proto {
   /**
    * Make a new operator prototype.
    * 
-   * @param name			The operator name.
-   * @param typ				The type of a fully-applied operator.
-   * @param arguments	The formal parameters.
+   * @param name				The operator name.
+   * @param typ					The type of a fully-applied operator.
+   * @param parameters	The formal parameters.
    * @return	The new operator prototype.
    */
-  def apply(name: String, typ: BasicAtom, parameters: Variable*) =
-    OperatorPrototype(name, parameters.toList, typ)
+  def apply(name: String, typ: BasicAtom, parameters: (String, BasicAtom)*) =
+    OperatorPrototype(name, parameters.map(x => Variable(x._2, x._1)).toList, typ)
     
   /**
    * Deconstruct an operator prototype into its components for a pattern match.
@@ -61,117 +61,14 @@ object Proto {
   }
 }
 
-/** Operator properties. */
-sealed abstract class OpProperty
 
-/** Indicate that an operator is associative. */
-case class Associative() extends OpProperty
-
-/** Indicate that an operator is commutative. */
-case class Commutative() extends OpProperty
-
-/** Indicate that an operator is idempotent. */
-case class Idempotent() extends OpProperty
-
-/**
- * Indicate that an operator has an identity.
- * 
- * @param id	The identity.
- */
-case class Identity(id: BasicAtom) extends OpProperty
-
-/**
- * Indicate that an operator has an absorber.
- * 
- * @param ab	The absorber.
- */
-case class Absorber(ab: BasicAtom) extends OpProperty
-
-/** Simple operator properties creation and pattern matching. */
-object Prop {
-  /**
-   * Make a new operator properties object by passing the individual properties.
-   * 
-   * @param properties	The operator properties.
-   * @return	The new operator properties object.
-   */
-  def apply(properties: OpProperty*) = {
-    var (assoc, comm, idem) = (false, false, false)
-    var absorber: Option[BasicAtom] = None
-    var identity: Option[BasicAtom] = None
-    for (prop <- properties) prop match {
-      case Associative() => assoc = true
-      case Commutative() => comm = true
-      case Idempotent() => idem = true
-      case Identity(id) => identity = Some(id)
-      case Absorber(ab) => absorber = Some(ab)
-    }
-    new OperatorProperties(assoc, comm, idem, absorber, identity)
-  }
-  
-  /**
-   * Deconstruct an operator properties object into its components.
-   * 
-   * @param	properties	The operator properties object.
-   * @return	The properties, in order, as associativity, commutativity,
-   * 					idempotence, any absorber, and any identity.
-   */
-  def unapply(properties: OperatorProperties) =
-    Some(properties.associative, properties.commutative, properties.idempotent,
-        properties.absorber, properties.identity)
-}
-
-/** Simple operator application creation and pattern matching. */
-object Oper {
-  /**
-   * Make a new operator application.
-   * 
-   * @param lib		The operator library.
-   * @param name	The operator name.
-   * @param arg		The arguments.
-   * @return	The new operator application.
-   */
-  def apply(lib: OperatorLibrary, name: String, arg: BasicAtom*) =
-    Apply(lib(name), AtomList(arg.toList))
-    
-  /**
-   * Make a new operator application.
-   * 
-   * @param op		The operator.
-   * @param arg		The arguments.
-   * @return	The new operator application.
-   */
-  def apply(op: Operator, arg: BasicAtom*) =
-    Apply(op, AtomList(arg.toList))
-    
-  /**
-   * Deconstruct an operator application into its components.  This works with
-   * five or fewer arguments.
-   * 
-   * @param apply	The application.
-   * @return	The application parts, consisting of the name, followed by any
-   * 					arguments.
-   */
-  def unapply(apply: Apply) = apply match {
-    case Apply(op:Operator, AtomList(list, _)) => list match {
-      case Seq() => Some(op.name)
-      case Seq(v1) => Some(op.name, v1)
-      case Seq(v1, v2) => Some(op.name, v1, v2)
-      case Seq(v1, v2, v3) => Some(op.name, v1, v2, v3)
-      case Seq(v1, v2, v3, v4) => Some(op.name, v1, v2, v3, v4)
-      case Seq(v1, v2, v3, v4, v5) => Some(op.name, v1, v2, v3, v4, v5)
-      case _ => None
-    }
-    case _ => None
-  }
-  
-  /**
-   * Extract the arguments from the apply, and return those arguments.
-   * 
-   * @param apply	The operator application.
-   * @return	The arguments from the application.
-   */
-  def unapplySeq(apply: Apply) = apply match {
-    case Apply(_, AtomList(list, _)) => list
+object Native {
+  def apply(proto: OperatorPrototype, props: OperatorProperties,
+      impl: (Bindings => BasicAtom)) = {
+    val nat = NativeOperatorDefinition(proto, props)
+    val op = Operator(nat)
+    op.handler =
+      Some((op: Operator, args: AtomList, binds: Bindings) => impl(binds))
+    op
   }
 }
