@@ -54,6 +54,14 @@ class DiscardList[A](backing: IndexedSeq[A]) extends IndexedSeq[A] {
 	def discard(index: Int): DiscardList[A] = new OmitList(this, index)
 }
 
+object DiscardList {
+  def apply[A](elements: A*) = new DiscardList(IndexedSeq(elements))
+  def apply[A](seq: IndexedSeq[A]) = (seq: @unchecked) match {
+    case dl:DiscardList[A] => dl
+    case _ => new DiscardList(seq)
+  }
+}
+
 private class OmitList[A](backing: IndexedSeq[A], omit: Int)
 extends DiscardList[A](backing) {
 	override lazy val length = backing.length - 1
