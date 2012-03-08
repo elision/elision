@@ -32,6 +32,5 @@ package sjp.elision.test
 /**
  * Generate instances of a thing according to combinatorial rules.
  */
-class Generator[A] extends Iterator[A] {
+class Generator {
 }
-
