@@ -200,7 +200,8 @@ object AtomParser {
 	   * have not yet been specified, and should be inherited from an operator.
 	   */
 	  var props: Option[(Boolean, Boolean)] = None
-	  def interpret = AtomList(list map (_.interpret), props)
+	  def interpret =
+	    AtomList(list.toIndexedSeq[AstNode] map (_.interpret), props)
 	  /**
 	   * Set the properties for this list.
 	   * @param assoc		If true, the list is associative.
@@ -296,8 +297,8 @@ object AtomParser {
 	  def interpret = OperatorPrototype(
 	      name,
 	      pars match {
-	        case Some(list) => list.map(_.interpret)
-	        case None => List[Variable]()
+	        case Some(list) => list.toIndexedSeq[VariableNode].map(_.interpret)
+	        case None => IndexedSeq[Variable]()
 	      },
 	      typ.interpret)
 	}

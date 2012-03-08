@@ -607,7 +607,7 @@ object Repl {
         Proto("mod", INTEGER, ("x", INTEGER), ("y", INTEGER))))
     _context.operatorLibrary.register("mod",
         (op: Operator, args: AtomList, _) => args.atoms match {
-          case List(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
+          case Args(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
           case _ => Apply(op, args, true)
         })
         
@@ -620,16 +620,16 @@ object Repl {
 			  // Accumulate the integer literals found.
 			  var lits:BigInt = 0
 			  // Accumulate other atoms found.
-			  var other = ListBuffer[BasicAtom]()
+			  var other = IndexedSeq[BasicAtom]()
 			  // Traverse the list and divide the atoms.
 			  args.atoms.foreach {
 			    x => x match {
 			      case IntegerLiteral(_, value) => lits += value
-			      case _ => other += x
+			      case _ => other :+= x
 			    }
 			  }
 			  // Now add the accumulated literals to the list.
-			  other += Literal(INTEGER, lits)
+			  other :+= Literal(INTEGER, lits)
 			  // Construct and return a new operator application.
 			  Apply(op, AtomList(other), true)
       })

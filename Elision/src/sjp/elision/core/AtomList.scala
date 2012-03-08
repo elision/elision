@@ -90,7 +90,7 @@ import java.util.LinkedList
  * 								be a pair whose first element is associativtiy, and whose
  * 								second element is commutativity.
  */
-case class AtomList(atoms: Seq[BasicAtom],
+case class AtomList(atoms: OmitSeq[BasicAtom],
     props: Option[(Boolean,Boolean)] = None) extends BasicAtom {
   require(atoms != null)
   
@@ -174,8 +174,8 @@ object Args {
   /**
    * Get the atoms in the list as a sequence.
    * 
-   * @param list	 The list to extract.
-   * @return	The extracted list.
+   * @param list	 The sequence to extract.
+   * @return	The extracted sequence.
    */
 	def unapplySeq(al:AtomList) = Some(al.atoms)
 }

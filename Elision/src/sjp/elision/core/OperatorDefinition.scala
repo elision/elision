@@ -175,7 +175,7 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
  * @param pars			The parameters.
  * @param typ				The type.
  */
-case class OperatorPrototype(name: String, pars: List[Variable],
+case class OperatorPrototype(name: String, pars: IndexedSeq[Variable],
     typ: BasicAtom) {
   def toParseString = name + pars.mkParseString("(", ",", ")") +
   	": " + typ.toParseString

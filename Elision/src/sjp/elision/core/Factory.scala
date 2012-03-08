@@ -40,25 +40,8 @@ object Proto {
    * @return	The new operator prototype.
    */
   def apply(name: String, typ: BasicAtom, parameters: (String, BasicAtom)*) =
-    OperatorPrototype(name, parameters.map(x => Variable(x._2, x._1)).toList, typ)
-    
-  /**
-   * Deconstruct an operator prototype into its components for a pattern match.
-   * This works with up to five parameters.
-   * 
-   * @param op		The operator prototype.
-   * @return	The components of the operator prototype, organized by operator
-   * 					name, then operator type, and then each of the formal parameters.
-   */
-  def unapply(op: OperatorPrototype) = op.pars match {
-    case List() => Some(op.name, op.typ)
-    case List(v1) => Some(op.name, op.typ, v1)
-    case List(v1, v2) => Some(op.name, op.typ, v1, v2)
-    case List(v1, v2, v3) => Some(op.name, op.typ, v1, v2, v3)
-    case List(v1, v2, v3, v4) => Some(op.name, op.typ, v1, v2, v3, v4)
-    case List(v1, v2, v3, v4, v5) => Some(op.name, op.typ, v1, v2, v3, v4, v5)
-    case _ => None
-  }
+    OperatorPrototype(name,
+        parameters.map(x => Variable(x._2, x._1)).toIndexedSeq, typ)
 }
 
 

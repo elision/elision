@@ -160,7 +160,8 @@ class OperatorLibrary(
  	    val od = SymbolicOperatorDefinition(
  	        OperatorPrototype(
  	        		name,
- 	        		List(Variable(TypeUniverse, "x"), Variable(TypeUniverse, "y")),
+ 	        		IndexedSeq(Variable(TypeUniverse, "x"),
+ 	        		    Variable(TypeUniverse, "y")),
  	        		TypeUniverse),
  	        OperatorProperties(associative = true))
  	    add(od)
@@ -231,7 +232,7 @@ object OperatorLibrary {
  	    SymbolicOperatorDefinition(
  	        OperatorPrototype(
  	            "MAP",
-		 	        List(Variable(ANYTYPE, "domain"),
+		 	        IndexedSeq(Variable(ANYTYPE, "domain"),
 		 	            Variable(ANYTYPE, "codomain")),
 		 	        ANYTYPE),
 		 	    OperatorProperties()))
@@ -240,7 +241,7 @@ object OperatorLibrary {
  	 * Construct a map type, given a domain and range.
  	 */
   def MAP(dom: BasicAtom, ran: BasicAtom) =
-    Apply(MapOperator, AtomList(Seq(dom, ran)))
+    Apply(MapOperator, AtomList(IndexedSeq(dom, ran)))
 
   /**
    * The well-known cross operator used to build operator types.
@@ -249,13 +250,13 @@ object OperatorLibrary {
       SymbolicOperatorDefinition(
 		      OperatorPrototype(
 		          "xx",
-		          List(Variable(ANYTYPE, "a"), Variable(ANYTYPE, "b")),
+		          IndexedSeq(Variable(ANYTYPE, "a"), Variable(ANYTYPE, "b")),
 		          ANYTYPE),
 		      OperatorProperties(associative=true)))
   
   /**
    * Make a cross type.
    */
-  def xx(atoms: List[BasicAtom]) =
+  def xx(atoms: IndexedSeq[BasicAtom]) =
     Apply(CrossOperator, AtomList(atoms))
 }
