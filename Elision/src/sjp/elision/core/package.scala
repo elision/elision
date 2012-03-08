@@ -216,6 +216,122 @@ package object core {
   }
   
   //======================================================================
+  // WARNING: Implicit modification of containers!
+  //======================================================================
+    
+  /**
+   * Magically add a mkParseString, roughly equivalent to mkString, to every
+   * sequence of objects that extend BasicAtom.  Try that with Java!
+   * 
+   * @param seq		The sequence to get the new method.
+   */
+  implicit def giveMkParseString[A <: BasicAtom](seq: Seq[A]): {
+    def mkParseString(pre: String, mid: String, post: String): String
+  } = new {
+    /**
+     * Make a string from a sequence.
+     * 
+     * @param pre		The prefix text, if any.
+     * @param mid		The text to insert between each item.
+     * @param post	The suffix text, if any.
+     * @return	The new string.
+     */
+    def mkParseString(pre: String, mid: String, post: String) =
+      seq.map(_.toParseString).mkString(pre, mid, post)
+  }
+  
+  /**
+   * Invoking the omit method on an indexed sequence automagically transforms
+   * it into an omit sequence with the original sequence as its backing store.
+   * 
+   * @param seq	The original sequence.
+   */
+  implicit def toOmitSeq[A](seq: IndexedSeq[A]): {
+    def omit(index: Int): OmitSeq[A]
+  } = new {
+    /**
+	   * Omit a single element from this list, returning a new list.  This is
+	   * done "in place" so it should be fast.  As omits mount, lookup time
+	   * can suffer, approaching linear time.
+	   * 
+	   * @param index	The zero-based index to omit.
+	   * @return	The new list.
+	   */
+    def omit(index: Int) = new OmitSeq2[A](seq, index)
+  }
+  
+  /**
+   * The omit sequence class.
+   */
+  abstract class OmitSeq[A] extends IndexedSeq[A]
+  
+  /**
+   * Provide convenient construction of an omit sequence and automatic
+   * (implicit) transformation of indexed collections to an omit sequence.
+   */
+  object OmitSeq {
+    /**
+     * Convert an indexed sequence to an omit sequence.
+     * 
+     * @param backing	The backing sequence.
+     * @return	The new omit sequence.
+     */
+    implicit def fromIndexedSeq[A](backing: IndexedSeq[A]): OmitSeq[A] =
+      new OmitSeq1[A](backing)
+  }
+  
+  /**
+   * Construct an omit sequence that simply wraps a backing sequence but does
+   * not actually omit anything.
+   * 
+   * @param backing	The backing sequence.
+   */
+  private class OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
+    // Proxy to backing sequence.
+    lazy val length = backing.length
+    
+    // Proxy to backing sequence.
+    def apply(index: Int) = backing(index)
+    
+    /**
+	   * Omit a single element from this list, returning a new list.  This is
+	   * done "in place" so it should be fast.  As omits mount, lookup time
+	   * can suffer, approaching linear time.
+	   * 
+	   * @param index	The zero-based index to omit.
+	   * @return	The new list.
+	   */
+		def omit(index: Int): IndexedSeq[A] = new OmitSeq2(this, index)
+  }
+  
+  /**
+   * Construct an omit sequence that omits a single element from the backing
+   * sequence.
+   * 
+   * @param backing	The backing sequence.
+   * @param omit		The (zero-based) index of the item to omit.
+   */
+  private class OmitSeq2[A](backing: IndexedSeq[A], omit: Int)
+  extends OmitSeq[A] {
+    /** Length is one less than the backing sequence. */
+		override lazy val length = backing.length - 1
+		
+		/** Return the requested element by zero-based index. */
+		override def apply(index: Int) =
+		  if (index >= omit) backing(index+1) else backing(index)
+		  
+    /**
+	   * Omit a single element from this list, returning a new list.  This is
+	   * done "in place" so it should be fast.  As omits mount, lookup time
+	   * can suffer, approaching linear time.
+	   * 
+	   * @param index	The zero-based index to omit.
+	   * @return	The new list.
+	   */
+		def omit(index: Int): IndexedSeq[A] = new OmitSeq2(this, index)
+	}
+
+  //======================================================================
   // WARNING: Here be IMPLICITS!
   //======================================================================
   
@@ -245,27 +361,6 @@ package object core {
   
   /** Convert a Boolean literal to a Scala Boolean. */
   implicit def literalToBool(value: BooleanLiteral) = value.value
-  
-  /**
-   * Magically add a mkParseString, roughly equivalent to mkString, to every
-   * sequence of objects that extend BasicAtom.  Try that with Java!
-   * 
-   * @param seq		The sequence to get the new method.
-   */
-  implicit def giveMkParseString[A <: BasicAtom](seq: Seq[A]): {
-    def mkParseString(pre: String, mid: String, post: String): String
-  } = new {
-    /**
-     * Make a string from a sequence.
-     * 
-     * @param pre		The prefix text, if any.
-     * @param mid		The text to insert between each item.
-     * @param post	The suffix text, if any.
-     * @return	The new string.
-     */
-    def mkParseString(pre: String, mid: String, post: String) =
-      seq.map(_.toParseString).mkString(pre, mid, post)
-  }
   
   /**
    * Where needed, convert a bindings object into a bindings atom (wrap).
