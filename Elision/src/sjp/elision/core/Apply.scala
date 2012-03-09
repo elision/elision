@@ -87,7 +87,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
           case Many(matches) =>
             // The operators match in multiple ways.  This seems unlikely, but
             // we consider it here anyway.
-            Many(new MatchIterator(arg.tryMatch(oarg, _), matches))
+            Many(MatchIterator(arg.tryMatch(oarg, _), matches))
         }
       }
       case _ => Fail("Applications only match other applications.",

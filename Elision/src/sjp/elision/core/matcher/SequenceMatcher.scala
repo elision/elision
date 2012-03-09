@@ -114,7 +114,7 @@ object SequenceMatcher {
         // performs the rest of the matching work.  We do that now.
         // NOTE  It may be more efficient to replace this recursion.
         val (pt, st) = (patterns.tail, subjects.tail)
-        Many(new MatchIterator(
+        Many(MatchIterator(
             (newbinds: Bindings) => tryMatch(pt, st, newbinds, position+1),
             miter))
     }

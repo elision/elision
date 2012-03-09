@@ -31,6 +31,35 @@
 ======================================================================*/
 package sjp.elision.core
 
+abstract class MatchIterator extends Iterator[Bindings]
+
+object MatchIterator {
+	/**
+	 * Build an iterator to handle completing matches from another match
+	 * iterator.
+	 * 
+	 * This is provided to help in the case that a subordinate match (say of a
+	 * child atom) returns many matches.  When this happens, you can use this
+	 * method to create an iterator, given two things:
+	 *  - A closure for `localMatch`.  This is the "thing to do" with each
+	 *    subordinate match to generate a complete overall match.  That is, given
+	 *    a single match for a child, we do this to create a complete match.  Any
+	 *    outcome is possible: no match, a single match, or many matches.  These
+	 *    cases are correctly handled by this iterator.
+	 *  - The subordinate match iterator `subiter` that provides the subordinate
+	 *    matches.
+	 * 
+	 * @param localMatch	Additional work to complete a match, given a subordinate
+	 * 										match.  This takes the binding from the subordinate match
+	 * 										and yields a new match outcome.
+	 * @param	subiter			The subordinate iterator.
+	 * @return	The new match iterator.
+	 */
+  def apply(localMatch: (Bindings) => Outcome,
+      subiter: MatchIterator): MatchIterator =
+        new SubMatchIterator(localMatch, subiter)
+}
+
 /**
  * Handle iterating over a collection of matches.
  * 
@@ -50,8 +79,8 @@ package sjp.elision.core
  * 										and yields a new match outcome.
  * @param	subiter			The subordinate iterator.
  */
-class MatchIterator(val localMatch: (Bindings) => Outcome,
-  val subiter: MatchIterator) extends Iterator[Bindings] {
+private class SubMatchIterator(val localMatch: (Bindings) => Outcome,
+  val subiter: MatchIterator) extends MatchIterator {
   
   /*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    * This class operates as follows.

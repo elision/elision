@@ -300,7 +300,7 @@ abstract class BasicAtom {
 	      case fail: Fail => fail
 	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds)
 	      case Many(submatches) =>
-	        Many(new MatchIterator(tryMatchWithoutTypes(subject, _),
+	        Many(MatchIterator(tryMatchWithoutTypes(subject, _),
 	          submatches))
 	    }
 

@@ -95,6 +95,12 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
     props: Option[(Boolean,Boolean)] = None) extends BasicAtom {
   require(atoms != null)
   
+  /** If true, regard this list is associative. */
+  val associative = props.getOrElse((false, false))._1
+  
+  /** If true, regard this list as commutative. */
+  val commutative = props.getOrElse((false, false))._2
+  
   // Map each constant to its index.
   val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
   for (i <- 0 until atoms.length)
@@ -122,19 +128,27 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
     // Ordered lists only match other ordered lists with matching elements in
     // the same order.
     subject match {
-    	case AtomList(oatoms, oprops) =>
+    	case al:AtomList =>
     	  // The lists must be the same length, or they cannot match.
-    	  if (atoms.length != oatoms.length)
+    	  if (atoms.length != al.atoms.length)
     	    Fail("Lists are different sizes.", this, subject)
     	  else
     	    // The properties must be the same, or they cannot match.
-    	    if (props != oprops)
+    	    if (props != al.props)
     	      Fail("List properties do not match.", this, subject)
     	    else
     	      // Now all the items in the list much match.  We use the sequence
     	      // matcher for that.
-    	      // TODO This needs to use the appropriate matching algorithm!
-    	      SequenceMatcher.tryMatch(atoms, oatoms, binds)
+    	      if (associative)
+    	        if (commutative)
+    	        	matcher.CMatcher.tryMatch(this, al, binds)
+    	        else
+    	        	SequenceMatcher.tryMatch(atoms, al.atoms, binds)
+  	        else
+  	          if (commutative)
+  	          	matcher.CMatcher.tryMatch(this, al, binds)
+  	          else
+  	          	SequenceMatcher.tryMatch(atoms, al.atoms, binds)
       case _ => Fail("Not implemented.")
     }
 
