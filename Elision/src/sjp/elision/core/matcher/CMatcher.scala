@@ -45,6 +45,10 @@ object CMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+    if (plist.atoms.length != slist.atoms.length)
+      return Fail("Lists are different sizes, so no match is possible.",
+          plist, slist)
+      
     // Step one is to perform constant elimination.  For each constant
     // pattern, find and remove the same constant pattern from the subjects.
     // If we cannot, we do not match.
@@ -78,6 +82,7 @@ object CMatcher {
    * 
    * @param patterns	The patterns.
    * @param subjects	The subjects.
+   * @param binds			Bindings to honor.
    */
   private class CMatchIterator(patterns: OmitSeq[BasicAtom],
       subjects: OmitSeq[BasicAtom], binds: Bindings) extends MatchIterator {

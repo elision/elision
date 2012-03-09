@@ -143,7 +143,7 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
     	        if (commutative)
     	        	matcher.CMatcher.tryMatch(this, al, binds)
     	        else
-    	        	SequenceMatcher.tryMatch(atoms, al.atoms, binds)
+    	        	matcher.AMatcher.tryMatch(this, al, binds)
   	        else
   	          if (commutative)
   	          	matcher.CMatcher.tryMatch(this, al, binds)
