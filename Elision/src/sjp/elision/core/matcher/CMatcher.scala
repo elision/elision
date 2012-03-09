@@ -56,10 +56,13 @@ object CMatcher {
           return Fail("Element " + pindex + " not found in subject list.",
               plist, slist)
         case Some(sindex) =>
+          println("Omitting " + pat.toParseString)
           patterns = patterns.omit(pindex)
           subjects = subjects.omit(sindex)
       }
     } // Omit constants from the lists.
+    println("Now: Patterns: " + patterns.mkParseString("",",",""))
+    println("     Subjects: " + subjects.mkParseString("",",",""))
     
     // Step two is to re-order the subjects and match until we succeed, or we
     // exhaust the search space.  We have to do this with a match iterator, but
@@ -95,30 +98,31 @@ object CMatcher {
      * have _current set to the next match, or not.
      */
     private def findNext {
+      print("Searching... ")
       _current = null
-      if (_local != null) {
-        if (_local.hasNext) _current = _local.next
-        else {
-          _local = null
-		      if (_perms.hasNext)
-		        SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
-		        case Fail(_,_) =>
-		          // We ignore this case.  We only fail if we exhaust all attempts.
-		          findNext
-		        case Match(binds) =>
-		          // This case we care about.  Save the bindings as the current match.
-		          _current = binds
-		        case Many(iter) =>
-		          // We've potentially found many matches.  We save this as a local
-		          // iterator and then use it in the future.
-		          _local = iter
-		          findNext
-		      } else {
-		        // We have exhausted the permutations.  We have exhausted this
-		        // iterator.
-		        _exhausted = true
-		      }
-        }
+      if (_local != null && _local.hasNext) _current = _local.next
+      else {
+        _local = null
+	      if (_perms.hasNext)
+	        SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
+	        case Fail(_,_) =>
+	          // We ignore this case.  We only fail if we exhaust all attempts.
+	          findNext
+	        case Match(binds) =>
+	          // This case we care about.  Save the bindings as the current match.
+	          _current = binds
+	          println("Found.")
+	        case Many(iter) =>
+	          // We've potentially found many matches.  We save this as a local
+	          // iterator and then use it in the future.
+	          _local = iter
+	          findNext
+	      } else {
+	        // We have exhausted the permutations.  We have exhausted this
+	        // iterator.
+	        _exhausted = true
+	        println("Exhausted.")
+	      }
       }
     }
     
