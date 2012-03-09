@@ -33,6 +33,7 @@ package sjp.elision.core
 
 import scala.collection.immutable.HashMap
 import java.util.LinkedList
+import scala.collection.mutable.MapBuilder
 
 /**
  * Encapsulate an ordered list of atoms.
@@ -93,6 +94,11 @@ import java.util.LinkedList
 case class AtomList(atoms: Seq[BasicAtom],
     props: Option[(Boolean,Boolean)] = None) extends BasicAtom {
   require(atoms != null)
+  
+  // Map each constant to its index.
+  val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
+  for (i <- 0 until atoms.length)
+    if (atoms(i).isConstant) constantMap(atoms(i)) = i
   
   // The type of all lists is the type universe.  This may be changed later.
   val theType = TypeUniverse
