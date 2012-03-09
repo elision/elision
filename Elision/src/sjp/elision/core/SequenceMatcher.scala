@@ -69,15 +69,15 @@ object SequenceMatcher {
    * @return	A pair consisting of the rewritten sequence of atoms and a flag
    * 					that is true if any rewrites succeeded.
    */
-  def rewrite(subjects: Seq[BasicAtom], binds: Bindings) = {
+  def rewrite(subjects: IndexedSeq[BasicAtom], binds: Bindings) = {
     var changed = false
-    def doit(atoms: List[BasicAtom]): List[BasicAtom] =
-      if (atoms.isEmpty) List() else {
+    def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
+      if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
         val (newatom, change) = atoms.head.rewrite(binds)
         changed |= change
-        newatom :: doit(atoms.tail)
+        newatom +: doit(atoms.tail)
       }
-    (doit(subjects.toList), changed)
+    (doit(subjects), changed)
   }
 
   /**

@@ -297,7 +297,7 @@ object Apply {
     
     // Now check for identities and absorbers, and flatten any associative
     // applications.
-    val newlist = ListBuffer[BasicAtom]()
+    var newlist = IndexedSeq[BasicAtom]()
     val absorber = props.absorber.getOrElse(null)
     val identity = props.identity.getOrElse(null)
     for (atom <- al.atoms) {
@@ -307,10 +307,10 @@ object Apply {
       //
       // We also look for identities (which we skip) and absorbers.
 		  atom match {
-		    case Apply(op, AtomList(args,_)) if op == this =>
+		    case Apply(oop, AtomList(args,_)) if oop == op =>
 		      // Add the arguments directly to this list.  We can assume it has
 		      // already been processed, so no deeper checking is needed.
-		      newlist ++ args
+		      newlist ++= args
 		    case atom:BasicAtom if atom == absorber =>
 		    	// This atom is an absorber.  We are done.
 		      return absorber
@@ -318,7 +318,7 @@ object Apply {
 		      // Skip identities.
 		    case _ =>
 		    	// This atom is not the identity or an absorber.  Add it to the list.
-		      newlist += atom
+		      newlist :+= atom
 		  }
     }
     
