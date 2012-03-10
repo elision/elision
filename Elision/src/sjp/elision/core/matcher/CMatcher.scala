@@ -52,21 +52,8 @@ object CMatcher {
     // Step one is to perform constant elimination.  For each constant
     // pattern, find and remove the same constant pattern from the subjects.
     // If we cannot, we do not match.
-    var patterns = plist.atoms
-    var subjects = slist.atoms
-    for ((pat, pindex) <- plist.constantMap) {
-      slist.constantMap.get(pat) match {
-        case None =>
-          return Fail("Element " + pindex + " not found in subject list.",
-              plist, slist)
-        case Some(sindex) =>
-          println("Omitting " + pat.toParseString)
-          patterns = patterns.omit(pindex)
-          subjects = subjects.omit(sindex)
-      }
-    } // Omit constants from the lists.
-    println("Now: Patterns: " + patterns.mkParseString("",",",""))
-    println("     Subjects: " + subjects.mkParseString("",",",""))
+    val (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
+    if (fail.isDefined) return fail.get
     
     // Step two is to re-order the subjects and match until we succeed, or we
     // exhaust the search space.  We have to do this with a match iterator, but
@@ -75,6 +62,16 @@ object CMatcher {
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
+  
+  /* How commutative matching works.
+   * 
+   * The lists must be the same length.  We immediately match and remove any
+   * constants from both lists.  Next we need to try to match the remainder.
+   * We generate all permutations of the subject list, and for each one, we
+   * try to match it against the pattern list using the sequence matcher.  If
+   * the match succeeds, we yield the match.  If it does not, we continue
+   * to look for a match until we exhaust all permutations.
+   */
   
   /**
    * Perform commutative matching on two lists.  The subjects can be
@@ -89,20 +86,14 @@ object CMatcher {
     /** An iterator over all permutations of the subjects. */
     private val _perms = subjects.permutations
     
-    /** The most recent match found, if any, or null if none. */
-    private var _current: Bindings = null
-    
     /** A local iterator returning matches. */
     private var _local: MatchIterator = null
-    
-    /** Have we exhausted this iterator. */
-    private var _exhausted: Boolean = false
     
     /**
      * Find the next match.  At the end of running this method either we
      * have _current set to the next match, or not.
      */
-    private def findNext {
+    protected def findNext {
       print("Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
@@ -130,33 +121,5 @@ object CMatcher {
 	      }
       }
     }
-    
-    /**
-     * Return the next match, or `null` if no more matches remain.
-     * 
-     * @return	The next match or `null`.
-     */
-    def next =
-      if (hasNext) {
-        val nextMatch = _current
-        _current = null
-        nextMatch
-      } else {
-        null
-      }
-    
-    /**
-     * Determine if there is a next match.
-     * 
-     * @return	True if there is a next match, and false if not.
-     */
-    def hasNext = {
-      if (_exhausted)
-        false
-      else {
-	      if (_current == null) findNext
-	      _current != null
-      }
-    } 
   }
 }
