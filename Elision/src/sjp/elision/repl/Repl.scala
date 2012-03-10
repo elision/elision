@@ -39,6 +39,18 @@ import sjp.elision.ElisionException
 import java.io.FileWriter
 
 /**
+ * Provide information about the current version of Elision.
+ */
+object Version {
+  val name = "Elision"
+  val maintainer = "Stacy Prowell (sprowell@gmail.com)"
+  val web = "http://stacyprowell.com/elision/"
+  val major = "0"
+  val minor = "0"
+  val build = "@DSTAMP@@TSTAMP@"
+}
+
+/**
  * Provide a REPL to experiment with the new term rewriter.
  * 
  * ==Use==
@@ -153,6 +165,7 @@ object Repl {
    * Display the banner.
    */
   private def banner() {
+    import Version._
     emitln("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
@@ -161,6 +174,8 @@ object Repl {
 							 |
 							 |Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
 							 |All rights reserved.""".stripMargin)
+    emitln("Version " + major + "." + minor + ", build " + build)
+    emitln("Web " + web)
   }
   
   /**
