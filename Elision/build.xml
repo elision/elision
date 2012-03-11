@@ -161,6 +161,15 @@ bin, lib, and other folders.</echo>
 			unchecked	="on">
 			<src path="${build.src}"/>
 		</scalac>
+		<copy file="${build.base}/config.xml"
+			tofile="${build.bin}/configuration.xml" overwrite="yes">
+			<filterset>
+				<filter token="DSTAMP" value="${DSTAMP}"/>
+				<filter token="YEAR" value="${YEAR}"/>
+				<filter token="TODAY" value="${TODAY}"/>
+				<filter token="TSTAMP" value="${TSTAMP}"/>
+			</filterset>
+		</copy>
     </target>
 
 

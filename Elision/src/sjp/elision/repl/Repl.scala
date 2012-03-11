@@ -39,15 +39,68 @@ import sjp.elision.ElisionException
 import java.io.FileWriter
 
 /**
- * Provide information about the current version of Elision.
+ * Provide information about the current version of Elision.  This information
+ * is obtained from the `configuration.xml` file expected to be in the root
+ * of the current classpath (thus in the jar file).  It has the following
+ * format.
+ * 
+ * {{{
+ * <configuration
+ *   name = "name of program"
+ *   maintainer = "name and email of maintainer"
+ *   web = "web address of program">
+ *   <version
+ *     major = "major version number"
+ *     minor = "minor version number"
+ *     build = "build date / time identifier"/>
+ * </configuration>
+ * }}}
+ * 
+ * The `loaded` field reveals if the file was successfully loaded.  If not, the
+ * other fields contain default (and useless) information.  Missing fields
+ * result in a value of the empty string for that field.  Extra fields not
+ * specified above are ignored, but may be used in the future.
  */
 object Version {
-  val name = "Elision"
-  val maintainer = "Stacy Prowell (sprowell@gmail.com)"
-  val web = "http://stacyprowell.com/elision/"
-  val major = "0"
-  val minor = "0"
-  val build = "@DSTAMP@@TSTAMP@"
+  /** Name of the program. */
+  var name = "Elision"
+    
+  /** Name and email of the maintainer. */
+  var maintainer = "<maintainer>"
+    
+  /** Web address for the program. */
+  var web = "<web>"
+    
+  /** Major version number (integer string). */
+  var major = "UNK"
+    
+  /** Minor version number (integer string). */
+  var minor = "UNK"
+    
+  /** Tweleve digit build identifier.  Date and time. */
+  var build = "UNK"
+    
+  /** If true then data was loaded.  If false, it was not. */
+  var loaded = false
+
+  private def init {
+	  // Open the file.  We expect to find config.xml in the classpath.
+	  val config_stream = getClass.getResourceAsStream("/configuration.xml")
+	  if (config_stream != null) {
+	    // Parse the file.
+	    val config = scala.xml.XML.load(config_stream)
+	    
+	    // Pull out the data and override the local defaults.
+	    name = config.\("@name").text
+	    maintainer = config.\("@maintainer").text
+	    web = config.\("@web").text
+	    major = config.\("version").\("@major").text
+	    minor = config.\("version").\("@minor").text
+	    build = config.\("version").\("@build").text
+	    loaded = true
+	  }
+  }
+  init
 }
 
 /**
@@ -174,8 +227,10 @@ object Repl {
 							 |
 							 |Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
 							 |All rights reserved.""".stripMargin)
-    emitln("Version " + major + "." + minor + ", build " + build)
-    emitln("Web " + web)
+    if (loaded) {
+    	emitln("Version " + major + "." + minor + ", build " + build)
+    	emitln("Web " + web)
+    }
   }
   
   /**
