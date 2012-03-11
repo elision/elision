@@ -208,16 +208,6 @@ bin, lib, and other folders.</echo>
 			<src path="${build.src}"/>
 		</scaladoc>
 		<echo level="info">API documentation is available in ${build.doc}/api.</echo>
-		<copy file="${build.doc}/elision.lyx" tofile="${build.doc}/elision-temp.lyx">
-			<filterset>
-				<filter token="DSTAMP" value="${DSTAMP}"/>
-				<filter token="YEAR" value="${YEAR}"/>
-				<filter token="TODAY" value="${TODAY}"/>
-				<filter token="TSTAMP" value="${TSTAMP}"/>
-				<filter token="VERSION" value="${configuration.version.major}.${configuration.version.minor}"/>
-				<filter token="BUILD" value="${DSTAMP}${TSTAMP}"/>
-			</filterset>
-		</copy>
 	</target>
 
 
