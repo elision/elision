@@ -204,7 +204,7 @@ bin, lib, and other folders.</echo>
 			classpathref="build.classpath"
 			deprecation	="on"
 			unchecked	="on"
-			doctitle	="Elision Scala API ${DSTAMP}">
+			doctitle	="${configuration.name} API Version ${configuration.version.major}.${configuration.version.minor} Build ${DSTAMP}${TSTAMP}">
 			<src path="${build.src}"/>
 		</scaladoc>
 		<echo level="info">API documentation is available in ${build.doc}/api.</echo>
