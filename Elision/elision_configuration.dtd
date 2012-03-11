@@ -1,5 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE configuration SYSTEM "elision_configuration.dtd">
 <!--
         _ _     _
     ___| (_)___(_) ___  _ __
@@ -31,17 +29,15 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
-<configuration
-	name="Elision"
-	maintainer="Stacy Prowell (sprowell@gmail.com)"
-	web="http://stacyprowell.com/elision/">
-	<!-- Build information.  The build attribute is filled in by the build
-		 process; do not modify it here. -->
-	<version
-		major="0"
-		minor="0"
-		trivial="0"
-		status="alpha"
-		build="@DSTAMP@@TSTAMP@">
-	</version>
-</configuration>
+<!-- Define the structure of the configuration file, including which members
+	 are actually required, and what their legal values are. -->
+<!ELEMENT configuration (version,ANY*)>
+<!ATTLIST configuration name CDATA #REQUIRED>
+<!ATTLIST configuration maintainer CDATA #REQUIRED>
+<!ATTLIST configuration web CDATA #REQUIRED>
+<!ELEMENT version (ANY*)>
+<!ATTLIST version major CDATA #REQUIRED>
+<!ATTLIST version minor CDATA #REQUIRED>
+<!ATTLIST version build CDATA #REQUIRED>
+<!ATTLIST version trivial CDATA "0">
+<!ATTLIST version status (alpha|beta|rc|final) "alpha">

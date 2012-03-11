@@ -169,6 +169,8 @@ bin, lib, and other folders.</echo>
 			unchecked	="on">
 			<src path="${build.src}"/>
 		</scalac>
+		<copy file="${build.base}/elision_configuration.dtd"
+			todir="${build.bin}" overwrite="yes"/>
 		<copy file="${build.base}/config.xml"
 			tofile="${build.bin}/configuration.xml" overwrite="yes">
 			<filterset>
