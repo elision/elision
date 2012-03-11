@@ -29,14 +29,17 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
-<program
+<configuration
 	name="Elision"
 	maintainer="Stacy Prowell (sprowell@gmail.com)"
 	web="http://stacyprowell.com/elision/">
+	<!-- Build information.  The build attribute is filled in by the build
+		 process; do not modify it here. -->
 	<version
 		major="0"
 		minor="0"
 		trivial="0"
+		status="alpha"
 		build="@DSTAMP@@TSTAMP@">
 	</version>
-</program>
+</configuration>
