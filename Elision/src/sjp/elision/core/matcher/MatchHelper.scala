@@ -139,9 +139,6 @@ object MatchHelper {
     /** The index of the subject to check.  We increment before we check. */
     private var _sindex = -1
     
-    /** A local match iterator, if a match returned an iterator. */
-    private var _local: MatchIterator = null
-    
     /** Bindings to honor in any match. */
     private var _binds: Bindings = null
     

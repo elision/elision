@@ -86,9 +86,6 @@ object CMatcher {
     /** An iterator over all permutations of the subjects. */
     private val _perms = subjects.permutations
     
-    /** A local iterator returning matches. */
-    private var _local: MatchIterator = null
-    
     /**
      * Find the next match.  At the end of running this method either we
      * have _current set to the next match, or not.
