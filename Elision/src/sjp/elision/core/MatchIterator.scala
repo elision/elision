@@ -103,6 +103,41 @@ abstract class MatchIterator extends Iterator[Bindings] {
     // This needs to be the last thing here so it gets optimized properly.
     return hasNext
   }
+
+  /**
+   * Given a match iterator and a generator for a match iterator, build a new
+   * match iterator combining the two.
+   * 
+   * A binding is obtained from the first, and this is used to generate the
+   * second.  The second then yields complete matches.
+   * 
+   * An example is the following.
+   * {{{
+   * new ConstantMatcher() ~ (binds => new MatchCompleter(binds))
+   * }}}
+   * 
+   * @param second	A closure that builds a new match iterator given initial
+   * 								bindings.
+   * @return	A new match iterator.
+   */
+  def ~(second: (Bindings => MatchIterator)) = {
+    val first = this
+	  new MatchIterator {
+	    def findNext {
+	      // We only come here if the local iterator has been exhausted, so we
+	      // need to build a new complete match.  We do that now.
+	      if (first.hasNext) {
+	        // Get the next match from the first iterator.
+	        val part1 = first.next
+	        // Build a complete match.
+	        _local = second(part1)
+	      } else {
+	        // The first iterator is exhausted.
+	        _exhausted = true
+	      }
+	    }
+	  }
+  }
   
   /**
    * Find the next match.  At the end of running this method either we
