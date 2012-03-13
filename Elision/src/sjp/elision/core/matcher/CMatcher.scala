@@ -52,13 +52,25 @@ object CMatcher {
     // Step one is to perform constant elimination.  For each constant
     // pattern, find and remove the same constant pattern from the subjects.
     // If we cannot, we do not match.
-    val (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
+    var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
     if (fail.isDefined) return fail.get
     
-    // Step two is to re-order the subjects and match until we succeed, or we
+    // Step two is to match and eliminate any unbindable atoms.  These are
+    // atoms that are not variables, and so their matching is much more
+    // restrictive.  We obtain an iterator over these, and then combine it
+    // with the iterator for the reorderings to get the entire match iterator.
+    val um = new UnbindableMatcher(patterns, subjects, binds)
+    
+    // Discard unbindables from both lists.
+    patterns = patterns.filter(_.isBindable)
+    subjects = subjects.filter(_.isBindable)
+    println("Removing Unbindables: Patterns: " + patterns.mkParseString("",",",""))
+    println("                      Subjects: " + patterns.mkParseString("",",",""))
+    
+    // Step three is to re-order the subjects and match until we succeed, or we
     // exhaust the search space.  We have to do this with a match iterator, but
     // we also have to check for a single match first.
-    val iter = new CMatchIterator(patterns, subjects, binds)
+    val iter = um ~ (bindings => new CMatchIterator(patterns, subjects, bindings))
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }

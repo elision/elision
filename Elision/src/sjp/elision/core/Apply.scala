@@ -70,7 +70,9 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   }
   
   /**
-   * By default applications match iff their parts match
+   * By default applications match iff their parts match.  The trick here is
+   * that the argument lists have to know what the top-level operator is in
+   * order to successfully associatively match.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
     // Only applies match other applies.

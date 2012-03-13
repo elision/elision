@@ -55,15 +55,46 @@ object ACMatcher {
     if (plist.atoms.length == slist.atoms.length)
       return CMatcher.tryMatch(plist, slist, binds)
       
-    // In any case we need to remove any constants in the two lists.
-    val (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
+    // Step one is to perform constant elimination.  Any constants must match
+    // exactly, and we match and remove them.
+    var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
     if (fail.isDefined) return fail.get
-      
+    
+    // Step two is to match and eliminate any unbindable atoms.  These are
+    // atoms that are not variables, and so their matching is much more
+    // restrictive.  We obtain an iterator over these, and then combine it
+    // with the iterator for "everything else."
+    val um = new UnbindableMatcher(patterns, subjects, binds)
+
+    // Discard unbindables from both lists.
+    patterns = patterns.filter(_.isBindable)
+    subjects = subjects.filter(_.isBindable)
+    println("Removing Unbindables: Patterns: " + patterns.mkParseString("",",",""))
+    println("                      Subjects: " + patterns.mkParseString("",",",""))
+    
+    // Now, check the number of patterns remaining.  If there are none, we are
+    // finished, and the unbindable matcher is the result.
+    if (patterns.length == 0) return Many(um)
+    
+    // If there is just one pattern remaining, then it must get all the
+    // remaining subjects.
+    if (patterns.length == 1) {
+      // What we do depends on the number of subjects.
+      if (subjects.length == 1) {
+        // Bind the pattern to the subject and return the result.
+        val iter = um ~> (bnd => patterns(0).tryMatch(subjects(0), bnd))
+        if (iter.hasNext) return Many(iter)
+        else Fail("The lists do not match.", plist, slist)
+      }
+    }
+    
     // This is not so simple.  We need to perform the match.
     Fail("")
   }
   
   /* How associative and commutative matching works.
    * 
+   * The subject list must be at least as long as the pattern list, or no
+   * match is possible.  
    */
 }

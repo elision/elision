@@ -140,6 +140,51 @@ abstract class MatchIterator extends Iterator[Bindings] {
   }
   
   /**
+   * Given a match iterator and a generator for a match outcome, build a new
+   * match iterator combining the two.
+   * 
+   * A binding is obtained from the first, and this is used to generate the
+   * second.  The second then yields complete matches.
+   * 
+   * An example is the following.
+   * {{{
+   * new ConstantMatcher() ~> (binds => x.tryMatch(y,binds))
+   * }}}
+   * 
+   * @param second	A closure that builds a new match outcome given initial
+   * 								bindings.
+   * @return	A new match iterator.
+   */
+  def ~>(second: (Bindings => Outcome)) = {
+    val first = this
+    new MatchIterator {
+      def findNext {
+        // We only come here if the local iterator has been exhausted, so we
+        // need to build a new complete match.  We do that now.
+        if (first.hasNext) {
+          // Get the next match from the first iterator.
+          val part1 = first.next
+          // Build a complete match.
+          second(part1) match {
+            case fail:Fail =>
+              // This match combination did not work, but try again.
+              findNext
+            case Match(binds) =>
+              // We obtained a new complete match.
+              _current = binds
+            case Many(iter) =>
+              // We have a new local iterator.
+              _local = iter
+          }
+        } else {
+          // The first iterator is exhausted.
+          _exhausted = true
+        }
+      }
+    }
+  }
+  
+  /**
    * Find the next match.  At the end of running this method either we
    * have `_current` set to the next match, `_local` set to an iterator,
    * or `_exhausted` set to true.
@@ -176,6 +221,26 @@ object MatchIterator {
   def apply(localMatch: (Bindings) => Outcome,
       subiter: MatchIterator): MatchIterator =
         new SubMatchIterator(localMatch, subiter)
+  
+  /**
+   * Build an iterator that returns exactly one binding, and is then
+   * exhausted.
+   * 
+   * @param binds	The one binding to return.
+   */
+  def apply(binds: Bindings) = new SingleMatchIterator(binds)
+}
+
+/**
+ * A match iterator that returns a single match and is then exhausted.
+ * 
+ * @param binds	The single match to return.
+ */
+class SingleMatchIterator(val binds: Bindings) extends MatchIterator {
+  _current = binds
+  def findNext = {
+    _exhausted = true
+  }
 }
 
 /**
