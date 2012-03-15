@@ -44,7 +44,7 @@ object AMatcher {
    * @param binds	Bindings that must be honored in any match.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings, op: Option[Operator]): Outcome = {
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -68,28 +68,7 @@ object AMatcher {
    * equal number, then we use the sequence matcher to perform the match.
    * Otherwise we need to group the items to perform the match.
    *
-   * During phase one of matching, we try to match and eliminate any atoms
-   * that are not bindable.  This is done in an iterative fashion; each
-   * non-bindable pattern is matched against each subject and if a match is
-   * successful we continue to the next non-bindable pattern until we match
-   * them all.  If this matching ever fails, we have exhausted the matcher.
-   * 
-   * The trick is that, since the lists are not commutative, if pattern P
-   * matches at position i, then the next pattern Q is only allowed to match
-   * at position j>=i (equality is possible since we discard the matching
-   * elements).  This restriction is not needed in full associative and
-   * commutative matching.
-   * 
-   * Once we have a complete match for all non-bindable patterns (which get
-   * removed from the pattern and sequence) we then enter phase two.  During
-   * phase two, we first check to see if we have a single variable pattern.
-   * If so, we immediately bind it to the residual subjects and we are done.
-   * If not, then we generate all parenthesizations of the subjects and try
-   * to match each one.
-   * 
-   * If we have N subjects and we have P patterns (with P<N), then we can
-   * think of the groupings as distributing (P-1) markers among (N-1) slots.
-   * We can do this in (N-1) C (P-1) ways.
+   * Next we want to break the problem up into simpler chunks.
    */
   
   /**

@@ -91,8 +91,8 @@ import scala.collection.mutable.MapBuilder
  * 								be a pair whose first element is associativtiy, and whose
  * 								second element is commutativity.
  */
-case class AtomList(atoms: OmitSeq[BasicAtom],
-    props: Option[(Boolean,Boolean)] = None) extends BasicAtom {
+class AtomList(val atoms: OmitSeq[BasicAtom],
+    val props: Option[(Boolean,Boolean)]) extends BasicAtom {
   require(atoms != null)
   
   /** If true, regard this list is associative. */
@@ -125,6 +125,23 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
   val depth = atoms.foldLeft(0)(_ max _.depth) + 1
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+    tryMatchWithoutTypes(subject, binds, None)
+  
+  /**
+   * Provide a specialized matching method that allows specifying the operator.
+   * This is essential for associative operators, where the arguments may have
+   * to be grouped in a new application of the operator.
+   * 
+   * This also creates a loop, but that is unavoidable (for now).  Apply
+   * depends on AtomList, which depends on Apply to make associative groupings.
+   * 
+   * @param subject	The subject to match.
+   * @param binds		The bindings to honor.
+   * @param op			The operator.
+   * @return	The match outcome.
+   */
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      op: Option[Operator]) =
     // Ordered lists only match other ordered lists with matching elements in
     // the same order.
     subject match {
@@ -141,9 +158,9 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
     	      // matcher for that.
     	      if (associative)
     	        if (commutative)
-    	        	matcher.CMatcher.tryMatch(this, al, binds)
+    	        	matcher.ACMatcher.tryMatch(this, al, binds, op)
     	        else
-    	        	matcher.AMatcher.tryMatch(this, al, binds)
+    	        	matcher.AMatcher.tryMatch(this, al, binds, op)
   	        else
   	          if (commutative)
   	          	matcher.CMatcher.tryMatch(this, al, binds)
@@ -178,12 +195,57 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
   
+  override def toString = "AtomList(" +
+  		atoms.mkParseString("OmitSeq(", ",", ")") + "," + props + ")"
+  
   override lazy val hashCode = atoms.hashCode
   
   override def equals(other: Any) = other match {
     case AtomList(oatoms, oprops) if (oatoms == atoms && oprops == props) => true
     case _ => false
   }
+}
+
+/**
+ * Provide convenient construction and extraction.
+ */
+object AtomList {
+  /**
+   * Make a new atom list.
+   * 
+   * @param atoms	The atoms.
+   * @param props	The optional list properties, in the from (associative,
+   * 							commutative).
+   * @return	The requested atom.
+   */
+  def apply(atoms: OmitSeq[BasicAtom], props: Option[(Boolean, Boolean)] = None) =
+    if (props.getOrElse((false,false))._1) {
+      // The list is associative.  Flatten any included lists.
+      var newlist = IndexedSeq[BasicAtom]()
+      for (atom <- atoms) {
+  		  atom match {
+			    case AtomList(args,oprops) if props == oprops =>
+			      // Add the arguments directly to this list.  We can assume it has
+			      // already been processed, so no deeper checking is needed.
+			      newlist ++= args
+			    case _ =>
+			    	// Add this item to the list.
+			      newlist :+= atom
+			  }
+      } // Flatten lists.
+      new AtomList(newlist, props)
+    } else {
+      // The list is not associative.  Construct and return the list.
+      new AtomList(atoms, props)
+    }
+  
+  /**
+   * Extract the pieces of an atom list.
+   * 
+   * @param list	The atom list.
+   * @return	A pair of the actual list of atoms and the properties pair.
+   */
+  def unapply(list: AtomList) = Some(list.atoms, list.props)
 }
 
 /**

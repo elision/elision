@@ -45,7 +45,7 @@ object ACMatcher {
    * @param binds	Bindings that must be honored in any match.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings, op: Option[Operator]): Outcome = {
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
