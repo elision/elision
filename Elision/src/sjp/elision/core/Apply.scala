@@ -198,7 +198,19 @@ object Apply {
 		 *    replacement, and the result is returned.
      */
     
-    case al:AtomList =>
+    case oldlist:AtomList =>
+      // We need to apply the operator to any child atom list.
+      val al = AtomList(oldlist.atoms.map{
+        _ match {
+          case sublist: AtomList =>
+            // Recursively apply the operator.
+            apply(op, sublist)
+          case atom: BasicAtom =>
+            // Other elements do not get modified.
+            atom 
+        }
+      }, oldlist.props)
+      
       // What we do next depends on the type of operator definition.  The
       // native and symbolic definitions specify properties; the immediate
       // definition does not.

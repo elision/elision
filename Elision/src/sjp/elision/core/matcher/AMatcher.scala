@@ -69,6 +69,7 @@ object AMatcher {
    * There must be at least as many subjects as patterns.  If there is an
    * equal number, then we use the sequence matcher to perform the match.
    * Otherwise we need to group the items to perform the match.
+<<<<<<< HEAD
    * 
    * Because we cannot re-order the atoms, we need a completely different
    * form of matching for associativity.
@@ -118,6 +119,10 @@ object AMatcher {
    * The last subject index is 7-1 = 6.  We are placing 4-1 = 3 markers,
    * so the last position for the first (i=0) marker is 6 - 3 = 3.  The last
    * position for the ith marker is 6 - 3 + i.
+=======
+   *
+   * Next we want to break the problem up into simpler chunks.
+>>>>>>> 62f7fb2187166f2a6e8ea3ab48540013472e32c0
    */
   
   /**
