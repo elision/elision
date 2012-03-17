@@ -412,7 +412,7 @@ object Apply {
  * The syntax for a deferred apply is identical to that of a regular apply,
  * except that two dots are used.
  * {{{
- * add:OPTYPE .. %?($x,$y)
+ * add:OPTYPE .. %?(\$x,\$y)
  * }}}
  * This will be transformed into a regular apply if either (or both) of the
  * variables are rewritten.
