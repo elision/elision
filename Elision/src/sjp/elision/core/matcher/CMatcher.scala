@@ -100,7 +100,8 @@ object CMatcher {
     
     /**
      * Find the next match.  At the end of running this method either we
-     * have _current set to the next match, or not.
+     * have `_current` set to the next match or we have exhausted the
+     * iterator.
      */
     protected def findNext {
       print("Searching... ")

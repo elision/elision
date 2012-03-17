@@ -65,8 +65,8 @@ object TypeUniverse extends RootType {
    * @param binds		The bindings to honor.
    * @return	The outcome of the match.
    */
-  override protected def matchTypes(subject: BasicAtom, binds: Bindings) =
-    tryMatchWithoutTypes(subject, binds)
+  override protected def matchTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = tryMatchWithoutTypes(subject, binds, hints)
     
   /** The type universe is known (in Scala) as `TypeUniverse`. */
   override def toString = "TypeUniverse"

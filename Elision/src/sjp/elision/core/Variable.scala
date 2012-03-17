@@ -77,7 +77,8 @@ case class Variable(typ: BasicAtom, name: String,
   /** Variables contain no constant children. */
   val constantPool = None
 
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
     // if the variable allows binding, and it is not already bound to a
     // different atom.  We also allow the variable to match ANYTYPE.
     if (isBindable) binds.get(name) match {

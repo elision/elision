@@ -52,7 +52,8 @@ extends BasicAtom with Rewriter {
   val constantPool = None
   val deBruijnIndex = 0
   val depth = 0
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) = subject match {
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = subject match {
     case RulesetStrategy(_, onames) if names == onames => Match(binds)
     case _ => Fail("Ruleset strategies do not match.", this, subject)
   }
@@ -88,13 +89,14 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
 	val constantPool =
 	  Some(BasicAtom.buildConstantPool(theType.hashCode, lhs))
 	  
-	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+	    hints: Option[Any]) =
   	subject match {
 	  case MapStrategy(oin, oex, olhs) =>
 	    if (include != oin || exclude != oex)
 	      Fail("Labels do not match.", this, subject)
       else
-        lhs.tryMatch(olhs, binds)
+        lhs.tryMatch(olhs, binds, hints)
 	  case _ => Fail("Subject is not a map strategy.", this, subject)
 	}
 	  
@@ -140,9 +142,10 @@ case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
 	val constantPool =
 	  Some(BasicAtom.buildConstantPool(theType.hashCode, rhs))
 	  
-	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+	    hints: Option[Any]) =
   	subject match {
-	  case RMapStrategy(orhs) => rhs.tryMatch(orhs, binds)
+	  case RMapStrategy(orhs) => rhs.tryMatch(orhs, binds, hints)
 	  case _ => Fail("Subject is not an rmap strategy.", this, subject)
 	}
 	  
@@ -213,7 +216,8 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
    */
   val depth = guards.foldLeft(pattern.depth max rewrite.depth)(_ max _.depth) + 1
 
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
     // Rules match only other rules.
     subject match {
 	    case RewriteRule(opat, orew, ogua, orul, olev) =>

@@ -49,9 +49,11 @@ abstract class RootType extends BasicAtom {
    * 
    * @param subject	The subject to match.
    * @param binds		The bindings to honor.
+   * @param hints		Optional hints.
    * @return	The outcome of the match.
    */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
     // A root type matches only itself.
     if (this == subject) Match(binds)
     else Fail("This type matches only itself.", this, subject)
@@ -159,6 +161,6 @@ object BINDING extends NamedRootType("BINDING")
  * The unusual type ANY that matches anything.
  */
 object ANYTYPE extends NamedRootType("ANYTYPE") {
-  override def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings) =
-    Match(binds)
+  override def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings,
+      hints: Option[Any] = None) = Match(binds)
 }

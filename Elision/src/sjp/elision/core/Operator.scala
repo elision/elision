@@ -93,8 +93,8 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
   /** The depth of an operator is zero. */
   val depth = 0
 
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
-    subject match {
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = subject match {
       case Operator(oopdef) if opdef == oopdef => Match(binds)
       case _ => Fail("Operators do not match.", this, subject)
     }

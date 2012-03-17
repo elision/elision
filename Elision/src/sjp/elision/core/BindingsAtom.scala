@@ -76,9 +76,11 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    * 
    * @param subject	The atom to match.
    * @param binds		Bindings to honor.
+   * @param hints		Optional hints.
    * @return	The result of the match.
    */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
     subject match {
     case BindingsAtom(obinds) =>
       // The bindings must bind the same variables.  Check that first.

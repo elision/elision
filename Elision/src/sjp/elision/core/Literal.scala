@@ -110,8 +110,8 @@ abstract class Literal[TYPE](typ: BasicAtom) extends BasicAtom {
    * @param binds		Bindings to honor.
    * @return	The match outcome.
    */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
-    subject match {
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = subject match {
     case lit: Literal[_] if value == lit.value => Match(binds)
     case _ => Fail("Literal pattern does not match subject.", this, subject)
   }

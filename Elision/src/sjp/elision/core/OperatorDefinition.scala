@@ -58,7 +58,8 @@ extends BasicAtom {
    */
   val depth = proto.depth
   
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
     Fail("Operator definition matching is not implemented.", this, subject)
 	def rewrite(binds: Bindings) = (this, false)
   

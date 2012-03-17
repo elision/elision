@@ -98,7 +98,7 @@ object SequenceMatcher {
     // Try to match the heads of the list.  This generates one of three
     // possible outcomes, and we figure out what to do based on the particular
     // outcome.
-    patterns.head.tryMatch(subjects.head, binds) match {
+    patterns.head.tryMatch(subjects.head, binds, None) match {
       case fail:Fail =>
         // The atoms do not match.  There is nothing further to try; the
         // entire match can be rejected at this point, so return failure.

@@ -220,12 +220,14 @@ abstract class BasicAtom {
    * 
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.  This is optional.
+   * @param hints		Optional hints.
    * @return	The matching outcome.
    */
-  def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings) = {
+  def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings,
+      hints: Option[Any] = None) = {
     // Determine whether tracing of the match is requested.
-    if (BasicAtom.traceMatching) traceMatch(subject, binds)
-    else doMatch(subject, binds)    
+    if (BasicAtom.traceMatching) traceMatch(subject, binds, hints)
+    else doMatch(subject, binds, hints)    
   }
   
   /**
@@ -237,9 +239,11 @@ abstract class BasicAtom {
    * 
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.
+   * @param hints		Optional hints.
    * @return	The matching outcome.
    */
-  private def traceMatch(subject: BasicAtom, binds: Bindings) = {
+  private def traceMatch(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = {
     // We compute a hash code for this match.  This is used in the output to
     // associate lines referring to the match, since matches can be nested and
     // (potentially) interleaved.
@@ -252,7 +256,7 @@ abstract class BasicAtom {
         subject.toParseString + "\n  with: " + binds.toParseString)
         
     // Perform the match.
-    val outcome = doMatch(subject, binds)
+    val outcome = doMatch(subject, binds, hints)
     
     // Write out information about the result of the match attempt.
     printf("MATCHER (%x): ", what)
@@ -273,9 +277,10 @@ abstract class BasicAtom {
    * 
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.
+   * @param hints		Optional hints.
    * @return	The matching outcome.
    */
-  private def doMatch(subject: BasicAtom, binds: Bindings) =
+  private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
     if (subject == ANYTYPE)
       // Any pattern is allowed to match the subject ANYTYPE.  In the matching
       // implementation for ANYTYPE, any subject is allowed to match ANYTYPE.
@@ -296,11 +301,11 @@ abstract class BasicAtom {
       // We didn't find a fast way to match, so we need to actually perform
       // the match.  First we try to match the types.  If this succeeds, then
       // we invoke the implementation of tryMatchWithoutTypes.
-      matchTypes(subject, binds) match {
+      matchTypes(subject, binds, hints) match {
 	      case fail: Fail => fail
-	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds)
+	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
 	      case Many(submatches) =>
-	        Many(MatchIterator(tryMatchWithoutTypes(subject, _),
+	        Many(MatchIterator(tryMatchWithoutTypes(subject, _, hints),
 	          submatches))
 	    }
 
@@ -311,9 +316,11 @@ abstract class BasicAtom {
    *
    * @param subject	The subject atom to match.
    * @param binds		Any bindings that must be observed.
+   * @param hints		Optional hints.
    * @return	The matching outcome.
    */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings): Outcome
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]): Outcome
 
   /**
    * Rewrite this atom with the specified bindings.  If types are involved, it
@@ -344,10 +351,12 @@ abstract class BasicAtom {
    *
    * @param subject	The atom to match.
    * @param binds		The bindings to observe.
+   * @param hints		Optional hints.
    * @return	The outcome of the match.
    */
-  protected def matchTypes(subject: BasicAtom, binds: Bindings): Outcome =
-    this.theType.tryMatch(subject.theType, binds) match {
+  protected def matchTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]): Outcome =
+    this.theType.tryMatch(subject.theType, binds, hints) match {
       case mat: Match => mat
       case many: Many => many
       case fail: Fail => Fail("Types do not match.", this, subject, Some(fail))

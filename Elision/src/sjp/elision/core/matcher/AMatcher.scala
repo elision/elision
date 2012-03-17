@@ -42,9 +42,11 @@ object AMatcher {
    * @param plist	The pattern list.
    * @param slist	The subject list.
    * @param binds	Bindings that must be honored in any match.
+   * @param op		An optional operator to apply to sublists.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings,
+      op: Option[Operator]): Outcome = {
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -57,7 +59,7 @@ object AMatcher {
     // subjects.  If there are N subjects and M patterns (with M < N per the
     // above checks) then we essentially insert M-1 markers between elements
     // of the N subjects.  Get it?  We use a special iterator for that.
-    val iter = new AMatchIterator(plist.atoms, slist.atoms, binds)
+    val iter = new AMatchIterator(plist, slist, binds, op)
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
@@ -67,29 +69,55 @@ object AMatcher {
    * There must be at least as many subjects as patterns.  If there is an
    * equal number, then we use the sequence matcher to perform the match.
    * Otherwise we need to group the items to perform the match.
-   *
-   * During phase one of matching, we try to match and eliminate any atoms
-   * that are not bindable.  This is done in an iterative fashion; each
-   * non-bindable pattern is matched against each subject and if a match is
-   * successful we continue to the next non-bindable pattern until we match
-   * them all.  If this matching ever fails, we have exhausted the matcher.
    * 
-   * The trick is that, since the lists are not commutative, if pattern P
-   * matches at position i, then the next pattern Q is only allowed to match
-   * at position j>=i (equality is possible since we discard the matching
-   * elements).  This restriction is not needed in full associative and
-   * commutative matching.
+   * Because we cannot re-order the atoms, we need a completely different
+   * form of matching for associativity.
    * 
-   * Once we have a complete match for all non-bindable patterns (which get
-   * removed from the pattern and sequence) we then enter phase two.  During
-   * phase two, we first check to see if we have a single variable pattern.
-   * If so, we immediately bind it to the residual subjects and we are done.
-   * If not, then we generate all parenthesizations of the subjects and try
-   * to match each one.
+   * Naive associative matching works as follows.  If we have P patterns and
+   * S subjects (S>P) then we need to break the S subjects up into P groups.
+   * We can do this by inserting P-1 "markers" between subjects, and we can
+   * do this in (S-1) C (P-1) ways.
    * 
-   * If we have N subjects and we have P patterns (with P<N), then we can
-   * think of the groupings as distributing (P-1) markers among (N-1) slots.
-   * We can do this in (N-1) C (P-1) ways.
+   * If a marker comes between items n and n+1, we say the marker is after
+   * position n.  We then have an array of P-1 markers, initialized to hold
+   * 0, 1, 2, ..., P-2.  That is, position i initially holds the value i.
+   * 
+   * We advance to the next position by incrementing the highest position
+   * marker (position P-2).  If that exceeds the limit for that marker, then
+   * we increment the prior marker, and reset the current marker to the first
+   * legal position.  We continue in this fashion until the array holds the
+   * stop position, , ..., S-2
+   * 
+   * We can illustrate this below for four patterns, and seven markers.
+   * 
+   * subjects (markers are |)        array
+   * x|x|x|x x x x                   0,1,2
+   * x|x|x x|x x x                   0,1,3
+   * x|x|x x x|x x                   0,1,4
+   * x|x|x x x x|x                   0,1,5
+   * x|x x|x|x x x                   0,2,3
+   * x|x x|x x|x x                   0,2,4
+   * x|x x|x x x|x                   0,2,5
+   * x|x x x|x|x x                   0,3,4
+   * x|x x x|x x|x                   0,3,5
+   * x|x x x x|x|x                   0,4,5
+   * x x|x|x|x x x                   1,2,3
+   * x x|x|x x|x x                   1,2,4
+   * x x|x|x x x|x                   1,2,5
+   * x x|x x|x|x x                   1,3,4
+   * x x|x x|x x|x                   1,3,5
+   * x x|x x x|x|x                   1,4,5
+   * x x x|x|x|x x                   2,3,4
+   * x x x|x|x x|x                   2,3,5
+   * x x x|x x|x|x                   2,4,5
+   * x x x x|x|x|x                   3,4,5
+   * 
+   * Note that there are 20 groupings.
+   * (7-1) C (4-1) = 6 C 3 = 6! / 3! / 3! = 6*5*4 / 6 = 5*4 = 20.
+   * 
+   * The last subject index is 7-1 = 6.  We are placing 4-1 = 3 markers,
+   * so the last position for the first (i=0) marker is 6 - 3 = 3.  The last
+   * position for the ith marker is 6 - 3 + i.
    */
   
   /**
@@ -106,10 +134,43 @@ object AMatcher {
    * @param subjects	The subjects.
    * @param binds			Bindings to honor.
    */
-  private class AMatchIterator(patterns: OmitSeq[BasicAtom],
-      subjects: OmitSeq[BasicAtom], binds: Bindings) extends MatchIterator {
-    def findNext {
-      
+  private class AMatchIterator(patterns: AtomList, subjects: AtomList,
+      binds: Bindings, op: Option[Operator]) extends MatchIterator {
+    /** An iterator over all groupings of the subjects. */
+    private val _groups = new GroupingIterator(patterns, subjects, op)
+    
+    /**
+     * Find the next match.  At the end of running this method either we
+     * have `_current` set to the next match or we have exhausted the
+     * iterator.
+     */
+    protected def findNext {
+      print("Searching... ")
+      _current = null
+      if (_local != null && _local.hasNext) _current = _local.next
+      else {
+        _local = null
+        if (_groups.hasNext)
+          SequenceMatcher.tryMatch(patterns.atoms, _groups.next, binds) match {
+          case Fail(_,_) =>
+            // We ignore this case.  We only fail if we exhaust all attempts.
+            findNext
+	        case Match(binds) =>
+	          // This case we care about.  Save the bindings as the current match.
+	          _current = binds
+	          println("Found.")
+	        case Many(iter) =>
+	          // We've potentially found many matches.  We save this as a local
+	          // iterator and then use it in the future.
+	          _local = iter
+	          findNext
+	      } else {
+	        // We have exhausted the permutations.  We have exhausted this
+	        // iterator.
+	        _exhausted = true
+	        println("Exhausted.")
+	      }
+      }
     }
   }
 }

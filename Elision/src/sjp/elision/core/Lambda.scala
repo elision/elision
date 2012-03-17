@@ -90,10 +90,11 @@ extends BasicAtom with Applicable {
   val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode, lvar, body))
 	  	
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
     subject match {
 	  case Lambda(odbi, olvar, obody) => if (olvar == lvar) {
-	    body.tryMatch(obody, binds) match {
+	    body.tryMatch(obody, binds, hints) match {
 	      case fail: Fail =>
 	        Fail("Lambda bodies do not match.", this, subject)
 	      case mat: Match => mat

@@ -124,7 +124,20 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
    */
   val depth = atoms.foldLeft(0)(_ max _.depth) + 1
   
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings) =
+  /**
+   * Attempt to match this atom list against the provided atom list.
+   * 
+   * @param subject	The subject to match.
+   * @param binds		Bindings which must be honored on any match.
+   * @param op			Optional operator to use for associative matching.
+   * @return				Matching outcome.
+   */
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      op: Option[Any]) = {
+    val operator = op match {
+      case oper: Operator => Some(oper)
+      case _ => None
+    }
     // Ordered lists only match other ordered lists with matching elements in
     // the same order.
     subject match {
@@ -141,9 +154,9 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
     	      // matcher for that.
     	      if (associative)
     	        if (commutative)
-    	        	matcher.CMatcher.tryMatch(this, al, binds)
+    	        	matcher.ACMatcher.tryMatch(this, al, binds, operator)
     	        else
-    	        	matcher.AMatcher.tryMatch(this, al, binds)
+    	        	matcher.AMatcher.tryMatch(this, al, binds, operator)
   	        else
   	          if (commutative)
   	          	matcher.CMatcher.tryMatch(this, al, binds)
@@ -151,6 +164,7 @@ case class AtomList(atoms: OmitSeq[BasicAtom],
   	          	SequenceMatcher.tryMatch(atoms, al.atoms, binds)
       case _ => Fail("Not implemented.")
     }
+  }
 
   def rewrite(binds: Bindings) = {
     // We must rewrite every child atom, and collect them into a new sequence.

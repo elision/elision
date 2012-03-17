@@ -43,9 +43,11 @@ object ACMatcher {
    * @param plist	The pattern list.
    * @param slist	The subject list.
    * @param binds	Bindings that must be honored in any match.
+   * @param op		An optional operator to apply to sublists.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings,
+      op: Option[Operator]): Outcome = {
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -82,19 +84,65 @@ object ACMatcher {
       // What we do depends on the number of subjects.
       if (subjects.length == 1) {
         // Bind the pattern to the subject and return the result.
-        val iter = um ~> (bnd => patterns(0).tryMatch(subjects(0), bnd))
+        val iter = um ~> (bnd => patterns(0).tryMatch(subjects(0), bnd, op))
         if (iter.hasNext) return Many(iter)
         else Fail("The lists do not match.", plist, slist)
       }
     }
     
     // This is not so simple.  We need to perform the match.
-    Fail("")
+    val iter = new ACMatchIterator(plist, slist, binds, op)
+    if (iter.hasNext) return Many(iter)
+    else Fail("The lists do not match.", plist, slist)
   }
   
   /* How associative and commutative matching works.
    * 
    * The subject list must be at least as long as the pattern list, or no
-   * match is possible.  
+   * match is possible.
+   * 
+   * We first permute the subjects, and then iterate over all groupings of
+   * the subjects.
    */
+  
+  private class ACMatchIterator(patterns: AtomList, subjects: AtomList,
+      binds: Bindings, op: Option[Operator]) extends MatchIterator {
+    /** An iterator over all permutations of the subjects. */
+    private val _perms = subjects.atoms.permutations
+    
+    /**
+     * Find the next match.  At the end of running this method either we
+     * have `_current` set to the next match or we have exhausted the
+     * iterator.
+     */
+    protected def findNext {
+      print("Searching... ")
+      _current = null
+      if (_local != null && _local.hasNext) _current = _local.next
+      else {
+        _local = null
+	      if (_perms.hasNext)
+	        AMatcher.tryMatch(patterns, AtomList(_perms.next, subjects.props),
+	            binds, op) match {
+	        case Fail(_,_) =>
+	          // We ignore this case.  We only fail if we exhaust all attempts.
+	          findNext
+	        case Match(binds) =>
+	          // This case we care about.  Save the bindings as the current match.
+	          _current = binds
+	          println("Found.")
+	        case Many(iter) =>
+	          // We've potentially found many matches.  We save this as a local
+	          // iterator and then use it in the future.
+	          _local = iter
+	          findNext
+	      } else {
+	        // We have exhausted the permutations.  We have exhausted this
+	        // iterator.
+	        _exhausted = true
+	        println("Exhausted.")
+	      }
+      }
+    }
+  }
 }
