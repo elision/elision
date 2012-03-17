@@ -85,7 +85,7 @@ object Version {
 
   private def init {
 	  // Open the file.  We expect to find config.xml in the classpath.
-	  val config_stream = getClass.getResourceAsStream("/configuration.xml")
+	  val config_stream = getClass.getResource("/configuration.xml").toString()
 	  if (config_stream != null) {
 	    // Parse the file.
 	    val config = scala.xml.XML.load(config_stream)
