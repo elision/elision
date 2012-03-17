@@ -79,14 +79,76 @@ import sjp.elision.parse.AtomParser
  *  - Simple API.
  */
 package object core {
+  import scala.collection.immutable.Map
+  
   /** Provide a fancy name for the type universe. */
   val `^TYPE` = TypeUniverse
   
   /**
    * Bindings are used to store variable / value maps used during matching, and
    * as the result of a successful match.
+   * 
+   * The bindings class is a proxy to Scala's HashMap.  This is not possible
+   * to implement correctly (so far as I can tell) using the current (2.9)
+   * collection proxy classes, becuase the type decoration is lost when
+   * invoking methods that return a map.
+   * 
+   * @param self	The backing map.
    */
-  type Bindings = HashMap[String, BasicAtom]
+  class Bindings(val self: HashMap[String, BasicAtom])
+  extends HashMap[String, BasicAtom] {
+    override def size = self.size
+    override def foreach[U](f: ((String, BasicAtom)) =>  U): Unit =
+      self.foreach(f)
+	  override def get(key: String): Option[BasicAtom] = self get key
+	  override def iterator: Iterator[(String, BasicAtom)] = self.iterator
+	  def +(kv: (String, BasicAtom)): Bindings = new Bindings(self + kv)
+	  override def -(key: String): Bindings = new Bindings(self - key)
+	  
+	  private var _patcache: OmitSeq[BasicAtom] = null
+	  private var _subcache: OmitSeq[BasicAtom] = null
+	  
+	  /**
+	   * Cache a list of patterns and subjects here.  This is useful during the
+	   * associative and commutative matching cycle.  Once they are set, they
+	   * cannot be modified (subsequent attempts are ignored).
+	   * 
+	   * @param patterns	The pattern sequence.
+	   * @param subjects	The subject sequence.
+	   * @return This binding instance, for chaining.
+	   */
+	  def set(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom]) = {
+	    if (_patcache == null) {
+	      _patcache = patterns
+	      _subcache = subjects
+	    }
+	    this
+	  }
+	  
+	  /**
+	   * Get the cached patterns, if any.
+	   * 
+	   * @return	The cached patterns.
+	   */
+	  def patterns: Option[OmitSeq[BasicAtom]] =
+	    if (_patcache == null) None else Some(_patcache)
+	  
+	  /**
+	   * Get the cached subjects, if any.
+	   * 
+	   * @return	The cached subjects.
+	   */
+	  def subjects: Option[OmitSeq[BasicAtom]] =
+	    if (_subcache == null) None else Some(_subcache)
+  } 
+  
+  /**
+   * Simplified construction of bindings.
+   */
+  object Bindings {
+    def apply(map: HashMap[String,BasicAtom]) = new Bindings(map)
+    def apply() = new Bindings(new HashMap[String,BasicAtom])
+  }
   
   /**
    * Provide a convenient method to compute a hash code from many different
@@ -278,6 +340,13 @@ package object core {
      */
     implicit def fromIndexedSeq[A](backing: IndexedSeq[A]): OmitSeq[A] =
       new OmitSeq1[A](backing)
+      
+    /**
+     * Make a new omit sequence that is initially empty.
+     * 
+     * @return An empty sequence.
+     */
+    def apply[A](): OmitSeq[A] = new OmitSeq1(Seq[A]().toIndexedSeq)
   }
   
   /**

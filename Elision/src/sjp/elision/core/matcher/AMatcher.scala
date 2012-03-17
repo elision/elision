@@ -69,7 +69,6 @@ object AMatcher {
    * There must be at least as many subjects as patterns.  If there is an
    * equal number, then we use the sequence matcher to perform the match.
    * Otherwise we need to group the items to perform the match.
-<<<<<<< HEAD
    * 
    * Because we cannot re-order the atoms, we need a completely different
    * form of matching for associativity.
@@ -119,10 +118,6 @@ object AMatcher {
    * The last subject index is 7-1 = 6.  We are placing 4-1 = 3 markers,
    * so the last position for the first (i=0) marker is 6 - 3 = 3.  The last
    * position for the ith marker is 6 - 3 + i.
-=======
-   *
-   * Next we want to break the problem up into simpler chunks.
->>>>>>> 62f7fb2187166f2a6e8ea3ab48540013472e32c0
    */
   
   /**
@@ -150,7 +145,7 @@ object AMatcher {
      * iterator.
      */
     protected def findNext {
-      print("Searching... ")
+      print("A Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
       else {
@@ -163,7 +158,7 @@ object AMatcher {
 	        case Match(binds) =>
 	          // This case we care about.  Save the bindings as the current match.
 	          _current = binds
-	          println("Found.")
+	          println("A Found.")
 	        case Many(iter) =>
 	          // We've potentially found many matches.  We save this as a local
 	          // iterator and then use it in the future.
@@ -173,7 +168,7 @@ object AMatcher {
 	        // We have exhausted the permutations.  We have exhausted this
 	        // iterator.
 	        _exhausted = true
-	        println("Exhausted.")
+	        println("A Exhausted.")
 	      }
       }
     }

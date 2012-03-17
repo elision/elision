@@ -89,11 +89,11 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
       }
       // Now iterate over the keys.  The ordering does not matter.  This creates
       // two lists of atoms that we then match using the sequence matcher.
-      val mine = ListBuffer[BasicAtom]()
-      val theirs = ListBuffer[BasicAtom]()
+      var mine = OmitSeq[BasicAtom]()
+      var theirs = OmitSeq[BasicAtom]()
       for ((key, value) <- mybinds) {
-        mine += value
-        theirs += obinds(key)
+        mine :+= value
+        theirs :+= obinds(key)
       } // Build lists of atoms.
       SequenceMatcher.tryMatch(mine, theirs)
     case _ => Fail("Bindings can only match other bindings.", this, subject)
@@ -109,7 +109,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    */
   def rewrite(binds: Bindings) = {
     var changed = false
-    var newmap = new Bindings()
+    var newmap = Bindings()
     for ((key, value) <- mybinds) {
       val (newvalue, valuechanged) = value.rewrite(binds)
       changed |= valuechanged

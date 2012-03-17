@@ -206,7 +206,7 @@ object Lambda {
     }
     
     // Bind the old variable to the new one.
-    var binds = new Bindings
+    var binds = Bindings()
     binds += (lvar.name -> newvar)
     val (newbody, _) = body.rewrite(binds)
     

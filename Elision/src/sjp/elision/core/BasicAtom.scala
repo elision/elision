@@ -223,7 +223,7 @@ abstract class BasicAtom {
    * @param hints		Optional hints.
    * @return	The matching outcome.
    */
-  def tryMatch(subject: BasicAtom, binds: Bindings = new Bindings,
+  def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
       hints: Option[Any] = None) = {
     // Determine whether tracing of the match is requested.
     if (BasicAtom.traceMatching) traceMatch(subject, binds, hints)
@@ -251,7 +251,7 @@ abstract class BasicAtom {
     
     // The match attempt is starting.  Write out information about the
     // attempted match.
-    printf("MATCHER (%x):\n", what)
+    printf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
     println("  pattern: " + this.toParseString + "\n  subject: " +
         subject.toParseString + "\n  with: " + binds.toParseString)
         
@@ -259,11 +259,16 @@ abstract class BasicAtom {
     val outcome = doMatch(subject, binds, hints)
     
     // Write out information about the result of the match attempt.
-    printf("MATCHER (%x): ", what)
     outcome match {
-      case fail:Fail => println(fail)
-      case Match(bnd) => println(bnd.toParseString)
-      case many:Many => println("Many Matches")
+      case fail:Fail =>
+      	printf("FAILURE (%x): ", what)
+        println(fail)
+      case Match(bnd) =>
+    		printf("SUCCESS (%x): ", what)
+        println(bnd.toParseString)
+      case many:Many =>
+      	printf("SUCCESS (%x): ", what)
+        println("Many Matches")
     }
     
     // The value is the outcome of the match.

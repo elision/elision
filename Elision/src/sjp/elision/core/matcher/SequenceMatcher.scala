@@ -55,8 +55,8 @@ object SequenceMatcher {
    * @param binds			Bindings to honor in any match.  This can be omitted.
    * @return	The result of the match.
    */
-  def tryMatch(patterns: Seq[BasicAtom], subjects: Seq[BasicAtom],
-      binds: Bindings = new Bindings()): Outcome =
+  def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
+      binds: Bindings = Bindings()): Outcome =
         if (patterns.length != subjects.length)
           Fail("Sequences are not the same length.")
         else tryMatch(patterns, subjects, binds, 0)
@@ -69,7 +69,7 @@ object SequenceMatcher {
    * @return	A pair consisting of the rewritten sequence of atoms and a flag
    * 					that is true if any rewrites succeeded.
    */
-  def rewrite(subjects: IndexedSeq[BasicAtom], binds: Bindings) = {
+  def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
     var changed = false
     def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
       if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
@@ -89,8 +89,15 @@ object SequenceMatcher {
    * 									a failure index to return to the caller.
    * @return	The result of the match.
    */
-  private def tryMatch(patterns: Seq[BasicAtom], subjects: Seq[BasicAtom],
+  private def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
       binds: Bindings, position: Int): Outcome = {
+    if (position == 0 && BasicAtom.traceMatching) {
+    	println("Sequence Matcher called: " +
+    	    patterns.mkParseString("",",","") + " -> " +
+    	    subjects.mkParseString("",",","") + " / " +
+    	    binds.toParseString)
+    }
+    
     // Watch for the basis case.  If the patterns list is empty, we are done
     // and return a successful match.
     if (patterns.isEmpty) return Match(binds)

@@ -353,7 +353,7 @@ object AtomParser {
 	 */
 	case class BindingsNode(map: List[(NakedSymbolNode,AstNode)]) extends AstNode {
 	  def interpret = {
-	    var binds = new Bindings
+	    var binds = Bindings()
 	    for ((str,node) <- map) {
 	      binds += (str.str -> node.interpret)
 	    }

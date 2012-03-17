@@ -61,16 +61,14 @@ object CMatcher {
     // with the iterator for the reorderings to get the entire match iterator.
     val um = new UnbindableMatcher(patterns, subjects, binds)
     
-    // Discard unbindables from both lists.
-    patterns = patterns.filter(_.isBindable)
-    subjects = subjects.filter(_.isBindable)
-    println("Removing Unbindables: Patterns: " + patterns.mkParseString("",",",""))
-    println("                      Subjects: " + patterns.mkParseString("",",",""))
-    
     // Step three is to re-order the subjects and match until we succeed, or we
     // exhaust the search space.  We have to do this with a match iterator, but
     // we also have to check for a single match first.
-    val iter = um ~ (bindings => new CMatchIterator(patterns, subjects, bindings))
+    val iter = um ~ (bindings => {
+      val pats = bindings.patterns.getOrElse(patterns)
+      val subs = bindings.subjects.getOrElse(subjects)
+      new CMatchIterator(pats, subs, bindings)
+    })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
@@ -104,7 +102,7 @@ object CMatcher {
      * iterator.
      */
     protected def findNext {
-      print("Searching... ")
+      print("C Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
       else {
@@ -117,7 +115,7 @@ object CMatcher {
 	        case Match(binds) =>
 	          // This case we care about.  Save the bindings as the current match.
 	          _current = binds
-	          println("Found.")
+	          println("C Found.")
 	        case Many(iter) =>
 	          // We've potentially found many matches.  We save this as a local
 	          // iterator and then use it in the future.
@@ -127,7 +125,7 @@ object CMatcher {
 	        // We have exhausted the permutations.  We have exhausted this
 	        // iterator.
 	        _exhausted = true
-	        println("Exhausted.")
+	        println("C Exhausted.")
 	      }
       }
     }

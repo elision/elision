@@ -143,26 +143,22 @@ class AtomList(val atoms: OmitSeq[BasicAtom],
     // the same order.
     subject match {
     	case al:AtomList =>
-    	  // The lists must be the same length, or they cannot match.
-    	  if (atoms.length != al.atoms.length)
-    	    Fail("Lists are different sizes.", this, subject)
-    	  else
-    	    // The properties must be the same, or they cannot match.
-    	    if (props != al.props)
-    	      Fail("List properties do not match.", this, subject)
-    	    else
-    	      // Now all the items in the list much match.  We use the sequence
-    	      // matcher for that.
-    	      if (associative)
-    	        if (commutative)
-    	        	matcher.ACMatcher.tryMatch(this, al, binds, operator)
-    	        else
-    	        	matcher.AMatcher.tryMatch(this, al, binds, operator)
+  	    // The properties must be the same, or they cannot match.
+  	    if (props != al.props)
+  	      Fail("List properties do not match.", this, subject)
+  	    else
+  	      // Now all the items in the list much match.  We use the sequence
+  	      // matcher for that.
+  	      if (associative)
+  	        if (commutative)
+  	        	matcher.ACMatcher.tryMatch(this, al, binds, operator)
   	        else
-  	          if (commutative)
-  	          	matcher.CMatcher.tryMatch(this, al, binds)
-  	          else
-  	          	SequenceMatcher.tryMatch(atoms, al.atoms, binds)
+  	        	matcher.AMatcher.tryMatch(this, al, binds, operator)
+	        else
+	          if (commutative)
+	          	matcher.CMatcher.tryMatch(this, al, binds)
+	          else
+	          	SequenceMatcher.tryMatch(atoms, al.atoms, binds)
       case _ => Fail("Not implemented.")
     }
   }

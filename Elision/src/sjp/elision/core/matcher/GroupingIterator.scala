@@ -133,11 +133,18 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
 	      // Now get the slice.
 	      val slice = _subs.slice(startSlice, endSlice+1)
 	      
-	      // Turn the slice into an atom list.
-	      var item: BasicAtom = AtomList(slice, subjects.props)
-	      
-	      // If we have an operator, apply it now.
-	      if (operator != null) item = Apply(operator, item)
+	      // Turn the slice into an atom list, except in the case of a single
+	      // atom.
+	      val item: BasicAtom =
+	        (if (slice.length != 1) {
+		        // Turn the slice into a list.
+		      	val list = AtomList(slice, subjects.props)
+		      
+			      // If we have an operator, apply it now.
+		      	if (operator != null) Apply(operator, list) else list
+	        } else {
+	        	slice(0)
+	        })
 	      
 	      // Save the item.
 	      nextList(marker) = item

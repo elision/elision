@@ -85,10 +85,10 @@ object Version {
 
   private def init {
 	  // Open the file.  We expect to find config.xml in the classpath.
-	  val config_stream = getClass.getResource("/configuration.xml").toString()
-	  if (config_stream != null) {
+	  val config_resource = getClass.getResource("/configuration.xml")
+	  if (config_resource != null) {
 	    // Parse the file.
-	    val config = scala.xml.XML.load(config_stream)
+	    val config = scala.xml.XML.load(config_resource.toString())
 	    
 	    // Pull out the data and override the local defaults.
 	    name = config.\("@name").text
@@ -151,7 +151,7 @@ object Repl {
   private var _parser = new AtomParser(_context, false)
   
   /** The current set of bindings. */
-  private var _binds = new Bindings
+  private var _binds = Bindings()
   
   /** Direct access to the context's operator library. */
   private val _library = _context.operatorLibrary

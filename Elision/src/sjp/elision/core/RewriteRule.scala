@@ -221,8 +221,8 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
     // Rules match only other rules.
     subject match {
 	    case RewriteRule(opat, orew, ogua, orul, olev) =>
-	      SequenceMatcher.tryMatch(pattern +: rewrite +: guards,
-	          opat +: orew +: ogua)
+	      SequenceMatcher.tryMatch(pattern +: rewrite +: guards.toIndexedSeq,
+	          opat +: orew +: ogua.toIndexedSeq)
 	    case _ => Fail("Rules cannot match non-rules.", this, subject)
 	  }
 
@@ -265,7 +265,7 @@ case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
    * @return	A pair consisting of an atom and a boolean.  The boolean is
    * 					true if the rewrite yielded a new atom, and is false otherwise.
    */
-  def tryRewrite(subject: BasicAtom, binds: Bindings = new Bindings()):
+  def tryRewrite(subject: BasicAtom, binds: Bindings = Bindings()):
   (BasicAtom, Boolean) = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {

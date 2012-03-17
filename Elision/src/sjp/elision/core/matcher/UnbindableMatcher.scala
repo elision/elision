@@ -32,16 +32,17 @@ import sjp.elision.core._
 
 /**
  * Match unbindable atoms in a sequence of patterns to the unbindable atoms
- * in a sequence of subjects.  This match is done commutatively.  Once this
- * is completed, all unbindable atoms can be discarded for further matching.
+ * in a sequence of subjects.  This match is done commutatively.
+ * 
+ * To determine which atoms are left after this matcher completes, a specialized
+ * version of Bindings is returned.
  * 
  * @param patterns	The patterns to match.
  * @param subjects	The subjects to match.
  * @param binds			Bindings to honor in any match.
  */
-class UnbindableMatcher(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom], 
-    binds: Bindings) extends MatchIterator {
-  
+class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
+    subjects: OmitSeq[BasicAtom], binds: Bindings) extends MatchIterator {
   /**
    * Next index to start looking for a subject to match.
    */
@@ -56,7 +57,15 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAto
     // the iterator as exhausted.
     _current = binds
   }
-
+  
+  /**
+   * Return the match, but also cache the patterns and subjects at this point.
+   */
+  override def next = super.next match {
+    case null => null
+    case binds:Bindings => binds.set(patterns, subjects)
+  }
+  
   /* Find the first unbindable pattern and then search the subjects to find a
    * matching subject.  If we find one, save the iterator.  Then make a matcher
    * for the unbindable patterns that remain, and join these with the match
@@ -80,7 +89,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAto
     // Find the next unbindable subject.  We bump the _nextsubindex value so
     // we look past this next time.
     val subindex = subjects.indexWhere(!_.isBindable, _nextsubindex)
-    _nextsubindex += subindex + 1
+    _nextsubindex = subindex + 1
     
     // If we ran off the end of the subjects, we have exhausted this match
     // iterator.

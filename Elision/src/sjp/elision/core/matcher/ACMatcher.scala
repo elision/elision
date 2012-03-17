@@ -67,31 +67,13 @@ object ACMatcher {
     // restrictive.  We obtain an iterator over these, and then combine it
     // with the iterator for "everything else."
     val um = new UnbindableMatcher(patterns, subjects, binds)
-
-    // Discard unbindables from both lists.
-    patterns = patterns.filter(_.isBindable)
-    subjects = subjects.filter(_.isBindable)
-    println("Removing Unbindables: Patterns: " + patterns.mkParseString("",",",""))
-    println("                      Subjects: " + patterns.mkParseString("",",",""))
-    
-    // Now, check the number of patterns remaining.  If there are none, we are
-    // finished, and the unbindable matcher is the result.
-    if (patterns.length == 0) return Many(um)
-    
-    // If there is just one pattern remaining, then it must get all the
-    // remaining subjects.
-    if (patterns.length == 1) {
-      // What we do depends on the number of subjects.
-      if (subjects.length == 1) {
-        // Bind the pattern to the subject and return the result.
-        val iter = um ~> (bnd => patterns(0).tryMatch(subjects(0), bnd, op))
-        if (iter.hasNext) return Many(iter)
-        else Fail("The lists do not match.", plist, slist)
-      }
-    }
     
     // This is not so simple.  We need to perform the match.
-    val iter = new ACMatchIterator(plist, slist, binds, op)
+    val iter = um ~ (bindings => {
+      val pats = AtomList(bindings.patterns.getOrElse(patterns), plist.props)
+      val subs = AtomList(bindings.subjects.getOrElse(subjects), slist.props)
+      new ACMatchIterator(pats, subs, bindings, op)
+    })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
@@ -109,14 +91,14 @@ object ACMatcher {
       binds: Bindings, op: Option[Operator]) extends MatchIterator {
     /** An iterator over all permutations of the subjects. */
     private val _perms = subjects.atoms.permutations
-    
+
     /**
      * Find the next match.  At the end of running this method either we
      * have `_current` set to the next match or we have exhausted the
      * iterator.
      */
     protected def findNext {
-      print("Searching... ")
+      print("AC Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
       else {
@@ -130,7 +112,7 @@ object ACMatcher {
 	        case Match(binds) =>
 	          // This case we care about.  Save the bindings as the current match.
 	          _current = binds
-	          println("Found.")
+	          println("AC Found.")
 	        case Many(iter) =>
 	          // We've potentially found many matches.  We save this as a local
 	          // iterator and then use it in the future.
@@ -140,7 +122,7 @@ object ACMatcher {
 	        // We have exhausted the permutations.  We have exhausted this
 	        // iterator.
 	        _exhausted = true
-	        println("Exhausted.")
+	        println("AC Exhausted.")
 	      }
       }
     }

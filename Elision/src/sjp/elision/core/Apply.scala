@@ -137,7 +137,7 @@ object Apply {
 	      // The lhs is a rewriter; invoke its rewrite method.  This will return
 	      // a pair.  We need to convert the pair to a binding.
 	      val (r_atom, r_flag) = rew.doRewrite(arg)
-	      BindingsAtom(new Bindings() +
+	      BindingsAtom(Bindings() +
 	          ("atom" -> r_atom) +
 	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
 	    case _ =>
@@ -368,12 +368,12 @@ object Apply {
     // do some modification to the parameter list.  We make a new list by
     // repeating the last parameter as many times as necessary, and then
     // performing the match on the new lists.
-    val parameters = ListBuffer[BasicAtom]()
+    var parameters = OmitSeq[BasicAtom]()
     parameters ++ pars
     val last = pars.last
     var count = 1
     while (parameters.length < newlist.length) {
-      parameters append Variable(last.theType, "::"+count)
+      parameters :+= Variable(last.theType, "::"+count)
       count += 1
     }
     val pabind = SequenceMatcher.tryMatch(parameters, newlist) match {

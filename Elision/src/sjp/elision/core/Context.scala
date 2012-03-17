@@ -59,7 +59,7 @@ class Context(val allowUndeclared:Boolean = false) {
   //======================================================================
   
   /** The current bindings. */
-  private var _binds: Bindings = new Bindings()
+  private var _binds: Bindings = Bindings()
   
   /**
    * Bind a variable in this context.
