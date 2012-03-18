@@ -45,9 +45,13 @@ object CMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+    // Check the length.
     if (plist.atoms.length != slist.atoms.length)
       return Fail("Lists are different sizes, so no match is possible.",
           plist, slist)
+          
+    // If there are no patterns, there is nothing to do.
+    if (plist.atoms.length == 0) return Match(binds)
       
     // Step one is to perform constant elimination.  For each constant
     // pattern, find and remove the same constant pattern from the subjects.
@@ -65,9 +69,13 @@ object CMatcher {
     // exhaust the search space.  We have to do this with a match iterator, but
     // we also have to check for a single match first.
     val iter = um ~ (bindings => {
+      // Get the patterns and subjects that remain.
       val pats = bindings.patterns.getOrElse(patterns)
       val subs = bindings.subjects.getOrElse(subjects)
-      new CMatchIterator(pats, subs, bindings)
+      
+      // If there are no patterns, there is nothing to do.
+      if (pats.length == 0) MatchIterator(bindings)
+      else new CMatchIterator(pats, subs, bindings)
     })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)

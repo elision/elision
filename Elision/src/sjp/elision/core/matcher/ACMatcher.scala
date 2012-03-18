@@ -48,14 +48,23 @@ object ACMatcher {
    */
   def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings,
       op: Option[Operator]): Outcome = {
+    // Check the length.
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
+          
+    // If there are no patterns, there is nothing to do.
+    if (plist.atoms.length == 0) return Match(binds)
           
     // If there are the same number, then this is a simple case of commutative
     // matching.
     if (plist.atoms.length == slist.atoms.length)
       return CMatcher.tryMatch(plist, slist, binds)
+      
+    // If there is exactly one pattern then match it immediately.
+    if (plist.atoms.length == 1) {
+      return plist.atoms(0).tryMatch(slist, binds)
+    }
       
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
@@ -70,9 +79,18 @@ object ACMatcher {
     
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
+      // Get the patterns and subjects that remain.
       val pats = AtomList(bindings.patterns.getOrElse(patterns), plist.props)
       val subs = AtomList(bindings.subjects.getOrElse(subjects), slist.props)
-      new ACMatchIterator(pats, subs, bindings, op)
+      
+	    // If there is exactly one pattern then match it immediately.
+	    if (pats.atoms.length == 1) {
+	      return pats.atoms(0).tryMatch(subs, binds)
+	    }
+      
+      // If there are no patterns, there is nothing to do.
+      if (pats.atoms.length == 0) MatchIterator(bindings)
+      else new ACMatchIterator(pats, subs, bindings, op)
     })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)

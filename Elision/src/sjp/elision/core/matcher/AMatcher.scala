@@ -47,13 +47,22 @@ object AMatcher {
    */
   def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings,
       op: Option[Operator]): Outcome = {
+    // Check the length.
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
+          
+    // If there are no patterns, there is nothing to do.
+    if (plist.atoms.length == 0) return Match(binds)
       
     // If there are the same number, then this is a simple case of matching.
     if (plist.atoms.length == slist.atoms.length)
       return SequenceMatcher.tryMatch(plist.atoms, slist.atoms, binds)
+      
+    // If there is exactly one pattern then match it immediately.
+    if (plist.atoms.length == 1) {
+      return plist.atoms(0).tryMatch(slist, binds)
+    }
       
     // We need to group the atoms so there is the same number of patterns and
     // subjects.  If there are N subjects and M patterns (with M < N per the

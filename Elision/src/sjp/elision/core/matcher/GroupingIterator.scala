@@ -40,6 +40,10 @@ import sjp.elision.core._
  * top-level group (so that the correct number of atoms is returned for
  * sequence matching).
  * 
+ * This iterator requires that the number of patterns be strictly less than
+ * the number of subjects, and further that the number of patterns be at least
+ * two.
+ * 
  * @param patterns	The patterns.
  * @param subjects	The subjects.
  * @param op				The operator, if known.
@@ -57,6 +61,7 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
   
   // Enforce the length constraint.
 	require(_pats.length < _subs.length)
+  require(_pats.length > 1)
   
   /** The operator, if known.  This avoids lots of gets. */
   val operator = op match {
@@ -68,19 +73,36 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
   private var _current: IndexedSeq[BasicAtom] = null
 	
 	// Compute the initial and final marker vectors.
+  
+  /** This is the number of markers needed. */
 	private val _limit = _pats.length - 1
+	/** This is the number of "slots" for markers. */
 	private val _sublimit = _subs.length - 1
+	/** The marker position array. */
 	private val _markers = new Array[Int](_limit)
+	/** The maximum value for each marker position. */
 	private val _endpoint = new Array[Int](_limit)
+	
+	/** Initialize the marker and endpoint arrays. */
 	for (i <- 0 until _limit) {
 	  _markers(i) = i
 	  _endpoint(i) = _subs.length - _pats.length + i
 	} // Initialize the arrays.
 	
+  /**
+   * Advance the markers array once.  This updates the markers to the
+   * next position, or sets the `_exhausted` flag if there are no more
+   * positions.
+   * 
+   * Note that this method does not work when there is exactly one pattern.
+   * Thus we have to deal with that case at the top level.
+   */
 	private def advance {
 	  var here = _limit-1
 	  while(true) {
+	    println("1: " + here + "/" + _limit)
 	    _markers(here) += 1
+	    println("2: " + here + "/" + _limit)
 	    if (_markers(here) > _endpoint(here)) {
 	      here -= 1
 	      if (here < 0) {
