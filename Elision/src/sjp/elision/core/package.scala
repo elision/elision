@@ -66,9 +66,6 @@ import sjp.elision.parse.AtomParser
  * 
  *  - TODO: Ruleset change actions. DEFER.
  *  - TODO: Infix. DEFER.
- *  - TODO: AC matching. DEFER.
- *  - TODO: C matching. DEFER.
- *  - TODO: A matching. DEFER.
  * 
  * == Design Goals ==
  *  - Every atom that can be programmatically created can be written using

@@ -827,11 +827,40 @@ extends Parser {
   def AtomSeq = rule {
     zeroOrMore(Atom) ~ WS ~ EOI
   }.label("a sequence of atoms")
+  
+  def InfixOperatorL = rule {
+    oneOrMore(anyOf("~!@#%^&*+=|';?/><")) ~> {
+      str => NakedSymbolNode(str)
+    }
+  }
+  
+  def InfixOperatorR = rule {
+    oneOrMore(anyOf("~!@#%^&*+=|';?/><")) ~ ":" ~> {
+      str => NakedSymbolNode(str)
+    }
+  }
+  
+  def LApply = rule {
+    // Handle the odd case of an infix operator.  Only certain symbols can
+    // be used as infix operators.  Associate to the right.
+    FirstAtom ~ WS ~ InfixOperatorL ~ WS ~ Atom ~~> (
+        (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
+        	ApplicationNode(context, op, AtomListNode(List(larg, rarg))))
+  }
+  
+  def RApply = rule {
+    // Handle the odd case of an infix operator.  Only certain symbols can
+    // be used as infix operators.  Associate to left.
+    Atom ~ WS ~ InfixOperatorR ~ WS ~ FirstAtom ~~> (
+        (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
+        	ApplicationNode(context, op, AtomListNode(List(larg, rarg))))
+  }
 
   /**
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
+    LApply |
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
