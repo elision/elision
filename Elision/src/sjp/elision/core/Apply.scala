@@ -73,6 +73,8 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
    * By default applications match iff their parts match.  The trick here is
    * that the argument lists have to know what the top-level operator is in
    * order to successfully associatively match.
+   * 
+   * Hints passed in are ignored, and the operator is passed along as the hint.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =
@@ -81,20 +83,20 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
       case Apply(oop, oarg) => {
         // Try to match the operators, and then the arguments.  If both match,
         // then this matches.  If not, then this does not match.
-        op.tryMatch(oop, binds, hints) match {
+        op.tryMatch(oop, binds, Some(op)) match {
           case fail: Fail =>
             Fail("Operators do not match.", this, subject, Some(fail))
           case Match(newbinds) =>
             // The operators match.  Now try to match the arguments.
             arg match {
               case al:AtomList => al.tryMatch(oarg, newbinds, Some(op))
-              case _ => arg.tryMatch(oarg, newbinds, hints)
+              case _ => arg.tryMatch(oarg, newbinds, Some(op))
             }
             
           case Many(matches) =>
             // The operators match in multiple ways.  This seems unlikely, but
             // we consider it here anyway.
-            Many(MatchIterator(arg.tryMatch(oarg, _, hints), matches))
+            Many(MatchIterator(arg.tryMatch(oarg, _, Some(op)), matches))
         }
       }
       case _ => Fail("Applications only match other applications.",

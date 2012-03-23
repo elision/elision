@@ -135,7 +135,7 @@ class AtomList(val atoms: OmitSeq[BasicAtom],
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       op: Option[Any]) = {
     val operator = op match {
-      case oper: Operator => Some(oper)
+      case oper: Some[Operator] => oper
       case _ => None
     }
     
