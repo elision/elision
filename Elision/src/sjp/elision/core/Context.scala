@@ -124,7 +124,7 @@ class Context(val allowUndeclared:Boolean = false) {
   //======================================================================
 
   /** The active rulesets. */
-  private val _active = new BitSet()
+  val _active = new BitSet()
 
   /**
    * Enable a ruleset.
@@ -211,7 +211,7 @@ class Context(val allowUndeclared:Boolean = false) {
   private def bump() = { val tmp = _nextrs ; _nextrs += 1 ; tmp }
   
   /** Bit zero is reserved for the default ruleset. */
-  _rs2bit += ("default" -> 0)
+  _rs2bit += ("DEFAULT" -> 0)
   
   /**
    * Get the bit for a ruleset.
@@ -333,7 +333,7 @@ class Context(val allowUndeclared:Boolean = false) {
    * @return	A list of rules.
    */
   def getRules(atom: BasicAtom) =
-    for ((bits, rule) <- getRuleList(atom) ; if ((bits & _active) != 0))
+    for ((bits, rule) <- getRuleList(atom) ; if (!(bits & _active).isEmpty))
       yield rule
       
   /**
@@ -345,7 +345,7 @@ class Context(val allowUndeclared:Boolean = false) {
    */
   def getRules(atom: BasicAtom, names: List[String]) = {
     val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
-    for ((bits, rule) <- getRuleList(atom); if ((bits & rsbits) != 0))
+    for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
       yield rule
   }
 }
