@@ -194,6 +194,9 @@ object Repl {
   /** Emit a warning message, with the WARNING prefix. */
   private def warn(msg: String) { println("WARNING: " + msg) }
   
+  /** A special literal that we never show, or save as a binding. */
+  private val _no_show = Literal(Symbol(" NO SHOW "))
+  
   /**
    * The entry point when started from the command line.  Print the current
    * version number, then invoke `run`.
@@ -404,8 +407,8 @@ object Repl {
           	// Bind the variable in this context.
             _binds += (from.name -> to)
             emitln("Bound " + from.toParseString)
-            to
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
 
     // Bind.
@@ -417,7 +420,7 @@ object Repl {
           case Args(x:BasicAtom, y:BasicAtom) =>
             // Check for equality.
             if (x == y) Literal.TRUE else Literal.FALSE
-          case _ => Literal.FALSE
+          case _ => _no_show
         })
         
     // Unbind.
@@ -429,8 +432,8 @@ object Repl {
           	// Unbind the variable in this context.
             _binds -= from.name
             emitln("Unbound " + from.toParseString)
-            TypeUniverse
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Showbinds.
@@ -438,8 +441,13 @@ object Repl {
         Proto("showbinds", ANYTYPE)))
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomList, _) => list match {
-          case Args() => _binds
-          case _ => Literal.FALSE
+          case Args() => {
+            println(_binds.map {
+              pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
+            }.mkString("{ bind\n", ",\n", "\n}"))
+            _no_show
+          }
+          case _ => _no_show
         })
         
     // Context.
@@ -449,8 +457,8 @@ object Repl {
         (_, list:AtomList, _) => list match {
           case Args() =>
             println(_context.toParseString)
-            Literal.NOTHING
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Stacktrace.
@@ -462,8 +470,8 @@ object Repl {
             _stacktrace = !_stacktrace
             emitln("Printing stack traces is " +
                 (if (_stacktrace) "ON" else "OFF") + ".") 
-            Literal.NOTHING
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Read.
@@ -474,8 +482,8 @@ object Repl {
           case Args(StringLiteral(_, filename)) =>
             // TODO Read the content of the file.
             emitln("Not implemented.")
-            Literal.FALSE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Write.
@@ -486,8 +494,8 @@ object Repl {
           case Args(StringLiteral(_, filename)) =>
             // TODO Write the content to the file.
             emitln("Not implemented.")
-            Literal.FALSE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Help.
@@ -522,8 +530,8 @@ object Repl {
 		            |
 		            |To quit type :quit.
 		            |""".stripMargin)
-		        Literal.NOTHING
-          case _ => Literal.FALSE
+		        _no_show
+          case _ => _no_show
         })
         
     // Traceparse.
@@ -536,8 +544,8 @@ object Repl {
 		        _trace = !_trace
 		        _parser = new AtomParser(_context, _trace)
 		        emitln("Tracing is " + (if (_trace) "ON." else "OFF."))
-		        Literal.NOTHING
-          case _ => Literal.FALSE
+		        _no_show
+          case _ => _no_show
         })
         
     // Tracematch.
@@ -550,8 +558,8 @@ object Repl {
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
 		        emitln("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
-		        Literal.NOTHING
-          case _ => Literal.FALSE
+		        _no_show
+          case _ => _no_show
         })
         
     // Showscala.
@@ -563,8 +571,8 @@ object Repl {
 		        // Toggle showing the Scala term.
 		        _showScala = !_showScala
 		        emitln("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
-		        Literal.NOTHING
-          case _ => Literal.FALSE
+		        _no_show
+          case _ => _no_show
         })
         
     // Showprior.
@@ -576,8 +584,8 @@ object Repl {
 		        // Toggle showing the prior term.
 		        _showPrior = !_showPrior
 		        emitln("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
-		        Literal.NOTHING
-          case _ => Literal.FALSE
+		        _no_show
+          case _ => _no_show
         })
         
     // History.
@@ -591,8 +599,8 @@ object Repl {
 		          println(" " + index + ": " + _hist.getHistory(index))
 		        }
 		        println("Persistent history is found in: " + _filename)
-		        Literal.NOTHING
-          case _ => Literal.FALSE
+		        _no_show
+          case _ => _no_show
         })
         
     // Quiet.
@@ -604,8 +612,8 @@ object Repl {
             // Enable quiet.
             _quiet = !_quiet
             emitln("Quiet is " + (if (_quiet) "enabled." else "disabled."))
-            Literal.NOTHING
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Enable a ruleset.
@@ -616,8 +624,8 @@ object Repl {
           case Args(SymbolLiteral(_, sym)) =>
             // Enable the specified ruleset.
             _context.enableRuleset(sym.name)
-            Literal.TRUE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Disable a ruleset.
@@ -628,8 +636,8 @@ object Repl {
           case Args(SymbolLiteral(_, sym)) =>
             // Disable the specified ruleset.
             _context.disableRuleset(sym.name)
-            Literal.TRUE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Set the limit on automatic rewrites.
@@ -640,8 +648,8 @@ object Repl {
           case Args(IntegerLiteral(_, count)) =>
             // Enable the specified ruleset.
             _context.setLimit(count)
-            Literal.TRUE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Enable or disable the rewriter.
@@ -654,8 +662,8 @@ object Repl {
             _rewrite = !_rewrite
             emitln("Automatic rewriting is " +
                 (if (_rewrite) "ON." else "OFF."))
-            Literal.TRUE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // See what rules are in scope.
@@ -668,8 +676,8 @@ object Repl {
             for (rule <- _context.getRules(atom)) {
               println(rule.toParseString)
             }
-            Literal.TRUE
-          case _ => Literal.FALSE
+            _no_show
+          case _ => _no_show
         })
         
     // Define mod as a native operator.
@@ -714,13 +722,17 @@ object Repl {
    * @param atom	An atom just parsed.
    * @return	True on success, false on failure.
    */
-  private def handle(atom: BasicAtom) = {
+  private def handle(atom: BasicAtom): Boolean = {
+    // If we come here with the special "no show" literal, we skip all of this.
+    if (atom == _no_show) return true
+    
     // Certain atoms require additional processing.
     atom match {
       case od:OperatorDefinition =>
       	// Put operator definitions in the operator library.
         _library.add(od)
-        true
+        return true
+        
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)
@@ -740,7 +752,7 @@ object Repl {
 		        _context.add(rule)
 		      case _ =>
         }
-        true
+        return true
     }
   }
 }

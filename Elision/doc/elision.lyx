@@ -740,6 +740,9 @@ bin
 \family default
  folder, and is the best way to run it if you are using a continuous build
  system such as Eclipse.
+ If you try to run the REPL this way while Eclipse is compiling, you will
+ get missing class file errors.
+ Just wait for Eclipse to finish compiling.
 \end_layout
 
 \begin_layout Itemize
@@ -757,6 +760,8 @@ scala-library.jar
 java -cp scala-library.jar -jar elision.jar
 \family default
 .
+ You must have built the jar file to use this method, and must update it
+ each time you make changes.
 \end_layout
 
 \begin_layout Itemize
@@ -802,8 +807,8 @@ The Emacs mode works for Emacs 21.1or later, and does not work on XEmacs.
 README
 \family default
  file in the folder for current details.
- We will leave these files in place so they get magically updated when the
- next version of Scala is installed.
+ It is suggested you leave these files in place so they get magically updated
+ when the next version of Scala is installed.
 \end_layout
 
 \begin_layout Standard
@@ -827,7 +832,7 @@ In your Emacs startup file (typically
 \end_layout
 
 \begin_layout Standard
-Adjust the first line as necessary to point to your Scala installation.
+Adjust the second line as necessary to point to your Scala installation.
  Now restart Emacs, and you should get the Scala mode when you open a file
  ending with 
 \family typewriter
@@ -846,7 +851,14 @@ Adjust the first line as necessary to point to your Scala installation.
 \family typewriter
 Makefile
 \family default
-.
+, but be sure to run 
+\family typewriter
+make
+\family default
+ each time you update.
+
+\family typewriter
+ 
 \end_layout
 
 \begin_layout Section
@@ -1036,7 +1048,7 @@ Scala Code
 
 \begin_layout Standard
 Elision is written in Scala, and provides a Scala API.
- The Scala API will be discussed in each section, highlighed in blue.
+ Discussions of the Scala API are highlighed in blue.
 \end_layout
 
 \begin_layout Standard
@@ -1245,7 +1257,7 @@ $x
 \family typewriter
 7
 \family default
- denotes a 
+ is a 
 \emph on
 binding
 \emph default
@@ -1268,7 +1280,11 @@ rewriting
 \emph default
  the term with the binding.
  The REPL keeps a set of bindings that are used to immediately rewrite any
- atom after it is parsed.
+ atom 
+\emph on
+after
+\emph default
+ it is parsed and constructed.
  For instance, if the variable 
 \family typewriter
 $x
@@ -1385,8 +1401,7 @@ Every time an atom is evaluated by the REPL, the result is displayed and
 $repl
 \family default
  followed by a number.
- These variables are displayed on the output, and are used to rewrite an
- atom before it is displayed.
+ These variables are displayed on the output.
  Try 
 \family typewriter
 $repl1
@@ -2018,7 +2033,7 @@ Scala
 \begin_layout Plain Layout
 Symbols are created via the 
 \family typewriter
-core.Literal(SYMBOL,sym)
+core.Literal(sym)
 \family default
  method, where 
 \family typewriter
@@ -2032,7 +2047,7 @@ Take care! Scala symbols are automatically converted to Elision
 \emph on
 variables
 \emph default
-, not symbol literals.
+, not symbol literals, when used in a context expecting an Elision atom.
 \end_layout
 
 \end_inset
@@ -2147,7 +2162,7 @@ Scala
 \begin_layout Plain Layout
 Strings are created via the 
 \family typewriter
-core.Literal(STRING,str)
+core.Literal(str)
 \family default
  method, where 
 \family typewriter
@@ -2376,7 +2391,7 @@ The following are legal number literals.
 \begin_layout Plain Layout
 
 \family typewriter
-0x15e-0x6
+0x15p-0x6
 \end_layout
 
 \end_inset
