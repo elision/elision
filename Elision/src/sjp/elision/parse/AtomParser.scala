@@ -1218,7 +1218,7 @@ extends Parser {
    * positive or negative.
    */
   def AnyNumber: Rule1[NumberNode] = rule {
-    optional("-" ~ push(true)) ~ (
+    optional("-" ~ push(false)) ~ (
       HNumber |
       BNumber |
       DNumber |
