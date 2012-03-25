@@ -177,6 +177,47 @@ case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
 }
 
 /**
+ * Easier construction and pattern matching of rewrite rules.
+ */
+object RewriteRule {
+  /**
+   * Create a rewrite rule.  The rule is not synthetic.
+   * 
+	 * @param pattern			The pattern to match.
+	 * @param rewrite			The rewrite to apply on match.
+	 * @param guards			Guards that must be true to accept a match.
+	 * @param rulesets		The rulesets that contain this rule.
+	 * @param cachelLevel	Memoization cache level.
+   */
+  def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
+      rulesets: Set[String], cacheLevel: Int) =
+		  new RewriteRule(pattern, rewrite, guards, rulesets, cacheLevel, false)
+  
+  /**
+   * Create a rewrite rule.
+   * 
+	 * @param pattern			The pattern to match.
+	 * @param rewrite			The rewrite to apply on match.
+	 * @param guards			Guards that must be true to accept a match.
+	 * @param rulesets		The rulesets that contain this rule.
+	 * @param cachelLevel	Memoization cache level.
+	 * @param synthetic		If true, this is a synthetic rule.
+   */
+  def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
+      rulesets: Set[String], cacheLevel: Int, synthetic: Boolean) =
+		  new RewriteRule(pattern, rewrite, guards, rulesets, cacheLevel, synthetic)
+
+  /**
+   * Break a rewrite rule into its parts.  The synthetic flag is not returned.
+   * 
+   * @param rule	The rewrite rule.
+   * @return	The pattern, rewrite, guards, rulesets, and cache level.
+   */
+  def unapply(rule: RewriteRule) = Some((rule.pattern, rule.rewrite,
+      rule.guards, rule.rulesets, rule.cacheLevel))
+}
+
+/**
  * Encapsulate a rewrite rule.
  * 
  * ==Structure and Syntax==
@@ -190,9 +231,11 @@ case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
  * @param guards			Guards that must be true to accept a match.
  * @param rulesets		The rulesets that contain this rule.
  * @param cachelLevel	Memoization cache level.
+ * @param synthetic		If true, this is a synthetic rule.
  */
-case class RewriteRule(pattern: BasicAtom, rewrite: BasicAtom,
-    guards: Seq[BasicAtom], rulesets: Set[String], cacheLevel: Int)
+class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
+    val guards: Seq[BasicAtom], val rulesets: Set[String], val cacheLevel: Int,
+    val synthetic: Boolean = false)
     extends BasicAtom with Rewriter {
   val theType = STRATEGY
   

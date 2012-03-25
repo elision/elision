@@ -234,6 +234,42 @@ case class IEEE754(width: Int, significand: Int) {
   lazy val exponentBias = (1L << (exponent - 1)) - 1
   /** The hidden one. */
   lazy val hiddenOne = 1L << significand
+  /**
+   * Break a number into its components.
+   * 
+   * @param value	The bits making up the number.  This must be correct for
+   * 							the specific platform.
+   * @return	A triple consisting of the sign bit, the exponent, and the
+   * 					significand.  These raw pieces are extracted and returned as
+   * 					integers.  The exponent bias is not removed, nor is the hidden
+   *					bit added.
+   */
+  def fromBits(bits: Long) = {
+    // Extract the sign.
+    val sign = (bits & signMask) != 0
+    // Extract the exponent and adjust for the bias.
+    val epart = ((bits & exponentMask) >> significand) - exponentBias
+    // Extract the significand.
+    val spart = bits & significandMask
+    // Return the parts.
+    (if (sign) 1 else 0, epart, spart)
+  }
+  /**
+   * Create a number from its components.
+   * 
+   * @param sign	The sign bit.
+   * @param epart	The exponent part, not adjusted for bias.
+   * @param spart	The significand, minus any hidden bit.
+   * @return	The sequence of bits, assembled.
+   */
+  def toBits(sign: Int, epart: Long, spart: Long) = {
+    // The number starts with the sign.
+    (if (sign != 0) signMask else 0) |
+    // It continues with the exponent, which we shift into place.
+    ((epart << exponent) & exponentMask) |
+    // Finally the significand is added.
+    (spart & significandMask)
+  }
 }
 
 object IEEE754Quadruple extends IEEE754(128, 112)
@@ -264,15 +300,7 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
   def toIEEE754(plaf: IEEE754 = FloatLiteral.platform) = {
     // Get the representation in bits.
     val bits = java.lang.Double.doubleToRawLongBits(toDouble)
-    // Extract the sign.
-    val sign = (bits & plaf.signMask) != 0
-    // Extract the exponent and adjust for the bias.
-    val exponent = ((bits & plaf.exponentMask) >> plaf.significand) -
-    	plaf.exponentBias
-    // Extract the significand.
-    val significand = bits & plaf.significandMask
-    // Return the parts.
-    (if (sign) 1 else 0, exponent, significand)
+    plaf.fromBits(bits)
   }
   def toUnreducedBinary(plaf: IEEE754 = FloatLiteral.platform) = {
     var (sign, ne, ns) = toIEEE754(plaf)

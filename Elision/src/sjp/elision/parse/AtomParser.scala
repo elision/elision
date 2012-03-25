@@ -140,14 +140,14 @@ object AtomParser {
 	case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
 	extends AstNode {
 	  def interpret = {
-	    // If the operator provided is a symbol, then we will try to interpret it
-	    // as an operator.
-	    val atom = op.interpret
-	    atom match {
-	      case SymbolLiteral(_, sval) =>
-	        Apply(context.operatorLibrary(sval.name),arg.interpret)
-	      case _ => Apply(atom, arg.interpret)
+	    // If the operator is a naked symbol, we try to interpret it as an
+	    // operator.  Otherwise we just interpret it.
+	    val atom = op match {
+	      case NakedSymbolNode(name) => context.operatorLibrary(name)
+	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
+	      case _ => op.interpret
 	    }
+	    Apply(atom, arg.interpret)
 	  }
 	}
 	
@@ -160,14 +160,14 @@ object AtomParser {
 	case class DeferApplicationNode(context: Context, op: AstNode, arg: AstNode)
 	extends AstNode {
 	  def interpret = {
-	    // If the operator provided is a symbol, then we will try to interpret it
-	    // as an operator.
-	    val atom = op.interpret
-	    atom match {
-	      case SymbolLiteral(_, sval) =>
-	        DeferApply(context.operatorLibrary(sval.name),arg.interpret)
-	      case _ => DeferApply(atom, arg.interpret)
+	    // If the operator is a naked symbol, we try to interpret it as an
+	    // operator.  Otherwise we just interpret it.
+	    val atom = op match {
+	      case NakedSymbolNode(name) => context.operatorLibrary(name)
+	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
+	      case _ => op.interpret
 	    }
+	    DeferApply(atom, arg.interpret)
 	  }
 	}
 	

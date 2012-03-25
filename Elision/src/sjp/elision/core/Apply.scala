@@ -502,5 +502,8 @@ extends Apply(op, arg) {
   /**
    * Generate a parseable string.
    */
-  def toParseString = "(" + op.toParseString + "." + arg.toParseString + ")"
+  def toParseString = "(" +
+  	(if (op.isInstanceOf[IntegerLiteral])
+  	  "(" + op.toParseString + ")" else op.toParseString) +
+    "." + arg.toParseString + ")"
 }

@@ -2517,7 +2517,7 @@ Scala
 \begin_layout Plain Layout
 Integers are created via the 
 \family typewriter
-core.Literal(INTEGER,i)
+core.Literal(i)
 \family default
  method, where 
 \family typewriter
@@ -2528,23 +2528,7 @@ i
 BigInt
 \family default
 .
- Floating point numbers can be created either via the 
-\family typewriter
-core.Literal(FLOAT,f)
-\family default
- method, where 
-\family typewriter
-f
-\family default
- is a Scala 
-\family typewriter
-Float
-\family default
- or 
-\family typewriter
-Double
-\family default
-, or via the 
+ Floating point numbers can be created via the 
 \family typewriter
 core.Literal(FLOAT,sig,exp,rad)
 \family default
@@ -2569,8 +2553,6 @@ Int
 rad
 \family default
  is the radix (one of 2, 8, 10, or 16).
- The latter method is preferred; the former may result in loss of precision
- in the current system.
 \end_layout
 
 \begin_layout Plain Layout
@@ -2588,6 +2570,30 @@ BigInt
 17
 \family default
  to a method expecting an Elision atom.
+\end_layout
+
+\begin_layout Plain Layout
+If you have a floating point literal, you can obtain its value as a Scala
+ float with 
+\family typewriter
+toFloat
+\family default
+ and as a Scala double with 
+\family typewriter
+toDouble
+\family default
+.
+ You can also convert it to radix two using 
+\family typewriter
+toBinary
+\family default
+.
+ Because this changes the base of a floating point number you may lose precision.
+\end_layout
+
+\begin_layout Plain Layout
+At present Elision does not support the positive or negative infinity or
+ the signaling or quiet NaN.
 \end_layout
 
 \end_inset
@@ -2978,6 +2984,22 @@ ANYTYPE
 \end_layout
 
 \begin_layout Standard
+Untyped symbols have the type 
+\family typewriter
+SYMBOL
+\family default
+, except for the special symbol 
+\family typewriter
+Nothing
+\family default
+ that has type 
+\family typewriter
+ANYTYPE
+\family default
+.
+\end_layout
+
+\begin_layout Standard
 \noindent
 \begin_inset Box Shaded
 position "t"
@@ -3018,6 +3040,15 @@ SYMBOL
 SYMBOL
 \family default
  type.
+ To get the special symbol 
+\family typewriter
+Nothing
+\family default
+, use 
+\family typewriter
+core.Literal.NOTHING
+\family default
+.
 \end_layout
 
 \end_inset
@@ -3847,7 +3878,7 @@ Operator prototypes are created with
 core.OperatorPrototype
 \family default
 .
- Pass the name, a list of 
+ Pass the name, a vector of 
 \family typewriter
 core.Variable
 \family default
@@ -3864,11 +3895,31 @@ OperatorPrototype("foo",
 \end_layout
 
 \begin_layout LyX-Code
-  List(Variable(INTEGER,"x"), Variable(INTEGER,"y")),
+  Vector(Variable(INTEGER,"x"), Variable(INTEGER,"y")),
 \end_layout
 
 \begin_layout LyX-Code
   INTEGER)
+\end_layout
+
+\begin_layout Plain Layout
+Another way to define an operator prototype is to use the 
+\family typewriter
+core.Proto
+\family default
+ constructor.
+ To use this pass the name, the type of the fully-applied operator, and
+ then the parameters, with each parameter as a pair of the form (name, type).
+ This constructor takes a variable length parameter list.
+ The following is equivalent to the above declaration.
+\end_layout
+
+\begin_layout LyX-Code
+Proto("foo", INTEGER,
+\end_layout
+
+\begin_layout LyX-Code
+  ("x",INTEGER), ("y",INTEGER))
 \end_layout
 
 \end_inset
@@ -4007,6 +4058,42 @@ OperatorProperties(associative=true,
   commutative=true, identity=Some(0))
 \end_layout
 
+\begin_layout Plain Layout
+Another way to define operator properties is to use the 
+\family typewriter
+core.Props
+\family default
+ constructor.
+ This takes a sequence of arguments that can be any of the following special
+ constructors: 
+\family typewriter
+Associative
+\family default
+, 
+\family typewriter
+Commutative
+\family default
+, 
+\family typewriter
+Idempotent
+\family default
+, 
+\family typewriter
+Absorber(abs)
+\family default
+, and 
+\family typewriter
+Identity(id)
+\family default
+.
+ The following is equivalent to the previous declaration, and uses the fact
+ that Scala integers are converted to integer literals automatically.
+\end_layout
+
+\begin_layout LyX-Code
+Props(Associative, Commutative, Identity(0))
+\end_layout
+
 \end_inset
 
 
@@ -4134,7 +4221,7 @@ Associativity is
 \emph on
 required
 \emph default
- by other the other properties idempotency, identities, and absorbers.
+ by idempotency, an identity, and an absorber.
 \end_layout
 
 \begin_layout Standard
@@ -4243,6 +4330,11 @@ or
  imposed by associativity, which is required.
 \end_layout
 
+\begin_layout Standard
+Elision, at present, does not correct argument lists for idempotency.
+ This will be implemented in a future version.
+\end_layout
+
 \begin_layout Subsection
 Identity
 \end_layout
@@ -4252,7 +4344,7 @@ An operator
 \begin_inset Formula $f$
 \end_inset
 
- can have an associated identity element 
+ can have an associated named identity element 
 \begin_inset Formula $e$
 \end_inset
 
@@ -4261,14 +4353,37 @@ An operator
 \end_inset
 
 .
- Instances of the identity are discarded from the argument list.
+ Instances of a named identity are discarded from the argument list.
  Because the length of the argument list can change, only associative operators
- can have an identity.
+ can have a named identity.
 \end_layout
 
 \begin_layout Standard
-Identity elements include zero for addition, one for multiplication, false
- for Boolean inclusive or, and true for Boolean and.
+Named identity elements include 
+\emph on
+zero
+\emph default
+ for addition, 
+\emph on
+one
+\emph default
+ for multiplication, 
+\emph on
+false
+\emph default
+ for Boolean inclusive 
+\emph on
+or
+\emph default
+, and 
+\emph on
+true
+\emph default
+ for Boolean 
+\emph on
+and
+\emph default
+.
 \end_layout
 
 \begin_layout Standard
@@ -4277,13 +4392,22 @@ Further, while
 \end_inset
 
  has no particular meaning for a general associative operator, it is regarded
- as an alternate name for the identity 
+ as an alternate name for a named identity 
 \begin_inset Formula $e$
 \end_inset
 
 .
  Thus an associative operator with identity can have any number of elements,
  including none.
+ If an operator 
+\begin_inset Formula $f$
+\end_inset
+
+ has no named identity, then 
+\begin_inset Formula $f()$
+\end_inset
+
+ is not allowed.
 \end_layout
 
 \begin_layout Subsection
@@ -4379,9 +4503,25 @@ constructed
 , meaning when the operator is applied to an argument list.
  In the case of symbolic and native operators, the argument list is processed
  based on the properties.
- For a native operator, this happens prior to invoking the closure.
+ For a native operator, this happens 
+\emph on
+prior
+\emph default
+ to invoking the closure.
  If the operator has an absorber or identity, the closure might not be invoked
  at all.
+ For this reason, be careful using immediate operators.
+ They are best regarded as a way to specify an alternate name for another
+ operator, like a macro.
+\end_layout
+
+\begin_layout LyX-Code
+{ operator `+`($x: INTEGER, $y: INTEGER): INTEGER = add($x,$y) }
+\end_layout
+
+\begin_layout Standard
+Note that there is no way to specify properties for an immediate operator
+ definition, and thus these cannot take variable length argument lists.
 \end_layout
 
 \begin_layout Standard
@@ -4557,37 +4697,22 @@ import sjp.elision.core._
 
 \begin_layout Plain Layout
 
-val orProto = OperatorPrototype("or", 
+val orProto = Proto("or", BOOLEAN, ("P",BOOLEAN), ("Q",BOOLEAN))
 \end_layout
 
 \begin_layout Plain Layout
 
-                List(Variable(BOOLEAN, "p"),
+val orProps = Props(Associative, Commutative, Idempotent,
 \end_layout
 
 \begin_layout Plain Layout
 
-                     Variable(BOOLEAN, "q")), BOOLEAN)
+                    Absorber(false), Identity(true))
 \end_layout
 
 \begin_layout Plain Layout
 
-val orProps = OperatorProperties(associative=true,
-\end_layout
-
-\begin_layout Plain Layout
-
-                commutative=true, idempotent=true,
-\end_layout
-
-\begin_layout Plain Layout
-
-                identity=Some(false), absorber=Some(false))
-\end_layout
-
-\begin_layout Plain Layout
-
-val orOp = SymbolicOperatorDefinition(opProto, opProps)
+val orOp = SymbolicOperatorDefinition(orProto, orProps)
 \end_layout
 
 \begin_layout Plain Layout
@@ -4601,37 +4726,12 @@ val orOp = SymbolicOperatorDefinition(opProto, opProps)
 
 \begin_layout Plain Layout
 
-val addProto = OperatorPrototype("add", 
+val addProto = Proto("add", INTEGER, ("x",INTEGER), ("y",INTEGER))
 \end_layout
 
 \begin_layout Plain Layout
 
-                List(Variable(INTEGER, "p"),
-\end_layout
-
-\begin_layout Plain Layout
-
-                     Variable(BOOLEAN, "q")), INTEGER)
-\end_layout
-
-\begin_layout Plain Layout
-
-val addProps = OperatorProperties(
-\end_layout
-
-\begin_layout Plain Layout
-
-                associative=true,
-\end_layout
-
-\begin_layout Plain Layout
-
-                commutative=true,
-\end_layout
-
-\begin_layout Plain Layout
-
-                identity=Some(Literal(INTEGER,0)))
+val addProps = Props(Associative, Commutative, Identity(0))
 \end_layout
 
 \begin_layout Plain Layout
@@ -4670,7 +4770,20 @@ body
 typeof
 \family default
  example given previously.
- This will use some constructors not previously discussed.
+ This will use some constructors not previously discussed, and uses the
+ fact that Scala symbols are interpreted as variables of type 
+\family typewriter
+ANYTYPE
+\family default
+, so 
+\family typewriter
+'U
+\family default
+ is shorthand for 
+\family typewriter
+Variable(ANYTYPE,"U")
+\family default
+.
 \begin_inset VSpace medskip
 \end_inset
 
@@ -4699,27 +4812,12 @@ import sjp.elision.core._
 
 \begin_layout Plain Layout
 
-val typeofProto = OperatorPrototype("typeof", 
+val typeofProto = Proto("typeof", 'U, ("x", Variable('U, "T")))
 \end_layout
 
 \begin_layout Plain Layout
 
-                List(Variable(Variable(Variable(ANYTYPE, "U"),
-\end_layout
-
-\begin_layout Plain Layout
-
-                  "T"), "x")), BOOLEAN)
-\end_layout
-
-\begin_layout Plain Layout
-
-val typeofOp = ImmediateOperatorDefinition(typeofProto,
-\end_layout
-
-\begin_layout Plain Layout
-
-                OperatorProperties())
+val typeofOp = ImmediateOperatorDefinition(typeofProto, 'T)
 \end_layout
 
 \end_inset
@@ -4887,32 +4985,17 @@ status open
 
 \begin_layout Plain Layout
 
-val opdef = NativeOperatorDefinition(
+val addOp = NativeOperatorDefinition(
 \end_layout
 
 \begin_layout Plain Layout
 
-  OperatorPrototype("add",
+  Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
 \end_layout
 
 \begin_layout Plain Layout
 
-    List(Variable(INTEGER, "x"),
-\end_layout
-
-\begin_layout Plain Layout
-
-         Variable(BOOLEAN, "y")), INTEGER),
-\end_layout
-
-\begin_layout Plain Layout
-
-  OperatorProperties(associative=true, commutative=true,
-\end_layout
-
-\begin_layout Plain Layout
-
-    identity=Some(Literal(INTEGER, 0))))
+  Props(Associative, Commutative, Identity(0)))
 \end_layout
 
 \begin_layout Plain Layout
@@ -4922,12 +5005,12 @@ val opdef = NativeOperatorDefinition(
 
 \begin_layout Plain Layout
 
-def doadd(op: Operator, args: AtomList,
+def doaddOp(op: Operator, args: AtomList,
 \end_layout
 
 \begin_layout Plain Layout
 
-    binds: Option[Bindings]) = {
+    binds: Bindings) = {
 \end_layout
 
 \begin_layout Plain Layout
@@ -4937,7 +5020,7 @@ def doadd(op: Operator, args: AtomList,
 
 \begin_layout Plain Layout
 
-  var lits:BigInt = 0
+  var lits: BigInt = 0
 \end_layout
 
 \begin_layout Plain Layout
@@ -4947,7 +5030,7 @@ def doadd(op: Operator, args: AtomList,
 
 \begin_layout Plain Layout
 
-  var other = ListBuffer[BasicAtom]()
+  var other = IndexedSeq[BasicAtom]()
 \end_layout
 
 \begin_layout Plain Layout
@@ -4967,12 +5050,12 @@ def doadd(op: Operator, args: AtomList,
 
 \begin_layout Plain Layout
 
-      case Literal(_, IntVal(value)) => lits += value
+      case IntegerLiteral(_, value) => lits += value
 \end_layout
 
 \begin_layout Plain Layout
 
-      case _ => other += x
+      case _ => other :+= x
 \end_layout
 
 \begin_layout Plain Layout
@@ -4992,23 +5075,12 @@ def doadd(op: Operator, args: AtomList,
 
 \begin_layout Plain Layout
 
-  other += Literal(INTEGER, lits)
+  other :+= Literal(INTEGER, lits)
 \end_layout
 
 \begin_layout Plain Layout
 
-  // Construct and return a new operator application.
-  It is
-\end_layout
-
-\begin_layout Plain Layout
-
-  // critical to pass true as the optional third argument, as
-\end_layout
-
-\begin_layout Plain Layout
-
-  // this avoids calling this constructor again.
+  // Construct and return the new operator application.
 \end_layout
 
 \begin_layout Plain Layout
@@ -5028,12 +5100,12 @@ def doadd(op: Operator, args: AtomList,
 
 \begin_layout Plain Layout
 
-context.operatorLibrary.add(opdef)
+context.operatorLibrary.add(addOp)
 \end_layout
 
 \begin_layout Plain Layout
 
-context.operatorLibrary.register("add", doadd)
+context.operatorLibrary.register("add", doaddOp)
 \end_layout
 
 \end_inset
@@ -5102,7 +5174,7 @@ core.Apply
 add
 \family default
 .
- This can simplify the native handler, since it does not have to worry about
+ This can simplify the native handler since it does not have to worry about
  identities, etc.
  In the 
 \family typewriter
@@ -5132,7 +5204,7 @@ core.Apply
 core.Apply
 \family default
 .
- To prevent this we pass 
+ To prevent this recursion we pass 
 \family typewriter
 true
 \family default
@@ -5284,7 +5356,7 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
-status open
+status collapsed
 
 \begin_layout Subsection*
 Scala
@@ -5325,46 +5397,53 @@ core.Operator
  The operator definition, and thus the prototype and properties (or body
  depending on the kind of defintion), can be obtained from the operator
  instance.
+ Alternately, you can use the 
+\family typewriter
+apply
+\family default
+ method of 
+\family typewriter
+core.OperatorLibrary
+\family default
+ if you are sure the operator exists.
+ If the operator does not exist, this method will throw an exception.
+ The following are two ways to obtain the 
+\family typewriter
+add
+\family default
+ operator, given a context instance 
+\family typewriter
+context
+\family default
+.
 \end_layout
 
-\begin_layout Plain Layout
-The argument list must be built and wrapped as an instance of 
-\family typewriter
-core.AtomList
-\family default
-.
- This takes two arguments: a list of atoms and an optional pair of Boolean
- values.
- Invoke this as 
-\family typewriter
-AtomList(atoms, props)
-\family default
-, where 
-\family typewriter
-atoms
-\family default
- is the list of arguments, and 
-\family typewriter
-props
-\family default
- may be either 
-\family typewriter
-None
-\family default
- or 
-\family typewriter
-Some(assoc, comm)
-\family default
-.
- In the latter case 
-\family typewriter
-assoc
-\family default
- is true iff the argument list is associative and 
-\family typewriter
-comm
-\family default
- is true iff the argument list is commutative.
+\begin_layout LyX-Code
+context.operatorLibrary.get("add") match {
+\end_layout
+
+\begin_layout LyX-Code
+  case Some(op) => // Do something with the operator op.
+\end_layout
+
+\begin_layout LyX-Code
+  case None => // The operator is not known!
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout LyX-Code
+// The following throws an UndefinedOperatorException if
+\end_layout
+
+\begin_layout LyX-Code
+// add is not known.
+\end_layout
+
+\begin_layout LyX-Code
+context.operatorLibrary("add")
 \end_layout
 
 \end_inset
@@ -5423,7 +5502,7 @@ add
 \family default
  Elision will interpret this as a symbol of type 
 \family typewriter
-ANYTYPE
+SYMBOL
 \family default
 .
  To force Elision to look this operator up, write 
@@ -5694,6 +5773,253 @@ reference "chap:Special-Forms"
 \end_inset
 
  will introduce several other uses of the applicative dot.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Atom lists are instances of 
+\family typewriter
+core.AtomList
+\family default
+.
+ To create an atom list, collect the atoms into an instance of any 
+\family typewriter
+scala.collection.IndexedSeq
+\family default
+, such as a 
+\family typewriter
+scala.collection.immutable.Vector
+\family default
+.
+ Pass this sequence, along with the optional properties, to the 
+\family typewriter
+core.AtomList
+\family default
+ constructor.
+ The properties may be 
+\family typewriter
+None
+\family default
+ (for the 
+\family typewriter
+%?
+\family default
+ form), or 
+\family typewriter
+Some(assoc,comm)
+\family default
+, where 
+\family typewriter
+assoc
+\family default
+ and 
+\family typewriter
+comm
+\family default
+ are Boolean flags indicating whether the list is associative and commutative,
+ respectively.
+\end_layout
+
+\begin_layout Plain Layout
+The following replicates the bulleted list given above.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(false,
+ false))
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(true,
+ false))
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(false,
+ true))
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(true,
+ true))
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), None)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Operators, Symbols, and Naked Symbols
+\end_layout
+
+\begin_layout Standard
+If you type a symbol at the REPL prompt without type, this is regarded as
+ a 
+\begin_inset Quotes eld
+\end_inset
+
+naked
+\begin_inset Quotes erd
+\end_inset
+
+ symbol, and is subject to special treatment.
+ If the naked symbol appears on the left-hand side of an apply, the system
+ will attempt to interpret it as an operator, and will look it up in the
+ context.
+ If it is not found, it will issue an error.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+fred
+\end_layout
+
+\begin_layout LyX-Code
+$repl14 = fred:SYMBOL
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+fred(5)
+\end_layout
+
+\begin_layout LyX-Code
+ERROR: The operator fred is not known.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+fred.james
+\end_layout
+
+\begin_layout LyX-Code
+ERROR: The operator fred is not known.
+\end_layout
+
+\begin_layout Standard
+To overcome this explicitly given the type of the symbol.
+ Any type will suppress this behavior, but the most common (and obvious)
+ type is 
+\family typewriter
+SYMBOL
+\family default
+.
+ Enclosing the symbol in parentheses only helps with the simple operator
+ application, and not the applicative dot.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+fred:SYMBOL.james
+\end_layout
+
+\begin_layout LyX-Code
+$repl15 = fred:SYMBOL.james
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+(fred)(5)
+\end_layout
+
+\begin_layout LyX-Code
+$repl16 = fred:SYMBOL
+\end_layout
+
+\begin_layout LyX-Code
+$repl17 = 5
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+(fred).5
+\end_layout
+
+\begin_layout LyX-Code
+ERROR: The operator fred is not known.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+(fred:SYMBOL).5
+\end_layout
+
+\begin_layout LyX-Code
+$repl18 = (fred:SYMBOL.5)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+fred:SYMBOL(5)
+\end_layout
+
+\begin_layout LyX-Code
+ERROR: The operator SYMBOL is not known.
+\end_layout
+
+\begin_layout Standard
+The last line above is included just to emphasize that types are themselves
+ atoms, and are subject to the same parsing rules.
+\end_layout
+
+\begin_layout Standard
+The opposite of this is to explicitly state that a symbol denotes an operator,
+ using 
+\family typewriter
+OPTYPE
+\family default
+.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+(fred:OPTYPE)(5)
+\end_layout
+
+\begin_layout LyX-Code
+ERROR: The operator fred is not known.
 \end_layout
 
 \begin_layout Chapter
