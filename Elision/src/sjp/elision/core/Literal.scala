@@ -242,8 +242,7 @@ object IEEE754Single extends IEEE754(32, 23)
 object IEEE754Half extends IEEE754(16, 10)
 
 case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
-    radix: Int, platform: IEEE754 = FloatLiteral.platform)
-    extends Literal[(BigInt, Int, Int)](typ) {
+    radix: Int) extends Literal[(BigInt, Int, Int)](typ) {
   private lazy val _prefix = radix match {
     case 16 => "0x"
     case 10 => ""
@@ -262,40 +261,40 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     (if (typ != FLOAT) ":" + typ.toParseString else "")
   lazy val toFloat = significand.toFloat * scala.math.pow(radix, exponent).toFloat
   lazy val toDouble = significand.toDouble * scala.math.pow(radix, exponent)
-  def toIEEE754 = {
+  def toIEEE754(plaf: IEEE754 = FloatLiteral.platform) = {
     // Get the representation in bits.
     val bits = java.lang.Double.doubleToRawLongBits(toDouble)
     // Extract the sign.
-    val sign = (bits & platform.signMask) != 0
+    val sign = (bits & plaf.signMask) != 0
     // Extract the exponent and adjust for the bias.
-    val exponent = ((bits & platform.exponentMask) >> platform.significand) -
-    	platform.exponentBias
+    val exponent = ((bits & plaf.exponentMask) >> plaf.significand) -
+    	plaf.exponentBias
     // Extract the significand.
-    val significand = bits & platform.significandMask
+    val significand = bits & plaf.significandMask
     // Return the parts.
     (if (sign) 1 else 0, exponent, significand)
   }
-  def toUnreducedBinary = {
-    var (sign, ne, ns) = toIEEE754
+  def toUnreducedBinary(plaf: IEEE754 = FloatLiteral.platform) = {
+    var (sign, ne, ns) = toIEEE754(plaf)
     // We want to use the significand as an integer, so we need to multiply the
     // significand by 2 to the power of its width.  Since the significand comes
     // to us as an integer already, we just need to adjust the exponent here.
-    ne -= platform.significand
+    ne -= plaf.significand
     // If the exponent is the smallest value, then there is no hidden one;
     // otherwise there is.
-    ns = ns | (if (ne != -platform.exponentBias) platform.hiddenOne else 0)
+    ns = ns | (if (ne != -plaf.exponentBias) plaf.hiddenOne else 0)
     // Done!
     FloatLiteral(theType, if (sign != 0) -ns else ns, ne.toInt, 2)
   }
-  def toBinary = {
-    var (sign, ne, ns) = toIEEE754
+  def toBinary(plaf: IEEE754 = FloatLiteral.platform) = {
+    var (sign, ne, ns) = toIEEE754(plaf)
     // We want to use the significand as an integer, so we need to multiply the
     // significand by 2 to the power of its width.  Since the significand comes
     // to us as an integer already, we just need to adjust the exponent here.
-    ne -= platform.significand
+    ne -= plaf.significand
     // If the exponent is the smallest value, then there is no hidden one;
     // otherwise there is.
-    ns = ns | (if (ne != -platform.exponentBias) platform.hiddenOne else 0)
+    ns = ns | (if (ne != -plaf.exponentBias) plaf.hiddenOne else 0)
     // Now remove any trailing zeros from the significand.
     while (ns != 0 && (ns % 2) == 0) {
       ns /= 2
