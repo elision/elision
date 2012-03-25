@@ -220,8 +220,30 @@ extends Literal[Boolean](typ) {
     (if (typ != BOOLEAN) ":" + typ.toParseString else "")
 }
 
+case class IEEE754(width: Int, significand: Int) {
+  require (significand < (width - 2))
+  /** The exponent width. */
+  lazy val exponent = width - significand - 1
+  /** The sign mask. */
+  lazy val signMask:Long = 1L << (width - 1)
+  /** The exponent mask. */
+  lazy val exponentMask = ((1L << exponent) - 1) << significand
+  /** The significand mask. */
+  lazy val significandMask = (1L << significand) - 1
+  /** The exponent bias. */
+  lazy val exponentBias = (1L << (exponent - 1)) - 1
+  /** The hidden one. */
+  lazy val hiddenOne = 1L << significand
+}
+
+object IEEE754Quadruple extends IEEE754(128, 112)
+object IEEE754Double extends IEEE754(64, 52)
+object IEEE754Single extends IEEE754(32, 23)
+object IEEE754Half extends IEEE754(16, 10)
+
 case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
-    radix: Int) extends Literal[(BigInt, Int, Int)](typ) {
+    radix: Int, platform: IEEE754 = FloatLiteral.platform)
+    extends Literal[(BigInt, Int, Int)](typ) {
   private lazy val _prefix = radix match {
     case 16 => "0x"
     case 10 => ""
@@ -238,7 +260,49 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     (if (radix == 16) "P" else "e") +
     (if (_eneg) "-" else "") + _prefix + Integer.toString(_epos, radix) +
     (if (typ != FLOAT) ":" + typ.toParseString else "")
-  def toFloat = significand.toDouble * scala.math.pow(radix, exponent)
+  lazy val toFloat = significand.toFloat * scala.math.pow(radix, exponent).toFloat
+  lazy val toDouble = significand.toDouble * scala.math.pow(radix, exponent)
+  def toIEEE754 = {
+    // Get the representation in bits.
+    val bits = java.lang.Double.doubleToRawLongBits(toDouble)
+    // Extract the sign.
+    val sign = (bits & platform.signMask) != 0
+    // Extract the exponent and adjust for the bias.
+    val exponent = ((bits & platform.exponentMask) >> platform.significand) -
+    	platform.exponentBias
+    // Extract the significand.
+    val significand = bits & platform.significandMask
+    // Return the parts.
+    (if (sign) 1 else 0, exponent, significand)
+  }
+  def toUnreducedBinary = {
+    var (sign, ne, ns) = toIEEE754
+    // We want to use the significand as an integer, so we need to multiply the
+    // significand by 2 to the power of its width.  Since the significand comes
+    // to us as an integer already, we just need to adjust the exponent here.
+    ne -= platform.significand
+    // If the exponent is the smallest value, then there is no hidden one;
+    // otherwise there is.
+    ns = ns | (if (ne != -platform.exponentBias) platform.hiddenOne else 0)
+    // Done!
+    FloatLiteral(theType, if (sign != 0) -ns else ns, ne.toInt, 2)
+  }
+  def toBinary = {
+    var (sign, ne, ns) = toIEEE754
+    // We want to use the significand as an integer, so we need to multiply the
+    // significand by 2 to the power of its width.  Since the significand comes
+    // to us as an integer already, we just need to adjust the exponent here.
+    ne -= platform.significand
+    // If the exponent is the smallest value, then there is no hidden one;
+    // otherwise there is.
+    ns = ns | (if (ne != -platform.exponentBias) platform.hiddenOne else 0)
+    // Now remove any trailing zeros from the significand.
+    while (ns != 0 && (ns % 2) == 0) {
+      ns /= 2
+      ne += 1
+    }
+    FloatLiteral(theType, ns, ne.toInt, 2)
+  }
   val value = (significand, exponent, radix)
   def this(significand: BigInt, exponent: Int, radix: Int) =
     this(FLOAT, significand, exponent, radix)
@@ -248,4 +312,8 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
 	  case _ =>
 	    (this, false)
 	}
+}
+
+object FloatLiteral {
+  var platform: IEEE754 = IEEE754Double
 }
