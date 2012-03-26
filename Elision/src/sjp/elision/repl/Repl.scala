@@ -543,7 +543,7 @@ object Repl {
 		        // Toggle tracing.
 		        _trace = !_trace
 		        _parser = new AtomParser(_context, _trace)
-		        emitln("Tracing is " + (if (_trace) "ON." else "OFF."))
+		        emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
 		        _no_show
           case _ => _no_show
         })

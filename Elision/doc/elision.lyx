@@ -783,6 +783,14 @@ To exit from the REPL use
 help()
 \family default
 .
+ The REPL is the subject of 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Interacting-with-the"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Section
@@ -1095,6 +1103,12 @@ sjp.elision.core.BasicAtom
 \end_layout
 
 \begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Interacting-with-the"
+
+\end_inset
+
 Interacting with the REPL
 \end_layout
 
@@ -1221,6 +1235,122 @@ The REPL reads zero or more atoms per line, evaluates them, and displays
  Several atoms can be present on a single line; in that case the REPL displays
  each one.
  Note that at present atoms cannot span multiple lines.
+\end_layout
+
+\begin_layout Section
+History
+\end_layout
+
+\begin_layout Standard
+The Elision REPL saves a persistent history from session to session.
+ This history can be viewed with the 
+\family typewriter
+history()
+\family default
+ command.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+history()
+\end_layout
+
+\begin_layout LyX-Code
+ 1: {native neg($x:INTEGER):INTEGER}
+\end_layout
+
+\begin_layout LyX-Code
+ 2: {rule add($x,neg($x)) -> 0}
+\end_layout
+
+\begin_layout LyX-Code
+ 3: add(21,17,$x)
+\end_layout
+
+\begin_layout LyX-Code
+ 4: history()
+\end_layout
+
+\begin_layout LyX-Code
+Persistent history is found in: /home/userguy/.elision
+\end_layout
+
+\begin_layout Standard
+It is possible to recall any prior history element by entering the history
+ index after an exclaimation mark.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+!3
+\end_layout
+
+\begin_layout LyX-Code
+$repl14 = add($x, 38)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+bind($x, 2)
+\end_layout
+
+\begin_layout LyX-Code
+Bound $x
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+!3
+\end_layout
+
+\begin_layout LyX-Code
+$repl15 = 40
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+history()
+\end_layout
+
+\begin_layout LyX-Code
+ 1: {native neg($x:INTEGER):INTEGER}
+\end_layout
+
+\begin_layout LyX-Code
+ 2: {rule add($x,neg($x)) -> 0}
+\end_layout
+
+\begin_layout LyX-Code
+ 3: add(21,17,$x)
+\end_layout
+
+\begin_layout LyX-Code
+ 4: history()
+\end_layout
+
+\begin_layout LyX-Code
+ 5: !3
+\end_layout
+
+\begin_layout LyX-Code
+ 6: bind($x, 2)
+\end_layout
+
+\begin_layout LyX-Code
+ 7: !3
+\end_layout
+
+\begin_layout LyX-Code
+ 8: history()
+\end_layout
+
+\begin_layout LyX-Code
+Persistent history is found in: /home/userguy/.elision
 \end_layout
 
 \begin_layout Section
@@ -1366,6 +1496,60 @@ unbind
  them first.
 \end_layout
 
+\begin_layout LyX-Code
+e> 
+\series bold
+bind($x,7)
+\end_layout
+
+\begin_layout LyX-Code
+Bound $x
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+bind($y,
+\backslash
+$x.%($x,$x))
+\end_layout
+
+\begin_layout LyX-Code
+Bound $y
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+$x
+\end_layout
+
+\begin_layout LyX-Code
+$repl16 = 7
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+$y
+\end_layout
+
+\begin_layout LyX-Code
+$repl17 = 
+\backslash
+$`:1`.%($`:1`, $`:1`)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+$y.$x
+\end_layout
+
+\begin_layout LyX-Code
+$repl18 = %(7, 7)
+\end_layout
+
 \begin_layout Standard
 The 
 \family typewriter
@@ -1392,6 +1576,26 @@ $y.$x
 \family default
 .
  No error is generated if a variable is not bound.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+unbind($x)
+\end_layout
+
+\begin_layout LyX-Code
+Unbound $x
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+$y.$x
+\end_layout
+
+\begin_layout LyX-Code
+$repl19 = %($x, $x)
 \end_layout
 
 \begin_layout Standard
@@ -1422,7 +1626,823 @@ Atom Display
 \end_layout
 
 \begin_layout Standard
-When you type an atom at the REPL prompt
+When you type an atom at the REPL prompt the system parses the atom and
+ constructs it.
+ Several operators are understood by the REPL, and these are handled immediately.
+ Otherwise the current bindings are applied to the atom, and the atom is
+ then rewritten using any active rulesets.
+ The result of this is then bound to the next 
+\family typewriter
+$repl
+\family default
+\emph on
+n
+\emph default
+ variable.
+\end_layout
+
+\begin_layout Standard
+You can see the atom after it is parsed and constructed, but before bindings
+ are applied and rewriting is performed, by executing the 
+\family typewriter
+showprior()
+\family default
+ command.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+bind($x,10)
+\end_layout
+
+\begin_layout LyX-Code
+Bound $x
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+showprior()
+\end_layout
+
+\begin_layout LyX-Code
+Showing prior term is ON.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+add($x,$x,0)
+\end_layout
+
+\begin_layout LyX-Code
+add($x, $x)
+\end_layout
+
+\begin_layout LyX-Code
+$repl20 = 20
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+showprior()
+\end_layout
+
+\begin_layout LyX-Code
+Showing prior term is OFF.
+\end_layout
+
+\begin_layout Standard
+The atom as entered was 
+\family typewriter
+add($x,$x,0)
+\family default
+.
+ During construction the identity 
+\family typewriter
+0
+\family default
+ is removed, leaving the atom 
+\family typewriter
+add($x,$x)
+\family default
+, which is displayed.
+ Then the bindings are applied, yielding 
+\family typewriter
+add(10,10)
+\family default
+, which is rewritten to 
+\family typewriter
+20
+\family default
+ and displayed as the final result.
+ Entering 
+\family typewriter
+showprior()
+\family default
+ again disables printing the prior atom.
+\end_layout
+
+\begin_layout Standard
+Most REPL printing can be suppressed using the 
+\family typewriter
+quiet()
+\family default
+ command.
+ This changes the prompt to 
+\family typewriter
+q>
+\family default
+.
+ Only explicitly requested output is displayed in this mode.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+It is possible to display the Scala code to create the atom.
+ This is enabled (and disabled) with 
+\family typewriter
+showscala()
+\family default
+.
+ The assumed context for the resulting code is that the content of the 
+\family typewriter
+core
+\family default
+ package is imported.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+showscala()
+\end_layout
+
+\begin_layout LyX-Code
+Showing Scala is ON.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+
+\backslash
+$x:$T.$T
+\end_layout
+
+\begin_layout LyX-Code
+Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANYTYPE"), "T",
+ Set()), ":1", Set()), Variable(NamedRootType("ANYTYPE"), "T", Set()))
+\end_layout
+
+\begin_layout LyX-Code
+$repl28 = 
+\backslash
+$`:1`:$T.$T
+\end_layout
+
+\begin_layout Plain Layout
+This can be useful to discover how to construct an atom using the Scala
+ API.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Automatic Rewriting
+\end_layout
+
+\begin_layout Standard
+Once an atom is entered and bindings are applied, it is rewritten with the
+ active rulesets.
+ (Applying rules is the subject of 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Rules-and-Strategies"
+
+\end_inset
+
+.)
+\end_layout
+
+\begin_layout Standard
+Rulesets are initially disabled when declared.
+ They can be 
+\emph on
+enabled
+\emph default
+ using the 
+\family typewriter
+enable(RS)
+\family default
+ command, where 
+\family typewriter
+RS
+\family default
+ is the name of the ruleset.
+ Likewise, they can be 
+\emph on
+disabled
+\emph default
+ with the 
+\family typewriter
+disable(RS)
+\family default
+ command.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+if (true, 6, 7)
+\end_layout
+
+\begin_layout LyX-Code
+$repl19 = if(true, 6, 7)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+enable(IF)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+if (true, 6, 7)
+\end_layout
+
+\begin_layout LyX-Code
+$repl20 = 6
+\end_layout
+
+\begin_layout Standard
+A limit is placed on the number of times a rule can be applied to rewrite
+ an atom.
+ This limit can be set via the 
+\family typewriter
+setlimit(lim)
+\family default
+ command, where 
+\family typewriter
+lim
+\family default
+ is the new limit.
+ Automatic rewriting is on by default, but can be disabled (or re-enabled)
+ altogether with the 
+\family typewriter
+rewrite()
+\family default
+ command.
+\end_layout
+
+\begin_layout Standard
+You can ask the system which rules may be applied to an atom, using the
+ 
+\family typewriter
+showrules(atom)
+\family default
+ command, where 
+\family typewriter
+atom
+\family default
+ is the atom to test.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+showrules(if (true, 6, 7))
+\end_layout
+
+\begin_layout LyX-Code
+{ RULE if(true, $thenpart, $elsepart) -> $thenpart rulesets IF level 2 }
+\end_layout
+
+\begin_layout LyX-Code
+{ RULE if(false, $thenpart, $elsepart) -> $elsepart rulesets IF level 2
+ } 
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout Section
+Understanding Matching
+\end_layout
+
+\begin_layout Standard
+To support better understanding of the matching process, it is possible
+ to enable (or disable) tracing the matching process with the 
+\family typewriter
+tracematch()
+\family default
+ command.
+ When enabled considerable diagnostic information is printed for every match
+ that is attempted.
+\end_layout
+
+\begin_layout Standard
+Several things trigger the matching system.
+ One is constructing an operator application, where arguments are matched
+ against the formal parameters.
+ Another is matching a lambda argument to the parameter.
+ Of course, the most obvious way is by explicitly trying to match two atoms.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+tracematch()
+\end_layout
+
+\begin_layout LyX-Code
+Match tracing is ON.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+
+\backslash
+$x:$T.$T.add:OPTYPE
+\end_layout
+
+\begin_layout LyX-Code
+Sequence Matcher called: $domain,$codomain -> $T,ANYTYPE / { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (cceafb50) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $domain
+\end_layout
+
+\begin_layout LyX-Code
+  subject: $T
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (cceafb50): { bind domain -> $T }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (ba5fa5c) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $codomain
+\end_layout
+
+\begin_layout LyX-Code
+  subject: ANYTYPE
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind domain -> $T }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (ba5fa5c): { bind domain -> $T }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (94a4e9fe) in class sjp.elision.core.Lambda$$anon$1:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $`:1`:$T
+\end_layout
+
+\begin_layout LyX-Code
+  subject: add:OPTYPE
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+Sequence Matcher called: $`::1`,$`::2` -> INTEGER,INTEGER / { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (e4055fd3) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $`::1`
+\end_layout
+
+\begin_layout LyX-Code
+  subject: INTEGER
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (e4055fd3): { bind `::1` -> INTEGER }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (e4055ff2) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $`::2`
+\end_layout
+
+\begin_layout LyX-Code
+  subject: INTEGER
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind `::1` -> INTEGER }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (e4055ff2): { bind `::1` -> INTEGER, `::2` -> INTEGER }
+\end_layout
+
+\begin_layout LyX-Code
+Sequence Matcher called: $domain,$codomain -> xx(INTEGER, INTEGER),INTEGER
+ / { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (516c94d7) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $domain
+\end_layout
+
+\begin_layout LyX-Code
+  subject: xx(INTEGER, INTEGER)
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (516c94d7): { bind domain -> xx(INTEGER, INTEGER) }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (b28a4874) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $codomain
+\end_layout
+
+\begin_layout LyX-Code
+  subject: INTEGER
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind domain -> xx(INTEGER, INTEGER) }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (b28a4874): { bind domain -> xx(INTEGER, INTEGER), codomain -> INTEGER
+ }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (2b270a36) in class sjp.elision.core.Variable:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: $T
+\end_layout
+
+\begin_layout LyX-Code
+  subject: MAP(xx(INTEGER, INTEGER), INTEGER)
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (2b270a36): { bind T -> MAP(xx(INTEGER, INTEGER), INTEGER) }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (94a4e9fe): { bind `:1` -> add:OPTYPE, T -> MAP(xx(INTEGER, INTEGER),
+ INTEGER) }
+\end_layout
+
+\begin_layout LyX-Code
+$repl21 = MAP(xx(INTEGER, INTEGER), INTEGER)
+\end_layout
+
+\begin_layout Standard
+Reading this trace can be tricky.
+ The sequence matcher tries to perform an in-order pairwise match of two
+ sequences of atoms, given some set of bindings.
+ For example, the first line indicates that the sequence matcher was called
+ to match the pattern sequence 
+\family typewriter
+$domain,$codomain
+\family default
+ against the subject sequence 
+\family typewriter
+$T,ANYTYPE
+\family default
+ with no prior bindings.
+\end_layout
+
+\begin_layout Standard
+The lines that begin with 
+\family typewriter
+TRYING
+\family default
+ and 
+\family typewriter
+SUCCESS
+\family default
+ or 
+\family typewriter
+FAILURE
+\family default
+ are linked using the hexadecimal number in parentheses.
+ This number is actually a hash code for the match attempt and serves to
+ link together the lines.
+ In a large match attempts will often interleave.
+\end_layout
+
+\begin_layout Standard
+Following a 
+\family typewriter
+TRYING
+\family default
+ line the pattern, subject, and any bindings are printed.
+ On 
+\family typewriter
+SUCCESS
+\family default
+ we see the bindings that result in a successful match.
+ On 
+\family typewriter
+FAILURE
+\family default
+ we are told why the match failed, and the pattern and subject may be repeated.
+\end_layout
+
+\begin_layout Standard
+In some cases there will be additional matching reports after the 
+\family typewriter
+$repl
+\family default
+ result is shown.
+ These are due to 
+\emph on
+round-trip testing
+\emph default
+ by the system.
+ This is testing that determines whether or not an atom's representation
+ can be successfully re-parsed to yield the original atom, and this output
+ can safely be ignored.
+ Look for the line beginning with 
+\family typewriter
+$repl
+\family default
+ and ignore subsequent output.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+{match 7 -> $x}
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (de6d60a9) in class sjp.elision.core.IntegerLiteral:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: 7
+\end_layout
+
+\begin_layout LyX-Code
+  subject: $x
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+TRYING  (493d55a8) in class sjp.elision.core.INTEGER$:
+\end_layout
+
+\begin_layout LyX-Code
+  pattern: INTEGER
+\end_layout
+
+\begin_layout LyX-Code
+  subject: ANYTYPE
+\end_layout
+
+\begin_layout LyX-Code
+  with: { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+SUCCESS (493d55a8): { bind  }
+\end_layout
+
+\begin_layout LyX-Code
+FAILURE (de6d60a9): Literal pattern does not match subject.
+\end_layout
+
+\begin_layout LyX-Code
+Pattern: 7
+\end_layout
+
+\begin_layout LyX-Code
+Subject: $x
+\end_layout
+
+\begin_layout LyX-Code
+$repl41 = Nothing:ANYTYPE
+\end_layout
+
+\begin_layout Standard
+For this simple example we see the inner attempt to match the types succeeds,
+ and then the outer attempt to match the entire atoms fails because 
+\family typewriter
+7
+\family default
+ is a literal pattern and it can only match another literal 
+\family typewriter
+7
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Understanding Parsing
+\end_layout
+
+\begin_layout Standard
+The parser can also be traced, and this results in an enormous quantity
+ of output.
+ To enable (or disable) parser tracing, use the 
+\family typewriter
+traceparse()
+\family default
+ command.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+traceparse()
+\end_layout
+
+\begin_layout LyX-Code
+Parser tracing is ON.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+7
+\end_layout
+
+\begin_layout LyX-Code
+Starting new parsing run
+\end_layout
+
+\begin_layout LyX-Code
+a sequence of atoms/ZeroOrMore/AtomSeqPush1Action1, matched, cursor at 1:1
+ after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(1)../ZeroOrMore/ZeroOrMore/Sequence/an atom/LApply/a simple atom/whitespace
+ or comments/FirstOf/OneOrMore/[ 
+\backslash
+n
+\backslash
+r
+\backslash
+t
+\backslash
+f], failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(9)../OneOrMore, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(8)../FirstOf/Sequence/"/*", failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(9)../Sequence, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(8)../FirstOf/Sequence/"//", failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(9)../Sequence, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(8)../FirstOf, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(7)../whitespace or comments, matched, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(6)../a simple atom/FirstOf/Sequence/'(', failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(8)../Sequence, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(7)../FirstOf/a ruleset declaration/'{', failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(8)../a ruleset declaration, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(7)../FirstOf/a rewrite rule/'{', failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+..(8)../a rewrite rule, failed, cursor at 1:1 after ""
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout LyX-Code
+..(3)../Sequence, failed, cursor at 1:2 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+..(2)../FirstOf/Sequence/"//", failed, cursor at 1:2 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+..(3)../Sequence, failed, cursor at 1:2 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+..(2)../FirstOf, failed, cursor at 1:2 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+..(1)../whitespace or comments, matched, cursor at 1:2 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+a sequence of atoms/EOI, matched, cursor at 1:3 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+a sequence of atoms, matched, cursor at 1:3 after "7"
+\end_layout
+
+\begin_layout LyX-Code
+$repl14 = 7
+\end_layout
+
+\begin_layout Standard
+Many, many lines are omitted from the above.
+ The number shows the depth of the parse which, for this example, reaches
+ 16.
+ Note that, as with match tracing, the round trip testing results in additional
+ output that can be ignored.
 \end_layout
 
 \begin_layout Chapter
@@ -4668,87 +5688,52 @@ add
  operators).
 \end_layout
 
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset listings
-lstparams "frame=lines"
-inline false
-status open
-
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 import sjp.elision.core._
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout LyX-Code
 
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Make the Boolean inclusive or operator definition.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val orProto = Proto("or", BOOLEAN, ("P",BOOLEAN), ("Q",BOOLEAN))
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val orProps = Props(Associative, Commutative, Idempotent,
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
                     Absorber(false), Identity(true))
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val orOp = SymbolicOperatorDefinition(orProto, orProps)
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout LyX-Code
 
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Make the integer add operator definition.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val addProto = Proto("add", INTEGER, ("x",INTEGER), ("y",INTEGER))
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val addProps = Props(Associative, Commutative, Identity(0))
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val addOp = SymbolicOperatorDefinition(addProto, addProps)
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
 \end_layout
 
 \begin_layout Plain Layout
@@ -4784,52 +5769,26 @@ ANYTYPE
 Variable(ANYTYPE,"U")
 \family default
 .
-\begin_inset VSpace medskip
-\end_inset
-
-
 \end_layout
 
-\begin_layout Plain Layout
-\begin_inset listings
-lstparams "frame=lines"
-inline false
-status open
-
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 import sjp.elision.core._
 \end_layout
 
-\begin_layout Plain Layout
+\begin_layout LyX-Code
 
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Make the typeof operator definition.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val typeofProto = Proto("typeof", 'U, ("x", Variable('U, "T")))
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val typeofOp = ImmediateOperatorDefinition(typeofProto, 'T)
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
 \end_layout
 
 \begin_layout Plain Layout
@@ -4892,49 +5851,20 @@ core.Context
  of code.
 \end_layout
 
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset listings
-lstparams "frame=lines"
-inline false
-status open
-
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Install definitions.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 context.operatorLibrary.add(orOp)
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 context.operatorLibrary.add(addOp)
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 context.operatorLibrary.add(typeofOp)
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
 \end_layout
 
 \begin_layout Plain Layout
@@ -4965,159 +5895,108 @@ reference "chap:Matching-and-Rewriting"
  it uses some methods not explained just yet.
 \end_layout
 
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset listings
-lstparams "frame=lines"
-inline false
-status open
-
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Define add as a native operator.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 val addOp = NativeOperatorDefinition(
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   Props(Associative, Commutative, Identity(0)))
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Create a closure to perform the addition.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 def doaddOp(op: Operator, args: AtomList,
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
     binds: Bindings) = {
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   // Accumulate the integer literals found.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   var lits: BigInt = 0
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   // Accumulate other atoms found.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   var other = IndexedSeq[BasicAtom]()
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   // Traverse the list and divide the atoms.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   args.atoms.foreach {
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
     x => x match {
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
       case IntegerLiteral(_, value) => lits += value
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
       case _ => other :+= x
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
     }
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   }
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   // Now add the accumulated literals to the list.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   other :+= Literal(INTEGER, lits)
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   // Construct and return the new operator application.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
   Apply(op, AtomList(other), true)
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 }
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 // Register the operator and its handler.
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 context.operatorLibrary.add(addOp)
 \end_layout
 
-\begin_layout Plain Layout
-
+\begin_layout LyX-Code
 context.operatorLibrary.register("add", doaddOp)
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset VSpace medskip
-\end_inset
-
-
 \end_layout
 
 \begin_layout Plain Layout
@@ -5356,7 +6235,7 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
-status collapsed
+status open
 
 \begin_layout Subsection*
 Scala
@@ -5843,37 +6722,171 @@ The following replicates the bulleted list given above.
 \end_layout
 
 \begin_layout Itemize
+\align left
 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(false,
- false))
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+Some(false, false))
+\end_layout
+
+\begin_layout Itemize
+\align left
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+Some(true, false))
+\end_layout
+
+\begin_layout Itemize
+\align left
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+Some(false, true))
+\end_layout
+
+\begin_layout Itemize
+\align left
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+Some(true, true))
+\end_layout
+
+\begin_layout Itemize
+\align left
+
+\family typewriter
+AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset space \qquad{}
+\end_inset
+
+None)
+\end_layout
+
+\begin_layout Plain Layout
+There are special constructors to create atom lists.
+ The above lists can be created using the following much simpler syntax.
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(true,
- false))
+AList(4, 5, 'x)
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(false,
- true))
+AListA(4, 5, 'x)
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), Some(true,
- true))
+AListC(4, 5, 'x)
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)), None)
+AListAC(4, 5, 'x)
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+AListU(4, 5, 'x)
+\end_layout
+
+\begin_layout Plain Layout
+Even better, this notation can be used in pattern matching, as the above
+ all feature sequence extractors.
+\end_layout
+
+\begin_layout Plain Layout
+To create an apply, use the 
+\family typewriter
+core.Apply(lhs,rhs)
+\family default
+ constructor, where 
+\family typewriter
+lhs
+\family default
+ is the left-hand side, and 
+\family typewriter
+rhs
+\family default
+ is the right-hand side.
+ Here are the Scala code equivalents for the apply examples given previously.
+\end_layout
+
+\begin_layout LyX-Code
+// (7).$x
+\end_layout
+
+\begin_layout LyX-Code
+Apply(7,'x)
+\end_layout
+
+\begin_layout LyX-Code
+
+\family typewriter
+// (
+\backslash
+$x:$T.$T).add:OPTYPE
+\end_layout
+
+\begin_layout LyX-Code
+Apply(Lambda(Variable('T,"x"),'T), Literal(OPTYPE,'add))
+\end_layout
+
+\begin_layout LyX-Code
+// add.%?(5,6)
+\end_layout
+
+\begin_layout LyX-Code
+Apply(context.operatorLibrary("add"), AListU(5,6))
+\end_layout
+
+\begin_layout LyX-Code
+// $x.$y
+\end_layout
+
+\begin_layout LyX-Code
+Apply('x,'y)
 \end_layout
 
 \end_inset
@@ -6020,6 +7033,106 @@ e>
 
 \begin_layout LyX-Code
 ERROR: The operator fred is not known.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+The special type 
+\family typewriter
+OPTYPE
+\family default
+ is one place where the Scala API and REPL deviate.
+ Consider the following code.
+\end_layout
+
+\begin_layout LyX-Code
+Apply(Literal(OPTYPE, 'fred), Literal(5)).toParseString
+\end_layout
+
+\begin_layout Plain Layout
+This yields the output 
+\begin_inset Quotes eld
+\end_inset
+
+
+\family typewriter
+(fred:OPTYPE.5)
+\family default
+,
+\begin_inset Quotes erd
+\end_inset
+
+ but this fails the 
+\begin_inset Quotes eld
+\end_inset
+
+round trip
+\begin_inset Quotes erd
+\end_inset
+
+ test.
+ Parsing this string results in an attempt to look up the 
+\family typewriter
+fred
+\family default
+ operator in the current context.
+\end_layout
+
+\begin_layout Plain Layout
+This difficulty arises from the fact that there is no 
+\begin_inset Quotes eld
+\end_inset
+
+universal
+\begin_inset Quotes erd
+\end_inset
+
+ context.
+ The REPL and the parser have a context where they can look up 
+\family typewriter
+fred
+\family default
+, but the overall API does not.
+\end_layout
+
+\begin_layout Plain Layout
+To prevent this future versions of Elision may do away with 
+\family typewriter
+OPTYPE
+\family default
+ at the API level, and more rigorously dispose of it during parsing, but
+ for now remember that this is a piece of parser 
+\begin_inset Quotes eld
+\end_inset
+
+magic.
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter

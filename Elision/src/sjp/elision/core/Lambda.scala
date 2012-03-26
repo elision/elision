@@ -112,6 +112,8 @@ extends BasicAtom with Applicable {
   
   def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
   
+  override def toString = "Lambda(" + lvar + "," + body + ")"
+  
   override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
   
   override def equals(other: Any) = other match {

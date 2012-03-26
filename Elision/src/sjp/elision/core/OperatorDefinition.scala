@@ -217,6 +217,21 @@ case class OperatorPrototype(name: String, pars: IndexedSeq[Variable],
   }
 }
 
+/** Simple operator prototype creation and pattern matching. */
+object Proto {
+  /**
+   * Make a new operator prototype.
+   * 
+   * @param name				The operator name.
+   * @param typ					The type of a fully-applied operator.
+   * @param parameters	The formal parameters.
+   * @return	The new operator prototype.
+   */
+  def apply(name: String, typ: BasicAtom, parameters: (String, BasicAtom)*) =
+    OperatorPrototype(name,
+        parameters.map(x => Variable(x._2, x._1)).toIndexedSeq, typ)
+}
+
 /** A "no properties" object. */
 object Noprops extends OperatorProperties(false, false, false, None, None)
 

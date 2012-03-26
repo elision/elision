@@ -255,3 +255,29 @@ object Args {
    */
 	def unapplySeq(al:AtomList) = Some(al.atoms)
 }
+
+sealed abstract class QuickList(props: Option[(Boolean, Boolean)]) {
+  def apply(atoms: BasicAtom*) =
+    AtomList(OmitSeq(atoms:_*), props)
+    
+  def unapplySeq(al: AtomList) = al match {
+    case AtomList(seq, props) => Some(seq)
+    case _ => None
+  }
+}
+
+/** Simplified access to associative / commutative atom lists. */
+object AListAC extends QuickList(Some(true, true))
+
+/** Simplified access to associative atom lists. */
+object AListA extends QuickList(Some(true, false))
+
+/** Simplified access to commutative atom lists. */
+object AListC extends QuickList(Some(false, true))
+
+/** Simplified access to non-commutative, non-associative atom lists. */
+object AList extends QuickList(Some(false, false))
+
+/** Simplified access to atom lists with no properties. */
+object AListU extends QuickList(None)
+

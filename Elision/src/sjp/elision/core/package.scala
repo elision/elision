@@ -278,6 +278,14 @@ package object core {
      * @return An empty sequence.
      */
     def apply[A](): OmitSeq[A] = new OmitSeq1(Seq[A]().toIndexedSeq)
+    
+    /**
+     * Make a new omit sequence from the given items.
+     * 
+     * @param items	The items of the new sequence.
+     * @return	The new sequence.
+     */
+    def apply[A](items: A*): OmitSeq[A] = new OmitSeq1[A](items.toIndexedSeq)
   }
   
   /**
