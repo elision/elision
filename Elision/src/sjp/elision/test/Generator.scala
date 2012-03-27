@@ -28,9 +28,78 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package sjp.elision.test
+import sjp.elision.core._
 
 /**
  * Generate instances of a thing according to combinatorial rules.
  */
-class Generator {
+abstract class Generator[A] extends Iterator[A] {
+  protected var _exhausted = false
+  protected var _current: A = null.asInstanceOf[A] 
+  def next =
+    if (_current != null || hasNext) {
+      val tmp = _current
+      _current = null.asInstanceOf[A]
+      tmp
+    } else {
+      null.asInstanceOf[A]
+    }
+  def hasNext = _current != null || findNext
+  def findNext: Boolean
+}
+
+abstract class SimpleGenerator[A] extends Generator[A] {
+  val instances: Seq[A]
+  lazy val iter = instances.iterator
+  def findNext = {
+    _current = iter.next
+    _current != null
+  }
+}
+
+class StringGen extends SimpleGenerator[String] {
+  val instances = Seq("", "\"", "\n", "Fred", "Ti\tm", "`'J\n \"$m")
+}
+
+class IntegerGen extends SimpleGenerator[BigInt] {
+  val instances = Seq[BigInt](0, -1, 1, 21, 0xffff, 0xffffffffffffL)
+}
+
+class AtomGen extends Generator[BasicAtom] {
+  val kinds = Seq[Generator[BasicAtom]](
+      new ApplyGen)
+  val kinditer = kinds.iterator
+  var iter = kinditer.next
+  def findNext = {
+    if (iter.hasNext) {
+      _current = iter.next
+    } else if (kinditer.hasNext) {
+      iter = kinditer.next
+      findNext
+    }
+    _current != null
+  }
+}
+
+class ApplyGen extends Generator[BasicAtom] {
+  val lhsiter = new AtomGen
+  var rhsiter = new AtomGen
+  var lhs = lhsiter.next
+  def findNext = {
+    if (!rhsiter.hasNext) {
+      if (lhsiter.hasNext) {
+        lhs = lhsiter.next
+        rhsiter = new AtomGen
+        findNext
+      }
+    } else {
+      _current = Apply(lhs, rhsiter.next)
+    } 
+    _current != null
+  }
+}
+
+class AtomListGen extends Generator[BasicAtom] {
+  val sizes = Seq(0, 1, 2)
+  def findNext = false
 }

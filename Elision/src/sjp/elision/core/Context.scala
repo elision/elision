@@ -213,6 +213,9 @@ class Context(val allowUndeclared:Boolean = false) {
   /** Bit zero is reserved for the default ruleset. */
   _rs2bit += ("DEFAULT" -> 0)
   
+  /** The default ruleset is on by default. */
+  enableRuleset("DEFAULT")
+  
   /**
    * Get the bit for a ruleset.
    * @param name	The ruleset name.
@@ -347,5 +350,30 @@ class Context(val allowUndeclared:Boolean = false) {
     val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
     for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
       yield rule
+  }
+}
+
+private object Completor {
+  def complete(rule: RewriteRule): List[RewriteRule] = {
+    var list = List[RewriteRule](rule)
+    val pattern = rule.pattern
+    val rewrite = rule.rewrite
+    pattern match {
+      case Apply(op:Operator, al:AtomList) => {
+        val props = op.opdef match {
+          case iod: ImmediateOperatorDefinition => Noprops
+          case sod: SymbolicOperatorDefinition => sod.props
+          case nod: NativeOperatorDefinition => nod.props
+        }
+        if (props.associative) {
+          // Add extra argument on the end.
+          if (!props.commutative) {
+            // Add extra argument at the start.
+          }
+        }
+      }
+      case _ =>
+    }
+    list
   }
 }

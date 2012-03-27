@@ -4328,6 +4328,77 @@ reference "tab:Lambdas"
 \end_inset
 
  shows some examples of lambda applications and the results.
+ The parentheses around the 7 in the first entry are required to prevent
+ the system from seeing 7.12 as a floating point number.
+\end_layout
+
+\begin_layout Standard
+Consider the last item in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Lambdas"
+
+\end_inset
+
+.
+ We move through this step-by-step to show what is going on here.
+ First, let's parenthesize this to better see the pieces: 
+\family typewriter
+(
+\backslash
+$x.(
+\backslash
+$y.$x)).12
+\family default
+.
+ Now we see that we have a lambda expression of the form 
+\family typewriter
+
+\backslash
+$x.
+\family default
+
+\begin_inset Formula $b$
+\end_inset
+
+
+\family typewriter
+.12
+\family default
+, where 
+\begin_inset Formula $b$
+\end_inset
+
+ is the lambda body.
+ This says to replace 
+\family typewriter
+$x
+\family default
+ with 
+\family typewriter
+12
+\family default
+ in the body.
+ Replacing 
+\family typewriter
+$x
+\family default
+ with 
+\family typewriter
+12
+\family default
+ in the body (
+\family typewriter
+$y.$x
+\family default
+) gives 
+\family typewriter
+$y.12
+\family default
+, which is the answer.
+\end_layout
+
+\begin_layout Standard
 \begin_inset Float table
 wide false
 sideways false
@@ -4383,7 +4454,7 @@ Value
 \family typewriter
 
 \backslash
-$x.7.12
+$x.(7).12
 \end_layout
 
 \end_inset
@@ -4466,6 +4537,60 @@ $y.12
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+If you enter 
+\family typewriter
+
+\backslash
+$x.
+\backslash
+$y.$x.12
+\family default
+ at the Elision prompt, you will 
+\emph on
+not
+\emph default
+ see 
+\family typewriter
+
+\backslash
+$y.12
+\family default
+.
+ What you 
+\emph on
+will
+\emph default
+ see is 
+\family typewriter
+
+\backslash
+$`:1`.12
+\family default
+.
+ The 
+\family typewriter
+$y
+\family default
+ has been replaced with the funny symbol 
+\family typewriter
+$`:1`
+\family default
+.
+ This symbol is a DeBruijn index, and it is used to prevent lambdas from
+ 
+\begin_inset Quotes eld
+\end_inset
+
+capturing
+\begin_inset Quotes erd
+\end_inset
+
+ variables.
+ In practice you should not need to worry about DeBruijn indices; the system
+ uses them when appropriate and keeps track of the details for you.
 \end_layout
 
 \begin_layout Standard
@@ -4847,14 +4972,18 @@ body
 \begin_layout Standard
 Operator prototypes specify the operator name as a symbol, and give a comma-sepa
 rated list of named parameters in parentheses.
- Each parameter is a variable, and the type must be specified (though it
- may be 
+ Each parameter is a variable whose type may be specified (otherwise it
+ is 
 \family typewriter
 ANYTYPE
 \family default
 ).
  Following the closing parenthesis the type of the fully-applied operator
- must be given.
+ may be given (if not, it, too, is 
+\family typewriter
+ANYTYPE
+\family default
+).
  For instance, if the operator 
 \family typewriter
 foo
@@ -4865,6 +4994,12 @@ foo
 foo($x: INTEGER, $y: INTEGER): INTEGER
 \family default
 .
+ Types may be variables, so you can write 
+\family typewriter
+join($x:$T, $y:$T):$T
+\family default
+ to indicate an operator that takes two arguments of the same type and evaluates
+ to the same type as the arguments.
 \end_layout
 
 \begin_layout Standard
@@ -4903,6 +5038,7 @@ core.OperatorPrototype
 core.Variable
 \family default
  instances as parameters, and the type.
+ At present you must pass a list as the last argument, but it may be empty.
  The following defines the 
 \family typewriter
 foo
@@ -4919,7 +5055,7 @@ OperatorPrototype("foo",
 \end_layout
 
 \begin_layout LyX-Code
-  INTEGER)
+  INTEGER, List())
 \end_layout
 
 \begin_layout Plain Layout
@@ -5351,8 +5487,66 @@ or
 \end_layout
 
 \begin_layout Standard
-Elision, at present, does not correct argument lists for idempotency.
- This will be implemented in a future version.
+As an example, we implement multisets and sets using symbolic operators.
+ A 
+\emph on
+multiset
+\emph default
+ allows repeated elements to be present.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+{operator mset($x,$y) is associative, commutative}
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+mset(7, fred, "James", blue, 7, blue)
+\end_layout
+
+\begin_layout LyX-Code
+$repl18 = mset(7, fred:SYMBOL, "James", blue:SYMBOL, 7, blue:SYMBOL)
+\end_layout
+
+\begin_layout Standard
+A 
+\emph on
+set
+\emph default
+ does not allow repeated elements.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+{operator set($x,$y) is associative, commutative, idempotent}
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+set(7, fred, "James", blue, 7, blue)
+\end_layout
+
+\begin_layout LyX-Code
+$repl19 = set(7, fred:SYMBOL, "James", blue:SYMBOL)
+\end_layout
+
+\begin_layout Standard
+Including idempotency in the list of properties allows a simple implementation
+ of sets.
+ Examples of idempotent operators are the logical 
+\emph on
+or
+\emph default
+ and 
+\emph on
+and
+\emph default
+.
 \end_layout
 
 \begin_layout Subsection

@@ -689,6 +689,15 @@ object Repl {
           case _ => Apply(op, args, true)
         })
         
+    // Define neg as a native operator.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("neg", INTEGER, ("x", INTEGER))))
+    _context.operatorLibrary.register("neg",
+        (op: Operator, args: AtomList, _) => args match {
+          case Args(IntegerLiteral(_, x)) => -x
+          case _ => Apply(op, args, true)
+        })
+        
     // Define add as a native operator.
 		_context.operatorLibrary.add(NativeOperatorDefinition(
 		    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),

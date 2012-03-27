@@ -158,12 +158,8 @@ class OperatorLibrary(
  	  case None if allowUndefined == true =>
  	    // Make the operator now.
  	    val od = SymbolicOperatorDefinition(
- 	        OperatorPrototype(
- 	        		name,
- 	        		IndexedSeq(Variable(TypeUniverse, "x"),
- 	        		    Variable(TypeUniverse, "y")),
- 	        		TypeUniverse),
- 	        OperatorProperties(associative = true))
+ 	        Proto(name, ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
+ 	        Props(Associative))
  	    add(od)
  	    get(name)
  	  case _ => None
@@ -230,12 +226,8 @@ object OperatorLibrary {
  	 */
  	private val MapOperator = ProtoOperator(TypeUniverse,
  	    SymbolicOperatorDefinition(
- 	        OperatorPrototype(
- 	            "MAP",
-		 	        IndexedSeq(Variable(ANYTYPE, "domain"),
-		 	            Variable(ANYTYPE, "codomain")),
-		 	        ANYTYPE),
-		 	    OperatorProperties()))
+ 	        Proto("MAP", ANYTYPE, ("domain", ANYTYPE), ("codomain", ANYTYPE)),
+ 	        Props()))
   
  	/**
  	 * Construct a map type, given a domain and range.
@@ -248,11 +240,8 @@ object OperatorLibrary {
    */
   private val CrossOperator = ProtoOperator(TypeUniverse,
       SymbolicOperatorDefinition(
-		      OperatorPrototype(
-		          "xx",
-		          IndexedSeq(Variable(ANYTYPE, "a"), Variable(ANYTYPE, "b")),
-		          ANYTYPE),
-		      OperatorProperties(associative=true)))
+          Proto("xx", ANYTYPE, ("a", ANYTYPE), ("b", ANYTYPE)),
+          Props(Associative)))
   
   /**
    * Make a cross type.

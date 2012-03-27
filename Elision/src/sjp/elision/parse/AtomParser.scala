@@ -289,18 +289,24 @@ object AtomParser {
 	 * @param name			The operator name.
 	 * @param pars			The formal parameter.
 	 * @param typ				The type.
+	 * @param guards		The guards, if any.
 	 */
 	class OperatorPrototypeNode(
 	    val name: String,
 	    val pars: Option[List[VariableNode]],
-	    val typ: AstNode) {
+	    val typ: Option[AstNode],
+	    val guards: List[AstNode]) {
 	  def interpret = OperatorPrototype(
 	      name,
 	      pars match {
 	        case Some(list) => list.toIndexedSeq[VariableNode].map(_.interpret)
 	        case None => IndexedSeq[Variable]()
 	      },
-	      typ.interpret)
+	      typ match {
+	        case Some(actual) => actual.interpret
+	        case None => ANYTYPE
+	      },
+	      guards.map(_.interpret))
 	}
 	
 	/**
@@ -1406,15 +1412,18 @@ extends Parser {
   
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
-    ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~ ": " ~ FirstAtom ~~>
-    ((name:NakedSymbolNode, pars:Option[List[VariableNode]], typ:AstNode) =>
-          new OperatorPrototypeNode(name.str, pars, typ))
+    ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~
+    optional(": " ~ FirstAtom) ~
+    zeroOrMore("if " ~ FirstAtom) ~~>
+    ((name:NakedSymbolNode, pars:Option[List[VariableNode]],
+        typ:Option[AstNode], guards:List[AstNode]) =>
+          new OperatorPrototypeNode(name.str, pars, typ, guards))
   }.label("an operator prototype")
 
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
-    ParsedTypedVariable ~
-    zeroOrMore(", " ~ ParsedTypedVariable) ~~> (_ :: _)
+    ParsedVariable ~
+    zeroOrMore(", " ~ ParsedVariable) ~~> (_ :: _)
   }.label("an operator parameter list")
   
   /** Parse an immediate definition for an operator. */

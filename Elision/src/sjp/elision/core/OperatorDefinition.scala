@@ -175,11 +175,12 @@ case class NativeOperatorDefinition(override val proto: OperatorPrototype,
  * @param typepars	The type parameters.
  * @param pars			The parameters.
  * @param typ				The type.
+ * @param guards		The guards, if any.
  */
 case class OperatorPrototype(name: String, pars: IndexedSeq[Variable],
-    typ: BasicAtom) {
+    typ: BasicAtom, guards: List[BasicAtom]) {
   def toParseString = name + pars.mkParseString("(", ",", ")") +
-  	": " + typ.toParseString
+  	": " + typ.toParseString + guards.mkParseString(" ", "if ", "")
 
 	/**
 	 * This is a map from label name to the list of (zero-based) indices of the
@@ -220,7 +221,7 @@ case class OperatorPrototype(name: String, pars: IndexedSeq[Variable],
 /** Simple operator prototype creation and pattern matching. */
 object Proto {
   /**
-   * Make a new operator prototype.
+   * Make a new operator prototype.  The operator cannot have guards.
    * 
    * @param name				The operator name.
    * @param typ					The type of a fully-applied operator.
@@ -229,7 +230,7 @@ object Proto {
    */
   def apply(name: String, typ: BasicAtom, parameters: (String, BasicAtom)*) =
     OperatorPrototype(name,
-        parameters.map(x => Variable(x._2, x._1)).toIndexedSeq, typ)
+        parameters.map(x => Variable(x._2, x._1)).toIndexedSeq, typ, List())
 }
 
 /** A "no properties" object. */
@@ -237,6 +238,7 @@ object Noprops extends OperatorProperties(false, false, false, None, None)
 
 /**
  * Encapsulate operator properties.
+ * 
  * @param assoc			True iff associative.  Default is false.
  * @param comm			True iff commutative.  Default is false.
  * @param idem			True iff idempotent.  Default is false.

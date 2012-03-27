@@ -254,10 +254,12 @@ object Apply {
    * they do not match, throw an exception.
    * 
    * The argument list is processed to flatten associative applications, and
-   * to remove identities and look for absorbers.
+   * to remove identities and look for absorbers.  If the operator is
+   * idempotent, the duplicate arguments are removed.
    * 
-   * Finally, the remaining arguments (if any) are checked to see if they
-   * match the formal parameters.
+   * The remaining arguments (if any) are checked to see if they match the
+   * formal parameters.  The resulting bindings are then applied to each
+   * guard, and if the guards evaluate to true, the argument list is accepted.
    * 
    * @param op			The operator.
    * @param props		The operator properties.
@@ -342,6 +344,7 @@ object Apply {
 		      newlist :+= atom
 		  }
     }
+    if (props.idempotent) newlist = newlist.distinct
     
     // If the list is empty, and there is an identity, then the identity is
     // the result.  Otherwise the answer is a new list.
@@ -387,7 +390,7 @@ object Apply {
       case Match(bind) => bind
       case Many(iter) => iter.next
     }
-
+    
     // The argument list matches.  Make and return the apply.
     if (bypass) {
       return OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
