@@ -305,6 +305,19 @@ class Context(val allowUndeclared:Boolean = false) {
    * 					and undeclared rulesets are not allowed.
    */
   def add(rule: RewriteRule) = {
+    // Complete the rule.
+    for (rule2 <- Completor.complete(rule)) doAdd(rule2)
+    this
+  }
+  
+  /**
+   * Add a rewrite rule to this context.
+   * @param rule	The rewrite rule to add.
+   * @throws	NoSuchRulesetException
+   * 					At least one ruleset mentioned in the rule has not been declared,
+   * 					and undeclared rulesets are not allowed.
+   */
+  private def doAdd(rule: RewriteRule) = {
     // Figure out what rulesets this rule is in.  We build the bitset here.
     val bits = new BitSet()
     for (rs <- rule.rulesets) bits += getRulesetBit(rs)
@@ -353,27 +366,106 @@ class Context(val allowUndeclared:Boolean = false) {
   }
 }
 
+/**
+ * Generate synthetic rules based on the provided rule, if necessary.
+ * 
+ * Synthetic rules are required when a rule pattern's root is an associative
+ * operator.  There are two cases.
+ * 
+ * If the operator is both associative and commutative, then one synthetic rule
+ * is constructed by adding an additional argument to the right-hand side of
+ * the argument list in both the pattern and the rewrite.
+ * 
+ * Example:
+ * {{{
+ * { rule and($x, not($x)) -> false }
+ * }}}
+ * Synthetic Rule:
+ * {{{
+ * { rule and($x, not($x), $r) -> and(false, $r) }
+ * }}}
+ * (The rewrite in the above rule is of course reduced to `false`.)
+ * 
+ * If the operator is associative but not commutative, then we must add three
+ * synthetic rules that add new arguments to either end of both the pattern
+ * and rewrite.
+ * 
+ * Example:
+ * {{{
+ * { rule concat($x, inv($x)) -> "" }
+ * }}}
+ * Synthetic Rules:
+ * {{{
+ * { rule concat($l, $x, inv($x)) -> concat($l, "") }
+ * { rule concat($x, inv($x), $r) -> concat("", $r) }
+ * { rule concat($l, $x, inv($x), $r) -> concat($l, "", $r) }
+ * }}}
+ */
 private object Completor {
+  /**
+   * Perform partial completion for the given rule by generating the necessary
+   * synthetic rules.
+   * 
+   * @param rule	The provided rule.
+   * @return	A list of rules, including the original rule and any synthetic
+   * 					rules.
+   */
   def complete(rule: RewriteRule): List[RewriteRule] = {
+    // Make a new list to hold the rules, and add the original rule.
     var list = List[RewriteRule](rule)
+    
+    // Extract the pattern and rewrite, and then check the pattern to see if
+    // it uses an operator.
     val pattern = rule.pattern
     val rewrite = rule.rewrite
     pattern match {
       case Apply(op:Operator, al:AtomList) => {
+        // Extract the operator properties.
         val props = op.opdef match {
           case iod: ImmediateOperatorDefinition => NoProps
           case sod: SymbolicOperatorDefinition => sod.props
           case nod: NativeOperatorDefinition => nod.props
         }
-        if (props.associative.getOrElse(false)) {
-          // Add extra argument on the end.
-          if (!props.commutative.getOrElse(false)) {
-            // Add extra argument at the start.
-          }
+        
+        // If the operator is not associative, we don't need to do anything.
+        if (!props.associative.getOrElse(false)) {
+          return list
         }
+        
+        // The operator is associative.  We must at least add an argument on
+        // the right-hand side.  Make and add the argument, and then add the
+        // synthetic rule.
+        var right = Variable(al(0).theType, "::R")
+        var newpatternlist = al.atoms :+ right
+        var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
+        list :+= RewriteRule(Apply(op, AtomList(props, newpatternlist)),
+            Apply(op, AtomList(props, newrewritelist)),
+            rule.guards, rule.rulesets, rule.cacheLevel, true)
+        
+        // If the operator is commutative, we are done.
+        if (props.commutative.getOrElse(false)) {
+          return list
+        }
+        
+        // Repeat the above to add an argument on the left-hand side.
+        var left = Variable(al(0).theType, "::L")
+        newpatternlist = left +: al.atoms
+        newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
+        list :+= RewriteRule(Apply(op, AtomList(props, newpatternlist)),
+            Apply(op, AtomList(props, newrewritelist)),
+            rule.guards, rule.rulesets, rule.cacheLevel, true)
+            
+        // And again add the argument on the right-hand side.
+        newpatternlist = newpatternlist :+ right
+        newrewritelist = newrewritelist :+ right
+        list :+= RewriteRule(Apply(op, AtomList(props, newpatternlist)),
+            Apply(op, AtomList(props, newrewritelist)),
+            rule.guards, rule.rulesets, rule.cacheLevel, true)
+            
+        // Done.
+        return list
       }
-      case _ =>
+      case _ => return list
     }
-    list
   }
 }

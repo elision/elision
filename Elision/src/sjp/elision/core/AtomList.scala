@@ -34,6 +34,7 @@ package sjp.elision.core
 import scala.collection.immutable.HashMap
 import java.util.LinkedList
 import scala.collection.mutable.MapBuilder
+import scala.collection.SeqLike
 
 /**
  * Encapsulate an ordered list of atoms.
@@ -63,7 +64,7 @@ import scala.collection.mutable.MapBuilder
  * @param xatoms	The list of atoms.  Note that order may be important.
  */
 class AtomList(val props: AlgProp, xatoms: OmitSeq[BasicAtom])
-extends BasicAtom {
+extends BasicAtom with SeqLike[BasicAtom, AtomList] {
   require(xatoms != null)
   
   /** Whether this list should be regarded as associative. */
@@ -76,7 +77,55 @@ extends BasicAtom {
   val idempotent = props.idempotent.getOrElse(false)
   
   /** The atoms in this list. */
-  val atoms: OmitSeq[BasicAtom] = if (idempotent) xatoms.distinct else xatoms 
+  val atoms: OmitSeq[BasicAtom] = if (idempotent) xatoms.distinct else xatoms
+
+  /**
+   * Get an element from the list by index.
+   * 
+   * @param idx	The zero-based index.
+   * @return	The requested element.
+   */
+  def apply(idx: Int) = atoms(idx)
+  
+  /**
+   * Get an iterator over the atoms in the list.
+   * 
+   * @return	An iterator over the atoms.
+   */
+  def iterator = atoms.iterator
+  
+  /**
+   * Get the length of the list.
+   * 
+   * @return	The number of atoms in the list.
+   */
+  def length = atoms.length
+  
+  /**
+   * View this as a sequence.
+   * 
+   * @return	The sequence view of this list.
+   */
+  def seq = atoms
+  
+  /**
+   * Get a new builder for atom lists.
+   * 
+   * @return	The new builder.
+   */
+  protected def newBuilder = new AtomListBuilder
+  
+  import scala.collection.mutable.Builder
+  /**
+   * Implement the builder for atom lists.
+   */
+  class AtomListBuilder extends Builder[BasicAtom, AtomList] {
+    import scala.collection.immutable.VectorBuilder
+    private val _builder = new VectorBuilder[BasicAtom]()
+    def +=(elem: BasicAtom) = { _builder += elem ; this }
+    def clear() {_builder.clear()}
+    def result() = new AtomList(props, _builder.result())
+  }
     
   // Map each constant to its index.
   val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
@@ -160,8 +209,8 @@ extends BasicAtom {
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
   
-  override def toString = "AtomList(" +
-  		atoms.mkParseString("OmitSeq(", ",", ")") + "," + props + ")"
+  override def toString = "AtomList(" + props + ", " +
+  		atoms.mkParseString("OmitSeq(", ",", ")") + ")"
   
   override lazy val hashCode = atoms.hashCode
   
