@@ -318,17 +318,6 @@ object AtomParser {
 	}
 	
 	/**
-	 * Represent a native operator definition.
-	 * @param opn		The prototype node.
-	 * @param prop	The properties.
-	 */
-	case class NativeOperatorDefinitionNode(
-	    opn: OperatorPrototypeNode,
-	    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
-	  def interpret = NativeOperatorDefinition(opn.interpret, prop.interpret)
-	}
-	
-	/**
 	 * Represent an immediate operator definition.
 	 * @param opn		The prototype node.
 	 * @param prop	The body.
@@ -1335,30 +1324,11 @@ extends Parser {
    *   { operator or(\$p: BOOLEAN, \$q: BOOLEAN): BOOLEAN is
    *     associative, commutative, idempotent, identity false, absorber true }
    * }}} 
-   * An operator whose definition is provided by the runtime system - that is,
-   * it is implemented in software.
-   * {{{
-   *   { native operator `+`(\$x: NUMBER, \$y: NUMBER): NUMBER is
-   *     associative, commutative, identity 0 }
-   * }}}
    */
   def ParsedOperatorDefinition = rule {
-    ParsedNativeOperatorDefinition |
     ParsedSymbolicOperatorDefinition |
     ParsedImmediateOperatorDefinition
   }.label("an operator definition")
-  
-  /**
-   * Parse a native operator definition.
-   * {{{
-   * { native operator `+`(\$x: NUMBER, \$y: NUMBER): NUMBER is
-   *   associative, commutative, identity 0 }
-   * }}}
-   */
-  def ParsedNativeOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "{ " ~ "native " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
-    "} " ~~> (NativeOperatorDefinitionNode(_,_))
-  }.label("a native operator definition")
   
   /**
    * Parse a symbolic operator definition.

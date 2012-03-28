@@ -163,26 +163,6 @@ case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
 }
 
 /**
- * Encapsulate a native operator definition.
- * @param proto		The prototype.
- * @param props		Operator properties.
- */
-case class NativeOperatorDefinition(override val proto: OperatorPrototype,
-    props: AlgProp = NoProps) extends OperatorDefinition(proto) {
-  check(proto, props)
-  lazy val isConstant = props.isConstant
-	def toParseString =
-	  "{ native " + proto.toParseString + " " + props.toParseString + " }"
-	override lazy val hashCode = proto.hashCode * 31 + props.hashCode
-	override def equals(other: Any) = other match {
-    case nod:NativeOperatorDefinition =>
-      proto == nod.proto &&
-      props == nod.props
-    case _ => false
-  }
-}
-
-/**
  * The operator prototype.
  * @param name			The operator name.
  * @param typepars	The type parameters.

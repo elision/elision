@@ -424,7 +424,6 @@ private object Completor {
         val props = op.opdef match {
           case iod: ImmediateOperatorDefinition => NoProps
           case sod: SymbolicOperatorDefinition => sod.props
-          case nod: NativeOperatorDefinition => nod.props
         }
         
         // If the operator is not associative, we don't need to do anything.

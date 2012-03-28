@@ -219,11 +219,6 @@ object Apply {
       // 
       // The following will compute the correct atom for the apply.
       op.opdef match {
-        case NativeOperatorDefinition(_, props) =>
-          // This is a native operator.
-          val assoc = al.props.associative.getOrElse(props.associative.getOrElse(false))
-          val comm = al.props.commutative.getOrElse(props.commutative.getOrElse(false))
-          checkProto(op, props, al, assoc, comm, bypass)
         case SymbolicOperatorDefinition(_, props) =>
           // This is a symbolic operator.
           val assoc = al.props.associative.getOrElse(props.associative.getOrElse(false))

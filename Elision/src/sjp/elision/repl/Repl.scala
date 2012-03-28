@@ -399,8 +399,8 @@ object Repl {
    */
   private def defineOps {
     // Bind.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("bind", ANYTYPE, ("a", ANYTYPE), ("v", ANYTYPE))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("bind", ANYTYPE, ("a", ANYTYPE), ("v", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("bind",
         (_, list:AtomList, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
@@ -412,7 +412,7 @@ object Repl {
         })
 
     // Bind.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("equal", ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
         Commutative))
     _context.operatorLibrary.register("equal",
@@ -424,8 +424,8 @@ object Repl {
         })
         
     // Unbind.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("unbind", ANYTYPE, ("v", ANYTYPE))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("unbind", ANYTYPE, ("v", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("unbind",
         (_, list:AtomList, _) => list match {
           case Args(from:Variable) =>
@@ -437,8 +437,8 @@ object Repl {
         })
         
     // Showbinds.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showbinds", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("showbinds", ANYTYPE), NoProps))
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomList, _) => list match {
           case Args() => {
@@ -451,8 +451,8 @@ object Repl {
         })
         
     // Context.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("context", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("context", ANYTYPE), NoProps))
     _context.operatorLibrary.register("context",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -462,8 +462,8 @@ object Repl {
         })
         
     // Stacktrace.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("stacktrace", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("stacktrace", ANYTYPE), NoProps))
     _context.operatorLibrary.register("stacktrace",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -475,8 +475,8 @@ object Repl {
         })
         
     // Read.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("read", ANYTYPE, ("filename", STRING))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("read", ANYTYPE, ("filename", STRING)), NoProps))
     _context.operatorLibrary.register("read",
         (_, list:AtomList, _) => list match {
           case Args(StringLiteral(_, filename)) =>
@@ -487,8 +487,8 @@ object Repl {
         })
         
     // Write.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("write", ANYTYPE, ("filename", STRING))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("write", ANYTYPE, ("filename", STRING)), NoProps))
     _context.operatorLibrary.register("write",
         (_, list:AtomList, _) => list match {
           case Args(StringLiteral(_, filename)) =>
@@ -499,8 +499,8 @@ object Repl {
         })
         
     // Help.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("help", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("help", ANYTYPE), NoProps))
     _context.operatorLibrary.register("help",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -535,8 +535,8 @@ object Repl {
         })
         
     // Traceparse.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("traceparse", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("traceparse", ANYTYPE), NoProps))
     _context.operatorLibrary.register("traceparse",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -549,8 +549,8 @@ object Repl {
         })
         
     // Tracematch.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("tracematch", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("tracematch", ANYTYPE), NoProps))
     _context.operatorLibrary.register("tracematch",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -563,8 +563,8 @@ object Repl {
         })
         
     // Showscala.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showscala", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("showscala", ANYTYPE), NoProps))
     _context.operatorLibrary.register("showscala",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -576,8 +576,8 @@ object Repl {
         })
         
     // Showprior.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showprior", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("showprior", ANYTYPE), NoProps))
     _context.operatorLibrary.register("showprior",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -589,8 +589,8 @@ object Repl {
         })
         
     // History.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("history", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("history", ANYTYPE), NoProps))
     _context.operatorLibrary.register("history",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -604,8 +604,8 @@ object Repl {
         })
         
     // Quiet.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("quiet", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("quiet", ANYTYPE), NoProps))
     _context.operatorLibrary.register("quiet",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -617,8 +617,8 @@ object Repl {
         })
         
     // Enable a ruleset.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("enable", ANYTYPE, ("x", SYMBOL))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("enable", ANYTYPE, ("x", SYMBOL)), NoProps))
     _context.operatorLibrary.register("enable",
         (_, list:AtomList, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -629,8 +629,8 @@ object Repl {
         })
         
     // Disable a ruleset.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("disable", ANYTYPE, ("x", SYMBOL))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("disable", ANYTYPE, ("x", SYMBOL)), NoProps))
     _context.operatorLibrary.register("disable",
         (_, list:AtomList, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -641,8 +641,8 @@ object Repl {
         })
         
     // Set the limit on automatic rewrites.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("setlimit", ANYTYPE, ("limit", INTEGER))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("setlimit", ANYTYPE, ("limit", INTEGER)), NoProps))
     _context.operatorLibrary.register("setlimit",
         (_, list:AtomList, _) => list match {
           case Args(IntegerLiteral(_, count)) =>
@@ -653,8 +653,8 @@ object Repl {
         })
         
     // Enable or disable the rewriter.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("rewrite", ANYTYPE)))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("rewrite", ANYTYPE), NoProps))
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomList, _) => list match {
           case Args() =>
@@ -667,8 +667,8 @@ object Repl {
         })
         
     // See what rules are in scope.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("showrules", ANYTYPE, ("a", ANYTYPE))))
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("showrules", ANYTYPE, ("a", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("showrules",
         (_, list:AtomList, _) => list match {
           case Args(atom) =>
@@ -680,26 +680,26 @@ object Repl {
           case _ => _no_show
         })
         
-    // Define mod as a native operator.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("mod", INTEGER, ("x", INTEGER), ("y", INTEGER))))
+    // Define mod as a Symbolic operator.
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("mod", INTEGER, ("x", INTEGER), ("y", INTEGER)), NoProps))
     _context.operatorLibrary.register("mod",
         (op: Operator, args: AtomList, _) => args.atoms match {
           case Args(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
           case _ => Apply(op, args, true)
         })
         
-    // Define neg as a native operator.
-    _context.operatorLibrary.add(NativeOperatorDefinition(
-        Proto("neg", INTEGER, ("x", INTEGER))))
+    // Define neg as a Symbolic operator.
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("neg", INTEGER, ("x", INTEGER)), NoProps))
     _context.operatorLibrary.register("neg",
         (op: Operator, args: AtomList, _) => args match {
           case Args(IntegerLiteral(_, x)) => -x
           case _ => Apply(op, args, true)
         })
         
-    // Define add as a native operator.
-		_context.operatorLibrary.add(NativeOperatorDefinition(
+    // Define add as a Symbolic operator.
+		_context.operatorLibrary.add(SymbolicOperatorDefinition(
 		    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
 		    Associative and Commutative and Identity(0)))
 		_context.operatorLibrary.register("add",

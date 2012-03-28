@@ -126,8 +126,8 @@ class OperatorLibrary(
  	    case None =>
  	      warn("Operator " + name + " undeclared; ignoring native handler.")
  	    case Some(op) =>
- 	      if (!op.opdef.isInstanceOf[NativeOperatorDefinition]) 
-          warn("Operator " + name + " is not native; ignoring native handler.")
+ 	      if (op.opdef.isInstanceOf[ImmediateOperatorDefinition]) 
+          warn("Operator " + name + " is immediate; ignoring native handler.")
  	      op.handler = Some(handler)
  	  }
  	  this
