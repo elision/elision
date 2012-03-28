@@ -32,10 +32,14 @@ package sjp.elision.core
 /**
  * Represent algebraic properties of operators.
  */
-sealed case class AlgProp(associative: Option[Boolean] = None,
-  commutative: Option[Boolean] = None, idempotent: Option[Boolean] = None,
-  absorber: Option[BasicAtom] = None, identity: Option[BasicAtom] = None) {
+sealed class AlgProp(
+  val associative: Option[Boolean] = None,
+  val commutative: Option[Boolean] = None,
+  val idempotent: Option[Boolean] = None,
+  val absorber: Option[BasicAtom] = None,
+  val identity: Option[BasicAtom] = None) {
   
+  /** This is constant iff any identity and absorber are constant. */
   val isConstant = (absorber match {
     case None => true
     case Some(atom) => atom.isConstant
@@ -43,6 +47,9 @@ sealed case class AlgProp(associative: Option[Boolean] = None,
     case None => true
     case Some(atom) => atom.isConstant
   })
+  
+  override def toString = "AlgProp(" + associative + ", " + commutative + ", " +
+  		idempotent + ", " + absorber + ", " + identity + ")"
 
   /**
    * Reflect the value of an optional Boolean using a string.
@@ -93,7 +100,7 @@ sealed case class AlgProp(associative: Option[Boolean] = None,
       case Some(true) => list ::= "associative"
       case _ =>
     }
-    list.mkString("is ", ", ", "")
+    if (list.isEmpty) "" else list.mkString("is ", ", ", "")
   }
 
   /**
@@ -109,6 +116,12 @@ sealed case class AlgProp(associative: Option[Boolean] = None,
     case (_, Some(true)) => o2
     case (_, Some(false)) => o2
   }
+  
+  private def joinatoms(a1: Option[BasicAtom],
+      a2: Option[BasicAtom]) = (a1, a2) match {
+    case (_, None) => a1
+    case (_, Some(atom)) => a2
+  }
 
   /**
    * Combine this with another property and yield the resulting property.
@@ -120,7 +133,9 @@ sealed case class AlgProp(associative: Option[Boolean] = None,
     AlgProp(
       join(associative, other.associative),
       join(commutative, other.commutative),
-      join(idempotent, other.idempotent))
+      join(idempotent, other.idempotent),
+      joinatoms(absorber, other.absorber),
+      joinatoms(identity, other.identity))
   }
 
   /**
@@ -139,6 +154,26 @@ sealed case class AlgProp(associative: Option[Boolean] = None,
   def unary_! = {
     AlgProp(invert(associative), invert(commutative), invert(idempotent))
   }
+  
+  override def equals(other: Any) = other match {
+    case ap:AlgProp =>
+      associative == ap.associative &&
+      commutative == ap.commutative &&
+      idempotent == ap.idempotent &&
+      absorber == ap.absorber &&
+      identity == ap.identity
+    case _ => false
+  }
+}
+
+/**
+ * Simplified creation and matching.
+ */
+object AlgProp {
+  def apply(associative: Option[Boolean] = None,
+      commutative: Option[Boolean] = None, idempotent: Option[Boolean] = None,
+      absorber: Option[BasicAtom] = None, identity: Option[BasicAtom] = None) =
+    new AlgProp(associative, commutative, idempotent, absorber, identity)
 }
 
 /** No properties. */

@@ -60,11 +60,11 @@ import scala.collection.mutable.MapBuilder
  *    reordered and parenthesized in such a way that the elements all match.
  * 
  * @param props		The specified operator properties.
- * @param atoms		The list of atoms.  Note that order may be important.
+ * @param xatoms	The list of atoms.  Note that order may be important.
  */
-class AtomList(val props: AlgProp, val atoms: OmitSeq[BasicAtom])
+class AtomList(val props: AlgProp, xatoms: OmitSeq[BasicAtom])
 extends BasicAtom {
-  require(atoms != null)
+  require(xatoms != null)
   
   /** Whether this list should be regarded as associative. */
   val associative = props.associative.getOrElse(false)
@@ -74,6 +74,9 @@ extends BasicAtom {
   
   /** Whether this list should be regarded as idempotent. */
   val idempotent = props.idempotent.getOrElse(false)
+  
+  /** The atoms in this list. */
+  val atoms: OmitSeq[BasicAtom] = if (idempotent) xatoms.distinct else xatoms 
     
   // Map each constant to its index.
   val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()

@@ -1051,12 +1051,13 @@ extends Parser {
    */
   def ParsedTypedList = rule {
     "%" ~ zeroOrMore(
-        "A" ~> ((x) => Associative) |
-        "C" ~> ((x) => Commutative) |
-        "I" ~> ((x) => Idempotent) |
-        "!A" ~> ((x) => !Associative) |
-        "!C" ~> ((x) => !Commutative) |
-        "!I" ~> ((x) => !Idempotent)) ~ WS ~ "( " ~ ParsedAtomList ~ ") " ~~>
+        ignoreCase("A") ~> ((x) => Associative) |
+        ignoreCase("C") ~> ((x) => Commutative) |
+        ignoreCase("I") ~> ((x) => Idempotent) |
+        ignoreCase("!A") ~> ((x) => !Associative) |
+        ignoreCase("!C") ~> ((x) => !Commutative) |
+        ignoreCase("!I") ~> ((x) => !Idempotent)) ~ WS ~
+        "( " ~ ParsedAtomList ~ ") " ~~>
     ((props: List[AlgProp], list: AtomListNode) => AtomListNode(props, list.list))
   }.label("a typed list of atoms")
   
