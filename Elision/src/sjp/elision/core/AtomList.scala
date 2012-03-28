@@ -39,34 +39,6 @@ import scala.collection.mutable.MapBuilder
  * Encapsulate an ordered list of atoms.
  * 
  * ==Structure and Syntax==
- * An atom list is just that: a list of atoms.  It can come in two forms:
- *  - An ''untyped'' list of atoms, ordered.
- *  - A ''typed'' list of atoms.
- *  
- * The latter incorporates information about the structure of the list;
- * specifically associativity and commutativity.
- * 
- * Represented as a stand-alone atom, an atom list is indicated starting with
- * a percent sign.  This is followed by property indicators, and then by the
- * actual list of atoms, comma separated, in parentheses.
- * 
- * The property indicators are the following.
- *  - A single question mark `?` indicates that no properties have been set,
- *    and this is an untyped list.
- *  - The characters `AC` indicate that the list is both associative and
- *    commutative.
- *  - The single character `A` indicates that the list is associative, but not
- *    commutative.
- *  - The single character `C` indicates that the list is commutative, but not
- *    associative.
- *  - An absence of characters between the percent sign and the opening
- *    parenthesis indicates that the list is neither commutative nor
- *    associative.
- *    
- * Examples are the following.
- *  - `%(5,4,3)` - neither associative nor commutative
- *  - `%?(5,4)` - untyped list
- *  - `%AC(fred,jim,beth)` - associative and commutative
  * 
  * ==Type==
  * All atom lists have ^TYPE as their type.  This may be subject to change
@@ -76,8 +48,9 @@ import scala.collection.mutable.MapBuilder
  * Two lists are equal iff their properties, length, and elements are equal.
  * The lists match iff their properties are the same and their elements can be
  * matched.  This can happen in several ways.
- *  - A list that is untyped is treated as if it were explicitly not associative
- *    or commutative.
+ *  - Unspecified properties are treated as if they are negated.  So if
+ *    a list's associativity is unspecified, the list is treated as non-
+ *    associative.
  *  - A commutative but not associative list matches iff the elements can be
  *    matched in any order.
  *  - An associative list matches iff the pattern has no more elements than
@@ -86,21 +59,22 @@ import scala.collection.mutable.MapBuilder
  *  - An associative and commutative list matches iff its elements can be
  *    reordered and parenthesized in such a way that the elements all match.
  * 
+ * @param props		The specified operator properties.
  * @param atoms		The list of atoms.  Note that order may be important.
- * @param props		The optional operator properties.  If specified, this must
- * 								be a pair whose first element is associativtiy, and whose
- * 								second element is commutativity.
  */
-class AtomList(val atoms: OmitSeq[BasicAtom],
-    val props: Option[(Boolean,Boolean)]) extends BasicAtom {
+class AtomList(val props: AlgProp, val atoms: OmitSeq[BasicAtom])
+extends BasicAtom {
   require(atoms != null)
   
-  /** If true, regard this list is associative. */
-  val associative = props.getOrElse((false, false))._1
+  /** Whether this list should be regarded as associative. */
+  val associative = props.associative.getOrElse(false)
   
-  /** If true, regard this list as commutative. */
-  val commutative = props.getOrElse((false, false))._2
+  /** Whether this list should be regarded as commutative. */
+  val commutative = props.commutative.getOrElse(false)
   
+  /** Whether this list should be regarded as idempotent. */
+  val idempotent = props.idempotent.getOrElse(false)
+    
   // Map each constant to its index.
   val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
   for (i <- 0 until atoms.length)
@@ -166,19 +140,13 @@ class AtomList(val atoms: OmitSeq[BasicAtom],
   def rewrite(binds: Bindings) = {
     // We must rewrite every child atom, and collect them into a new sequence.
     val (newlist, changed) = SequenceMatcher.rewrite(atoms, binds)
-    if (changed) (AtomList(newlist, props), true) else (this, false)
+    if (changed) (new AtomList(props, newlist), true) else (this, false)
   }
 
   // An atom list is just the list of atoms, separated by commas.  The list may
   // have properties set; if so, those are indicated here.
   def toParseString = atoms.mkParseString(
-      "%" + (props match {
-        case None => "?"
-        case Some((false, false)) => ""
-        case Some((true, false)) => "A"
-        case Some((false, true)) => "C"
-        case Some((true, true)) => "AC"
-      }) + "(" , ", ", ")")
+      "%" + (props.toShortString) + "(" , ", ", ")")
   
   /**
    * Provide a "naked" version of the list, without the parens and property
@@ -195,7 +163,7 @@ class AtomList(val atoms: OmitSeq[BasicAtom],
   override lazy val hashCode = atoms.hashCode
   
   override def equals(other: Any) = other match {
-    case AtomList(oatoms, oprops) if (oatoms == atoms && oprops == props) => true
+    case AtomList(oprops, oatoms) if (oatoms == atoms && oprops == props) => true
     case _ => false
   }
 }
@@ -204,21 +172,18 @@ class AtomList(val atoms: OmitSeq[BasicAtom],
  * Provide convenient construction and extraction.
  */
 object AtomList {
+  
   /**
-   * Make a new atom list.
-   * 
-   * @param atoms	The atoms.
-   * @param props	The optional list properties, in the from (associative,
-   * 							commutative).
-   * @return	The requested atom.
+   * Process the atoms and build the new list.  This reduces any included
+   * associative lists.
    */
-  def apply(atoms: OmitSeq[BasicAtom], props: Option[(Boolean, Boolean)] = None) =
-    if (props.getOrElse((false,false))._1) {
+  private def process(props: AlgProp, atoms: OmitSeq[BasicAtom]) =
+    if (props.associative.getOrElse(false)) {
       // The list is associative.  Flatten any included lists.
       var newlist = IndexedSeq[BasicAtom]()
       for (atom <- atoms) {
   		  atom match {
-			    case AtomList(args,oprops) if props == oprops =>
+			    case AtomList(oprops, args) if props == oprops =>
 			      // Add the arguments directly to this list.  We can assume it has
 			      // already been processed, so no deeper checking is needed.
 			      newlist ++= args
@@ -227,11 +192,34 @@ object AtomList {
 			      newlist :+= atom
 			  }
       } // Flatten lists.
-      new AtomList(newlist, props)
+      new AtomList(props, newlist)
     } else {
       // The list is not associative.  Construct and return the list.
-      new AtomList(atoms, props)
+      new AtomList(props, atoms.toIndexedSeq[BasicAtom])
     }
+
+  
+  /**
+   * Make a new atom list.
+   * 
+   * @param atoms	The atoms.
+   * @param props	The optional list properties, in the from (associative,
+   * 							commutative).
+   * @return	The requested atom.
+   */
+  def apply(props: AlgProp, atoms: OmitSeq[BasicAtom]) =
+    process(props, atoms)
+
+  /**
+   * Make a new atom list.
+   * 
+   * @param atoms	The atoms.
+   * @param props	The optional list properties, in the from (associative,
+   * 							commutative).
+   * @return	The requested atom.
+   */
+  def apply(props: AlgProp)(atoms: BasicAtom*) =
+    process(props, OmitSeq(atoms:_*))
   
   /**
    * Extract the pieces of an atom list.
@@ -239,7 +227,7 @@ object AtomList {
    * @param list	The atom list.
    * @return	A pair of the actual list of atoms and the properties pair.
    */
-  def unapply(list: AtomList) = Some(list.atoms, list.props)
+  def unapply(list: AtomList) = Some(list.props, list.atoms)
 }
 
 /**
@@ -255,29 +243,3 @@ object Args {
    */
 	def unapplySeq(al:AtomList) = Some(al.atoms)
 }
-
-sealed abstract class QuickList(props: Option[(Boolean, Boolean)]) {
-  def apply(atoms: BasicAtom*) =
-    AtomList(OmitSeq(atoms:_*), props)
-    
-  def unapplySeq(al: AtomList) = al match {
-    case AtomList(seq, props) => Some(seq)
-    case _ => None
-  }
-}
-
-/** Simplified access to associative / commutative atom lists. */
-object AListAC extends QuickList(Some(true, true))
-
-/** Simplified access to associative atom lists. */
-object AListA extends QuickList(Some(true, false))
-
-/** Simplified access to commutative atom lists. */
-object AListC extends QuickList(Some(false, true))
-
-/** Simplified access to non-commutative, non-associative atom lists. */
-object AList extends QuickList(Some(false, false))
-
-/** Simplified access to atom lists with no properties. */
-object AListU extends QuickList(None)
-

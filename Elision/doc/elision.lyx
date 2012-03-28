@@ -1278,7 +1278,7 @@ Persistent history is found in: /home/userguy/.elision
 
 \begin_layout Standard
 It is possible to recall any prior history element by entering the history
- index after an exclaimation mark.
+ index after an exclamation mark.
 \end_layout
 
 \begin_layout LyX-Code
@@ -6541,7 +6541,7 @@ add(4,5,$x)
 \family default
  and 
 \family typewriter
-add.%?(4,5,$x)
+add.%(4,5,$x)
 \family default
 .
  This second form uses the 
@@ -6727,7 +6727,7 @@ $x:$T.$T).add:OPTYPE
 \begin_layout Plain Layout
 
 \family typewriter
-add.%?(5,6)
+add.%(5,6)
 \end_layout
 
 \end_inset
@@ -6759,7 +6759,7 @@ add:OPTYPE
 ), so can an argument list.
  The odd notation 
 \family typewriter
-%?(4,5,$x)
+%(4,5,$x)
 \family default
  specifies an atom list whose elements are, in order, 
 \family typewriter
@@ -6790,7 +6790,7 @@ ly of the operator.
 \family typewriter
 %(4,5,$x)
 \family default
- is a list that is neither associative nor commutative.
+ is a list whose associativity and commutativity are unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6798,7 +6798,7 @@ ly of the operator.
 \family typewriter
 %A(4,5,$x)
 \family default
- is a list that is associative but not commutative.
+ is an associative list whose commutativity is unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6806,7 +6806,7 @@ ly of the operator.
 \family typewriter
 %C(4,5,$x)
 \family default
- is a list that is commutative but not associative.
+ is a commutative list whose associativity is unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6820,14 +6820,46 @@ ly of the operator.
 \begin_layout Itemize
 
 \family typewriter
-%?(4,5,$x)
+%!A(4,5,$x)
 \family default
- is a list that whose properties are unspecified.
+ is a list that is not associative, but whose commutativity is unspecified.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%!C(4,5,$x)
+\family default
+ is a list that is not commutative, but whose associativity is unspecified.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%!A!C(4,5,$x)
+\family default
+ is a list that is neither associative nor commutative.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%!AC(4,5,$x)
+\family default
+ is a list that is not associative, but is commutative.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%A!C(4,5,$x)
+\family default
+ is a list that is commutative, but is not associative.
 \end_layout
 
 \begin_layout Standard
-The last case is the one we have been using, as it allows the argument list
- to 
+The first case is the one we have been using, as it allows the argument
+ list to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -6835,7 +6867,22 @@ inherit
 \begin_inset Quotes erd
 \end_inset
 
- the properties of the operator applied.
+ the properties of the operator or context in which it is applied.
+ In short, if you care about a property, specify it, and use the exclamation
+ point (
+\family typewriter
+!
+\family default
+) to negate a property.
+ The order is 
+\emph on
+not
+\emph default
+ important: 
+\family typewriter
+%!CA(4,5,$x)
+\family default
+ is perfectly fine.
 \end_layout
 
 \begin_layout Standard
@@ -6887,147 +6934,41 @@ scala.collection.immutable.Vector
 core.AtomList
 \family default
  constructor.
- The properties may be 
+ The properties are specified using the special symbols 
 \family typewriter
-None
-\family default
- (for the 
-\family typewriter
-%?
-\family default
- form), or 
-\family typewriter
-Some(assoc,comm)
-\family default
-, where 
-\family typewriter
-assoc
+Associative
 \family default
  and 
 \family typewriter
-comm
+Commutative
 \family default
- are Boolean flags indicating whether the list is associative and commutative,
- respectively.
+, and may be negated by prefixing them with an exclamation mark (
+\family typewriter
+!
+\family default
+).
+ Properties are given first in their own argument list, and the elements
+ of the list are given in a second argument list.
 \end_layout
 
 \begin_layout Plain Layout
-The following replicates the bulleted list given above.
-\end_layout
-
-\begin_layout Itemize
-\align left
-
+The lists 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
-\begin_inset Newline newline
-\end_inset
-
-
-\begin_inset space \qquad{}
-\end_inset
-
-Some(false, false))
-\end_layout
-
-\begin_layout Itemize
-\align left
-
+%!A(4,5,$x)
+\family default
+ and 
 \family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
-\begin_inset Newline newline
-\end_inset
-
-
-\begin_inset space \qquad{}
-\end_inset
-
-Some(true, false))
+%!CA(4,5,$x)
+\family default
+ can be constructed with the following code.
 \end_layout
 
-\begin_layout Itemize
-\align left
-
-\family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
-\begin_inset Newline newline
-\end_inset
-
-
-\begin_inset space \qquad{}
-\end_inset
-
-Some(false, true))
+\begin_layout LyX-Code
+AtomList(!Associative)(4, 5, 'x)
 \end_layout
 
-\begin_layout Itemize
-\align left
-
-\family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
-\begin_inset Newline newline
-\end_inset
-
-
-\begin_inset space \qquad{}
-\end_inset
-
-Some(true, true))
-\end_layout
-
-\begin_layout Itemize
-\align left
-
-\family typewriter
-AtomList(Vector(Literal(4), Literal(5), Variable("x", ANYTYPE)),
-\begin_inset Newline newline
-\end_inset
-
-
-\begin_inset space \qquad{}
-\end_inset
-
-None)
-\end_layout
-
-\begin_layout Plain Layout
-There are special constructors to create atom lists.
- The above lists can be created using the following much simpler syntax.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-AList(4, 5, 'x)
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-AListA(4, 5, 'x)
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-AListC(4, 5, 'x)
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-AListAC(4, 5, 'x)
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-AListU(4, 5, 'x)
-\end_layout
-
-\begin_layout Plain Layout
-Even better, this notation can be used in pattern matching, as the above
- all feature sequence extractors.
+\begin_layout LyX-Code
+AtomList(!Commutative, Associative)(4, 5, 'x)
 \end_layout
 
 \begin_layout Plain Layout
@@ -7068,11 +7009,11 @@ Apply(Lambda(Variable('T,"x"),'T), Literal(OPTYPE,'add))
 \end_layout
 
 \begin_layout LyX-Code
-// add.%?(5,6)
+// add.%(5,6)
 \end_layout
 
 \begin_layout LyX-Code
-Apply(context.operatorLibrary("add"), AListU(5,6))
+Apply(context.operatorLibrary("add"), AtomList()(5,6))
 \end_layout
 
 \begin_layout LyX-Code

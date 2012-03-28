@@ -361,13 +361,13 @@ private object Completor {
     pattern match {
       case Apply(op:Operator, al:AtomList) => {
         val props = op.opdef match {
-          case iod: ImmediateOperatorDefinition => Noprops
+          case iod: ImmediateOperatorDefinition => NoProps
           case sod: SymbolicOperatorDefinition => sod.props
           case nod: NativeOperatorDefinition => nod.props
         }
-        if (props.associative) {
+        if (props.associative.getOrElse(false)) {
           // Add extra argument on the end.
-          if (!props.commutative) {
+          if (!props.commutative.getOrElse(false)) {
             // Add extra argument at the start.
           }
         }

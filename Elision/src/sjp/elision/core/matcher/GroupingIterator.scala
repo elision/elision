@@ -160,7 +160,7 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
 	      val item: BasicAtom =
 	        (if (slice.length != 1) {
 		        // Turn the slice into a list.
-		      	val list = AtomList(slice, subjects.props)
+		      	val list = AtomList(subjects.props, slice)
 		      
 			      // If we have an operator, apply it now.
 		      	if (operator != null) Apply(operator, list) else list

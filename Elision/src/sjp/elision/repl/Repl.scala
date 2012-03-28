@@ -414,7 +414,7 @@ object Repl {
     // Bind.
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("equal", ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
-        Props(Commutative)))
+        Commutative))
     _context.operatorLibrary.register("equal",
         (_, list:AtomList, _) => list match {
           case Args(x:BasicAtom, y:BasicAtom) =>
@@ -701,7 +701,7 @@ object Repl {
     // Define add as a native operator.
 		_context.operatorLibrary.add(NativeOperatorDefinition(
 		    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
-		    Props(Associative, Commutative, Identity(0))))
+		    Associative and Commutative and Identity(0)))
 		_context.operatorLibrary.register("add",
       (op: Operator, args: AtomList, _) => {
 			  // Accumulate the integer literals found.
@@ -718,7 +718,7 @@ object Repl {
 			  // Now add the accumulated literals to the list.
 			  other :+= Literal(INTEGER, lits)
 			  // Construct and return a new operator application.
-			  Apply(op, AtomList(other), true)
+			  Apply(op, AtomList(NoProps, other), true)
       })
         
     // The operator are defined.

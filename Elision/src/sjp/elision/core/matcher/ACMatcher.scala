@@ -80,8 +80,8 @@ object ACMatcher {
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
       // Get the patterns and subjects that remain.
-      val pats = AtomList(bindings.patterns.getOrElse(patterns), plist.props)
-      val subs = AtomList(bindings.subjects.getOrElse(subjects), slist.props)
+      val pats = AtomList(plist.props, bindings.patterns.getOrElse(patterns))
+      val subs = AtomList(slist.props, bindings.subjects.getOrElse(subjects))
       
 	    // If there is exactly one pattern then match it immediately.
 	    if (pats.atoms.length == 1) {
@@ -122,7 +122,7 @@ object ACMatcher {
       else {
         _local = null
 	      if (_perms.hasNext)
-	        AMatcher.tryMatch(patterns, AtomList(_perms.next, subjects.props),
+	        AMatcher.tryMatch(patterns, AtomList(subjects.props, _perms.next),
 	            binds, op) match {
 	        case Fail(_,_) =>
 	          // We ignore this case.  We only fail if we exhaust all attempts.

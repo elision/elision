@@ -202,7 +202,7 @@ object Apply {
     
     case oldlist:AtomList =>
       // We need to apply the operator to any child atom list.
-      val al = AtomList(oldlist.atoms.map{
+      val al = AtomList(oldlist.props, oldlist.atoms.map{
         _ match {
           case sublist: AtomList =>
             // Recursively apply the operator.
@@ -211,7 +211,7 @@ object Apply {
             // Other elements do not get modified.
             atom 
         }
-      }, oldlist.props)
+      })
       
       // What we do next depends on the type of operator definition.  The
       // native and symbolic definitions specify properties; the immediate
@@ -221,13 +221,13 @@ object Apply {
       op.opdef match {
         case NativeOperatorDefinition(_, props) =>
           // This is a native operator.
-          val (assoc, comm) = al.props.getOrElse(props.associative,
-              props.commutative)
+          val assoc = al.props.associative.getOrElse(props.associative.getOrElse(false))
+          val comm = al.props.commutative.getOrElse(props.commutative.getOrElse(false))
           checkProto(op, props, al, assoc, comm, bypass)
         case SymbolicOperatorDefinition(_, props) =>
           // This is a symbolic operator.
-          val (assoc, comm) = al.props.getOrElse(props.associative,
-              props.commutative)
+          val assoc = al.props.associative.getOrElse(props.associative.getOrElse(false))
+          val comm = al.props.commutative.getOrElse(props.commutative.getOrElse(false))
           checkProto(op, props, al, assoc, comm,bypass)
         case ImmediateOperatorDefinition(_, body) =>
           // Match the arguments against the formal parameters.  This will
@@ -271,19 +271,19 @@ object Apply {
    * @throws	ArgumentListException
    * 					The properties do not match.
    */
-  private def checkProto(op: Operator, props: OperatorProperties, al: AtomList,
+  private def checkProto(op: Operator, props: AlgProp, al: AtomList,
       assoc: Boolean, comm: Boolean, bypass: Boolean): BasicAtom = {
     // Check the properties and throw an exception if they do not match.
-    if (props.associative && !assoc)
+    if (props.associative.getOrElse(assoc) && !assoc)
       throw new ArgumentListException("Non-associative argument list " +
       		"passed to associative operator.")
-    else if (props.commutative && !comm)
+    else if (props.commutative.getOrElse(comm) && !comm)
       throw new ArgumentListException("Non-commutative argument list " +
       		"passed to commutative operator.")
-    else if (assoc && !props.associative)
+    else if (assoc && !props.associative.getOrElse(assoc))
       throw new ArgumentListException("Associative argument list passed " +
       		"to non-associative operator.")
-    else if (comm && !props.commutative)
+    else if (comm && !props.commutative.getOrElse(comm))
       throw new ArgumentListException("Commutative argument list passed " +
       		"to non-commutative operator.")
     
@@ -330,7 +330,7 @@ object Apply {
       //
       // We also look for identities (which we skip) and absorbers.
 		  atom match {
-		    case Apply(oop, AtomList(args,_)) if oop == op =>
+		    case Apply(oop, AtomList(_,args)) if oop == op =>
 		      // Add the arguments directly to this list.  We can assume it has
 		      // already been processed, so no deeper checking is needed.
 		      newlist ++= args
@@ -344,7 +344,7 @@ object Apply {
 		      newlist :+= atom
 		  }
     }
-    if (props.idempotent) newlist = newlist.distinct
+    if (props.idempotent.getOrElse(false)) newlist = newlist.distinct
     
     // If the list is empty, and there is an identity, then the identity is
     // the result.  Otherwise the answer is a new list.
@@ -362,7 +362,7 @@ object Apply {
     val plen = pars.length
     val nlen = newlist.length
     if (nlen < plen) throw new ArgumentListException("Too few arguments (" +
-        nlen + ") to operator " + op +
+        nlen + ") to operator " + op.toParseString +
         " after processing.  Argument list is now: " +
         newlist.mkParseString("(",", ",")") + ".")
 
@@ -392,14 +392,15 @@ object Apply {
     }
     
     // The argument list matches.  Make and return the apply.
+    val newprop = AlgProp(associative = Some(assoc), commutative = Some(comm))
     if (bypass) {
-      return OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
+      return OpApply(op, AtomList(newprop, newlist), pabind)
     } else { 
 	    return op.handler match {
 	      case Some(closure) =>
-	        closure(op, AtomList(newlist, Some((assoc, comm))), pabind)
+	        closure(op, AtomList(newprop, newlist), pabind)
 	      case None =>
-	        OpApply(op, AtomList(newlist, Some((assoc, comm))), pabind)
+	        OpApply(op, AtomList(newprop, newlist), pabind)
 	    }
     }
   }

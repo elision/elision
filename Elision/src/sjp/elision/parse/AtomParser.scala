@@ -193,24 +193,14 @@ object AtomParser {
 	 * An abstract syntax tree node holding a simple list of atoms.
 	 * @param list	The actual list of atom nodes.
 	 */
-	case class AtomListNode(list: List[AstNode]) extends AstNode {
+	case class AtomListNode(props: List[AlgProp], list: List[AstNode])
+	extends AstNode {
 	  /**
-	   * Properties of this list, if known.  The properties stored are
-	   * associativity and commutativity.  If not specified, then the properties
-	   * have not yet been specified, and should be inherited from an operator.
+	   * Properties of this list, if known.
 	   */
-	  var props: Option[(Boolean, Boolean)] = None
 	  def interpret =
-	    AtomList(list.toIndexedSeq[AstNode] map (_.interpret), props)
-	  /**
-	   * Set the properties for this list.
-	   * @param assoc		If true, the list is associative.
-	   * @param comm		If true, the list is commutative.
-	   */
-	  def setProperties(assoc: Boolean, comm: Boolean) = {
-	    props = Some(assoc, comm)
-	    this
-	  }
+	    AtomList(props.foldLeft(NoProps.asInstanceOf[AlgProp])(_ and _),
+	        list.toIndexedSeq[AstNode] map (_.interpret))
 	}
 	
 	//----------------------------------------------------------------------
@@ -280,8 +270,8 @@ object AtomParser {
 	   * Convert this into an operator properties instance.
 	   * @return	The operator properties object.
 	   */
-	  def interpret = OperatorProperties(isAssociative, isCommutative,
-	      isIdempotent, absorber, identity)
+	  def interpret = AlgProp(Some(isAssociative), Some(isCommutative),
+	      Some(isIdempotent), absorber, identity)
 	}
 	
 	/**
@@ -851,7 +841,7 @@ extends Parser {
     // be used as infix operators.  Associate to the right.
     FirstAtom ~ WS ~ InfixOperatorL ~ WS ~ Atom ~~> (
         (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomListNode(List(larg, rarg))))
+        	ApplicationNode(context, op, AtomListNode(List(), List(larg, rarg))))
   }
   
   def RApply = rule {
@@ -859,7 +849,7 @@ extends Parser {
     // be used as infix operators.  Associate to left.
     Atom ~ WS ~ InfixOperatorR ~ WS ~ FirstAtom ~~> (
         (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomListNode(List(larg, rarg))))
+        	ApplicationNode(context, op, AtomListNode(List(), List(larg, rarg))))
   }
 
   /**
@@ -1060,28 +1050,14 @@ extends Parser {
    * Parse a "typed" list.  That is, a list whose properties are specified.
    */
   def ParsedTypedList = rule {
-    // Parse an atom list that specifies its properties.  There are
-    // multiple different forms of lists.  The associativity or
-    // commutativity of the list is specified by writing a percent sign and
-    // an A (for associativity) or C (for commutativity), followed by the
-    // list in parens.
-    //
-    // The special case of %?(..) is reserved for explicitly not setting the
-    // properties of the list.  Such as list is then applicable to any
-    // operator, and will take its properties from the operator.
-    //
-    // Note that f(x,y,z), if f is associative, could be written as:
-    // f.%A(x,y,z)
-    "%" ~ (
-      "? " ~ "( " ~ ParsedAtomList ~ ") " |
-      ("AC " | "CA ") ~ "( " ~ ParsedAtomList ~ ") " ~~> (
-        (list: AtomListNode) => list.setProperties(true, true)) |
-      "A " ~ "( " ~ ParsedAtomList ~ ") " ~~> (
-        (list: AtomListNode) => list.setProperties(true, false)) |
-      "C " ~ "( " ~ ParsedAtomList ~ ") " ~~> (
-        (list: AtomListNode) => list.setProperties(false, true)) |
-      WS ~ "( " ~ ParsedAtomList ~ ") " ~~> (
-        (list: AtomListNode) => list.setProperties(false, false)))
+    "%" ~ zeroOrMore(
+        "A" ~> ((x) => Associative) |
+        "C" ~> ((x) => Commutative) |
+        "I" ~> ((x) => Idempotent) |
+        "!A" ~> ((x) => !Associative) |
+        "!C" ~> ((x) => !Commutative) |
+        "!I" ~> ((x) => !Idempotent)) ~ WS ~ "( " ~ ParsedAtomList ~ ") " ~~>
+    ((props: List[AlgProp], list: AtomListNode) => AtomListNode(props, list.list))
   }.label("a typed list of atoms")
   
   /**
@@ -1092,9 +1068,9 @@ extends Parser {
     optional(Atom ~ zeroOrMore(", " ~ Atom)) ~~> (
         (what: Option[(AstNode,List[AstNode])]) => what match {
           case None =>
-            AtomListNode(List[AstNode]())
+            AtomListNode(List(), List[AstNode]())
           case Some((head:AstNode, tail)) =>
-            AtomListNode(head :: tail)
+            AtomListNode(List(), head :: tail)
         })
   }.label("a comma-separated list of atoms")
 

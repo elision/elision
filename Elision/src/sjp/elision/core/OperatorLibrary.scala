@@ -159,7 +159,7 @@ class OperatorLibrary(
  	    // Make the operator now.
  	    val od = SymbolicOperatorDefinition(
  	        Proto(name, ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
- 	        Props(Associative))
+ 	        Associative)
  	    add(od)
  	    get(name)
  	  case _ => None
@@ -227,13 +227,13 @@ object OperatorLibrary {
  	private val MapOperator = ProtoOperator(TypeUniverse,
  	    SymbolicOperatorDefinition(
  	        Proto("MAP", ANYTYPE, ("domain", ANYTYPE), ("codomain", ANYTYPE)),
- 	        Props()))
+ 	        NoProps))
   
  	/**
  	 * Construct a map type, given a domain and range.
  	 */
   def MAP(dom: BasicAtom, ran: BasicAtom) =
-    Apply(MapOperator, AtomList(IndexedSeq(dom, ran)))
+    Apply(MapOperator, AtomList(NoProps, IndexedSeq(dom, ran)))
 
   /**
    * The well-known cross operator used to build operator types.
@@ -241,11 +241,11 @@ object OperatorLibrary {
   private val CrossOperator = ProtoOperator(TypeUniverse,
       SymbolicOperatorDefinition(
           Proto("xx", ANYTYPE, ("a", ANYTYPE), ("b", ANYTYPE)),
-          Props(Associative)))
+          Associative))
   
   /**
    * Make a cross type.
    */
   def xx(atoms: IndexedSeq[BasicAtom]) =
-    Apply(CrossOperator, AtomList(atoms))
+    Apply(CrossOperator, AtomList(NoProps, atoms))
 }

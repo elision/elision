@@ -120,13 +120,13 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
 	def doRewrite(atom: BasicAtom) = atom match {
 	  // We only process two kinds of atoms here: atom lists and operator
 	  // applications.  Figure out what we have.
-	  case AtomList(atoms, props) =>
+	  case AtomList(props, atoms) =>
 	    // All we can do is apply the lhs to each atom in the list.
-	    (AtomList(atoms.map(Apply(lhs,_)), props), true)
-	  case Apply(op, AtomList(atoms, props)) =>
+	    (AtomList(props, atoms.map(Apply(lhs,_))), true)
+	  case Apply(op, AtomList(props, atoms)) =>
       // We apply the lhs to each argument whose parameter meets the
       // label criteria.  This is modestly tricky.
-      (Apply(op, AtomList(atoms.map(Apply(lhs,_)), props)), true)
+      (Apply(op, AtomList(props, atoms.map(Apply(lhs,_)))), true)
 	  case _ =>
 	    // Do nothing in this case.
 	    (atom, false)
@@ -163,13 +163,13 @@ case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
 	def doRewrite(atom: BasicAtom) = atom match {
 	  // We only process two kinds of atoms here: atom lists and operator
 	  // applications.  Figure out what we have.
-	  case AtomList(atoms, props) =>
+	  case AtomList(props, atoms) =>
 	    // All we can do is apply the rhs to each atom in the list.
-	    (AtomList(atoms.map(Apply(_,rhs)), props), true)
-	  case Apply(op, AtomList(atoms, props)) =>
+	    (AtomList(props, atoms.map(Apply(_,rhs))), true)
+	  case Apply(op, AtomList(props, atoms)) =>
       // We apply the rhs to each argument whose parameter meets the
       // label criteria.  This is modestly tricky.
-      (Apply(op, AtomList(atoms.map(Apply(_,rhs)), props)), true)
+      (Apply(op, AtomList(props, atoms.map(Apply(_,rhs)))), true)
 	  case _ =>
 	    // Do nothing in this case.
 	    (atom, false)
