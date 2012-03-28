@@ -5192,36 +5192,11 @@ Scala
 \begin_layout Plain Layout
 Operator properties are specified by 
 \family typewriter
-core.OperatorProperties
+core.AlgProp
 \family default
 .
- For each of associative, commutative, and idempotent, pass that name and
- set it to true.
- For identities or absorbers, pass the property name and set it to the appropria
-te atom, wrapped by 
-\family typewriter
-Some
-\family default
-.
- The following builds the properties for addition, given above.
-\end_layout
-
-\begin_layout LyX-Code
-OperatorProperties(associative=true,
-\end_layout
-
-\begin_layout LyX-Code
-  commutative=true, identity=Some(0))
-\end_layout
-
-\begin_layout Plain Layout
-Another way to define operator properties is to use the 
-\family typewriter
-core.Props
-\family default
- constructor.
- This takes a sequence of arguments that can be any of the following special
- constructors: 
+ This class can be used directly, but it is typically easier to use its
+ extensions: 
 \family typewriter
 Associative
 \family default
@@ -5235,19 +5210,34 @@ Idempotent
 \family default
 , 
 \family typewriter
-Absorber(abs)
+Absorber(atom)
 \family default
 , and 
 \family typewriter
-Identity(id)
+Identity(atom)
 \family default
 .
- The following is equivalent to the previous declaration, and uses the fact
- that Scala integers are converted to integer literals automatically.
+ The first three can be negated by prefixing them with an exclamation mark,
+ and the last two take an atom.
+ Join these with 
+\family typewriter
+and
+\family default
+.
+ The following builds the properties for addition, given above.
 \end_layout
 
 \begin_layout LyX-Code
-Props(Associative, Commutative, Identity(0))
+Associative and Commutative and Identity(0)
+\end_layout
+
+\begin_layout Plain Layout
+There is also an extension 
+\family typewriter
+NoProps
+\family default
+ that indicates no properties.
+ This is sometimes useful if you don't want to specify any properties.
 \end_layout
 
 \end_inset
@@ -5899,11 +5889,11 @@ val orProto = Proto("or", BOOLEAN, ("P",BOOLEAN), ("Q",BOOLEAN))
 \end_layout
 
 \begin_layout LyX-Code
-val orProps = Props(Associative, Commutative, Idempotent,
+val orProps = Associative and Commutative and Idempotent and
 \end_layout
 
 \begin_layout LyX-Code
-                    Absorber(false), Identity(true))
+                    Absorber(false) and Identity(true)
 \end_layout
 
 \begin_layout LyX-Code
@@ -5923,7 +5913,7 @@ val addProto = Proto("add", INTEGER, ("x",INTEGER), ("y",INTEGER))
 \end_layout
 
 \begin_layout LyX-Code
-val addProps = Props(Associative, Commutative, Identity(0))
+val addProps = Associative and Commutative and Identity(0)
 \end_layout
 
 \begin_layout LyX-Code
@@ -6102,7 +6092,7 @@ val addOp = NativeOperatorDefinition(
 \end_layout
 
 \begin_layout LyX-Code
-  Props(Associative, Commutative, Identity(0)))
+  Associative and Commutative and Identity(0))
 \end_layout
 
 \begin_layout LyX-Code
@@ -6782,7 +6772,7 @@ add(4,5,$x)
  Because the argument list can become detached from the operator, we allow
  specifying the associativity and commutativity of the argument list independent
 ly of the operator.
- The following are the various kinds of atom lists.
+ The following are some examples of lists.
 \end_layout
 
 \begin_layout Itemize
@@ -6790,7 +6780,7 @@ ly of the operator.
 \family typewriter
 %(4,5,$x)
 \family default
- is a list whose associativity and commutativity are unspecified.
+ is a list whose associativity, commutativity, and idempotency are unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6798,7 +6788,7 @@ ly of the operator.
 \family typewriter
 %A(4,5,$x)
 \family default
- is an associative list whose commutativity is unspecified.
+ is an associative list whose other properties are unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6806,7 +6796,15 @@ ly of the operator.
 \family typewriter
 %C(4,5,$x)
 \family default
- is a commutative list whose associativity is unspecified.
+ is a commutative list whose other properties are unspecified.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+%I(4,5,$x)
+\family default
+ is an idempotent list whose other properties are unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6820,17 +6818,10 @@ ly of the operator.
 \begin_layout Itemize
 
 \family typewriter
-%!A(4,5,$x)
+%A!I(4,5,$x)
 \family default
- is a list that is not associative, but whose commutativity is unspecified.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%!C(4,5,$x)
-\family default
- is a list that is not commutative, but whose associativity is unspecified.
+ is a list that is associative but not idempotent.
+ Commutativity is unspecified.
 \end_layout
 
 \begin_layout Itemize
@@ -6838,23 +6829,8 @@ ly of the operator.
 \family typewriter
 %!A!C(4,5,$x)
 \family default
- is a list that is neither associative nor commutative.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%!AC(4,5,$x)
-\family default
- is a list that is not associative, but is commutative.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%A!C(4,5,$x)
-\family default
- is a list that is commutative, but is not associative.
+ is a list that is neither associative nor commutative, but whose idempotency
+ is unspecified.
 \end_layout
 
 \begin_layout Standard
@@ -6867,7 +6843,7 @@ inherit
 \begin_inset Quotes erd
 \end_inset
 
- the properties of the operator or context in which it is applied.
+ all the properties of the operator or context in which it is applied.
  In short, if you care about a property, specify it, and use the exclamation
  point (
 \family typewriter
@@ -6880,9 +6856,75 @@ not
 \emph default
  important: 
 \family typewriter
-%!CA(4,5,$x)
+%I!CA(4,5,$x)
 \family default
- is perfectly fine.
+ is perfectly fine, and case does not matter: 
+\family typewriter
+%i!Ca(4,5,$x)
+\family default
+ is also fine.
+\end_layout
+
+\begin_layout Standard
+Making a list idempotent has an immediate effect: duplicates are removed.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+%I(4,5,4,5,4,5)
+\end_layout
+
+\begin_layout LyX-Code
+$repl14 = %I(4,5)
+\end_layout
+
+\begin_layout Standard
+Likewise, associative lists are flattened 
+\emph on
+provided
+\emph default
+ the subordinate lists have the same specified properties.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+%A(%A(4,3),6)
+\end_layout
+
+\begin_layout LyX-Code
+$repl15 = %A(4, 3, 6)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+%A(%(4,3),6)
+\end_layout
+
+\begin_layout LyX-Code
+$repl16 = %A(%(4, 3), 6)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+%A(%AC(4,3),6)
+\end_layout
+
+\begin_layout LyX-Code
+$repl17 = %A(%AC(4, 3), 6)
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+%AI(%AI(4,3,6),6)
+\end_layout
+
+\begin_layout LyX-Code
+$repl18 = %AI(4,3,6)
 \end_layout
 
 \begin_layout Standard
@@ -6934,19 +6976,7 @@ scala.collection.immutable.Vector
 core.AtomList
 \family default
  constructor.
- The properties are specified using the special symbols 
-\family typewriter
-Associative
-\family default
- and 
-\family typewriter
-Commutative
-\family default
-, and may be negated by prefixing them with an exclamation mark (
-\family typewriter
-!
-\family default
-).
+ The properties are specified using the same method as for operators.
  Properties are given first in their own argument list, and the elements
  of the list are given in a second argument list.
 \end_layout
@@ -6954,9 +6984,13 @@ Commutative
 \begin_layout Plain Layout
 The lists 
 \family typewriter
+%(4,5,$x)
+\family default
+, 
+\family typewriter
 %!A(4,5,$x)
 \family default
- and 
+, and 
 \family typewriter
 %!CA(4,5,$x)
 \family default
@@ -6964,11 +6998,15 @@ The lists
 \end_layout
 
 \begin_layout LyX-Code
+AtomList()(4, 5, 'x)
+\end_layout
+
+\begin_layout LyX-Code
 AtomList(!Associative)(4, 5, 'x)
 \end_layout
 
 \begin_layout LyX-Code
-AtomList(!Commutative, Associative)(4, 5, 'x)
+AtomList(!Commutative and Associative)(4, 5, 'x)
 \end_layout
 
 \begin_layout Plain Layout
