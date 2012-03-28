@@ -174,6 +174,9 @@ object Repl {
   /** Should stack traces be issued on exception. */
   private var _stacktrace = false
   
+  /** Should execution time be printed after every command. */
+  private var _timing = false
+  
   /**
    * Whether to suppress most printing.  Errors and warnings are not suppressed,
    * and explicitly requested output is also not suppressed.
@@ -279,11 +282,22 @@ object Repl {
     term.initializeTerminal()
     cr.flushConsole()
     cr.setHistory(_hist)
+    var starttime: Long = 0L
+    var endtime: Long = 0L
     while(true) {
       val line = cr.readLine(if (_quiet) "q> " else "e> ")
       if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
       cr.flushConsole()
+      starttime = java.lang.System.currentTimeMillis()
       execute(line)
+      if (_timing) {
+        endtime = java.lang.System.currentTimeMillis()
+        val elapsed = endtime - starttime
+        val mins = elapsed / 60000
+        val secs = (elapsed % 60000) / 1000
+        val mils = elapsed % 1000
+        printf("elapsed: %d:%02d.%03d\n", mins, secs, mils)
+      }
     }
   }
 
@@ -411,7 +425,7 @@ object Repl {
           case _ => _no_show
         })
 
-    // Bind.
+    // Equal.
     _context.operatorLibrary.add(NativeOperatorDefinition(
         Proto("equal", ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
         Commutative))
@@ -445,6 +459,19 @@ object Repl {
             println(_binds.map {
               pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
             }.mkString("{ bind\n", ",\n", "\n}"))
+            _no_show
+          }
+          case _ => _no_show
+        })
+        
+    // Timing.
+    _context.operatorLibrary.add(NativeOperatorDefinition(
+        Proto("timing", ANYTYPE)))
+    _context.operatorLibrary.register("timing",
+        (_, list:AtomList, _) => list match {
+          case Args() => {
+            _timing = !_timing
+            emitln("Timing is " + (if (_timing) "ON" else "OFF") + ".")
             _no_show
           }
           case _ => _no_show
