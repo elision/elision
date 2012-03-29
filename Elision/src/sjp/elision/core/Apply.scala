@@ -89,7 +89,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
           case Match(newbinds) =>
             // The operators match.  Now try to match the arguments.
             arg match {
-              case al:AtomList => al.tryMatch(oarg, newbinds, Some(op))
+              case as:AtomSeq => as.tryMatch(oarg, newbinds, Some(op))
               case _ => arg.tryMatch(oarg, newbinds, Some(op))
             }
             
@@ -200,11 +200,11 @@ object Apply {
 		 *    replacement, and the result is returned.
      */
     
-    case oldlist:AtomList =>
+    case oldlist: AtomSeq =>
       // We need to apply the operator to any child atom list.
-      val al = AtomList(oldlist.props, oldlist.atoms.map{
+      val as = AtomSeq(oldlist.props, oldlist.atoms.map {
         _ match {
-          case sublist: AtomList =>
+          case sublist: AtomSeq =>
             // Recursively apply the operator.
             apply(op, sublist)
           case atom: BasicAtom =>
@@ -221,14 +221,14 @@ object Apply {
       op.opdef match {
         case SymbolicOperatorDefinition(_, props) =>
           // This is a symbolic operator.
-          val assoc = al.props.associative.getOrElse(props.associative.getOrElse(false))
-          val comm = al.props.commutative.getOrElse(props.commutative.getOrElse(false))
-          checkProto(op, props, al, assoc, comm,bypass)
+          val assoc = as.props.associative.getOrElse(props.associative.getOrElse(false))
+          val comm = as.props.commutative.getOrElse(props.commutative.getOrElse(false))
+          checkProto(op, props, as, assoc, comm,bypass)
         case ImmediateOperatorDefinition(_, body) =>
           // Match the arguments against the formal parameters.  This will
           // allow us to rewrite the body with the resulting bindings to
           // obtain the final result.
-          val bind = SequenceMatcher.tryMatch(op.opdef.proto.pars, al.atoms) match {
+          val bind = SequenceMatcher.tryMatch(op.opdef.proto.pars, as.atoms) match {
             case Fail(reason, index) =>
             	throw new ArgumentListException("Incorrect argument list at " +
             			"position " + index + ": " + reason())
@@ -266,7 +266,7 @@ object Apply {
    * @throws	ArgumentListException
    * 					The properties do not match.
    */
-  private def checkProto(op: Operator, props: AlgProp, al: AtomList,
+  private def checkProto(op: Operator, props: AlgProp, as: AtomSeq,
       assoc: Boolean, comm: Boolean, bypass: Boolean): BasicAtom = {
     // Check the properties and throw an exception if they do not match.
     if (props.associative.getOrElse(assoc) && !assoc)
@@ -290,7 +290,7 @@ object Apply {
       // against the provided argument list.  If they match, then all is
       // well.  If they do not match, then we immediately throw an exception.
       // We need to capture and save the bindings of parameter to argument.
-      val pabind = SequenceMatcher.tryMatch(op.opdef.proto.pars, al.atoms) match {
+      val pabind = SequenceMatcher.tryMatch(op.opdef.proto.pars, as.atoms) match {
         case fail:Fail =>
           // The argument list does not match the formal parameters.
           throw new ArgumentListException(
@@ -302,11 +302,11 @@ object Apply {
       
       // The argument list matches.  Make and return the apply.
       if (bypass) {
-        OpApply(op, al, pabind)
+        OpApply(op, as, pabind)
       } else { 
 	      return op.handler match {
-	        case Some(closure) => closure(op, al, pabind)
-	        case None => OpApply(op, al, pabind)
+	        case Some(closure) => closure(op, as, pabind)
+	        case None => OpApply(op, as, pabind)
 	      }
       }
     }
@@ -318,14 +318,14 @@ object Apply {
     var newlist = IndexedSeq[BasicAtom]()
     val absorber = props.absorber.getOrElse(null)
     val identity = props.identity.getOrElse(null)
-    for (atom <- al.atoms) {
+    for (atom <- as.atoms) {
 		  // If this atom is an application of the same operator, then flatten
 		  // the argument list.  This is the "parenthesized" list case:
 		  // op(x,op(y,z)) becomes op(x,y,z).
       //
       // We also look for identities (which we skip) and absorbers.
 		  atom match {
-		    case Apply(oop, AtomList(_,args)) if oop == op =>
+		    case Apply(oop, AtomSeq(_,args)) if oop == op =>
 		      // Add the arguments directly to this list.  We can assume it has
 		      // already been processed, so no deeper checking is needed.
 		      newlist ++= args
@@ -389,13 +389,13 @@ object Apply {
     // The argument list matches.  Make and return the apply.
     val newprop = AlgProp(associative = Some(assoc), commutative = Some(comm))
     if (bypass) {
-      return OpApply(op, AtomList(newprop, newlist), pabind)
+      return OpApply(op, AtomSeq(newprop, newlist), pabind)
     } else { 
 	    return op.handler match {
 	      case Some(closure) =>
-	        closure(op, AtomList(newprop, newlist), pabind)
+	        closure(op, AtomSeq(newprop, newlist), pabind)
 	      case None =>
-	        OpApply(op, AtomList(newprop, newlist), pabind)
+	        OpApply(op, AtomSeq(newprop, newlist), pabind)
 	    }
     }
   }
@@ -458,7 +458,7 @@ extends Apply(op, arg) {
  * 								if the operator is associative, some parameters may be
  * 								synthetic!
  */
-case class OpApply(override val op: Operator, override val arg: AtomList,
+case class OpApply(override val op: Operator, override val arg: AtomSeq,
     pabinds: Bindings) extends Apply(op, arg) {
   /**
    * Compute the type from the type specified by the operator, and the bindings

@@ -42,7 +42,7 @@ object MatchHelper {
    * @param plist	The pattern list.
    * @param slist	The subject list.
    */
-  def eliminateConstants(plist: AtomList, slist: AtomList):
+  def eliminateConstants(plist: AtomSeq, slist: AtomSeq):
   		(OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
     var patterns = plist.atoms
     var subjects = slist.atoms

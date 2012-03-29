@@ -51,6 +51,45 @@ sealed class AlgProp(
   override def toString = "AlgProp(" + associative + ", " + commutative + ", " +
   		idempotent + ", " + absorber + ", " + identity + ")"
 
+  private def matchOneProp[A](pattern: Option[A],
+      subject: Option[A]): Option[Option[A]] = pattern match {
+    case None =>
+      // Any subject is acceptable.
+      Some(subject)
+    case Some(pval) =>
+      // The subject must match.
+      subject match {
+        case Some(sval) if pval == sval => Some(subject)
+        case _ => None
+      }
+  }
+
+  /**
+   * Match this property set against the provided property set.  We try to
+   * reconcile the two, and return the joint properties.
+   * 
+   * Essentially, if the pattern defines a property, the subject must match.
+   * 
+   * @param subject	The subject to match.
+   * @param binds		Bindings to apply for the identity and absorber.  This is
+   * 								presently ''ignored''.
+   * @return	Either the reconciled properties indicating a match, or None if
+   * 					no match is possible.
+   */
+  def matchProps(subject: AlgProp, binds: Bindings): Option[AlgProp] = {
+    // The way properties match is as follows.  If pattern specifies a property,
+    // then the subject must match exactly.  Otherwise if the pattern does not
+    // specify a property, then the subject may use any value.  The absorber and
+    // identity must match exactly after the bindings are applied.  There is no
+    // chance for generating new bindings!
+    val massoc = matchOneProp(associative, subject.associative).getOrElse(return None)
+    val mcommu = matchOneProp(commutative, subject.commutative).getOrElse(return None)
+    val midemp = matchOneProp(idempotent,  subject.idempotent).getOrElse(return None)
+    val mabsor = matchOneProp(absorber,    subject.absorber).getOrElse(return None)
+    val mident = matchOneProp(identity,    subject.identity).getOrElse(return None)
+    return Some(AlgProp(massoc, mcommu, midemp, mabsor, mident))
+  }
+
   /**
    * Reflect the value of an optional Boolean using a string.
    *

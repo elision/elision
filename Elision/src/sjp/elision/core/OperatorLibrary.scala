@@ -120,7 +120,7 @@ class OperatorLibrary(
  	 * 								return a new atom.
  	 */
  	def register(name: String,
- 	    handler: (Operator, AtomList, Bindings) => BasicAtom) = {
+ 	    handler: (Operator, AtomSeq, Bindings) => BasicAtom) = {
  	  // Go fetch the operator.  It must be defined.
  	  _nameToOperator.get(name) match {
  	    case None =>
@@ -233,7 +233,7 @@ object OperatorLibrary {
  	 * Construct a map type, given a domain and range.
  	 */
   def MAP(dom: BasicAtom, ran: BasicAtom) =
-    Apply(MapOperator, AtomList(NoProps, IndexedSeq(dom, ran)))
+    Apply(MapOperator, AtomSeq(NoProps, dom, ran))
 
   /**
    * The well-known cross operator used to build operator types.
@@ -247,5 +247,5 @@ object OperatorLibrary {
    * Make a cross type.
    */
   def xx(atoms: IndexedSeq[BasicAtom]) =
-    Apply(CrossOperator, AtomList(NoProps, atoms))
+    Apply(CrossOperator, AtomSeq(NoProps, atoms))
 }

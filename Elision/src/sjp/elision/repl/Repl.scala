@@ -416,7 +416,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("bind", ANYTYPE, ("a", ANYTYPE), ("v", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("bind",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
           	// Bind the variable in this context.
             _binds += (from.name -> to)
@@ -430,7 +430,7 @@ object Repl {
         Proto("equal", ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
         Commutative))
     _context.operatorLibrary.register("equal",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(x:BasicAtom, y:BasicAtom) =>
             // Check for equality.
             if (x == y) Literal.TRUE else Literal.FALSE
@@ -441,7 +441,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("unbind", ANYTYPE, ("v", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("unbind",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(from:Variable) =>
           	// Unbind the variable in this context.
             _binds -= from.name
@@ -454,7 +454,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("showbinds", ANYTYPE), NoProps))
     _context.operatorLibrary.register("showbinds",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() => {
             println(_binds.map {
               pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
@@ -468,7 +468,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("timing", ANYTYPE), NoProps))
     _context.operatorLibrary.register("timing",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() => {
             _timing = !_timing
             emitln("Timing is " + (if (_timing) "ON" else "OFF") + ".")
@@ -481,7 +481,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("context", ANYTYPE), NoProps))
     _context.operatorLibrary.register("context",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
             println(_context.toParseString)
             _no_show
@@ -492,7 +492,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("stacktrace", ANYTYPE), NoProps))
     _context.operatorLibrary.register("stacktrace",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
             _stacktrace = !_stacktrace
             emitln("Printing stack traces is " +
@@ -505,7 +505,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("read", ANYTYPE, ("filename", STRING)), NoProps))
     _context.operatorLibrary.register("read",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
             // TODO Read the content of the file.
             emitln("Not implemented.")
@@ -517,7 +517,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("write", ANYTYPE, ("filename", STRING)), NoProps))
     _context.operatorLibrary.register("write",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
             // TODO Write the content to the file.
             emitln("Not implemented.")
@@ -529,7 +529,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("help", ANYTYPE), NoProps))
     _context.operatorLibrary.register("help",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
           	// Give some help.
 		        println("""
@@ -565,7 +565,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("traceparse", ANYTYPE), NoProps))
     _context.operatorLibrary.register("traceparse",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
 		        // Toggle tracing.
 		        _trace = !_trace
@@ -579,7 +579,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("tracematch", ANYTYPE), NoProps))
     _context.operatorLibrary.register("tracematch",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
 		        // Toggle tracing.
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
@@ -593,7 +593,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("showscala", ANYTYPE), NoProps))
     _context.operatorLibrary.register("showscala",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
 		        // Toggle showing the Scala term.
 		        _showScala = !_showScala
@@ -606,7 +606,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("showprior", ANYTYPE), NoProps))
     _context.operatorLibrary.register("showprior",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
 		        // Toggle showing the prior term.
 		        _showPrior = !_showPrior
@@ -619,7 +619,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("history", ANYTYPE), NoProps))
     _context.operatorLibrary.register("history",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
 		        // Show the history.
 		        for (index <- 1 until _hist.getCurrentIndex()) {
@@ -634,7 +634,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("quiet", ANYTYPE), NoProps))
     _context.operatorLibrary.register("quiet",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
             // Enable quiet.
             _quiet = !_quiet
@@ -647,7 +647,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("enable", ANYTYPE, ("x", SYMBOL)), NoProps))
     _context.operatorLibrary.register("enable",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
             // Enable the specified ruleset.
             _context.enableRuleset(sym.name)
@@ -659,7 +659,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("disable", ANYTYPE, ("x", SYMBOL)), NoProps))
     _context.operatorLibrary.register("disable",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
             // Disable the specified ruleset.
             _context.disableRuleset(sym.name)
@@ -671,7 +671,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("setlimit", ANYTYPE, ("limit", INTEGER)), NoProps))
     _context.operatorLibrary.register("setlimit",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(IntegerLiteral(_, count)) =>
             // Enable the specified ruleset.
             _context.setLimit(count)
@@ -683,7 +683,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("rewrite", ANYTYPE), NoProps))
     _context.operatorLibrary.register("rewrite",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args() =>
             // Toggle rewriting.
             _rewrite = !_rewrite
@@ -697,7 +697,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("showrules", ANYTYPE, ("a", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("showrules",
-        (_, list:AtomList, _) => list match {
+        (_, list:AtomSeq, _) => list match {
           case Args(atom) =>
             // Get the rules, and print each one.
             for (rule <- _context.getRules(atom)) {
@@ -711,7 +711,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("mod", INTEGER, ("x", INTEGER), ("y", INTEGER)), NoProps))
     _context.operatorLibrary.register("mod",
-        (op: Operator, args: AtomList, _) => args.atoms match {
+        (op: Operator, args: AtomSeq, _) => args.atoms match {
           case Args(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
           case _ => Apply(op, args, true)
         })
@@ -720,7 +720,7 @@ object Repl {
     _context.operatorLibrary.add(SymbolicOperatorDefinition(
         Proto("neg", INTEGER, ("x", INTEGER)), NoProps))
     _context.operatorLibrary.register("neg",
-        (op: Operator, args: AtomList, _) => args match {
+        (op: Operator, args: AtomSeq, _) => args match {
           case Args(IntegerLiteral(_, x)) => -x
           case _ => Apply(op, args, true)
         })
@@ -730,7 +730,7 @@ object Repl {
 		    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
 		    Associative and Commutative and Identity(0)))
 		_context.operatorLibrary.register("add",
-      (op: Operator, args: AtomList, _) => {
+      (op: Operator, args: AtomSeq, _) => {
 			  // Accumulate the integer literals found.
 			  var lits:BigInt = 0
 			  // Accumulate other atoms found.
@@ -745,7 +745,7 @@ object Repl {
 			  // Now add the accumulated literals to the list.
 			  other :+= Literal(INTEGER, lits)
 			  // Construct and return a new operator application.
-			  Apply(op, AtomList(NoProps, other), true)
+			  Apply(op, AtomSeq(NoProps, other), true)
       })
         
     // The operator are defined.

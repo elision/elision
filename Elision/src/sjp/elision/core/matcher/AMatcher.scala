@@ -45,7 +45,7 @@ object AMatcher {
    * @param op		An optional operator to apply to sublists.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings,
+  def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
       op: Option[Operator]): Outcome = {
     // Check the length.
     if (plist.atoms.length > slist.atoms.length)
@@ -143,7 +143,7 @@ object AMatcher {
    * @param subjects	The subjects.
    * @param binds			Bindings to honor.
    */
-  private class AMatchIterator(patterns: AtomList, subjects: AtomList,
+  private class AMatchIterator(patterns: AtomSeq, subjects: AtomSeq,
       binds: Bindings, op: Option[Operator]) extends MatchIterator {
     /** An iterator over all groupings of the subjects. */
     private val _groups = new GroupingIterator(patterns, subjects, op)

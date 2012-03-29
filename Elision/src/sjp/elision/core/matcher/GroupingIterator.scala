@@ -48,7 +48,7 @@ import sjp.elision.core._
  * @param subjects	The subjects.
  * @param op				The operator, if known.
  */
-class GroupingIterator(patterns: AtomList, subjects: AtomList,
+class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
     op: Option[Operator]) extends Iterator[OmitSeq[BasicAtom]] {
   /** Whether this iterator is exhausted. */
   private var _exhausted = false
@@ -160,7 +160,7 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
 	      val item: BasicAtom =
 	        (if (slice.length != 1) {
 		        // Turn the slice into a list.
-		      	val list = AtomList(subjects.props, slice)
+		      	val list = AtomSeq(subjects.props, slice)
 		      
 			      // If we have an operator, apply it now.
 		      	if (operator != null) Apply(operator, list) else list
@@ -205,7 +205,7 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
 //	    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
 //	    Props(Associative, Commutative, Identity(0))))
 //	_context.operatorLibrary.register("add",
-//    (op: Operator, args: AtomList, _) => {
+//    (op: Operator, args: AtomSeq, _) => {
 //		  // Accumulate the integer literals found.
 //		  var lits:BigInt = 0
 //		  // Accumulate other atoms found.
@@ -220,12 +220,12 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
 //		  // Now add the accumulated literals to the list.
 //		  other :+= Literal(INTEGER, lits)
 //		  // Construct and return a new operator application.
-//		  Apply(op, AtomList(other), true)
+//		  Apply(op, AtomSeq(other), true)
 //    })
 //  val op = _context.operatorLibrary("add")
 //
-//  val pats = AtomList(Vector("a","b","c").map(Variable(INTEGER, _)), None)
-//  val subs = AtomList((1 to 7).map(IntegerLiteral(INTEGER, _)), None)
+//  val pats = AtomSeq(Vector("a","b","c").map(Variable(INTEGER, _)), None)
+//  val subs = AtomSeq((1 to 7).map(IntegerLiteral(INTEGER, _)), None)
 //  val gi = new GroupingIterator(pats, subs, Some(op))
 ////  while (!gi._exhausted) {
 ////    println(gi._markers.mkString(", "))
@@ -234,6 +234,6 @@ class GroupingIterator(patterns: AtomList, subjects: AtomList,
 //  while (gi.hasNext) {
 //    val ba = gi.next
 //    print(ba.mkParseString("add(",", ", ") = "))
-//    println(Apply(op, AtomList(ba, None)).toParseString)
+//    println(Apply(op, AtomSeq(ba, None)).toParseString)
 //  }
 //}

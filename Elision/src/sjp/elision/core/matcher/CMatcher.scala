@@ -44,7 +44,7 @@ object CMatcher {
    * @param binds	Bindings that must be honored in any match.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings): Outcome = {
+  def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings): Outcome = {
     // Check the length.
     if (plist.atoms.length != slist.atoms.length)
       return Fail("Lists are different sizes, so no match is possible.",

@@ -193,13 +193,13 @@ object AtomParser {
 	 * An abstract syntax tree node holding a simple list of atoms.
 	 * @param list	The actual list of atom nodes.
 	 */
-	case class AtomListNode(props: List[AlgProp], list: List[AstNode])
+	case class AtomSeqNode(props: List[AlgProp], list: List[AstNode])
 	extends AstNode {
 	  /**
 	   * Properties of this list, if known.
 	   */
 	  def interpret =
-	    AtomList(props.foldLeft(NoProps.asInstanceOf[AlgProp])(_ and _),
+	    AtomSeq(props.foldLeft(NoProps.asInstanceOf[AlgProp])(_ and _),
 	        list.toIndexedSeq[AstNode] map (_.interpret))
 	}
 	
@@ -830,7 +830,7 @@ extends Parser {
     // be used as infix operators.  Associate to the right.
     FirstAtom ~ WS ~ InfixOperatorL ~ WS ~ Atom ~~> (
         (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomListNode(List(), List(larg, rarg))))
+        	ApplicationNode(context, op, AtomSeqNode(List(), List(larg, rarg))))
   }
   
   def RApply = rule {
@@ -838,7 +838,7 @@ extends Parser {
     // be used as infix operators.  Associate to left.
     Atom ~ WS ~ InfixOperatorR ~ WS ~ FirstAtom ~~> (
         (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomListNode(List(), List(larg, rarg))))
+        	ApplicationNode(context, op, AtomSeqNode(List(), List(larg, rarg))))
   }
 
   /**
@@ -952,8 +952,8 @@ extends Parser {
     // If you want to use a general atom, use a dot to join it to the argument.
     // The same comment applies if you want to use a general atom as the
     // argument.
-    ESymbol ~ "( " ~ ParsedAtomList ~ ") " ~~> (
-      (op: NakedSymbolNode, arg: AtomListNode) =>
+    ESymbol ~ "( " ~ ParsedAtomSeq ~ ") " ~~> (
+      (op: NakedSymbolNode, arg: AtomSeqNode) =>
         ApplicationNode(context, op, arg))
   }.label("an operator application")
   
@@ -1046,21 +1046,21 @@ extends Parser {
         ignoreCase("!A") ~> ((x) => !Associative) |
         ignoreCase("!C") ~> ((x) => !Commutative) |
         ignoreCase("!I") ~> ((x) => !Idempotent)) ~ WS ~
-        "( " ~ ParsedAtomList ~ ") " ~~>
-    ((props: List[AlgProp], list: AtomListNode) => AtomListNode(props, list.list))
+        "( " ~ ParsedAtomSeq ~ ") " ~~>
+    ((props: List[AlgProp], list: AtomSeqNode) => AtomSeqNode(props, list.list))
   }.label("a typed list of atoms")
   
   /**
    * Parse a list of atoms, separated by commas.  No concept of associativity,
    * commutativity, etc., is inferred at this point.
    */
-  def ParsedAtomList = rule {
+  def ParsedAtomSeq = rule {
     optional(Atom ~ zeroOrMore(", " ~ Atom)) ~~> (
         (what: Option[(AstNode,List[AstNode])]) => what match {
           case None =>
-            AtomListNode(List(), List[AstNode]())
+            AtomSeqNode(List(), List[AstNode]())
           case Some((head:AstNode, tail)) =>
-            AtomListNode(List(), head :: tail)
+            AtomSeqNode(List(), head :: tail)
         })
   }.label("a comma-separated list of atoms")
 

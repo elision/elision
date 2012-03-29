@@ -46,7 +46,7 @@ object ACMatcher {
    * @param op		An optional operator to apply to sublists.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomList, slist: AtomList, binds: Bindings,
+  def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
       op: Option[Operator]): Outcome = {
     // Check the length.
     if (plist.atoms.length > slist.atoms.length)
@@ -80,8 +80,8 @@ object ACMatcher {
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
       // Get the patterns and subjects that remain.
-      val pats = AtomList(plist.props, bindings.patterns.getOrElse(patterns))
-      val subs = AtomList(slist.props, bindings.subjects.getOrElse(subjects))
+      val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
+      val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
       
 	    // If there is exactly one pattern then match it immediately.
 	    if (pats.atoms.length == 1) {
@@ -105,7 +105,7 @@ object ACMatcher {
    * the subjects.
    */
   
-  private class ACMatchIterator(patterns: AtomList, subjects: AtomList,
+  private class ACMatchIterator(patterns: AtomSeq, subjects: AtomSeq,
       binds: Bindings, op: Option[Operator]) extends MatchIterator {
     /** An iterator over all permutations of the subjects. */
     private val _perms = subjects.atoms.permutations
@@ -122,7 +122,7 @@ object ACMatcher {
       else {
         _local = null
 	      if (_perms.hasNext)
-	        AMatcher.tryMatch(patterns, AtomList(subjects.props, _perms.next),
+	        AMatcher.tryMatch(patterns, AtomSeq(subjects.props, _perms.next),
 	            binds, op) match {
 	        case Fail(_,_) =>
 	          // We ignore this case.  We only fail if we exhaust all attempts.
