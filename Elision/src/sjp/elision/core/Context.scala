@@ -419,7 +419,7 @@ private object Completor {
     val pattern = rule.pattern
     val rewrite = rule.rewrite
     pattern match {
-      case Apply(op:Operator, al:AtomList) => {
+      case Apply(op:Operator, as:AtomSeq) => {
         // Extract the operator properties.
         val props = op.opdef match {
           case iod: ImmediateOperatorDefinition => NoProps
@@ -434,11 +434,11 @@ private object Completor {
         // The operator is associative.  We must at least add an argument on
         // the right-hand side.  Make and add the argument, and then add the
         // synthetic rule.
-        var right = Variable(al(0).theType, "::R")
-        var newpatternlist = al.atoms :+ right
+        var right = Variable(as(0).theType, "::R")
+        var newpatternlist = as.atoms :+ right
         var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-        list :+= RewriteRule(Apply(op, AtomList(props, newpatternlist)),
-            Apply(op, AtomList(props, newrewritelist)),
+        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+            Apply(op, AtomSeq(props, newrewritelist)),
             rule.guards, rule.rulesets, rule.cacheLevel, true)
         
         // If the operator is commutative, we are done.
@@ -447,18 +447,18 @@ private object Completor {
         }
         
         // Repeat the above to add an argument on the left-hand side.
-        var left = Variable(al(0).theType, "::L")
-        newpatternlist = left +: al.atoms
+        var left = Variable(as(0).theType, "::L")
+        newpatternlist = left +: as.atoms
         newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
-        list :+= RewriteRule(Apply(op, AtomList(props, newpatternlist)),
-            Apply(op, AtomList(props, newrewritelist)),
+        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+            Apply(op, AtomSeq(props, newrewritelist)),
             rule.guards, rule.rulesets, rule.cacheLevel, true)
             
         // And again add the argument on the right-hand side.
         newpatternlist = newpatternlist :+ right
         newrewritelist = newrewritelist :+ right
-        list :+= RewriteRule(Apply(op, AtomList(props, newpatternlist)),
-            Apply(op, AtomList(props, newrewritelist)),
+        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+            Apply(op, AtomSeq(props, newrewritelist)),
             rule.guards, rule.rulesets, rule.cacheLevel, true)
             
         // Done.
