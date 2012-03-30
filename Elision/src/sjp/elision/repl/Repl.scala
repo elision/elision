@@ -736,7 +736,7 @@ object Repl {
 			  // Accumulate other atoms found.
 			  var other = IndexedSeq[BasicAtom]()
 			  // Traverse the list and divide the atoms.
-			  args.atoms.foreach {
+			  args.foreach {
 			    x => x match {
 			      case IntegerLiteral(_, value) => lits += value
 			      case _ => other :+= x
@@ -747,6 +747,14 @@ object Repl {
 			  // Construct and return a new operator application.
 			  Apply(op, AtomSeq(NoProps, other), true)
       })
+      
+    _context.operatorLibrary.add(SymbolicOperatorDefinition(
+        Proto("is_bindable", BOOLEAN, ("x", ANYTYPE)), NoProps))
+    _context.operatorLibrary.register("is_bindable",
+        (op: Operator, args: AtomSeq, _) => args match {
+          case Args(term) => term.isBindable
+          case _ => Apply(op, args, true)
+        })
         
     // The operator are defined.
     _opsDefined = true
