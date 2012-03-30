@@ -1405,6 +1405,7 @@ extends Parser {
    * Parse a set of bindings.
    */
   def ParsedBindings = rule {
+  	"{ " ~ "bind " ~ "} " ~> (x => BindingsNode(List())) |
     "{ " ~ "bind " ~ ParsedBind ~ zeroOrMore(", " ~ ParsedBind) ~ "} " ~~>
     ((x:(NakedSymbolNode, AstNode), rest) => BindingsNode(x :: rest))
   }.label("a binding expression")

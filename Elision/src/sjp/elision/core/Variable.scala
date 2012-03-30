@@ -76,19 +76,21 @@ case class Variable(typ: BasicAtom, name: String,
   
   /** Variables contain no constant children. */
   val constantPool = None
-
+  
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =
     // if the variable allows binding, and it is not already bound to a
     // different atom.  We also allow the variable to match ANYTYPE.
     if (isBindable) binds.get(name) match {
       case None =>
-        // This is tricky.  We don't bind if we match against ANYTYPE.  Are
+        // This is tricky.  We bind if we match against ANYTYPE.  Are
         // there unforseen consequences to this decision?  Otherwise we have
         // to add a binding of the variable name to the subject.
-        if (subject == ANYTYPE) Match(binds)
-        else Match(binds + (name -> subject))
-      case Some(atom) if atom == ANYTYPE || atom == subject =>
+        Match(binds + (name -> subject))
+      case Some(ANYTYPE) =>
+        // We should re-bind this variable now.
+        Match(binds + (name -> subject))
+      case Some(atom) if subject == ANYTYPE || atom == subject =>
         // The variable is already bound, and it is bound to the subject, so
         // the match succeeds with the bindings as they are.
         Match(binds)

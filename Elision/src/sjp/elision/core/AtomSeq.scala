@@ -259,7 +259,7 @@ object AtomSeq {
       newseq
     } else {
       // The list is not associative.  Construct and return the list.
-      atoms.asInstanceOf[OmitSeq[BasicAtom]]
+      atoms
     }
 }
 
