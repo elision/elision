@@ -58,8 +58,15 @@ import scala.collection.mutable.HashMap
  * @param guard		The variable's guard.
  * @param labels	Labels for this variable.
  */
-case class Variable(typ: BasicAtom, name: String, guard: BasicAtom = true,
-    labels: Set[String] = Set[String]()) extends BasicAtom {
+class Variable(typ: BasicAtom, val name: String,
+    val guard: BasicAtom = Literal.TRUE,
+    val labels: Set[String] = Set[String]()) extends BasicAtom {
+  /** The prefix for this variable. */
+  protected val prefix = "$"
+    
+  /** This variable is a term. */
+  val isTerm = true
+  
   /** The type of this variable. */
   val theType = typ
   
@@ -78,12 +85,14 @@ case class Variable(typ: BasicAtom, name: String, guard: BasicAtom = true,
   /** Variables contain no constant children. */
   val constantPool = None
   
-  def bindMe(subject: BasicAtom, binds: Bindings): Bindings = {
+  def bindMe(subject: BasicAtom, binds: Bindings): Outcome = {
     // Compute the new bindings.
     val newbinds = binds + (name -> subject)
     // Check any guard.
-    if (guard == Literal.TRUE && guard.rewrite(newbinds)._1.isTrue) newbinds
-    else binds
+    if (guard == Literal.TRUE || guard.rewrite(newbinds)._1.isTrue)
+      Match(newbinds)
+    else
+      Fail("Variable guard failed.")
   }
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
@@ -95,10 +104,10 @@ case class Variable(typ: BasicAtom, name: String, guard: BasicAtom = true,
         // This is tricky.  We bind if we match against ANYTYPE.  Are
         // there unforseen consequences to this decision?  Otherwise we have
         // to add a binding of the variable name to the subject.
-        Match(bindMe(subject, binds))
+        bindMe(subject, binds)
       case Some(ANYTYPE) =>
         // We should re-bind this variable now.
-        Match(bindMe(subject, binds))
+        bindMe(subject, binds)
       case Some(atom) if subject == ANYTYPE || atom == subject =>
         // The variable is already bound, and it is bound to the subject, so
         // the match succeeds with the bindings as they are.
@@ -136,7 +145,8 @@ case class Variable(typ: BasicAtom, name: String, guard: BasicAtom = true,
     }
   }
 
-  def toParseString = "$" + toESymbol(name) +
+  def toParseString = prefix + toESymbol(name) +
+  		(if (guard != Literal.TRUE) "{" + guard.toParseString + "}" else "") +
   		(if (theType != ANYTYPE) ":" + typ.toParseString else "") +
   		labels.map(" @" + toESymbol(_)).mkString("")
   
@@ -144,12 +154,79 @@ case class Variable(typ: BasicAtom, name: String, guard: BasicAtom = true,
     "Variable(" +
     typ + "," +
     toEString(name) + "," +
+    guard.toString + "," +
     labels.map(toEString(_)).mkString("Set(", ",", ")") + ")"
   
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   
   override def equals(varx: Any) = varx match {
-    case ovar:Variable => ovar.typ == typ && ovar.name == name
+    case ovar:Variable => ovar.theType == theType && ovar.name == name
     case _ => false
   }
+}
+
+object Variable {
+  /**
+   * Make a new variable instance.
+   * 
+	 * @param typ			The variable type.
+	 * @param name		The variable name.
+	 * @param guard		The variable's guard.
+	 * @param labels	Labels for this variable.
+	 */
+  def apply(typ: BasicAtom, name: String, guard: BasicAtom = Literal.TRUE,
+      labels: Set[String] = Set[String]()) =
+        new Variable(typ, name, guard, labels)
+  
+  /**
+   * Extract the parts of a variable.
+   * 
+   * @param vx	The variable.
+   * @return	The type, name, guard, and labels.
+   */
+  def unapply(vx: Variable) = Some(vx.theType, vx.name, vx.guard, vx.labels)
+}
+
+/**
+ * Define a metavariable.
+ * 
+ * @param typ			The variable type.
+ * @param name		The variable name.
+ * @param guard		The variable's guard.
+ * @param labels	Labels for this variable.
+ */
+class MetaVariable(typ: BasicAtom, name: String,
+    guard: BasicAtom = Literal.TRUE,
+    labels: Set[String] = Set[String]())
+    extends Variable(typ, name, guard, labels) {
+  override val isTerm = false
+  override val prefix = "$$"
+  override def toString =
+    "MetaVariable(" +
+    typ + "," +
+    toEString(name) + "," +
+    guard.toString + "," +
+    labels.map(toEString(_)).mkString("Set(", ",", ")") + ")"
+}
+
+object MetaVariable {
+  /**
+   * Make a new metavariable instance.
+   * 
+	 * @param typ			The variable type.
+	 * @param name		The variable name.
+	 * @param guard		The variable's guard.
+	 * @param labels	Labels for this variable.
+	 */
+  def apply(typ: BasicAtom, name: String, guard: BasicAtom = Literal.TRUE,
+      labels: Set[String] = Set[String]()) =
+        new MetaVariable(typ, name, guard, labels)
+  
+  /**
+   * Extract the parts of a metavariable.
+   * 
+   * @param vx	The variable.
+   * @return	The type, name, guard, and labels.
+   */
+  def unapply(vx: MetaVariable) = Some(vx.theType, vx.name, vx.guard, vx.labels)
 }

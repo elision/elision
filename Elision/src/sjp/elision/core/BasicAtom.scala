@@ -172,6 +172,9 @@ abstract class BasicAtom {
   /** If true then this atom denotes a constant (it contains no variables). */
   val isConstant: Boolean
   
+  /** If true then this atom denotes a term.  If false, a metaterm. */
+  val isTerm: Boolean
+  
   /**
    * A mapping from known constant descendants to their child index.
    * 

@@ -86,6 +86,9 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   /** A sequence is constant iff all elements are constant. */
   val isConstant = atoms.forall(_.isConstant)
   
+  /** This sequence is a term iff all elements are terms. */
+  val isTerm = atoms.forall(_.isTerm)
+  
   /** The constant pool is derived from the children of the sequence. */
   val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))
   

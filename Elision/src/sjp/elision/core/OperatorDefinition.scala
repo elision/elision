@@ -47,6 +47,9 @@ extends BasicAtom {
   val theType = TypeUniverse
   val deBruijnIndex = 0
   
+  /** All operator definitions are terms. */
+  val isTerm = true
+  
   /**
    * Operator definitions do not maintain a constant pool since they are seldom
    * involved in matching.

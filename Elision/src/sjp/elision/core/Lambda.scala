@@ -83,6 +83,9 @@ extends BasicAtom with Applicable {
    */
   val isConstant = body.isConstant
   
+  /** The lambda is a term iff its body is a term. */
+  val isTerm = body.isTerm
+  
   /** The depth is equal to the depth of the body, plus one. */
   val depth = body.depth + 1
   
@@ -196,6 +199,9 @@ object Lambda {
      * Now, when evaluating lambdas, we have to rewrite De Bruijn indices.  So
      * we only block rewriting of one De Bruijn index to a different De Bruijn
      * index.  That logic can be found in the Variable class.
+     * 
+     * One final note.  There are metavariables in the system.  When we rewrite,
+     * we must preserve their meta-nature.
      */
     
     // First compute the De Bruijn index of the term.  It is equal to one
@@ -203,9 +209,14 @@ object Lambda {
     val deBruijnIndex = body.deBruijnIndex + 1
     
     // Now make a new De Bruijn variable for the index.
-    val newvar = new Variable(lvar.theType, ":"+deBruijnIndex) {
+    val newvar = (if (lvar.isTerm)
+      new Variable(lvar.theType, ":"+deBruijnIndex) {
       override val isDeBruijnIndex = true
     }
+    else
+    	new MetaVariable(lvar.theType, ":"+deBruijnIndex) {
+      override val isDeBruijnIndex = true
+    })
     
     // Bind the old variable to the new one.
     var binds = Bindings()

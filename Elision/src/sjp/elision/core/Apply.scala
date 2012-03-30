@@ -47,6 +47,9 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   /** The apply is constant iff its parts are. */
   val isConstant = op.isConstant && arg.isConstant
   
+  /** This is a term iff both sides are terms. */
+  val isTerm = op.isTerm && arg.isTerm
+  
   /** The constant pool aggregated from the children. */
   val constantPool = Some(BasicAtom.buildConstantPool(2, op, arg))
   
@@ -127,26 +130,30 @@ object Apply {
    * @return	The basic atom resulting from the application.
    */
   def apply(op: BasicAtom, arg: BasicAtom, bypass: Boolean = false): BasicAtom = {
-    op match {
-      case oper:Operator =>
-        // The lhs is an operator; this is a highly likely case.
-      	opApply(oper, arg, bypass)
-	    case app:Applicable =>
-	      // The lhs is applicable; invoke its apply method.  This will return
-	      // some atom, and that atom is the overall result.
-	      app.doApply(arg)
-	    case rew:Rewriter =>
-	      // The lhs is a rewriter; invoke its rewrite method.  This will return
-	      // a pair.  We need to convert the pair to a binding.
-	      val (r_atom, r_flag) = rew.doRewrite(arg)
-	      BindingsAtom(Bindings() +
-	          ("atom" -> r_atom) +
-	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
-	    case _ =>
-	      // The lhs is something else.  It may be a variable or some other
-	      // expression that we have yet to evaluate.  Just build a simple
-	      // apply of the lhs and rhs.
-	      SimpleApply(op, arg)
+    // Do not try to compute if metaterms are present.
+    if (!arg.isTerm) SimpleApply(op, arg)
+    else {
+	    op match {
+	      case oper:Operator =>
+	        // The lhs is an operator; this is a highly likely case.
+	      	opApply(oper, arg, bypass)
+		    case app:Applicable =>
+		      // The lhs is applicable; invoke its apply method.  This will return
+		      // some atom, and that atom is the overall result.
+		      app.doApply(arg)
+		    case rew:Rewriter =>
+		      // The lhs is a rewriter; invoke its rewrite method.  This will return
+		      // a pair.  We need to convert the pair to a binding.
+		      val (r_atom, r_flag) = rew.doRewrite(arg)
+		      BindingsAtom(Bindings() +
+		          ("atom" -> r_atom) +
+		          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
+		    case _ =>
+		      // The lhs is something else.  It may be a variable or some other
+		      // expression that we have yet to evaluate.  Just build a simple
+		      // apply of the lhs and rhs.
+		      SimpleApply(op, arg)
+	    }
     }
   }
   

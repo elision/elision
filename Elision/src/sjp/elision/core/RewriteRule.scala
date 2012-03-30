@@ -49,6 +49,7 @@ case class RulesetStrategy(context: Context, names: List[String])
 extends BasicAtom with Rewriter {
   val theType = STRATEGY
   val isConstant = true
+  val isTerm = true
   val constantPool = None
   val deBruijnIndex = 0
   val depth = 0
@@ -84,6 +85,7 @@ case class MapStrategy(include: Set[String], exclude: Set[String],
 	val theType = STRATEGY
 	
 	val isConstant = lhs.isConstant
+	val isTerm = lhs.isTerm
 	val deBruijnIndex = lhs.deBruijnIndex
 	val depth = lhs.depth + 1
 	val constantPool =
@@ -137,6 +139,7 @@ case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
 	val theType = STRATEGY
 	
 	val isConstant = rhs.isConstant
+	val isTerm = rhs.isTerm
 	val deBruijnIndex = rhs.deBruijnIndex
 	val depth = rhs.depth + 1
 	val constantPool =
@@ -240,7 +243,10 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
   val theType = STRATEGY
   
   lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
-  	guards.foldLeft(true)(_ && _.isConstant)
+  	guards.forall(_.isConstant)
+  	
+  lazy val isTerm = pattern.isTerm && rewrite.isTerm &&
+  	guards.forall(_.isTerm)
   	
   val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode,

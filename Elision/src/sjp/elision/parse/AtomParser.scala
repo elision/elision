@@ -397,11 +397,34 @@ object AtomParser {
 	 * A node representing a variable reference.
 	 * @param typ			The type.
 	 * @param name		The variable name.
+	 * @param guard		The variable's guard.
 	 * @param labels	Labels associated with the variable.
 	 */
-	case class VariableNode(typ: AstNode, name: String, labels: Set[String])
-	extends AstNode {
-	  def interpret = Variable(typ.interpret, name, labels)
+	class VariableNode(val typ: AstNode, val name: String,
+	    val grd: Option[AstNode], val labels: Set[String]) extends AstNode {
+	  def interpret: Variable = grd match {
+	    case None => Variable(typ.interpret, name, Literal.TRUE, labels)
+	    case Some(guard) => Variable(typ.interpret, name, guard.interpret, labels)
+	  }
+	}
+	object VariableNode {
+	  def apply(typ: AstNode, name: String, grd: Option[AstNode],
+	    labels: Set[String]) = new VariableNode(typ, name, grd, labels)
+	}
+	
+	/**
+	 * A node representing a metavariable reference.
+	 * 
+	 * @param vx	An ordinary variable node to promote.
+	 */
+	case class MetaVariableNode(vx: VariableNode)
+	extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels) {
+	  override def interpret: MetaVariable = grd match {
+	    case None =>
+	      MetaVariable(vx.typ.interpret, vx.name, Literal.TRUE, labels)
+	    case Some(guard) =>
+	      MetaVariable(vx.typ.interpret, vx.name, guard.interpret, labels)
+	  }
 	}
 	
 	//----------------------------------------------------------------------
@@ -416,6 +439,8 @@ object AtomParser {
 	 */
 	case class RulesetDeclarationNode(context: Context,
 	    rulesets: List[NakedSymbolNode]) extends AstNode {
+	  require(context != null, "context")
+	  require(rulesets != null, "rulsets")
 	  def interpret = {
 	    rulesets.foreach(nsn => context.declareRuleset(nsn.str))
 	    Literal.TRUE
@@ -910,7 +935,7 @@ extends Parser {
       
       // Parse a typed list.
       ParsedTypedList |
-
+      
       // Parse a variable.  The leading dollar sign is used to distinguish
       // between a symbol and a variable.  If a type is not specified for a
       // variable, it gets put in the type universe.
@@ -1082,8 +1107,7 @@ extends Parser {
   def ParsedRule = rule(
     "{ " ~
     
-    // First there are optional variable declarations.  In a rule, all pattern
-    // variables must be declared.
+    // First there are optional variable declarations.  This may go away!
     optional("@ " ~ ParsedVariable ~
         zeroOrMore(anyOf(",@") ~ WS ~ ParsedVariable) ~~> (
         (head: VariableNode, tail: List[VariableNode]) => head :: tail)) ~
@@ -1147,24 +1171,37 @@ extends Parser {
   //======================================================================
   // Parse variables.
   //======================================================================
-
+  
   /**
    * Parse a variable.
    */
   def ParsedVariable = rule {
-    ParsedTypedVariable | ParsedUntypedVariable
+    ParsedTermVariable | ParsedMetaVariable
   }.label("a variable")
+
+  def ParsedTermVariable = rule {
+    "$" ~ (ParsedTypedVariable | ParsedUntypedVariable)
+  }.label("a term variable")
+  
+  def ParsedMetaVariable = rule {
+    "$$" ~ (ParsedTypedVariable | ParsedUntypedVariable) ~~> (
+        vx => MetaVariableNode(vx))
+  }.label("a metavariable")
   
   def ParsedTypedVariable = rule {
-    "$" ~ ESymbol ~ ": " ~ FirstAtom ~ zeroOrMore("@" ~ ESymbol) ~~> (
-      (sval: NakedSymbolNode, typ: AstNode, list: List[NakedSymbolNode]) =>
-        VariableNode(typ, sval.str, list.map(_.str).toSet))
+    ESymbol ~ optional("{ " ~ Atom ~ "} ") ~ ": " ~ FirstAtom ~
+    zeroOrMore("@" ~ ESymbol) ~~> (
+      (sval: NakedSymbolNode, grd: Option[AstNode], typ: AstNode,
+          list: List[NakedSymbolNode]) =>
+        VariableNode(typ, sval.str, grd, list.map(_.str).toSet))
   }.label("a variable with type information")
   
   def ParsedUntypedVariable = rule {
-    "$" ~ ESymbol ~ zeroOrMore("@" ~ ESymbol) ~~> (
-      (sval, list) =>
-        VariableNode(SimpleTypeNode(ANYTYPE), sval.str, list.map(_.str).toSet))
+    ESymbol ~ optional("{ " ~ Atom ~ "} ") ~
+    zeroOrMore("@" ~ ESymbol) ~~> (
+      (sval, grd, list) =>
+        VariableNode(SimpleTypeNode(ANYTYPE), sval.str, grd,
+            list.map(_.str).toSet))
   }.label("an untyped variable")
 
   //======================================================================
@@ -1369,8 +1406,8 @@ extends Parser {
 
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
-    ParsedVariable ~
-    zeroOrMore(", " ~ ParsedVariable) ~~> (_ :: _)
+    ParsedTermVariable ~
+    zeroOrMore(", " ~ ParsedTermVariable) ~~> (_ :: _)
   }.label("an operator parameter list")
   
   /** Parse an immediate definition for an operator. */

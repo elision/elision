@@ -89,6 +89,9 @@ case class NamedRootType(name: String) extends RootType {
   /** All named root types are constants. */
   val isConstant = true
   
+  /** All named types are terms. */
+  val isTerm = true
+  
   /** Root types contain no constant children. */
   val constantPool = None
   

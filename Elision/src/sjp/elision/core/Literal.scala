@@ -91,6 +91,9 @@ abstract class Literal[TYPE](typ: BasicAtom) extends BasicAtom {
   /** Literals are constants. */
   val isConstant = true
   
+  /** Literals are terms. */
+  val isTerm = true
+  
   /** Literals have no children. */
   val constantPool = None
   

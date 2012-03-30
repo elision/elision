@@ -50,6 +50,9 @@ object TypeUniverse extends RootType {
   
   /** The type universe is constant. */
   val isConstant = true
+  
+  /** The type universe is a term. */
+  val isTerm = true
 
   /** The type universe is represented by ^TYPE. */
   def toParseString = "^TYPE"
