@@ -165,6 +165,9 @@ object Repl {
   /** The binding number. */
   private var _bindNumber = 0
   
+  /** Whether to bind the results of evaluating atoms. */
+  private var _bindatoms = true
+  
   /** Whether or not to trace the parser. */
   private var _trace = false
   
@@ -208,6 +211,7 @@ object Repl {
   def main(args: Array[String]) {
     run
     emitln("")
+    _hist.addToHistory("// Ended Normally: " + new java.util.Date)
 //    emitln("Context: ")
 //    emitln(_context.toParseString)
     val cfile = new FileWriter(_lastcontext)
@@ -233,9 +237,12 @@ object Repl {
 							 |
 							 |Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
 							 |All rights reserved.""".stripMargin)
+    _hist.addToHistory("// New Session: " + new java.util.Date)
     if (loaded) {
-    	emitln("Version " + major + "." + minor + ", build " + build)
-    	emitln("Web " + web)
+	    	emitln("Version " + major + "." + minor + ", build " + build)
+	    	emitln("Web " + web)
+	    	_hist.addToHistory("// Running: " + major + "." + minor +
+	    	    ", build " + build)
     }
   }
   
@@ -267,14 +274,19 @@ object Repl {
     
     // Bootstrap now.
     val qt = _quiet
+    val ba = _bindatoms
     emitln("Bootstrapping Strategies...")
     _quiet = true
+    _bindatoms = false
     execute(bootstrap.Strategies.defs)
     _quiet = qt
+    _bindatoms = ba
     emitln("Bootstrapping Scheme...")
     _quiet = true
+    _bindatoms = false
     execute(bootstrap.Scheme.defs)
     _quiet = qt
+    _bindatoms = ba
 
     // Show the prompt and read a line.
     val cr = new jline.ConsoleReader
@@ -285,11 +297,73 @@ object Repl {
     var starttime: Long = 0L
     var endtime: Long = 0L
     while(true) {
-      val line = cr.readLine(if (_quiet) "q> " else "e> ")
+      // Hold the accumulted line.
+      var line = ""
+      
+      // Hold the next segment read from the prompt.
+      var segment = ""
+        
+      // A line state parser to determine when the line ends.
+      val ls = new LineState
+      
+      // The number of blank lines seen.
+      var blanks = 0
+      
+      // A little function to prompt for, and read, the next segment.  The
+      // segment is accumulated into the line. 
+      def fetchline(p1: String, p2: String): Boolean = {
+      	segment = cr.readLine(if (_quiet) p2 else p1)
+      	if (segment == null) return true
+      	segment = segment.trim()
+      	
+		    // See if this is a history reference and, if so, fetch it.
+		    if (segment.startsWith("!")) {
+		      // This is a history reference.  The rest of the segment is probably
+		      // a number, so try to parse it as such.
+		      val num = segment.substring(1).toInt
+		      try {
+		      		segment = _hist.getHistory(num)
+		      		println(segment)
+		      } catch {
+		        case ex:IndexOutOfBoundsException =>
+		          error("No such history item.")
+		          line = ""
+		          return true
+		      }
+		    }
+		    
+      	// Watch for blank lines that terminate the parse.
+      	if (segment == "") blanks += 1
+      	else line += segment.trim() + " "
+      	
+      	// Process the line to determine if the input is complete.
+      	ls.process(segment)
+      }
+      
+      // Read the first segment.
+      if (!fetchline("e> ", "q> ")) {
+      	// Read any additional segments.  Everything happens in the while loop,
+        // but the loop needs a body, so that's the zero.
+        while (!fetchline(" > ", " > ") && blanks < 3) 0
+	      if (blanks >= 3) {
+	        emitln("Entry terminated by three blank lines.")
+	        line = ""
+	      }
+      }
+      
+      // Watch for the end of stream or the special :quit token.
       if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
+      
+      // Flush the console.  Is this necessary?
       cr.flushConsole()
+      
+      // Record the start time.
       starttime = java.lang.System.currentTimeMillis()
+      
+      // Run the line.
       execute(line)
+      
+      // If we are reporting timing, do that now.
       if (_timing) {
         endtime = java.lang.System.currentTimeMillis()
         val elapsed = endtime - starttime
@@ -298,7 +372,7 @@ object Repl {
         val mils = elapsed % 1000
         printf("elapsed: %d:%02d.%03d\n", mins, secs, mils)
       }
-    }
+    } // Forever read, eval, print.
   }
 
   /**
@@ -323,20 +397,6 @@ object Repl {
     
     // Skip blank lines.
     if (lline == "") return
-    
-    // See if this is a history reference and, if so, execute it.
-    if (lline.startsWith("!")) {
-      // This is a history reference.  The rest of the line is probably
-      // a number, so try to parse it as such.
-      val num = lline.substring(1).toInt
-      try {
-      	lline = _hist.getHistory(num)
-      } catch {
-        case ex:IndexOutOfBoundsException =>
-          error("No such history item.")
-          return
-      }
-    }
     
     // Parse the line.  Handle each atom obtained.
     try {
@@ -412,9 +472,11 @@ object Repl {
    * Define the operators we need.
    */
   private def defineOps {
+    // Type of.
+    execute("{ operator typeof($x:$T:$U):$U = $T }")
+    
     // Bind.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("bind", ANYTYPE, ("a", ANYTYPE), ("v", ANYTYPE)), NoProps))
+    execute("{ operator bind($v,$a) }")
     _context.operatorLibrary.register("bind",
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
@@ -425,10 +487,8 @@ object Repl {
           case _ => _no_show
         })
 
-    // Bind.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("equal", ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
-        Commutative))
+    // Equal.
+    execute("{ operator equal($x,$y):BOOLEAN is commutative }")
     _context.operatorLibrary.register("equal",
         (_, list:AtomSeq, _) => list match {
           case Args(x:BasicAtom, y:BasicAtom) =>
@@ -438,8 +498,7 @@ object Repl {
         })
         
     // Unbind.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("unbind", ANYTYPE, ("v", ANYTYPE)), NoProps))
+    execute("{ operator unbind($v) }")
     _context.operatorLibrary.register("unbind",
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable) =>
@@ -451,8 +510,7 @@ object Repl {
         })
         
     // Showbinds.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("showbinds", ANYTYPE), NoProps))
+    execute("{ operator showbinds() }")
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomSeq, _) => list match {
           case Args() => {
@@ -465,8 +523,7 @@ object Repl {
         })
         
     // Timing.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("timing", ANYTYPE), NoProps))
+    execute("{ operator timing() }")
     _context.operatorLibrary.register("timing",
         (_, list:AtomSeq, _) => list match {
           case Args() => {
@@ -478,8 +535,7 @@ object Repl {
         })
         
     // Context.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("context", ANYTYPE), NoProps))
+    execute("{ operator context() }")
     _context.operatorLibrary.register("context",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -489,8 +545,7 @@ object Repl {
         })
         
     // Stacktrace.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("stacktrace", ANYTYPE), NoProps))
+    execute("{ operator stacktrace() }")
     _context.operatorLibrary.register("stacktrace",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -502,8 +557,7 @@ object Repl {
         })
         
     // Read.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("read", ANYTYPE, ("filename", STRING)), NoProps))
+    execute("{ operator read($filename: STRING) }")
     _context.operatorLibrary.register("read",
         (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
@@ -514,8 +568,7 @@ object Repl {
         })
         
     // Write.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("write", ANYTYPE, ("filename", STRING)), NoProps))
+    execute("{ operator write($filename: STRING) }")
     _context.operatorLibrary.register("write",
         (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
@@ -526,20 +579,19 @@ object Repl {
         })
         
     // Help.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("help", ANYTYPE), NoProps))
+    execute("{ operator help() }")
     _context.operatorLibrary.register("help",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
           	// Give some help.
 		        println("""
-		        		|Elision Help
-		        		|
+		        			|Elision Help
+	        				|
 		            | bind(v,a) .................. Bind variable v to atom a.
 		            | context() .................. Display contents of the current context.
 		            | disable(r) ................. Disable ruleset r.
 		            | enable(r) .................. Enable ruleset r.
-		        		| help() ..................... Show this help text.
+		        			| help() ..................... Show this help text.
 		            | history() .................. Show the history so far.
 		            | quiet() .................... Toggle suppressing most output.
 		            | rewrite() .................. Toggle automatic rewriting.
@@ -562,8 +614,7 @@ object Repl {
         })
         
     // Traceparse.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("traceparse", ANYTYPE), NoProps))
+    execute("{ operator traceparse() }")
     _context.operatorLibrary.register("traceparse",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -576,8 +627,7 @@ object Repl {
         })
         
     // Tracematch.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("tracematch", ANYTYPE), NoProps))
+    execute("{ operator tracematch() }")
     _context.operatorLibrary.register("tracematch",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -590,8 +640,7 @@ object Repl {
         })
         
     // Showscala.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("showscala", ANYTYPE), NoProps))
+    execute("{ operator showscala() }")
     _context.operatorLibrary.register("showscala",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -603,8 +652,7 @@ object Repl {
         })
         
     // Showprior.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("showprior", ANYTYPE), NoProps))
+    execute("{ operator showprior() }")
     _context.operatorLibrary.register("showprior",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -616,8 +664,7 @@ object Repl {
         })
         
     // History.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("history", ANYTYPE), NoProps))
+    execute("{ operator history() }")
     _context.operatorLibrary.register("history",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -631,8 +678,7 @@ object Repl {
         })
         
     // Quiet.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("quiet", ANYTYPE), NoProps))
+    execute("{ operator quiet() }")
     _context.operatorLibrary.register("quiet",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -644,8 +690,7 @@ object Repl {
         })
         
     // Enable a ruleset.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("enable", ANYTYPE, ("x", SYMBOL)), NoProps))
+    execute("{ operator enable($x: SYMBOL) }")
     _context.operatorLibrary.register("enable",
         (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -656,8 +701,7 @@ object Repl {
         })
         
     // Disable a ruleset.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("disable", ANYTYPE, ("x", SYMBOL)), NoProps))
+    execute("{ operator disable($x: SYMBOL) }")
     _context.operatorLibrary.register("disable",
         (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -668,8 +712,7 @@ object Repl {
         })
         
     // Set the limit on automatic rewrites.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("setlimit", ANYTYPE, ("limit", INTEGER)), NoProps))
+    execute("{ operator setlimit($limit: INTEGER) }")
     _context.operatorLibrary.register("setlimit",
         (_, list:AtomSeq, _) => list match {
           case Args(IntegerLiteral(_, count)) =>
@@ -680,8 +723,7 @@ object Repl {
         })
         
     // Enable or disable the rewriter.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("rewrite", ANYTYPE), NoProps))
+    execute("{ operator rewrite() }")
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -694,8 +736,7 @@ object Repl {
         })
         
     // See what rules are in scope.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("showrules", ANYTYPE, ("a", ANYTYPE)), NoProps))
+    execute("{ operator showrules($atom) }")
     _context.operatorLibrary.register("showrules",
         (_, list:AtomSeq, _) => list match {
           case Args(atom) =>
@@ -708,8 +749,7 @@ object Repl {
         })
         
     // Define mod as a Symbolic operator.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("mod", INTEGER, ("x", INTEGER), ("y", INTEGER)), NoProps))
+    execute("{ operator mod($b: INTEGER, $d: INTEGER): INTEGER }")
     _context.operatorLibrary.register("mod",
         (op: Operator, args: AtomSeq, _) => args.atoms match {
           case Args(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
@@ -717,8 +757,7 @@ object Repl {
         })
         
     // Define neg as a Symbolic operator.
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("neg", INTEGER, ("x", INTEGER)), NoProps))
+    execute("{ operator neg($x: INTEGER): INTEGER }")
     _context.operatorLibrary.register("neg",
         (op: Operator, args: AtomSeq, _) => args match {
           case Args(IntegerLiteral(_, x)) => -x
@@ -726,9 +765,8 @@ object Repl {
         })
         
     // Define add as a Symbolic operator.
-		_context.operatorLibrary.add(SymbolicOperatorDefinition(
-		    Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
-		    Associative and Commutative and Identity(0)))
+    execute("""{ operator add($x: INTEGER, $y: INTEGER): INTEGER
+        is associative, commutative, identity(0) }""")
 		_context.operatorLibrary.register("add",
       (op: Operator, args: AtomSeq, _) => {
 			  // Accumulate the integer literals found.
@@ -748,8 +786,8 @@ object Repl {
 			  Apply(op, AtomSeq(NoProps, other), true)
       })
       
-    _context.operatorLibrary.add(SymbolicOperatorDefinition(
-        Proto("is_bindable", BOOLEAN, ("x", ANYTYPE)), NoProps))
+    // Is bindable.
+    execute("{ operator is_bindable($x): BOOLEAN }")
     _context.operatorLibrary.register("is_bindable",
         (op: Operator, args: AtomSeq, _) => args match {
           case Args(term) => if (term.isBindable) Literal.TRUE else Literal.FALSE
@@ -784,16 +822,23 @@ object Repl {
 		    var (newatom,_) = atom.rewrite(_binds)
 		    // Rewrite it using the active rulesets of the context.
 		    if (_rewrite) newatom = _context.rewrite(newatom)._1
-		    // Get the next bind variable name.
-		    _binds += ("repl"+_bindNumber -> newatom)
-		    // Now write out the new atom.
-		    show(newatom, Some("repl" + _bindNumber))
-		    _bindNumber += 1
-		    // Rules go in the rule library.
+		    if (_bindatoms) {
+			    // Get the next bind variable name.
+			    _binds += ("repl"+_bindNumber -> newatom)
+			    // Now write out the new atom.
+			    show(newatom, Some("repl" + _bindNumber))
+			    _bindNumber += 1
+		    } else {
+		      show(newatom, None)
+		    }
+		    // Rules go in the rule library if they have declared rulesets.
 		    newatom match {
 		      case rule:RewriteRule =>
-		      	// Rules go in the rule library.
-		        _context.add(rule)
+		      		// Rules go in the rule library.
+		      		if (!rule.rulesets.isEmpty) {
+		      			_context.add(rule)
+		      			emitln("Rule stored in library.")
+		      		}
 		      case _ =>
         }
         return true

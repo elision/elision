@@ -228,3 +228,5 @@ object Proto {
     OperatorPrototype(name,
         parameters.map(x => Variable(x._2, x._1)).toIndexedSeq, typ, List())
 }
+
+case class OperatorHelp(short: String, long: String)
