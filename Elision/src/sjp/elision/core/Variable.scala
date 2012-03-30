@@ -89,10 +89,12 @@ class Variable(typ: BasicAtom, val name: String,
     // Compute the new bindings.
     val newbinds = binds + (name -> subject)
     // Check any guard.
-    if (guard == Literal.TRUE || guard.rewrite(newbinds)._1.isTrue)
-      Match(newbinds)
-    else
-      Fail("Variable guard failed.")
+    if (guard.isTrue) Match(newbinds)
+    else {
+      val newterm = guard.rewrite(newbinds)._1
+      if (newterm.isTrue) Match(newbinds)
+      else Fail("Variable guard failed.  Is now: " + newterm.toParseString)
+    }
   }
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,

@@ -200,6 +200,9 @@ object Lambda {
      * we only block rewriting of one De Bruijn index to a different De Bruijn
      * index.  That logic can be found in the Variable class.
      * 
+     * Carefully preserve the variable information on rewrite!  We must make
+     * sure to copy the type, labels, and guard.
+     * 
      * One final note.  There are metavariables in the system.  When we rewrite,
      * we must preserve their meta-nature.
      */
@@ -210,11 +213,11 @@ object Lambda {
     
     // Now make a new De Bruijn variable for the index.
     val newvar = (if (lvar.isTerm)
-      new Variable(lvar.theType, ":"+deBruijnIndex) {
+      new Variable(lvar.theType, ":"+deBruijnIndex, lvar.guard, lvar.labels) {
       override val isDeBruijnIndex = true
     }
     else
-    	new MetaVariable(lvar.theType, ":"+deBruijnIndex) {
+    	new MetaVariable(lvar.theType, ":"+deBruijnIndex, lvar.guard, lvar.labels) {
       override val isDeBruijnIndex = true
     })
     

@@ -752,7 +752,7 @@ object Repl {
         Proto("is_bindable", BOOLEAN, ("x", ANYTYPE)), NoProps))
     _context.operatorLibrary.register("is_bindable",
         (op: Operator, args: AtomSeq, _) => args match {
-          case Args(term) => term.isBindable
+          case Args(term) => if (term.isBindable) Literal.TRUE else Literal.FALSE
           case _ => Apply(op, args, true)
         })
         

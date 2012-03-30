@@ -212,6 +212,8 @@ extends Literal[Symbol](typ) {
 
 case class BooleanLiteral(typ: BasicAtom, value: Boolean)
 extends Literal[Boolean](typ) {
+  override val isTrue = value == true
+  override val isFalse = value == false
   def this(value: Boolean) = this(BOOLEAN, value)
   def rewrite(binds: Bindings) = theType.rewrite(binds) match {
 	  case (newtype, true) =>
