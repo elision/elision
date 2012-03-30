@@ -55,9 +55,10 @@ import scala.collection.mutable.HashMap
  * 
  * @param typ			The variable type.
  * @param name		The variable name.
+ * @param guard		The variable's guard.
  * @param labels	Labels for this variable.
  */
-case class Variable(typ: BasicAtom, name: String,
+case class Variable(typ: BasicAtom, name: String, guard: BasicAtom = true,
     labels: Set[String] = Set[String]()) extends BasicAtom {
   /** The type of this variable. */
   val theType = typ
@@ -77,6 +78,14 @@ case class Variable(typ: BasicAtom, name: String,
   /** Variables contain no constant children. */
   val constantPool = None
   
+  def bindMe(subject: BasicAtom, binds: Bindings): Bindings = {
+    // Compute the new bindings.
+    val newbinds = binds + (name -> subject)
+    // Check any guard.
+    if (guard == Literal.TRUE && guard.rewrite(newbinds)._1.isTrue) newbinds
+    else binds
+  }
+  
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =
     // if the variable allows binding, and it is not already bound to a
@@ -86,10 +95,10 @@ case class Variable(typ: BasicAtom, name: String,
         // This is tricky.  We bind if we match against ANYTYPE.  Are
         // there unforseen consequences to this decision?  Otherwise we have
         // to add a binding of the variable name to the subject.
-        Match(binds + (name -> subject))
+        Match(bindMe(subject, binds))
       case Some(ANYTYPE) =>
         // We should re-bind this variable now.
-        Match(binds + (name -> subject))
+        Match(bindMe(subject, binds))
       case Some(atom) if subject == ANYTYPE || atom == subject =>
         // The variable is already bound, and it is bound to the subject, so
         // the match succeeds with the bindings as they are.
