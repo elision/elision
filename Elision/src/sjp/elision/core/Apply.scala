@@ -409,53 +409,6 @@ object Apply {
 }
 
 /**
- * Provide a ''deferred apply''.  This is an apply that is only evaluated if it
- * is successfully rewritten.
- * 
- * == Structure and Syntax ==
- * Deferred applications are similar to regular applications, except that 
- * they are not evaluated until they are first successfully rewritten.  This
- * triggers constructing a regular apply.
- * 
- * The syntax for a deferred apply is identical to that of a regular apply,
- * except that two dots are used.
- * {{{
- * add:OPTYPE .. %?(\$x,\$y)
- * }}}
- * This will be transformed into a regular apply if either (or both) of the
- * variables are rewritten.
- * 
- * == Type ==
- * The type of a deferred apply is taken from the operator.  Since no final
- * bindings have happened, the type may be a variable, complicating matching.
- * 
- * == Equality and Matching ==
- * See the `equals` and `tryMatchWithoutTypes` methods.
- * 
- * @param op		The operator.
- * @param arg		The argument.
- */
-case class DeferApply(override val op: BasicAtom, override val arg: BasicAtom)
-extends Apply(op, arg) {
-  /**
-   * The type is taken from the operator.  Until we have evaluated the apply
-   * we do not know the real type.  This can be a problem for matching.
-   */
-  val theType = op.theType
-  
-  /**
-   * Applications are equal to each other iff their parts are equal.
-   */
-  override def equals(other: Any) = other match {
-    case DeferApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
-    case _ => false
-  }
-  
-  /** The parse string for this deferred apply. */
-  def toParseString = "(" + op.toParseString + ")..(" + arg.toParseString + ")"
-}
-
-/**
  * An ''operator apply''.  This is the common case of applying a known operator
  * to some argument list.
  * 

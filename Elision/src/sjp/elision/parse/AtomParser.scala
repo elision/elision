@@ -152,26 +152,6 @@ object AtomParser {
 	}
 	
 	/**
-	 * A node representing the deferred application of an operator to an argument.
-	 * @param context	The context.
-	 * @param op			The operator.
-	 * @param arg			The argument.
-	 */
-	case class DeferApplicationNode(context: Context, op: AstNode, arg: AstNode)
-	extends AstNode {
-	  def interpret = {
-	    // If the operator is a naked symbol, we try to interpret it as an
-	    // operator.  Otherwise we just interpret it.
-	    val atom = op match {
-	      case NakedSymbolNode(name) => context.operatorLibrary(name)
-	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
-	      case _ => op.interpret
-	    }
-	    DeferApply(atom, arg.interpret)
-	  }
-	}
-	
-	/**
 	 * A node representing a "naked" operator.
 	 * @param str	The operator name.
 	 * @param lib	The operator library that will get the operator.
@@ -875,12 +855,7 @@ extends Parser {
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
     zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
         (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
-    // Handle the special case of a defered operator application.  These also
-    // bind to the right.
-    zeroOrMore(FirstAtom ~ WS ~ ".. ") ~ FirstAtom ~~> (
-        (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(DeferApplicationNode(context,_,_)))
+          funlist.foldRight(lastarg)(ApplicationNode(context,_,_)))
   }.label("an atom")
   
   /**
