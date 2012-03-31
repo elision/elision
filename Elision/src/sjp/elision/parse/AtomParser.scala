@@ -327,6 +327,20 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
+	// Map pair and case nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * Represent a map pair atom.
+	 * 
+	 * @param left	The left atom.
+	 * @param right	THe right atom.
+	 */
+	case class MapPairNode(left: AstNode, right: AstNode) extends AstNode {
+	  def interpret = MapPair(left.interpret, right.interpret)
+	}
+	
+	//----------------------------------------------------------------------
 	// Matching nodes.
 	//----------------------------------------------------------------------
 	
@@ -438,8 +452,7 @@ object AtomParser {
 	 */
 	case class RuleNode(
 	    decls: Option[List[VariableNode]],
-	    pattern: AstNode,
-	    rewrite: AstNode,
+	    mappair: MapPairNode,
 	    guards: List[AstNode],
 	    rulesets: Option[List[NakedSymbolNode]],
 	    level: Option[UnsignedIntegerNode]) extends AstNode {
@@ -456,8 +469,8 @@ object AtomParser {
 	    }
 	    // Make the rule.
 	    RewriteRule(
-	        pattern.interpret,
-	        rewrite.interpret,
+	        mappair.left.interpret,
+	        mappair.right.interpret,
 	        guards.map(_.interpret),
 	        rs,
 	        cl)
@@ -819,13 +832,13 @@ extends Parser {
   }.label("a sequence of atoms")
   
   def InfixOperatorL = rule {
-    oneOrMore(anyOf("~!@#%^&*+=|';?/><")) ~> {
+    oneOrMore(anyOf("~-!@#%^&*+=|';?/><")) ~> {
       str => NakedSymbolNode(str)
     }
   }
   
   def InfixOperatorR = rule {
-    oneOrMore(anyOf("~!@#%^&*+=|';?/><")) ~ ":" ~> {
+    oneOrMore(anyOf("~-!@#%^&*+=|';?/><")) ~ ":" ~> {
       str => NakedSymbolNode(str)
     }
   }
@@ -850,12 +863,18 @@ extends Parser {
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
-    LApply |
+    //LApply |
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
-    zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
-        (funlist: List[AstNode], lastarg: AstNode) =>
-          funlist.foldRight(lastarg)(ApplicationNode(context,_,_)))
+//    zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
+//        (funlist: List[AstNode], lastarg: AstNode) =>
+//          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
+//    zeroOrMore(FirstAtom ~ WS ~ "-> ") ~ FirstAtom ~~> (
+//        (maplist: List[AstNode], lastarg: AstNode) =>
+//          maplist.foldRight(lastarg)(MapPairNode(_,_)))
+    FirstAtom ~ WS ~ ". " ~ Atom ~~> (ApplicationNode(context,_,_)) |
+    FirstAtom ~ WS ~ "-> " ~ FirstAtom ~~> (MapPairNode(_,_)) |
+    FirstAtom
   }.label("an atom")
   
   /**
@@ -1065,6 +1084,17 @@ extends Parser {
   }.label("a comma-separated list of atoms")
 
   //======================================================================
+  // Parse a map pair.
+  //======================================================================
+  
+  /**
+   * Parse a map pair.
+   */
+  def ParsedMapPair = rule {
+    FirstAtom ~ "-> " ~ Atom ~~> (MapPairNode(_,_))
+  }
+  
+  //======================================================================
   // Parse a rewrite rule.
   //======================================================================
   
@@ -1090,7 +1120,7 @@ extends Parser {
     // Next is the rule itself, consisting of a pattern, a rewrite, and zero
     // or more guards.
     ignoreCase("rule") ~ WS ~
-    Atom ~ "-> " ~ Atom ~ zeroOrMore("if " ~ Atom) ~
+    ParsedMapPair ~ zeroOrMore("if " ~ Atom) ~
 
     // Next the rule can be declared to be in zero or more rulesets.
     optional(ParsedRulesetList) ~
@@ -1100,8 +1130,7 @@ extends Parser {
     optional("level " ~ AnyInteger) ~ "} " ~~> (
         RuleNode(
             _: Option[List[VariableNode]],
-            _: AstNode,
-            _: AstNode,
+            _: MapPairNode,
             _: List[AstNode],
             _: Option[List[NakedSymbolNode]],
             _: Option[UnsignedIntegerNode]))).label("a rewrite rule")

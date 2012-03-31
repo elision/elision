@@ -83,6 +83,6 @@ object Strategies {
     (s_if($p, s_noop(), $q).$a) ruleset STRAT level 1 }
     
   { operator s_td($part: STRATEGY): STRATEGY}
-  { rule s_td($s).$a -> s_then($s,{map s_td($s)}).$a ruleset STRAT level 1}
+  { rule (s_td($s).$a) -> s_then($s,{map s_td($s)}).$a ruleset STRAT level 1}
   """
 }

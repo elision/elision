@@ -128,11 +128,11 @@ extends BasicAtom {
  * 
  * ==Equality and Matching==
  * 
- * @param proto		The prototype.
+ * @param ptype		The prototype.
  * @param props		Operator properties.
  */
-case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
-    props: AlgProp) extends OperatorDefinition(proto) {
+case class SymbolicOperatorDefinition(ptype: OperatorPrototype,
+    props: AlgProp) extends OperatorDefinition(ptype) {
   check(proto, props)
   lazy val isConstant = props.isConstant
 	def toParseString =
@@ -148,11 +148,11 @@ case class SymbolicOperatorDefinition(override val proto: OperatorPrototype,
 
 /**
  * Encapsulate an immediate operator definition.
- * @param proto		The prototype.
+ * @param ptype		The prototype.
  * @param body		The operator definition.
  */
-case class ImmediateOperatorDefinition(override val proto: OperatorPrototype,
-    body: BasicAtom) extends OperatorDefinition(proto) {
+case class ImmediateOperatorDefinition(ptype: OperatorPrototype,
+    body: BasicAtom) extends OperatorDefinition(ptype) {
   lazy val isConstant = body.isConstant
 	def toParseString =
 	  "{ operator " + proto.toParseString + " = " + body.toParseString + " }"
