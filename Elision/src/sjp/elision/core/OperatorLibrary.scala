@@ -175,11 +175,14 @@ class OperatorLibrary(
  	def add(od: OperatorDefinition) = {
  	  val name = od.proto.name
  	  if (_nameToOperator.contains(name))
- 	    if (allowRedefinition)
- 	      println("WARNING: Redefining operator " + od.proto.name)
- 	    // Reject this!  The operator is already defined.
- 	    else throw new OperatorRedefinitionException(
- 	        "Attempt to re-define known operator " + name + ".")
+ 	    if (allowRedefinition) {
+ 	      warn("Redefining operator " + od.proto.name + ".")
+ 	      warn("Prior definition: " + _nameToOperator(name).opdef.toParseString)
+ 	    } else {
+ 	    	// Reject this!  The operator is already defined.
+ 	    	throw new OperatorRedefinitionException(
+ 	    			"Attempt to re-define known operator " + name + ".")
+ 	    }
     // Accept this and store it in the map.  Return the definition.
  	  val op = Operator(od)
     _nameToOperator += (name -> op)
@@ -196,11 +199,14 @@ class OperatorLibrary(
  	def add(op: Operator) = {
  	  val name = op.name
  	  if (_nameToOperator.contains(name))
- 	    if (allowRedefinition)
- 	      println("WARNING: Redefining operator " + op.name)
- 	    // Reject this!  The operator is already defined.
- 	    else throw new OperatorRedefinitionException(
- 	        "Attempt to re-define known operator " + name + ".")
+ 	    if (allowRedefinition) {
+ 	      warn("Redefining operator " + op.name + ".")
+ 	      warn("Prior definition: " + _nameToOperator(name).opdef.toParseString)
+ 	    } else {
+	 	    // Reject this!  The operator is already defined.
+	 	    throw new OperatorRedefinitionException(
+	 	        "Attempt to re-define known operator " + name + ".")
+ 	    }
  	  // Accept this and store it in the map.  Return the operator.
  	  _nameToOperator += (name -> op)
  	  op

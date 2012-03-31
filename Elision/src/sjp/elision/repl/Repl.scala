@@ -33,10 +33,12 @@ package sjp.elision.repl
 import sjp.elision.core._
 import scala.collection.mutable.ListBuffer
 import sjp.elision.parse.AtomParser
-import jline.History
+import jline.console.history.FileHistory
+import jline.console.ConsoleReader
 import java.io.File
 import sjp.elision.ElisionException
 import java.io.FileWriter
+import sjp.elision.core.OperatorLibrary$
 
 /**
  * Provide information about the current version of Elision.  This information
@@ -142,19 +144,22 @@ object Repl {
   }
   
   /** Get a history to use for the line editor. */
-  val _hist = new History(new File(_filename))
-  
-  /** The context to use. */
-  private val _context = new Context()
-  
-  /** The parser to use. */
-  private var _parser = new AtomParser(_context, false)
+  val _hist = new FileHistory(new File(_filename))
+  _hist.setIgnoreDuplicates(false)
+  _hist.setMaxSize(10000)
   
   /** The current set of bindings. */
   private var _binds = Bindings()
   
   /** Direct access to the context's operator library. */
-  private val _library = _context.operatorLibrary
+  private val _library = new OperatorLibrary(allowRedefinition = true)
+  
+  /** The context to use. */
+  private val _context = new Context()
+  _context.operatorLibrary = _library
+  
+  /** The parser to use. */
+  private var _parser = new AtomParser(_context, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
@@ -211,7 +216,8 @@ object Repl {
   def main(args: Array[String]) {
     run
     emitln("")
-    _hist.addToHistory("// Ended Normally: " + new java.util.Date)
+    _hist.add("// Ended Normally: " + new java.util.Date)
+    _hist.flush()
 //    emitln("Context: ")
 //    emitln(_context.toParseString)
     val cfile = new FileWriter(_lastcontext)
@@ -237,11 +243,11 @@ object Repl {
 							 |
 							 |Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
 							 |All rights reserved.""".stripMargin)
-    _hist.addToHistory("// New Session: " + new java.util.Date)
+    _hist.add("// New Session: " + new java.util.Date)
     if (loaded) {
 	    	emitln("Version " + major + "." + minor + ", build " + build)
 	    	emitln("Web " + web)
-	    	_hist.addToHistory("// Running: " + major + "." + minor +
+	    	_hist.add("// Running: " + major + "." + minor +
 	    	    ", build " + build)
     }
   }
@@ -289,10 +295,9 @@ object Repl {
     _bindatoms = ba
 
     // Show the prompt and read a line.
-    val cr = new jline.ConsoleReader
+    val cr = new ConsoleReader
     val term = cr.getTerminal
-    term.initializeTerminal()
-    cr.flushConsole()
+    cr.flush()
     cr.setHistory(_hist)
     var starttime: Long = 0L
     var endtime: Long = 0L
@@ -313,25 +318,11 @@ object Repl {
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
       	segment = cr.readLine(if (_quiet) p2 else p1)
-      	if (segment == null) return true
+      	if (segment == null) {
+      	  return true
+      	}
       	segment = segment.trim()
       	
-		    // See if this is a history reference and, if so, fetch it.
-		    if (segment.startsWith("!")) {
-		      // This is a history reference.  The rest of the segment is probably
-		      // a number, so try to parse it as such.
-		      val num = segment.substring(1).toInt
-		      try {
-		      		segment = _hist.getHistory(num)
-		      		println(segment)
-		      } catch {
-		        case ex:IndexOutOfBoundsException =>
-		          error("No such history item.")
-		          line = ""
-		          return true
-		      }
-		    }
-		    
       	// Watch for blank lines that terminate the parse.
       	if (segment == "") blanks += 1
       	else line += segment.trim() + " "
@@ -352,10 +343,13 @@ object Repl {
       }
       
       // Watch for the end of stream or the special :quit token.
-      if (line == null || (line.trim.equalsIgnoreCase(":quit"))) return
+      if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+        cr.shutdown()
+        return
+      }
       
       // Flush the console.  Is this necessary?
-      cr.flushConsole()
+      cr.flush()
       
       // Record the start time.
       starttime = java.lang.System.currentTimeMillis()
@@ -585,13 +579,13 @@ object Repl {
           case Args() =>
           	// Give some help.
 		        println("""
-		        			|Elision Help
-	        				|
+	        			|Elision Help
+        				|
 		            | bind(v,a) .................. Bind variable v to atom a.
 		            | context() .................. Display contents of the current context.
 		            | disable(r) ................. Disable ruleset r.
 		            | enable(r) .................. Enable ruleset r.
-		        			| help() ..................... Show this help text.
+	        			| help() ..................... Show this help text.
 		            | history() .................. Show the history so far.
 		            | quiet() .................... Toggle suppressing most output.
 		            | rewrite() .................. Toggle automatic rewriting.
@@ -669,9 +663,8 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args() =>
 		        // Show the history.
-		        for (index <- 1 until _hist.getCurrentIndex()) {
-		          println(" " + index + ": " + _hist.getHistory(index))
-		        }
+            val it = _hist.entries
+            while (it.hasNext) println(it.next)
 		        println("Persistent history is found in: " + _filename)
 		        _no_show
           case _ => _no_show
