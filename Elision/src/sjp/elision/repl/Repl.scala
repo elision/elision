@@ -37,8 +37,8 @@ import jline.console.history.FileHistory
 import jline.console.ConsoleReader
 import java.io.File
 import sjp.elision.ElisionException
-import java.io.FileWriter
-import sjp.elision.core.OperatorLibrary$
+import java.io.{FileWriter, FileReader, BufferedReader}
+import sjp.elision.core.OperatorLibrary
 
 /**
  * Provide information about the current version of Elision.  This information
@@ -218,8 +218,6 @@ object Repl {
     emitln("")
     _hist.add("// Ended Normally: " + new java.util.Date)
     _hist.flush()
-//    emitln("Context: ")
-//    emitln(_context.toParseString)
     val cfile = new FileWriter(_lastcontext)
     if (cfile != null) {
       cfile.write(_context.toParseString)
@@ -317,7 +315,13 @@ object Repl {
       // A little function to prompt for, and read, the next segment.  The
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
-      	segment = cr.readLine(if (_quiet) p2 else p1)
+        try {
+        	segment = cr.readLine(if (_quiet) p2 else p1)
+        } catch {
+          case ex:IllegalArgumentException =>
+            error(ex.getMessage())
+            return true
+        }
       	if (segment == null) {
       	  return true
       	}
@@ -466,6 +470,9 @@ object Repl {
    * Define the operators we need.
    */
   private def defineOps {
+    // Bootstrap.
+    execute("BOOLEAN")
+    
     // Type of.
     execute("{ operator typeof($x:$T:$U):$U = $T }")
     
@@ -555,8 +562,25 @@ object Repl {
     _context.operatorLibrary.register("read",
         (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
-            // TODO Read the content of the file.
-            emitln("Not implemented.")
+            val qt = _quiet
+            val ba = _bindatoms
+            val cfile = new BufferedReader(new FileReader(filename))
+            if (cfile != null) {
+              var buf = new StringBuilder
+              var go = true
+              while (go) {
+                val line = cfile.readLine
+                if (line != null) buf.append(line) else go = false
+              }
+              _quiet = true
+              _bindatoms = false
+              execute(buf.toString)
+              cfile.close()
+            } else {
+              error("Unable to open file.")
+            }
+            _quiet = qt
+            _bindatoms = ba
             _no_show
           case _ => _no_show
         })
@@ -566,8 +590,14 @@ object Repl {
     _context.operatorLibrary.register("write",
         (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
-            // TODO Write the content to the file.
-            emitln("Not implemented.")
+				    val cfile = new FileWriter(filename)
+				    if (cfile != null) {
+				      cfile.write(_context.toParseString)
+				      cfile.flush()
+				      cfile.close()
+				    } else {
+				      error("Unable to save context.")
+				    }
             _no_show
           case _ => _no_show
         })
