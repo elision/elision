@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2002-2007, Marc Prud'hommeaux. All rights reserved.
+ *
+ * This software is distributable under the BSD license. See the terms of the
+ * BSD license in the documentation provided with this software.
+ */
+
+package jline;
+
+import jline.internal.Log;
+import jline.internal.TerminalLineSettings;
+
+/**
+ * Terminal that is used for unix platforms. Terminal initialization
+ * is handled by issuing the <em>stty</em> command against the
+ * <em>/dev/tty</em> file to disable character echoing and enable
+ * character input. All known unix systems (including
+ * Linux and Macintosh OS X) support the <em>stty</em>), so this
+ * implementation should work for an reasonable POSIX system.
+ *
+ * @author <a href="mailto:mwp1@cornell.edu">Marc Prud'hommeaux</a>
+ * @author <a href="mailto:dwkemp@gmail.com">Dale Kemp</a>
+ * @author <a href="mailto:jason@planet57.com">Jason Dillon</a>
+ * @author <a href="mailto:jbonofre@apache.org">Jean-Baptiste Onofré</a>
+ * @since 2.0
+ */
+public class UnixTerminal
+    extends TerminalSupport
+{
+    private final TerminalLineSettings settings = new TerminalLineSettings();
+
+    public UnixTerminal() throws Exception {
+        super(true);
+    }
+
+    protected TerminalLineSettings getSettings() {
+        return settings;
+    }
+
+    /**
+     * Remove line-buffered input by invoking "stty -icanon min 1"
+     * against the current terminal.
+     */
+    @Override
+    public void init() throws Exception {
+        super.init();
+
+        setAnsiSupported(true);
+
+        // set the console to be character-buffered instead of line-buffered
+        settings.set("-icanon min 1");
+
+        setEchoEnabled(false);
+    }
+
+    /**
+     * Restore the original terminal configuration, which can be used when
+     * shutting down the console reader. The ConsoleReader cannot be
+     * used after calling this method.
+     */
+    @Override
+    public void restore() throws Exception {
+        settings.restore();
+        super.restore();
+        // print a newline after the terminal exits.
+        // this should probably be a configurable.
+        System.out.println();
+    }
+
+    /**
+     * Returns the value of <tt>stty columns</tt> param.
+     */
+    @Override
+    public int getWidth() {
+        int w = settings.getProperty("columns");
+        return w < 1 ? DEFAULT_WIDTH : w;
+    }
+
+    /**
+     * Returns the value of <tt>stty rows>/tt> param.
+     */
+    @Override
+    public int getHeight() {
+        int h = settings.getProperty("rows");
+        return h < 1 ? DEFAULT_HEIGHT : h;
+    }
+
+    @Override
+    public synchronized void setEchoEnabled(final boolean enabled) {
+        try {
+            if (enabled) {
+                settings.set("echo");
+            }
+            else {
+                settings.set("-echo");
+            }
+            super.setEchoEnabled(enabled);
+        }
+        catch (Exception e) {
+            Log.error("Failed to ", (enabled ? "enable" : "disable"), " echo: ", e);
+        }
+    }
+
+}
