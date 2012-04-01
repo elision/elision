@@ -861,13 +861,13 @@ extends Parser {
     //LApply |
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
-//    zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
-//        (funlist: List[AstNode], lastarg: AstNode) =>
-//          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
+    zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
+        (funlist: List[AstNode], lastarg: AstNode) =>
+          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
 //    zeroOrMore(FirstAtom ~ WS ~ "-> ") ~ FirstAtom ~~> (
 //        (maplist: List[AstNode], lastarg: AstNode) =>
 //          maplist.foldRight(lastarg)(MapPairNode(_,_)))
-    FirstAtom ~ WS ~ ". " ~ Atom ~~> (ApplicationNode(context,_,_)) |
+//    FirstAtom ~ WS ~ ". " ~ Atom ~~> (ApplicationNode(context,_,_)) |
     FirstAtom ~ WS ~ "-> " ~ FirstAtom ~~> (MapPairNode(_,_)) |
     FirstAtom
   }.label("an atom")
