@@ -95,8 +95,8 @@ object Fail {
    */
   def apply(reason: String, pattern: BasicAtom, subject: BasicAtom,
     prior: Option[Fail] = None, index: Int = 0): Fail =
-    new Fail(() => reason + "\nPattern: " +
-      pattern.toParseString + "\nSubject: " + subject.toParseString +
+    new Fail(() => reason + "\n  pattern: " +
+      pattern.toParseString + "\n  subject: " + subject.toParseString +
       (prior match {
         case None => ""
         case Some(_) => "\n\nCaused by:\n" + prior.get.toString

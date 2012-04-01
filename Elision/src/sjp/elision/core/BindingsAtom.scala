@@ -55,7 +55,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   val isConstant = mybinds.values.forall(_.isConstant)
   
   /** The binding is a term iff all values are terms. */
-  val isTerm = mybinds.values.forall(_.isConstant)
+  val isTerm = mybinds.values.forall(_.isTerm)
   
   /** The De Bruijn index is the maximum index of the bindings. */
   val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)

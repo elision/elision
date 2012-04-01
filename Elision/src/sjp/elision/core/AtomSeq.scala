@@ -145,15 +145,15 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         	// Now we have to decide how to compare the two sequences.  Note that
           // if the properties matching changes, this will like have to change,
           // too, to use the matched properties.
-//          if (associative)
-//            if (commutative)
-//              matcher.ACMatcher.tryMatch(this, as, binds, operator)
-//            else
-//              matcher.AMatcher.tryMatch(this, as, binds, operator)
-//          else
-//            if (commutative)
-//              matcher.CMatcher.tryMatch(this, as, binds)
-//            else
+          if (associative)
+            if (commutative)
+              matcher.ACMatcher.tryMatch(this, as, binds, operator)
+            else
+              matcher.AMatcher.tryMatch(this, as, binds, operator)
+          else
+            if (commutative)
+              matcher.CMatcher.tryMatch(this, as, binds)
+            else
               SequenceMatcher.tryMatch(this, as, binds)
       case _ => Fail("An atom sequence may only match another atom sequence.",
           this, subject)

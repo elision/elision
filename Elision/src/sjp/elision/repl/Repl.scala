@@ -745,6 +745,17 @@ object Repl {
           case _ => _no_show
         })
         
+    // Set whether to descend into children.
+    execute("{ operator setdescend($descend: BOOLEAN) }")
+    _context.operatorLibrary.register("setdescend",
+        (_, list:AtomSeq, _) => list match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to descend.
+            _context.setDescend(flag)
+            _no_show
+          case _ => _no_show
+        })
+        
     // Enable or disable the rewriter.
     execute("{ operator rewrite() }")
     _context.operatorLibrary.register("rewrite",

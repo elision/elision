@@ -363,10 +363,6 @@ object Apply {
     val pars = op.opdef.proto.pars
     val plen = pars.length
     val nlen = newlist.length
-    if (nlen < plen) throw new ArgumentListException("Too few arguments (" +
-        nlen + ") to operator " + op.toParseString +
-        " after processing.  Argument list is now: " +
-        newlist.mkParseString("(",", ",")") + ".")
 
     // If there are equal numbers of parameters and arguments, great!  We can
     // just match normally.
@@ -377,9 +373,12 @@ object Apply {
     // performing the match on the new lists.
     var parameters = OmitSeq[BasicAtom]()
     parameters ++ pars
+    if (nlen < plen) {
+      parameters = parameters.slice(0,nlen)
+    }
     val last = pars.last
     var count = 1
-    while (parameters.length < newlist.length) {
+    while (parameters.length < nlen) {
       parameters :+= Variable(last.theType, "::"+count)
       count += 1
     }

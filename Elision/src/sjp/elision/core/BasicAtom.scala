@@ -271,7 +271,7 @@ abstract class BasicAtom {
         println(bnd.toParseString)
       case many:Many =>
       	printf("SUCCESS (%x): ", what)
-        println("Many Matches")
+        println("  Many Matches")
     }
     
     // The value is the outcome of the match.

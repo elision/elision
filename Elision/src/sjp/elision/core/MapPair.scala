@@ -30,14 +30,18 @@
 package sjp.elision.core
 
 /**
- * Provide an ordered pair.
+ * Provide an ordered pair that also serves as a very simple kind of rewrite
+ * rule.
+ * 
+ * The map pair can use used to construct a pair, but when applied on the
+ * left hand side of the applicative dot, it tries to match the right-hand
+ * side against its left-hand side.  If the match succeeds, the result is
+ * the rewrite of the map pair's right-hand side and a true flag.
  */
 case class MapPair(left: BasicAtom, right: BasicAtom) extends BasicAtom
 with Rewriter {
-  import OperatorLibrary.xx
-  
-  /** The type of the pair is derived from the types of the elements. */
-  val theType = xx(Vector(left.theType, right.theType))
+	/** A map pair is actually a strategy. */
+  val theType = STRATEGY
   
   /** The apply is constant iff its parts are. */
   val isConstant = left.isConstant && right.isConstant
@@ -68,7 +72,8 @@ with Rewriter {
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = subject match {
     case MapPair(oleft, oright) =>
-      SequenceMatcher.tryMatch(Vector(left, right), Vector(oleft, oright), binds)
+      SequenceMatcher.tryMatch(Vector(left, right),
+          Vector(oleft, oright), binds)
     case _ =>
       Fail("Subject of match is not a pair.", this, subject)
   }
@@ -117,5 +122,6 @@ with Rewriter {
    * 
    * @return	The Scala code.
    */
-  override def toString = "MapPair(" + left.toString + ", " + right.toString + ")"
+  override def toString = "MapPair(" + left.toString + ", " +
+  		right.toString + ")"
 }

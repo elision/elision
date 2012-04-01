@@ -147,6 +147,9 @@ class Context(val allowUndeclared:Boolean = false) {
   /** The rewrite limit. */
   private var _limit: BigInt = 100
   
+  /** Whether to recursively rewrite children. */
+  private var _descend = false
+  
   /**
    * Set the limit for the number of rewrites.
    * @param limit	The limit of the number of rewrites.
@@ -155,12 +158,36 @@ class Context(val allowUndeclared:Boolean = false) {
   def setLimit(limit: BigInt) = _limit = limit ; this
   
   /**
-   * Rewrite the provided atom once, if possible.
+   * Set whether to rewrite children recursively.
+   * @param descend	Whether to rewrite children recursively.
+   * @return	This context.
+   */
+  def setDescend(descend: Boolean) = _descend = descend ; this
+  
+  /**
+   * Rewrite the provided atom once, if possible.  Children may be rewritten,
+   * depending on whether descent is enabled.
    * @param atom	The atom to rewrite.
    * @return	The rewritten atom, and true iff any rules were successfully
    * 					applied.
    */
   def rewriteOnce(atom: BasicAtom): (BasicAtom, Boolean) = {
+    var (newtop, appliedtop) = rewriteTop(atom)
+    if (_descend) {
+	    var (newatom, applied) = rewriteChildren(newtop)
+	    (newatom, appliedtop || applied)
+    } else {
+      (newtop, appliedtop)
+    }
+  }
+  
+  /**
+   * Rewrite the atom at the top level, once.
+   * @param atom	The atom to rewrite.
+   * @return	The rewritten atom, and true iff any rules were successfully
+   * 					applied.
+   */
+  def rewriteTop(atom: BasicAtom): (BasicAtom, Boolean) = {
     // Get the rules.
     val rules = getRules(atom)
     // Now try every rule until one applies.
@@ -169,6 +196,37 @@ class Context(val allowUndeclared:Boolean = false) {
       if (applied) return (newatom, applied)
     }
     return (atom, false)
+  }
+  
+  /**
+   * Recursively rewrite the atom and its children.
+   * 
+   * @param atom	The atom to rewrite.
+   * @return	The rewritten atom, and true iff any rules were successfully
+   * 					applied.
+   */
+  def rewriteChildren(atom: BasicAtom): (BasicAtom, Boolean) = atom match {
+	  case AtomSeq(props, atoms) =>
+	    var flag = false
+	    (AtomSeq(props, atoms.map { atom =>
+	      val (newatom, applied) = rewriteOnce(atom)
+	      flag ||= applied
+	      newatom
+	    }), flag)
+	  case Apply(op, AtomSeq(props, atoms)) =>
+	    var flag = false
+	    (Apply(op, AtomSeq(props, atoms.map { atom =>
+	      val (newatom, applied) = rewriteOnce(atom)
+	      flag ||= applied
+	      newatom
+	    })), flag)
+	  case Apply(lhs, rhs) =>
+	    val newlhs = rewriteOnce(lhs)
+	    val newrhs = rewriteOnce(rhs)
+	    (Apply(newlhs._1, newrhs._1), newlhs._2 || newrhs._2)
+	  case _ =>
+	    // Do nothing in this case.
+	    (atom, false)
   }
   
   /**
@@ -189,8 +247,10 @@ class Context(val allowUndeclared:Boolean = false) {
       limit: BigInt = _limit): (BasicAtom, Boolean) = {
     if (limit <= 0) return (atom, bool)
     else rewriteOnce(atom) match {
-      case (newatom, false) => (newatom, bool)
-      case (newatom, true) => doRewrite(newatom, true, limit-1)
+      case (newatom, false) =>
+        (newatom, bool)
+      case (newatom, true) =>
+        doRewrite(newatom, true, limit-1)
     }
   }
   

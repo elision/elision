@@ -345,19 +345,14 @@ object AtomParser {
 	//----------------------------------------------------------------------
 	
 	/**
-	 * A node denoting the result of matching.
+	 * A node denoting a pattern to match when applied on the left.
 	 * 
 	 * @param pat	The pattern.
-	 * @param sub	The subject.
-	 * @return	Nothing on no match, or the bindings if the match succeeds.
+	 * @return	A match atom.
 	 */
-	case class MatchNode(pat: AstNode, sub: AstNode) extends AstNode {
+	case class MatchNode(pat: AstNode) extends AstNode {
 	  def interpret = {
-	    pat.interpret.tryMatch(sub.interpret) match {
-	      case fail:Fail => Literal.NOTHING
-	      case Match(binds) => binds
-	      case Many(iter) => if (iter.hasNext) iter.next else Literal.NOTHING
-	    }
+	    MatchAtom(pat.interpret)
 	  }
 	}
 	
@@ -1466,8 +1461,8 @@ extends Parser {
    * Parse a match between two atoms.
    */
   def ParsedMatch = rule {
-    "{ " ~ "match " ~ FirstAtom ~ "-> " ~ FirstAtom ~ "} " ~~>
-    ((pat,sub) => MatchNode(pat, sub))
+    "{ " ~ "match " ~ Atom ~ "} " ~~>
+    (pat => MatchNode(pat))
   }.label("a match expression")
 
   //======================================================================

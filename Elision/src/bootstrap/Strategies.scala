@@ -50,9 +50,11 @@ object Strategies {
     
   // Declare operators to modify the flag returned from a strategy.
   { operator s_true($s: STRATEGY): STRATEGY }
-  { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom, flag->true} }
+  { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom, flag->true}
+    ruleset STRAT level 1 }
   { operator s_false($s: STRATEGY): STRATEGY }
-  { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom, flag->false} }
+  { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom, flag->false} 
+    ruleset STRAT level 1 }
     
   // Declare the if strategy.  This executes the first strategy, and checks
   // the flag.  If it is true, the second strategy is executed.  Otherwise the
