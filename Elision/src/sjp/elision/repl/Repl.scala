@@ -270,15 +270,16 @@ object Repl {
     // Display the banner
     banner()
     
-    // Cause the named types to be constructed.
-    BOOLEAN
-    
     // Define the operators.
-    if (!_opsDefined) defineOps
-    
-    // Bootstrap now.
     val qt = _quiet
     val ba = _bindatoms
+    _quiet = true
+    _bindatoms = false
+    if (!_opsDefined) defineOps
+    _quiet = qt
+    _bindatoms = ba
+    
+    // Bootstrap now.
     emitln("Bootstrapping Strategies...")
     _quiet = true
     _bindatoms = false

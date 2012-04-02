@@ -284,14 +284,14 @@ https://github.com/sirthias/parboiled/wiki
 \end_inset
 
  for details, including the license agreement.
- The Elision REPL uses JLine, a Java library for handling console input.
+ The Elision REPL uses JLine2, a Java library for handling console input.
  See 
 \begin_inset Flex URL
 status collapsed
 
 \begin_layout Plain Layout
 
-http://jline.sourceforge.net/
+https://github.com/jline/jline2
 \end_layout
 
 \end_inset
@@ -1234,7 +1234,49 @@ The REPL reads zero or more atoms per line, evaluates them, and displays
  the output.
  Several atoms can be present on a single line; in that case the REPL displays
  each one.
- Note that at present atoms cannot span multiple lines.
+\end_layout
+
+\begin_layout Standard
+Atoms can span multiple lines.
+ If a parenthesis, brace, or quotation mark is open at the end of the line,
+ then the REPL will prompt for additional input with the prompt 
+\family typewriter
+>
+\family default
+.
+ The newlines are converted to spaces.
+\end_layout
+
+\begin_layout LyX-Code
+e> { operator set($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN
+\end_layout
+
+\begin_layout LyX-Code
+ >   is associative, commutative, idempotent
+\end_layout
+
+\begin_layout LyX-Code
+ > }
+\end_layout
+
+\begin_layout LyX-Code
+e> "
+\end_layout
+
+\begin_layout LyX-Code
+ > Fred
+\end_layout
+
+\begin_layout LyX-Code
+ > "
+\end_layout
+
+\begin_layout LyX-Code
+$repl19 = " Fred "
+\end_layout
+
+\begin_layout LyX-Code
+
 \end_layout
 
 \begin_layout Section
@@ -1257,19 +1299,19 @@ history()
 \end_layout
 
 \begin_layout LyX-Code
- 1: {native neg($x:INTEGER):INTEGER}
+1: {operator neg($x:INTEGER):INTEGER}
 \end_layout
 
 \begin_layout LyX-Code
- 2: {rule add($x,neg($x)) -> 0}
+2: {rule add($x,neg($x)) -> 0}
 \end_layout
 
 \begin_layout LyX-Code
- 3: add(21,17,$x)
+3: add(21,17,$x)
 \end_layout
 
 \begin_layout LyX-Code
- 4: history()
+4: history()
 \end_layout
 
 \begin_layout LyX-Code
@@ -1285,6 +1327,10 @@ It is possible to recall any prior history element by entering the history
 e> 
 \series bold
 !3
+\end_layout
+
+\begin_layout LyX-Code
+add(21,17,$x)
 \end_layout
 
 \begin_layout LyX-Code
@@ -1308,6 +1354,10 @@ e>
 \end_layout
 
 \begin_layout LyX-Code
+add(21,17,$x)
+\end_layout
+
+\begin_layout LyX-Code
 $repl15 = 40
 \end_layout
 
@@ -1318,35 +1368,35 @@ history()
 \end_layout
 
 \begin_layout LyX-Code
- 1: {native neg($x:INTEGER):INTEGER}
+1: {native neg($x:INTEGER):INTEGER}
 \end_layout
 
 \begin_layout LyX-Code
- 2: {rule add($x,neg($x)) -> 0}
+2: {rule add($x,neg($x)) -> 0}
 \end_layout
 
 \begin_layout LyX-Code
- 3: add(21,17,$x)
+3: add(21,17,$x)
 \end_layout
 
 \begin_layout LyX-Code
- 4: history()
+4: history()
 \end_layout
 
 \begin_layout LyX-Code
- 5: !3
+5: add(21,17,$x)
 \end_layout
 
 \begin_layout LyX-Code
- 6: bind($x, 2)
+6: bind($x, 2)
 \end_layout
 
 \begin_layout LyX-Code
- 7: !3
+7: add(21,17,$x)
 \end_layout
 
 \begin_layout LyX-Code
- 8: history()
+8: history()
 \end_layout
 
 \begin_layout LyX-Code
@@ -1792,7 +1842,9 @@ $x:$T.$T
 
 \begin_layout LyX-Code
 Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANYTYPE"), "T",
- Set()), ":1", Set()), Variable(NamedRootType("ANYTYPE"), "T", Set()))
+ BooleanLiteral(NamedRootType("BOOLEAN"), true), Set()), ":1", BooleanLiteral(Na
+medRootType("BOOLEAN"), true), Set()), Variable(NamedRootType("ANYTYPE"),
+ "T", BooleanLiteral(NamedRootType("BOOLEAN"), true), Set()))
 \end_layout
 
 \begin_layout LyX-Code
@@ -2229,7 +2281,7 @@ $repl
 \begin_layout LyX-Code
 e> 
 \series bold
-{match 7 -> $x}
+{match 7}.$x
 \end_layout
 
 \begin_layout LyX-Code
@@ -2273,11 +2325,11 @@ FAILURE (de6d60a9): Literal pattern does not match subject.
 \end_layout
 
 \begin_layout LyX-Code
-Pattern: 7
+  pattern: 7
 \end_layout
 
 \begin_layout LyX-Code
-Subject: $x
+  subject: $x
 \end_layout
 
 \begin_layout LyX-Code
@@ -4290,6 +4342,20 @@ $x.7
 \begin_layout Standard
 The following denotes the identity function that returns the atom it is
  applied to.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This is sometimes called the 
+\emph on
+I combinator
+\emph default
+.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -4300,6 +4366,19 @@ $x.$x
 
 \begin_layout Standard
 The following is a lambda that creates constant functions.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+This also has a catchy name: it is the 
+\emph on
+K combinator
+\emph default
+.
+\end_layout
+
+\end_inset
+
  When applied to an argument, the result is a function that always returns
  the argument.
 \end_layout
@@ -4905,7 +4984,7 @@ In general, operators denote mappings on atoms.
  However, Elision manipulates operators symbolically, so they should be
  regarded as mathematical functions, and not necessarily in the computer
  language sense.
- Elision supports three kinds of operator.
+ Elision supports the following kinds of operator.
 \end_layout
 
 \begin_layout Itemize
@@ -4914,26 +4993,17 @@ A
 symbolic
 \emph default
  operator is simply an atom that is manipulated by the system through rewriting.
-\end_layout
-
-\begin_layout Itemize
-A 
+ A Scala 
+\emph on
+closure
+\emph default
+ can be provided to construct instances of the operator, making the operator
+ a 
 \emph on
 native
 \emph default
- operator uses a closure to construct instances of the operator application.
- This is how arithmetic operators, for example, are implemented.
-\begin_inset Foot
-status collapsed
-
-\begin_layout Plain Layout
-If no closure is provided for a native operator, it is treated as a symbolic
  operator.
-\end_layout
-
-\end_inset
-
-
+ This is how arithmetic operators, for example, are implemented.
 \end_layout
 
 \begin_layout Itemize
@@ -5261,8 +5331,7 @@ An associative operator
 
 .
  Note that any argument could be replaced with another application, so any
- number of arguments is possible (though not necessarily fewer than specified
- in the prototype).
+ number of arguments is possible.
 \end_layout
 
 \begin_layout Standard
@@ -5367,27 +5436,7 @@ Associativity is
 \emph on
 required
 \emph default
- by idempotency, an identity, and an absorber.
-\end_layout
-
-\begin_layout Standard
-Finally, if an associative operator is provided with a single argument the
- operator 
-\begin_inset Quotes eld
-\end_inset
-
-dissolves
-\begin_inset Quotes erd
-\end_inset
-
- and we obtain just that element.
- That is, 
-\begin_inset Formula $f(a)=a$
-\end_inset
-
-.
- This arises from the notion that we can parenthesize arbitrarily, even
- a single argument.
+ by idempotency, any identity, and any absorber.
 \end_layout
 
 \begin_layout Subsection
@@ -5553,7 +5602,7 @@ An operator
 \end_inset
 
 , with the property that 
-\begin_inset Formula $f(x,e)=f(e,x)=f(x)$
+\begin_inset Formula $f(x,e)=f(e,x)=f(x)=x$
 \end_inset
 
 .
@@ -5591,27 +5640,15 @@ and
 \end_layout
 
 \begin_layout Standard
-Further, while 
+Further, 
 \begin_inset Formula $f()$
 \end_inset
 
- has no particular meaning for a general associative operator, it is regarded
- as an alternate name for a named identity 
+ is regarded as an alternate name for a named identity 
 \begin_inset Formula $e$
 \end_inset
 
 .
- Thus an associative operator with identity can have any number of elements,
- including none.
- If an operator 
-\begin_inset Formula $f$
-\end_inset
-
- has no named identity, then 
-\begin_inset Formula $f()$
-\end_inset
-
- is not allowed.
 \end_layout
 
 \begin_layout Subsection
@@ -5665,29 +5702,8 @@ One declares a symbolic operator by giving the prototype and properties
 \end_layout
 
 \begin_layout Standard
-The form for declaring a native operator is the same, with the exception
- that the keyword 
-\family typewriter
-operator
-\family default
- is replaced with 
-\family typewriter
-native
-\family default
-.
-\end_layout
-
-\begin_layout LyX-Code
-{ native add($p: INTEGER, $q: BOOLEAN): INTEGER
-\end_layout
-
-\begin_layout LyX-Code
-  is associative, commutative, identity 0 }
-\end_layout
-
-\begin_layout Standard
-Finally, an immediate operator declaration provides a prototype and a body,
- but no properties, as the properties are implicit in the declared body.
+An immediate operator declaration provides a prototype and a body, but no
+ properties, as the properties are implicit in the declared body.
  A simple example is the 
 \family typewriter
 typeof
@@ -5705,18 +5721,20 @@ All these declarations are used when an operator application is
 constructed
 \emph default
 , meaning when the operator is applied to an argument list.
- In the case of symbolic and native operators, the argument list is processed
- based on the properties.
- For a native operator, this happens 
+ In the case of symbolic operators the argument list is processed based
+ on the properties.
+ If the operator has a closure, processing the argument list happens 
 \emph on
 prior
 \emph default
  to invoking the closure.
  If the operator has an absorber or identity, the closure might not be invoked
  at all.
- For this reason, be careful using immediate operators.
- They are best regarded as a way to specify an alternate name for another
- operator, like a macro.
+\end_layout
+
+\begin_layout Standard
+Immediate operators are best regarded as a way to specify an alternate name
+ for another operator, like a macro.
 \end_layout
 
 \begin_layout LyX-Code
@@ -5832,23 +5850,13 @@ Scala
 \end_layout
 
 \begin_layout Plain Layout
-To create a definition of a symbolic or native operator, use
+To create a definition of a symbolic operator, use
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
 core.SymbolicOperatorDefinition(proto,props)
-\family default
-, or
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-core.NativeOperatorDefinition(proto,props)
-\family default
-,
 \end_layout
 
 \begin_layout Plain Layout
@@ -6052,7 +6060,7 @@ context.operatorLibrary.add(typeofOp)
 \end_layout
 
 \begin_layout Plain Layout
-The operator library is also where you register the closure for a native
+The operator library is also where you register a closure for a symbolic
  operator.
  The closure must take a triple, consisting of the operator, the argument
  list as an instance of 
@@ -6075,16 +6083,16 @@ reference "chap:Matching-and-Rewriting"
 \end_inset
 
 .
- The following actually implements addition as a native operator, though
- it uses some methods not explained just yet.
+ The following actually implements addition as a symbolic operator with
+ a native constructor, though it uses some methods not explained just yet.
 \end_layout
 
 \begin_layout LyX-Code
-// Define add as a native operator.
+// Define add as a symbolic operator.
 \end_layout
 
 \begin_layout LyX-Code
-val addOp = NativeOperatorDefinition(
+val addOp = SymbolicOperatorDefinition(
 \end_layout
 
 \begin_layout LyX-Code
@@ -6210,8 +6218,8 @@ core.Apply
 first
 \emph default
 .
- Thus it is possible to attempt to construct a native operator application
- and never have the native processing get performed.
+ Thus it is possible to attempt to construct a symbolic operator application
+ with a native constructor and never have the native constuctor get invoked.
  For instance, 
 \family typewriter
 add(0)
@@ -6220,11 +6228,11 @@ add(0)
 \family typewriter
 0
 \family default
-, and the native handler above is never invoked.
+, and the native constructor is never invoked.
 \end_layout
 
 \begin_layout Plain Layout
-Second, the native handler may 
+Second, the native constructor may 
 \emph on
 re
 \emph default
@@ -6237,13 +6245,13 @@ core.Apply
 add
 \family default
 .
- This can simplify the native handler since it does not have to worry about
- identities, etc.
+ This can simplify the native constructor since it does not have to worry
+ about identities, etc.
  In the 
 \family typewriter
 add
 \family default
- handler, the result for 
+ constructor, the result for 
 \family typewriter
 lits
 \family default
@@ -6261,8 +6269,8 @@ This second case leads to a potential problem.
 \family typewriter
 core.Apply
 \family default
- processing will invoke the native handler, and our native handler invokes
- 
+ processing will invoke the native constructor, and our native constructor
+ invokes 
 \family typewriter
 core.Apply
 \family default
@@ -6275,8 +6283,8 @@ true
 \family typewriter
 core.Apply
 \family default
- to prevent re-invoking the native handler.
- It is thus possible to write a native handler that does some processing,
+ to prevent re-invoking the native constructor.
+ It is thus possible to write a native constructor that does some processing,
  lets itself get re-invoked, does more processing, etc., until it finally
  terminates the cycle.
 \end_layout
@@ -7119,7 +7127,7 @@ ERROR: The operator fred is not known.
 \end_layout
 
 \begin_layout Standard
-To overcome this explicitly given the type of the symbol.
+To overcome this explicitly give the type of the symbol.
  Any type will suppress this behavior, but the most common (and obvious)
  type is 
 \family typewriter
@@ -7316,6 +7324,10 @@ name "chap:Special-Forms"
 \end_inset
 
 Special Forms
+\end_layout
+
+\begin_layout Standard
+Elision 
 \end_layout
 
 \begin_layout Chapter
