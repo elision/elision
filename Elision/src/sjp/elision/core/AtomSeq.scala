@@ -108,7 +108,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   
   /** The length of this sequence. */
   def length = atoms.length
-
+  
   /**
    * Try to match this atom sequence, as a pattern, against the provided atom.
    * Atom sequences only match other atom sequences, and they only match if

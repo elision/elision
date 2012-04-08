@@ -31,6 +31,45 @@
 ======================================================================*/
 package sjp.elision.core
 
+/* Notes on De Bruijn indices.
+ * 
+ * The De Bruijn index (DBI) is the number of binders in scope for a given
+ * lambda variable.
+ * 
+ * \$x.\$y.\$z.($x.$z.($y.$z))
+ *               3  1   2  1
+ *               
+ * We rewrite this in the De Bruijn notation as:
+ * 
+ * λ.λ.λ.3 1 (2 1)
+ * 
+ * (This is the S combinator from SKI calculus.)
+ * 
+ * As another example, consider this atom.
+ * 
+ * \$x.\$y.$x
+ *         2
+ * 
+ * λ.λ.2
+ * 
+ * (This is the K combinator from SKI calculus.)
+ * 
+ * Let's consider $S.$K.
+ *     
+ * \$x.\$y.\$z.($x.$z.($y.$z)).\$x.\$y.$x
+ *     \$y.\$z.((\$x.\$y.$x).$z.($y.$z))
+ *     \$y.\$z.(\$y.$z.($y.$z))
+ *     \$y.\$z.($z)
+ *     
+ * And now $S.$K.$K.
+ * 
+ * $S.$K.$K
+ * \$y.\$z.($z).(\$x.\$y.\$x)
+ * \$z.$z
+ * 
+ * Thus we get the identity.
+ */
+
 /**
  * A lambda variable does not match the body.
  */
@@ -65,12 +104,11 @@ case class LambdaVariableMismatchException(msg: String) extends Exception(msg)
  * }}}
  * Both are rewritten to <code>\\$`:1`.$`:1`</code>.
  * 
- * @param deBruijnIndex			The De Bruijn index.
  * @param lvar							The lambda variable which must match the De Bruijn
  * 													index.
  * @param body							The lambda body.
  */
-case class Lambda private (deBruijnIndex: Int, lvar: Variable, body: BasicAtom)
+class Lambda private (val lvar: Variable, val body: BasicAtom)
 extends BasicAtom with Applicable {
   /** The type is a mapping from the variable type to the body type. */
   val theType = OperatorLibrary.MAP(lvar.theType, body.theType)
@@ -83,6 +121,9 @@ extends BasicAtom with Applicable {
    */
   val isConstant = body.isConstant
   
+  /** The De Bruijn index is the max of the parameter and body. */
+  val deBruijnIndex = body.deBruijnIndex max lvar.deBruijnIndex
+  
   /** The lambda is a term iff its body is a term. */
   val isTerm = body.isTerm
   
@@ -92,11 +133,11 @@ extends BasicAtom with Applicable {
   /** A lambda's body may be a constant. */
   val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode, lvar, body))
-	  	
+    
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =
     subject match {
-	  case Lambda(odbi, olvar, obody) => if (olvar == lvar) {
+	  case Lambda(olvar, obody) => if (olvar == lvar) {
 	    body.tryMatch(obody, binds, hints) match {
 	      case fail: Fail =>
 	        Fail("Lambda bodies do not match.", this, subject)
@@ -107,11 +148,16 @@ extends BasicAtom with Applicable {
 	  case _ => Fail("Lambdas only match other lambdas.", this, subject)
 	}
 
-  def rewrite(binds: Bindings): (BasicAtom, Boolean) =
-    body.rewrite(binds) match {
+  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+    // We test for a special case here.  If the bindings specify that we
+    // should rewrite our own bound De Bruijn index, we explicitly ignore
+    // it.
+    val newbinds = binds - lvar.name
+    body.rewrite(newbinds) match {
 	    case (newatom, changed) if changed => (Lambda(lvar, newatom), true)
 	    case _ => (this, false)
 	  }
+  }
   
   def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
   
@@ -147,86 +193,59 @@ extends BasicAtom with Applicable {
  * Companion object with convenient methods to create lambdas.
  */
 object Lambda {
+  /** Whether to use De Bruijn indices. */
+  var useDeBruijnIndices = true
+  
+  var depth: Int = 0
+  
+  //+def print(str: String) = println("  " * depth + str)
+  
+  def unapply(lambda: Lambda) = Some(lambda.lvar, lambda.body)
+  
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
-    /*
-     * Note on De Bruijn indices.
-     * 
-     * This apply method is the point at which new De Bruijn indices are
-     * created.  Basically when a lambda is being created, the De Bruijn
-     * index of the body is checked.  This is incremented and a new variable
-     * created based on the index.  The original variable is then replaced
-     * in the body with the new variable.
-     * 
-     * For example:
-     * \$x.fred($x,$y)  becomes  \$:1.fred($:1,$y)
-     * \$x.(\$:1.fred($:1,$x))  becomes  \$:2.(\$:1.fred($:1,$:2))
-     * 
-     * There is a special case to consider, however.  Suppose we have a
-     * lambda with this form.
-     * 
-     * \$x.$body
-     * 
-     * Lambdas represent functions, and in this case the lambda represents
-     * a constant function: \$x.$body.7 = $body.
-     * 
-     * The difficulty arises if we later rewrite the body.  Consider this.
-     * 
-     * \$x.$body  becomes  \$:1.$body
-     * 
-     * We then rewrite $body to \$x.fred($x,$y), itself rewritten to be
-     * \$:1.fred($:1,$y), with De Bruijn index of one.  Thus since we are
-     * building a new lambda (thanks to rewriting the body) we create new
-     * variable $:2 and rewrite the body mapping the old variable $:1 to
-     * the new one $:2.  We get the following.
-     * 
-     * \$:2.\$:1.fred(\$:2,$y)
-     * 
-     * This isn't at all what we want.  What we really want is the following.
-     * 
-     * \$:1.$body      $body = \$:1.fred($:1,$y)
-     * 
-     * \$:2.\$:1.fred($:1,$y)
-     * 
-     * To get this we compute the index of the outer lambda as one more than
-     * the index of the body (so it gets index 2).  We then do not rewrite the
-     * lambda body since the lambda variable is already a De Bruijn index.
-     * 
-     * The simple answer is that we do not rewrite De Bruijn indices.  Terms
-     * are immutable, and the De Bruijn indices were created (correctly) when
-     * the term was originally created.  So...  We reject rewriting De Bruijn
-     * indices when creating lambdas.
-     * 
-     * Now, when evaluating lambdas, we have to rewrite De Bruijn indices.  So
-     * we only block rewriting of one De Bruijn index to a different De Bruijn
-     * index.  That logic can be found in the Variable class.
-     * 
-     * Carefully preserve the variable information on rewrite!  We must make
-     * sure to copy the type, labels, and guard.
-     * 
-     * One final note.  There are metavariables in the system.  When we rewrite,
-     * we must preserve their meta-nature.
-     */
-    
-    // First compute the De Bruijn index of the term.  It is equal to one
-    // greater than the maximum index of the body.
-    val deBruijnIndex = body.deBruijnIndex + 1
-    
-    // Now make a new De Bruijn variable for the index.
-    val newvar = (if (lvar.isTerm)
-      new Variable(lvar.theType, ":"+deBruijnIndex, lvar.guard, lvar.labels) {
-      override val isDeBruijnIndex = true
-    }
-    else
-    	new MetaVariable(lvar.theType, ":"+deBruijnIndex, lvar.guard, lvar.labels) {
-      override val isDeBruijnIndex = true
-    })
-    
-    // Bind the old variable to the new one.
-    var binds = Bindings()
-    binds += (lvar.name -> newvar)
-    val (newbody, _) = body.rewrite(binds)
-    
+    //+print("Asked to make \\" + lvar.toParseString + "." + body.toParseString)
+    depth += 1
     // Make and return the new lambda.
-    Lambda(deBruijnIndex, newvar, newbody)
+    if (useDeBruijnIndices) {
+      // Decide what De Bruijn index to use for this lambda.  We will use one
+      // greater than the maximum index of the body.
+	    val dBI = body.deBruijnIndex + 1
+	    //+print("Body " + body.toParseString + " (dBI: " + body.deBruijnIndex + ")")
+	    //+print("Using DBI " + dBI)
+
+	    // Classes that implement De Bruijn indices.
+	    class DBIV(typ: BasicAtom, val dBI: Int, guard: BasicAtom, lvar: Set[String])
+	    extends Variable(typ, ":" + dBI, guard, lvar) {
+	      override val isDeBruijnIndex = true
+	      override val deBruijnIndex = dBI
+      }
+      class DBIM(typ: BasicAtom, val dBI: Int, guard: BasicAtom, lvar: Set[String])
+      extends MetaVariable(typ, ":" + dBI, guard, lvar) {
+	      override val isDeBruijnIndex = true
+	      override val deBruijnIndex = dBI
+      }
+	    
+	    // Now make a new De Bruijn variable for the index.
+	    val newvar = (
+        if (lvar.isTerm)
+        	new DBIV(lvar.theType, dBI, lvar.guard, lvar.labels)
+        else
+        	new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
+      )
+      //+print("Constructed variable: " + newvar.toParseString)
+	    
+	    // Bind the old variable to the new one and rewrite the body.
+	    var binds = Bindings()
+	    binds += (lvar.name -> newvar)
+	    //+print("Bindings are: " + binds.toParseString)
+	    val (newbody, _) = body.rewrite(binds)
+	    //+print("Adjusted body to: " + newbody.toParseString)
+	    
+	    // Compute the new lambda.
+	    //+print("Lambda is: \\" + newvar.toParseString + "." + newbody.toParseString)
+	    depth -= 1
+    	new Lambda(newvar, newbody)
+    }
+    else new Lambda(lvar, body)
   }
 }

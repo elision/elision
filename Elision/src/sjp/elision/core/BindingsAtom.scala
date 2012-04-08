@@ -69,7 +69,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    */
   lazy val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode, mybinds.values.toSeq:_*))
-
+    
   /**
    * Match this bindings atom against the provided atom.
    * 

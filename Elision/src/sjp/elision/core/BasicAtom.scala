@@ -30,6 +30,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 package sjp.elision.core
+import scala.collection.immutable.HashMap
 
 /**
  * A ''rewriter'' is an atom that can be applied to some other atom to generate
@@ -342,7 +343,7 @@ abstract class BasicAtom {
    * 					changed.
    */
   def rewrite(binds: Bindings): (BasicAtom, Boolean)
-  
+
   /**
    * Generate a parseable string from this atom.  The returned string should
    * be able to "round trip," that is, [[sjp.elision.parse.AtomParser]] must

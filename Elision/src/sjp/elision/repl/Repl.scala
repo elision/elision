@@ -185,6 +185,9 @@ object Repl {
   /** Should execution time be printed after every command. */
   private var _timing = false
   
+  /** Should we do round-trip parsing. */
+  private var _doRoundTrip = true
+  
   /**
    * Whether to suppress most printing.  Errors and warnings are not suppressed,
    * and explicitly requested output is also not suppressed.
@@ -426,7 +429,7 @@ object Repl {
     }
     if (_showScala) println("Scala: " + pre + atom)
     emitln(pre + atom.toParseString)
-    checkParseString(atom)
+    if (_doRoundTrip) checkParseString(atom)
   }
   
   /**
@@ -440,8 +443,23 @@ object Repl {
     // Get the parse string for the atom.
     val parseString = atom.toParseString
     
+    // Turn everything off!
+    val qt = _quiet
+    val tp = _trace
+    val tm = BasicAtom.traceMatching
+    _quiet = true
+    _trace = false
+    BasicAtom.traceMatching = false
+    
     // Parse the string.  The result should be a single atom.
     val result = _parser.parseAtoms(parseString)
+    
+    // Restore!
+    BasicAtom.traceMatching = tm
+    _trace = tp
+    _quiet = qt
+    
+    // Check the result.
     result match {
       case _parser.Success(list) =>
         // If there is more than one atom, then we have a failure.
@@ -620,7 +638,10 @@ object Repl {
 		            | history() .................. Show the history so far.
 		            | quiet() .................... Toggle suppressing most output.
 		            | rewrite() .................. Toggle automatic rewriting.
+		            | setdebruijn(f) ............. If f is true, enable De Bruijn indices.
+		            | setdescend(f) .............. If f is true, rewrite top down.
 		            | setlimit(l) ................ Set the rewrite limit to l successes.
+		            | setroundtrip(f) ............ If f is true, enable round trip parsing.
 		            | showbinds() ................ Display the current set of bindings.
 		            | showprior() ................ Toggle showing the unrewritten term.
 		            | showrules(a) ............... Show the list of rules that apply to atom a.
@@ -742,6 +763,19 @@ object Repl {
           case Args(IntegerLiteral(_, count)) =>
             // Enable the specified ruleset.
             _context.setLimit(count)
+            emitln("Rewrite limit is now " + count + ".")
+            _no_show
+          case _ => _no_show
+        })
+        
+    // Set whether to use De Bruijn indices.
+    execute("{ operator setdebruijn($descend: BOOLEAN) }")
+    _context.operatorLibrary.register("setdebruijn",
+        (_, list:AtomSeq, _) => list match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to use De Bruijn indices.
+            Lambda.useDeBruijnIndices = flag
+            emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
             _no_show
           case _ => _no_show
         })
@@ -753,6 +787,19 @@ object Repl {
           case Args(BooleanLiteral(_, flag)) =>
             // Set whether to descend.
             _context.setDescend(flag)
+            emitln("Top-down rewriting is " + (if (flag) "ON." else "OFF."))
+            _no_show
+          case _ => _no_show
+        })
+        
+    // Set whether to do round-trip parsing.
+    execute("{ operator setroundtrip($descend: BOOLEAN) }")
+    _context.operatorLibrary.register("setroundtrip",
+        (_, list:AtomSeq, _) => list match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to descend.
+            _doRoundTrip = flag
+            emitln("Round-trip checking is " + (if (flag) "ON." else "OFF."))
             _no_show
           case _ => _no_show
         })

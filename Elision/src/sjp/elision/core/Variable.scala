@@ -132,11 +132,7 @@ class Variable(typ: BasicAtom, val name: String,
     // bound value.
     binds.get(name) match {
       case Some(atom) =>
-        // We don't rewrite De Bruijn indices to different indices.  So if this
-        // variable is a De Bruijn index, stop immediately without rewriting.
-        // Otherwise return the bound value.
-        if (isDeBruijnIndex && atom.isDeBruijnIndex) (this, false)
-        else (atom, true)
+        (atom, true)
       case None =>
         // While the atom is not bound, its type might have to be rewritten.
         theType.rewrite(binds) match {
