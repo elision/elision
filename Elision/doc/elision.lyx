@@ -7365,5 +7365,31 @@ Contexts
 BasicAtom
 \end_layout
 
+\begin_layout Chapter
+De Bruijn Indices
+\end_layout
+
+\begin_layout Standard
+Elision converts lambdas into a representation using a form of De Bruijn
+ indices.
+ This appendix describes how they are implemented in Elision.
+\end_layout
+
+\begin_layout Standard
+In Elision every atom has an associated Dr Brujin index.
+ Literals and (most) variables have index zero.
+ Other terms have De Bruijn index equal to the maximum index of their parts.
+\end_layout
+
+\begin_layout Standard
+Suppose we are given a lambda term such as 
+\family typewriter
+
+\backslash
+$x.add($x,$y)
+\family default
+.
+\end_layout
+
 \end_body
 \end_document
