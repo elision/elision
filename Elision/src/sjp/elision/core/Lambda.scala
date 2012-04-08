@@ -30,6 +30,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 package sjp.elision.core
+import sjp.elision.ElisionException
 
 /* Notes on De Bruijn indices.
  * 
@@ -73,7 +74,14 @@ package sjp.elision.core
 /**
  * A lambda variable does not match the body.
  */
-case class LambdaVariableMismatchException(msg: String) extends Exception(msg)
+class LambdaVariableMismatchException(msg: String)
+extends ElisionException(msg)
+
+/**
+ * A lambda application results in unbounded recursion.
+ */
+class LambdaUnboundedRecursionException(msg: String)
+extends ElisionException(msg)
 
 /**
  * A lambda creates an operator that binds a single variable in a term.
@@ -173,18 +181,29 @@ extends BasicAtom with Applicable {
   }
   
   def doApply(atom: BasicAtom) = {
-    // Make it possible to check types by matching the variable against the
-    // argument instead of just binding.  For pure binding without checking
-    // types, use a bind.
-    lvar.tryMatch(atom) match {
-      case fail:Fail =>
-        throw new LambdaVariableMismatchException(
-            "Lambda variable does not match body: " + fail.theReason)
-      case Match(binds) =>
-        // Great!  Now rewrite the body with the bindings.
-	      body.rewrite(binds)._1
-      case Many(iter) =>
-        body.rewrite(iter.next)._1
+    // Lambdas are very general; their application can lead to a stack overflow
+    // because it is possible to model unbounded recursion.  Catch the stack
+    // overflow here, and bail out.
+    try {
+	    // Make it possible to check types by matching the variable against the
+	    // argument instead of just binding.  For pure binding without checking
+	    // types, use a bind.
+	    lvar.tryMatch(atom) match {
+	      case fail:Fail =>
+	        throw new LambdaVariableMismatchException(
+	            "Lambda variable does not match body: " + fail.theReason)
+	      case Match(binds) =>
+	        // Great!  Now rewrite the body with the bindings.
+		      body.rewrite(binds)._1
+	      case Many(iter) =>
+	        body.rewrite(iter.next)._1
+	    }
+    } catch {
+      case ex:java.lang.StackOverflowError =>
+        // Trapped unbounded recursion.
+        throw new LambdaUnboundedRecursionException(
+            "Lambda application results in unbounded recursion: (" +
+            this.toParseString + ").(" + atom.toParseString + ")")
     }
   }
 }
