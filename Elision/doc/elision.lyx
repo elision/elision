@@ -1841,10 +1841,10 @@ $x:$T.$T
 \end_layout
 
 \begin_layout LyX-Code
-Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANYTYPE"), "T",
- BooleanLiteral(NamedRootType("BOOLEAN"), true), Set()), ":1", BooleanLiteral(Na
-medRootType("BOOLEAN"), true), Set()), Variable(NamedRootType("ANYTYPE"),
- "T", BooleanLiteral(NamedRootType("BOOLEAN"), true), Set()))
+Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T", BooleanLite
+ral(NamedRootType("BOOLEAN"), true), Set()), ":1", BooleanLiteral(NamedRootType(
+"BOOLEAN"), true), Set()), Variable(NamedRootType("ANY"), "T", BooleanLiteral(Na
+medRootType("BOOLEAN"), true), Set()))
 \end_layout
 
 \begin_layout LyX-Code
@@ -2026,7 +2026,7 @@ $x:$T.$T.add:OPTYPE
 \end_layout
 
 \begin_layout LyX-Code
-Sequence Matcher called: $domain,$codomain -> $T,ANYTYPE / { bind  }
+Sequence Matcher called: $domain,$codomain -> $T,ANY / { bind  }
 \end_layout
 
 \begin_layout LyX-Code
@@ -2058,7 +2058,7 @@ TRYING  (ba5fa5c) in class sjp.elision.core.Variable:
 \end_layout
 
 \begin_layout LyX-Code
-  subject: ANYTYPE
+  subject: ANY
 \end_layout
 
 \begin_layout LyX-Code
@@ -2215,7 +2215,7 @@ $domain,$codomain
 \family default
  against the subject sequence 
 \family typewriter
-$T,ANYTYPE
+$T,ANY
 \family default
  with no prior bindings.
 \end_layout
@@ -2309,7 +2309,7 @@ TRYING  (493d55a8) in class sjp.elision.core.INTEGER$:
 \end_layout
 
 \begin_layout LyX-Code
-  subject: ANYTYPE
+  subject: ANY
 \end_layout
 
 \begin_layout LyX-Code
@@ -2333,7 +2333,7 @@ FAILURE (de6d60a9): Literal pattern does not match subject.
 \end_layout
 
 \begin_layout LyX-Code
-$repl41 = Nothing:ANYTYPE
+$repl41 = Nothing:ANY
 \end_layout
 
 \begin_layout Standard
@@ -3842,7 +3842,7 @@ Interpretation
 \begin_layout Plain Layout
 
 \family typewriter
-ANYTYPE
+ANY
 \end_layout
 
 \end_inset
@@ -4048,7 +4048,7 @@ The root type for all symbols.
 \begin_layout Standard
 The special atom 
 \family typewriter
-ANYTYPE
+ANY
 \family default
  matches any atom, and any atom matches it, so it can be treated as a wildcard
  during matching.
@@ -4066,7 +4066,7 @@ Nothing
 \family default
  that has type 
 \family typewriter
-ANYTYPE
+ANY
 \family default
 .
 \end_layout
@@ -4211,7 +4211,7 @@ both
  If no type is specified for a variable, Elision assigns it the special
  wildcard 
 \family typewriter
-ANYTYPE
+ANY
 \family default
 .
 \end_layout
@@ -4260,12 +4260,12 @@ Variable(INTEGER,"x")
 .
  Scala symbols are also automatically converted to variables of type 
 \family typewriter
-ANYTYPE
+ANY
 \family default
 , so it is possible to pass a Scala symbol to methods expecting an atom.
  Thus 
 \family typewriter
-$x:ANYTYPE
+$x:ANY
 \family default
  can also be written (depending on context) as 
 \family typewriter
@@ -4670,6 +4670,14 @@ capturing
  variables.
  In practice you should not need to worry about DeBruijn indices; the system
  uses them when appropriate and keeps track of the details for you.
+ If you are curious, please see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:De-Bruijn-Indices"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
@@ -5045,13 +5053,13 @@ rated list of named parameters in parentheses.
  Each parameter is a variable whose type may be specified (otherwise it
  is 
 \family typewriter
-ANYTYPE
+ANY
 \family default
 ).
  Following the closing parenthesis the type of the fully-applied operator
  may be given (if not, it, too, is 
 \family typewriter
-ANYTYPE
+ANY
 \family default
 ).
  For instance, if the operator 
@@ -5950,7 +5958,7 @@ typeof
  This will use some constructors not previously discussed, and uses the
  fact that Scala symbols are interpreted as variables of type 
 \family typewriter
-ANYTYPE
+ANY
 \family default
 , so 
 \family typewriter
@@ -5958,7 +5966,7 @@ ANYTYPE
 \family default
  is shorthand for 
 \family typewriter
-Variable(ANYTYPE,"U")
+Variable(ANY,"U")
 \family default
 .
 \end_layout
@@ -7217,6 +7225,30 @@ ERROR: The operator fred is not known.
 \end_layout
 
 \begin_layout Standard
+You may be wondering why Elision doesn't simply treat a naked symbol as
+ a simple symbol when there is no operator with that name, so 
+\family typewriter
+fred.5
+\family default
+ would be accepted.
+ The reason is that if an operator with name 
+\family typewriter
+fred
+\family default
+ were later defined then the interpretation would be fundamentally changed
+ (from a symbol to an operator), and the Elision design seeks to avoid that.
+ This could 
+\begin_inset Quotes eld
+\end_inset
+
+break
+\begin_inset Quotes erd
+\end_inset
+
+ existing files of definitions and terms.
+\end_layout
+
+\begin_layout Standard
 \noindent
 \begin_inset Box Shaded
 position "t"
@@ -7316,6 +7348,212 @@ magic.
 
 \end_layout
 
+\begin_layout Section
+Case Definitions
+\end_layout
+
+\begin_layout Standard
+A case definition defines an operator by explicitly giving the interpretation
+ of the operator in terms of its argument.
+ When the operator symbol appears on the left of an applicative dot (even
+ when implicit) then the argument is matched against a sequence of alternatives,
+ in order.
+ If one matches, then the rewrite is applied, yielding the final atom.
+ If none apply, then the application is rejected, as it does not satisfy
+ the operator definition.
+\end_layout
+
+\begin_layout Standard
+The following is a general definition of 
+\family typewriter
+add
+\family default
+ using cases.
+\end_layout
+
+\begin_layout LyX-Code
+{operator add case
+\end_layout
+
+\begin_layout LyX-Code
+          %($x: INTEGER) -> $x,
+\end_layout
+
+\begin_layout LyX-Code
+          %($x: STRING) -> $x,
+\end_layout
+
+\begin_layout LyX-Code
+          %AC($x: INTEGER, $y: INTEGER) -> iadd($x,$y),
+\end_layout
+
+\begin_layout LyX-Code
+          %A($x: STRING, $y: STRING) -> concat($x,$y)}
+\end_layout
+
+\begin_layout Standard
+This definition allows adding both integers (via 
+\family typewriter
+iadd
+\family default
+) and strings (via 
+\family typewriter
+concat
+\family default
+).
+ Note that the lists can specify properties to facilitate proper matching.
+ Note also that 
+\family typewriter
+add(5,"Fred")
+\family default
+ results in an error, as this is an undefined case.
+\end_layout
+
+\begin_layout Standard
+Suppose we never want an undefined case; when we do not match a given case,
+ we want to accept and leave the operator application unchanged, perhaps
+ for symbolic manipulation.
+ Consider the following alternate definition of 
+\family typewriter
+add
+\family default
+.
+\end_layout
+
+\begin_layout LyX-Code
+{operator add case
+\end_layout
+
+\begin_layout LyX-Code
+          %($x: INTEGER) -> $x,
+\end_layout
+
+\begin_layout LyX-Code
+          %($x: STRING) -> $x,
+\end_layout
+
+\begin_layout LyX-Code
+          %AC($x: INTEGER, $y: INTEGER) -> iadd($x,$y),
+\end_layout
+
+\begin_layout LyX-Code
+          %A($x: STRING, $y: STRING) -> concat($x,$y),
+\end_layout
+
+\begin_layout LyX-Code
+          $x:_ -> $_.$x}
+\end_layout
+
+\begin_layout Standard
+That last line requires explanation.
+ The pattern matches anything and binds it to 
+\family typewriter
+$x
+\family default
+.
+ The rewrite uses the special variable 
+\family typewriter
+$_
+\family default
+ that is explicitly defined in the context of the operator definition to
+ designate the 
+\family typewriter
+add
+\family default
+ operator we are constructing.
+ Thus 
+\family typewriter
+add(5,"Fred")
+\family default
+ falls to this case, with 
+\family typewriter
+$x
+\family default
+ bound to 
+\family typewriter
+%(5,"Fred")
+\family default
+, and the rewrite becoming 
+\family typewriter
+add:OPTYPE.%(5,"Fred")
+\family default
+, or just 
+\family typewriter
+add(5,"Fred")
+\family default
+, where construction halts.
+ We cannot refer to 
+\family typewriter
+add
+\family default
+ in this context since the operator is not yet defined.
+\end_layout
+
+\begin_layout Standard
+The examples given so far all use 
+\begin_inset Quotes eld
+\end_inset
+
+map pairs,
+\begin_inset Quotes erd
+\end_inset
+
+ or atoms of the form 
+\emph on
+pattern
+\emph default
+ 
+\family typewriter
+->
+\family default
+ 
+\emph on
+rewrite
+\emph default
+.
+ In fact, any strategy can be used.
+ The first strategy to report success yields the answer.
+ Also, after the strategy has completed, the binding 
+\family typewriter
+$_ -> add:OPTYPE
+\family default
+ is applied to enable referring to the operator in the rewrites.
+\end_layout
+
+\begin_layout Standard
+This generality allows some rather unorthodox things to occur.
+ Consider the following.
+\end_layout
+
+\begin_layout LyX-Code
+{operator typeof case $x:$T -> $T}
+\end_layout
+
+\begin_layout Standard
+Now we have an operator that generates the type of anything on the right
+ of an applicative dot.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+typeof.5
+\end_layout
+
+\begin_layout LyX-Code
+$repl4 = INTEGER
+\end_layout
+
+\begin_layout Standard
+It is possible to do even stranger things.
+\end_layout
+
+\begin_layout LyX-Code
+e> 
+\series bold
+{operator swap case $x -> $x.$_}
+\end_layout
+
 \begin_layout Chapter
 \begin_inset CommandInset label
 LatexCommand label
@@ -7366,6 +7604,12 @@ BasicAtom
 \end_layout
 
 \begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:De-Bruijn-Indices"
+
+\end_inset
+
 De Bruijn Indices
 \end_layout
 
@@ -7373,6 +7617,29 @@ De Bruijn Indices
 Elision converts lambdas into a representation using a form of De Bruijn
  indices.
  This appendix describes how they are implemented in Elision.
+\end_layout
+
+\begin_layout Standard
+A 
+\begin_inset Quotes eld
+\end_inset
+
+proper
+\begin_inset Quotes erd
+\end_inset
+
+ De Bruijn index indicates the the number of binds that are in scope.
+ Thus the lambda 
+\begin_inset Formula $\lambda x.\lambda y.x$
+\end_inset
+
+ should correctly produce the De Bruijn term 
+\begin_inset Formula $\lambda\lambda2$
+\end_inset
+
+, as the body binds to the outermost lambda.
+ Elision does not actually use proper De Bruijn indices, but uses a very
+ similar concept somewhere in between symbolic names and De Bruijn indices.
 \end_layout
 
 \begin_layout Standard
@@ -7389,6 +7656,88 @@ Suppose we are given a lambda term such as
 $x.add($x,$y)
 \family default
 .
+ The body contains no lambdas or De Bruijn indices, so it has De Bruijn
+ index zero.
+ The lambda parameter also contains no lambdas or De Bruijn indices, so
+ it also has De Bruijn index zero.
+ Thus the maximum De Bruijn index of the parts is zero.
+ Since we are constructing a lambda, we increment the maximum index, obtaining
+ one.
+ The system constructs a special variable 
+\family typewriter
+$`:1`
+\family default
+ representing the De Bruijn index, and then rewrites lambda parameter and
+ body with 
+\family typewriter
+$x -> $`:1`
+\family default
+, obtaining the result 
+\family typewriter
+
+\backslash
+$`:1`.add($`:1`, $y)
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Next consider 
+\family typewriter
+
+\backslash
+$x.
+\backslash
+$y.$x
+\family default
+.
+ First 
+\family typewriter
+
+\backslash
+$y.$x
+\family default
+ is constructed, yielding 
+\family typewriter
+
+\backslash
+$`:1`.$x
+\family default
+, whose Dr Bruijn index (assigned by Elision) is one.
+ Next we construct 
+\family typewriter
+
+\backslash
+$x.(
+\backslash
+$`:1`.$x)
+\family default
+.
+ The De Bruijn index of the parameter is zero, and of the body is one, so
+ the De Bruijn index to use for the new expression is 
+\family typewriter
+$`:2`
+\family default
+, and we rewrite with 
+\family typewriter
+$x -> $`:2`
+\family default
+.
+ The trick is that the rewrite actually causes us to re-build the lambdas.
+ Rewriting the body 
+\family typewriter
+
+\backslash
+$`:1`.$x
+\family default
+ results in a new lambda whose body is 
+\family typewriter
+
+\backslash
+$`:2`
+\family default
+ with De Bruijn index of two, and thus the entire lambda constructs a new
+ 
 \end_layout
 
 \end_body

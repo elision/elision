@@ -35,7 +35,7 @@ package sjp.elision.core
  */
 case class MatchAtom(pat: BasicAtom) extends BasicAtom with Applicable {
   /** The type of this atom. */
-  val theType = OperatorLibrary.MAP(ANYTYPE, BINDING)
+  val theType = OperatorLibrary.MAP(ANY, BINDING)
   
   /** The apply is constant iff its pattern is. */
   val isConstant = pat.isConstant

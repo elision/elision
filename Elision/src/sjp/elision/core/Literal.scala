@@ -159,7 +159,7 @@ object Literal {
 	    radix: Int): FloatLiteral = FloatLiteral(typ, significand, exponent, radix)
 	val TRUE = new BooleanLiteral(BOOLEAN, true)
 	val FALSE = new BooleanLiteral(BOOLEAN, false)
-	val NOTHING = new SymbolLiteral(ANYTYPE, Symbol("Nothing"))
+	val NOTHING = new SymbolLiteral(ANY, Symbol("Nothing"))
 }
 
 /**

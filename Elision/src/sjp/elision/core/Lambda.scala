@@ -115,8 +115,10 @@ extends ElisionException(msg)
  * @param lvar							The lambda variable which must match the De Bruijn
  * 													index.
  * @param body							The lambda body.
+ * @param isFixed						If true, this is a fixed lambda, meaning that the
+ * 													body is always returned and never rewritten.
  */
-class Lambda private (val lvar: Variable, val body: BasicAtom)
+class Lambda private (val lvar: Variable, val body: BasicAtom, isFixed: Boolean)
 extends BasicAtom with Applicable {
   /** The type is a mapping from the variable type to the body type. */
   val theType = OperatorLibrary.MAP(lvar.theType, body.theType)
@@ -184,7 +186,8 @@ extends BasicAtom with Applicable {
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
     // overflow here, and bail out.
-    try {
+    if (isFixed) body
+    else try {
 	    // Make it possible to check types by matching the variable against the
 	    // argument instead of just binding.  For pure binding without checking
 	    // types, use a bind.
@@ -215,7 +218,7 @@ object Lambda {
   /** Whether to use De Bruijn indices. */
   var useDeBruijnIndices = true
   
-  var depth: Int = 0
+  //+var depth: Int = 0
   
   //+def print(str: String) = println("  " * depth + str)
   
@@ -223,7 +226,7 @@ object Lambda {
   
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
     //+print("Asked to make \\" + lvar.toParseString + "." + body.toParseString)
-    depth += 1
+    //+depth += 1
     // Make and return the new lambda.
     if (useDeBruijnIndices) {
       // Decide what De Bruijn index to use for this lambda.  We will use one
@@ -257,14 +260,15 @@ object Lambda {
 	    var binds = Bindings()
 	    binds += (lvar.name -> newvar)
 	    //+print("Bindings are: " + binds.toParseString)
-	    val (newbody, _) = body.rewrite(binds)
+	    val (newbody, notfixed) = body.rewrite(binds)
 	    //+print("Adjusted body to: " + newbody.toParseString)
 	    
 	    // Compute the new lambda.
 	    //+print("Lambda is: \\" + newvar.toParseString + "." + newbody.toParseString)
-	    depth -= 1
-    	new Lambda(newvar, newbody)
+	    //+depth -= 1
+	    if (notfixed)	new Lambda(newvar, newbody, false)
+	    else new Lambda(newvar, body, true)
     }
-    else new Lambda(lvar, body)
+    else new Lambda(lvar, body, false)
   }
 }

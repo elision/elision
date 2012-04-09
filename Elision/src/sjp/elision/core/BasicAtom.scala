@@ -290,7 +290,7 @@ abstract class BasicAtom {
    * @return	The matching outcome.
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-    if (subject == ANYTYPE && !this.isBindable)
+    if (subject == ANY && !this.isBindable)
       // Any pattern is allowed to match the subject ANYTYPE.  In the matching
       // implementation for ANYTYPE, any subject is allowed to match ANYTYPE.
       // Thus ANYTYPE is a kind of wild card.  Note that no bindings are

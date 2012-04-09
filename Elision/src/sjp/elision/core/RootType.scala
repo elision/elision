@@ -163,7 +163,7 @@ object BINDING extends NamedRootType("BINDING")
 /**
  * The unusual type ANY that matches anything.
  */
-object ANYTYPE extends NamedRootType("ANYTYPE") {
+object ANY extends NamedRootType("ANY") {
   override def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
       hints: Option[Any] = None) = Match(binds)
 }

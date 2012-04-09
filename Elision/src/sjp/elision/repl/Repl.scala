@@ -576,6 +576,18 @@ object Repl {
           case _ => _no_show
         })
         
+    // Evaluate fast.
+    execute("{ operator eval($atom) }")
+    _context.operatorLibrary.register("eval",
+        (_, list:AtomSeq, _) => list match {
+          case Args(x) =>
+            // Immediately rewrite this with the context bindings, and return
+            // the result.
+            x.rewrite(_binds)._1
+          case _ =>
+            Literal.NOTHING
+        })
+        
     // Read.
     execute("{ operator read($filename: STRING) }")
     _context.operatorLibrary.register("read",

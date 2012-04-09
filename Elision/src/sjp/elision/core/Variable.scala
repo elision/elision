@@ -44,7 +44,7 @@ import scala.collection.mutable.HashMap
  * - <code>$`1`</code>
  * 
  * ==Type==
- * Every variable must have a type, and the type can be `ANYTYPE`.
+ * Every variable must have a type, and the type can be `ANY`.
  * 
  * ==Equality and Matching==
  * Variables are equal iff their name and type are equal.
@@ -100,17 +100,17 @@ class Variable(typ: BasicAtom, val name: String,
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =
     // if the variable allows binding, and it is not already bound to a
-    // different atom.  We also allow the variable to match ANYTYPE.
+    // different atom.  We also allow the variable to match ANY.
     if (isBindable) binds.get(name) match {
       case None =>
-        // This is tricky.  We bind if we match against ANYTYPE.  Are
+        // This is tricky.  We bind if we match against ANY.  Are
         // there unforseen consequences to this decision?  Otherwise we have
         // to add a binding of the variable name to the subject.
         bindMe(subject, binds)
-      case Some(ANYTYPE) =>
+      case Some(ANY) =>
         // We should re-bind this variable now.
         bindMe(subject, binds)
-      case Some(atom) if subject == ANYTYPE || atom == subject =>
+      case Some(atom) if subject == ANY || atom == subject =>
         // The variable is already bound, and it is bound to the subject, so
         // the match succeeds with the bindings as they are.
         Match(binds)
@@ -145,7 +145,7 @@ class Variable(typ: BasicAtom, val name: String,
 
   def toParseString = prefix + toESymbol(name) +
   		(if (guard != Literal.TRUE) "{" + guard.toParseString + "}" else "") +
-  		(if (theType != ANYTYPE) ":" + typ.toParseString else "") +
+  		(if (theType != ANY) ":" + typ.toParseString else "") +
   		labels.map(" @" + toESymbol(_)).mkString("")
   
   override def toString =

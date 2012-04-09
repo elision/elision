@@ -158,7 +158,7 @@ class OperatorLibrary(
  	  case None if allowUndefined == true =>
  	    // Make the operator now.
  	    val od = SymbolicOperatorDefinition(
- 	        Proto(name, ANYTYPE, ("x", ANYTYPE), ("y", ANYTYPE)),
+ 	        Proto(name, ANY, ("x", ANY), ("y", ANY)),
  	        Associative)
  	    add(od)
  	    get(name)
@@ -232,7 +232,7 @@ object OperatorLibrary {
  	 */
  	private val MapOperator = ProtoOperator(TypeUniverse,
  	    SymbolicOperatorDefinition(
- 	        Proto("MAP", ANYTYPE, ("domain", ANYTYPE), ("codomain", ANYTYPE)),
+ 	        Proto("MAP", ANY, ("domain", ANY), ("codomain", ANY)),
  	        NoProps))
   
  	/**
@@ -246,7 +246,7 @@ object OperatorLibrary {
    */
   private val CrossOperator = ProtoOperator(TypeUniverse,
       SymbolicOperatorDefinition(
-          Proto("xx", ANYTYPE, ("a", ANYTYPE), ("b", ANYTYPE)),
+          Proto("xx", ANY, ("a", ANY), ("b", ANY)),
           Associative))
   
   /**

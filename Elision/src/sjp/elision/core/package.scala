@@ -344,7 +344,7 @@ package object core {
   //======================================================================
   
   /** Convert a Scala symbol to a variable. */
-  implicit def symToVariable(symbol: Symbol) = Variable(ANYTYPE, symbol.name)
+  implicit def symToVariable(symbol: Symbol) = Variable(ANY, symbol.name)
   
   /** Convert a variable to a Scala symbol. */
   implicit def variableToSym(variable: Variable) = Symbol(variable.name)

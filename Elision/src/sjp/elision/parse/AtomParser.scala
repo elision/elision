@@ -32,9 +32,11 @@
 package sjp.elision.parse
 
 import java.nio.charset.Charset
+import org.parboiled.scala.{ ANY => PANY }
 import org.parboiled.scala._
 import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
+import sjp.elision.core.{ ANY => EANY }
 import sjp.elision.core._
 
 /**
@@ -274,7 +276,7 @@ object AtomParser {
 	      },
 	      typ match {
 	        case Some(actual) => actual.interpret
-	        case None => ANYTYPE
+	        case None => EANY
 	      },
 	      guards.map(_.interpret))
 	}
@@ -362,7 +364,7 @@ object AtomParser {
 	
 	/**
 	 * A node representing a "naked" symbol: a symbol whose type is the type
-	 * ANYTYPE.
+	 * ANY.
 	 * @param str	The symbol text.
 	 */
 	case class NakedSymbolNode(str: String) extends AstNode {
@@ -517,16 +519,18 @@ object AtomParser {
 	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
 	  def interpret: BasicAtom = {
 	    // If there is no type, or the type is the type universe, then check the
-	    // symbol to see if it is a known root type.
+	    // symbol to see if it is a known root type.  This is also where the
+	    // symbol _ gets turned into ANY.
 	    if (typ == None || typ.get.isInstanceOf[TypeUniverseNode]) {
-	      NamedRootType.get(sym) match {
+	      val lookup = (if (sym == "_") "ANY" else sym)
+	      NamedRootType.get(lookup) match {
 	        case Some(nrt) => return nrt
 	        case _ =>
 	      }
 	    }
 	    
 	    // There are interesting "untyped" cases.  Without type, true and false
-	    // should be made Booleans, and Nothing should have type ANYTYPE.
+	    // should be made Booleans, and Nothing should have type ANY.
 	    if (typ == None) sym match {
 	      case "Nothing" => return Literal.NOTHING
 	      case "true" => return Literal.TRUE
@@ -534,7 +538,7 @@ object AtomParser {
 	      case _ => Literal(SYMBOL, Symbol(sym))
 	    } else {
 	      typ.get.interpret match {
-	        case ANYTYPE if sym == "Nothing" => return Literal.NOTHING
+	        case EANY if sym == "Nothing" => return Literal.NOTHING
 	        case BOOLEAN if sym == "true" => return Literal.TRUE
 	        case BOOLEAN if sym == "false" => return Literal.FALSE
 	        case t:Any => return Literal(t, Symbol(sym))
@@ -921,7 +925,7 @@ extends Parser {
       "BOOLEAN " ~ push(SimpleTypeNode(BOOLEAN)) |
       "OPTYPE " ~ push(SimpleTypeNode(OPTYPE)) |
       "RULETYPE " ~ push(SimpleTypeNode(RULETYPE)) |
-      "ANYTYPE " ~ push(SimpleTypeNode(ANYTYPE)) |
+      "ANY " ~ push(SimpleTypeNode(ANY)) |
       */
       
       // Parse a typed list.
@@ -1201,7 +1205,7 @@ extends Parser {
     ESymbol ~ optional("{ " ~ Atom ~ "} ") ~
     zeroOrMore("@" ~ ESymbol) ~~> (
       (sval, grd, list) =>
-        VariableNode(SimpleTypeNode(ANYTYPE), sval.str, grd,
+        VariableNode(SimpleTypeNode(EANY), sval.str, grd,
             list.map(_.str).toSet))
   }.label("an untyped variable")
 
@@ -1214,8 +1218,8 @@ extends Parser {
     zeroOrMore(
         // Whitesapce.
         oneOrMore(anyOf(" \n\r\t\f")) |
-        "/*" ~ zeroOrMore(&(!"*/") ~ ANY) ~ "*/" |
-        "//" ~ zeroOrMore(&(!anyOf("\r\n")) ~ ANY) ~ ("\r\n" | "\r" | "\n" | EOI)
+        "/*" ~ zeroOrMore(&(!"*/") ~ PANY) ~ "*/" |
+        "//" ~ zeroOrMore(&(!anyOf("\r\n")) ~ PANY) ~ ("\r\n" | "\r" | "\n" | EOI)
         )
   }.label("whitespace or comments")
 

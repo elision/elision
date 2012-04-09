@@ -34,10 +34,27 @@ package bootstrap
  */
 object Scheme {
 	def defs = """
-	  BOOLEAN
+	// Basic definitions for Scheme lists.
 	{ ruleset Scheme }
+	enable(Scheme)
 	{ operator cons($head: $T, $tail: CONS): CONS }
-	{ operator head($cons: CONS): ANYTYPE }
-	{ operator tail($cons: CONS): ANYTYPE }
+	{ operator head($cons: CONS): ANY }
+	{ operator tail($cons: CONS): ANY }
+	{ rule head(NIL:CONS) -> ERROR ruleset Scheme }
+	{ rule tail(NIL:CONS) -> NIL:CONS ruleset Scheme }
+	{ rule head(cons($h, $t)) -> $h ruleset Scheme }
+	{ rule tail(cons($h, $t)) -> $t ruleset Scheme }
+	  
+	// SKI Calculus.
+	bind($S, \$x.\$y.\$z.($x.$z.($y.$z)))
+	bind($K, \$x.\$y.$x)
+	bind($I, \$x.$x)
+	  
+	// Logic.
+  bind($TRUE, eval($K))
+	bind($FALSE, eval($K.$I))
+	bind($NOT, eval(($K.$I).$K)) // Postfix.
+	bind($OR, eval($K)) // Infix.
+	bind($AND, eval($K.$I)) // Postfix.
   """
 }
