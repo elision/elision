@@ -266,7 +266,7 @@ bin, lib, and other folders.</echo>
 		<tar destfile="${build.base}/elision-${DSTAMP}.tgz" compression="gzip">
 			<tarfileset dir="${build.base}"
 				prefix="elision-${DSTAMP}"
-				includes="src/**,lib/**,doc/**,build.xml,README.txt,*.sh"/>
+				includes="src/**,lib/**,doc/**,build.xml,README.txt,*.sh,*.dtd,*.xml"/>
 		</tar>
 	</target>
 
