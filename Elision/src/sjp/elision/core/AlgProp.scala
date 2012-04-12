@@ -65,7 +65,7 @@ class AlgProp(
   // If we are not associative, we cannot have idempotency, identities, or
   // absorbers.
   if (!isA(true)) {
-    if (isI(true))
+    if (isI(false))
       throw new IllegalPropertiesSpecification("Idempotency requires associativity.")
     if (getB(null) != null)
       throw new IllegalPropertiesSpecification("An absorber requires associativity.")
