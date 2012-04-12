@@ -150,10 +150,10 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
     atom match {
       case SymbolLiteral(SYMBOL, sym) =>
         // Try to extract the symbol from the binding.  If it is not there,
-        // then the answer is Nothing.
+        // then the answer is NONE.
         mybinds.get(sym.name) match {
           case Some(oatom) => oatom
-          case _ => Literal.NOTHING
+          case _ => NONE
         }
       case _ =>
 	      // Try to rewrite the argument using the bindings and whatever we get

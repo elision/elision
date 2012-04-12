@@ -585,7 +585,7 @@ object Repl {
             // the result.
             x.rewrite(_binds)._1
           case _ =>
-            Literal.NOTHING
+            NONE
         })
         
     // Read.

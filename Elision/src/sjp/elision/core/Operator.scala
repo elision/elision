@@ -67,7 +67,7 @@ case class Operator(opdef: OperatorDefinition) extends BasicAtom {
    * operator codomain.
    */
   lazy val theType = opdef.proto.pars match {
-	  case Seq() => MAP(Literal.NOTHING, opdef.proto.typ)
+	  case Seq() => MAP(NONE, opdef.proto.typ)
 	  case Seq(atom) => MAP(atom.theType, opdef.proto.typ)
 	  case _ => MAP(xx(opdef.proto.pars.map(_.theType)), opdef.proto.typ)
 	}

@@ -64,7 +64,7 @@ case class MatchAtom(pat: BasicAtom) extends BasicAtom with Applicable {
    * @return	Bindings, or Nothing.
    */
   def doApply(atom: BasicAtom): BasicAtom = pat.tryMatch(atom) match {
-    case fail:Fail => Literal.NOTHING
+    case fail:Fail => NONE
     case Match(binds) => BindingsAtom(binds)
     case Many(iter) => BindingsAtom(iter.next)
   }

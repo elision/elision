@@ -186,8 +186,7 @@ extends BasicAtom with Applicable {
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
     // overflow here, and bail out.
-    if (isFixed) body
-    else try {
+    try {
 	    // Make it possible to check types by matching the variable against the
 	    // argument instead of just binding.  For pure binding without checking
 	    // types, use a bind.
