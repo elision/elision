@@ -33,8 +33,8 @@ package sjp.elision.repl
 import sjp.elision.core._
 import scala.collection.mutable.ListBuffer
 import sjp.elision.parse.AtomParser
-import jline.console.history.FileHistory
-import jline.console.ConsoleReader
+import scala.tools.jline.console.history.FileHistory
+import scala.tools.jline.console.ConsoleReader
 import java.io.File
 import sjp.elision.ElisionException
 import java.io.{FileWriter, FileReader, BufferedReader}
@@ -352,7 +352,6 @@ object Repl {
       
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-        cr.shutdown()
         return
       }
       
