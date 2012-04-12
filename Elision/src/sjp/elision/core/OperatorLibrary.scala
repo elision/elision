@@ -40,6 +40,12 @@ import sjp.elision.ElisionException
 class OperatorRedefinitionException(msg: String) extends ElisionException(msg)
 
 /**
+ * Indicate an attempt to improperly define an operator.
+ * @param msg		A human readable message.
+ */
+class OperatorDefinitionException(msg: String) extends ElisionException(msg)
+
+/**
  * A requested operator was not found, and could not be created.
  * @param msg		A human readable message.
  */
@@ -159,7 +165,7 @@ class OperatorLibrary(
  	    // Make the operator now.
  	    val od = SymbolicOperatorDefinition(
  	        Proto(name, ANY, ("x", ANY), ("y", ANY)),
- 	        Associative)
+ 	        Associative(true))
  	    add(od)
  	    get(name)
  	  case _ => None
@@ -173,6 +179,15 @@ class OperatorLibrary(
  	 * 					The operator is already defined and redefinitions are not allowed.
  	 */
  	def add(od: OperatorDefinition) = {
+ 	  // Operator definitions must have constant properties.
+ 	  od match {
+ 	    case sod:SymbolicOperatorDefinition =>
+ 	      if (!sod.props.isConstant)
+ 	        throw new OperatorDefinitionException("Cannot add operators to " +
+ 	        		"library if their properties are not constant: " +
+ 	        		sod.props.toParseString)
+ 	    case _ =>
+ 	  }
  	  val name = od.proto.name
  	  if (_nameToOperator.contains(name))
  	    if (allowRedefinition) {
@@ -247,7 +262,7 @@ object OperatorLibrary {
   private val CrossOperator = ProtoOperator(TypeUniverse,
       SymbolicOperatorDefinition(
           Proto("xx", ANY, ("a", ANY), ("b", ANY)),
-          Associative))
+          Associative(true)))
   
   /**
    * Make a cross type.

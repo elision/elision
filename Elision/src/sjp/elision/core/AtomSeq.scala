@@ -30,6 +30,7 @@
 package sjp.elision.core
 
 import scala.collection.IndexedSeq
+import sjp.elision.core.matcher._
 
 /**
  * An atom sequence is just that: a sequence of atoms.
@@ -52,21 +53,31 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * just means the sequence was not marked as associative; it's associativity
    * may be unspecified.
    */
-  val associative = props.associative.getOrElse(false)
+  val associative = props.isA(false)
   
   /**
    * Whether this sequence is specified to be commutative.  Note that false here
    * just means the sequence was not marked as commutative; it's associativity
    * may be unspecified.
    */
-  val commutative = props.commutative.getOrElse(false)
+  val commutative = props.isC(false)
   
   /**
    * Whether this sequence is specified to be idempotent.  Note that false here
    * just means the sequence was not marked as idempotent; it's associativity
    * may be unspecified.
    */
-  val idempotent = props.idempotent.getOrElse(false)
+  val idempotent = props.isI(false)
+  
+  /**
+   * The absorber for this sequence, if any.
+   */
+  val absorber = props.absorber
+  
+  /**
+   * The identity for this sequence, if any.
+   */
+  val identity = props.identity
   
   /**
    * The atoms in this sequence.
@@ -136,25 +147,33 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     // Atom sequences only match other atom sequences.
     subject match {
       case as: AtomSeq =>
-        // For now, the properties must be exactly the same, or the lists cannot
-        // match.  This may be relaxed in the future.  See matchProps in the
-        // AlgProp class.
-        if (props != as.props) Fail("Sequence properties do not match.",
-            this, subject)
-        else
+        // Local function to complete sequence matching by matching the actual
+        // sequences using the appropriate matching algorithm based on the
+        // properties.
+        def doMatchSequences(usebinds: Bindings): Outcome = {
         	// Now we have to decide how to compare the two sequences.  Note that
           // if the properties matching changes, this will like have to change,
           // too, to use the matched properties.
           if (associative)
             if (commutative)
-              matcher.ACMatcher.tryMatch(this, as, binds, operator)
+              ACMatcher.tryMatch(this, as, usebinds, operator)
             else
-              matcher.AMatcher.tryMatch(this, as, binds, operator)
+              AMatcher.tryMatch(this, as, usebinds, operator)
           else
             if (commutative)
-              matcher.CMatcher.tryMatch(this, as, binds)
+              CMatcher.tryMatch(this, as, usebinds)
             else
-              SequenceMatcher.tryMatch(this, as, binds)
+              SequenceMatcher.tryMatch(this, as, usebinds)
+        }
+
+        // Match properties.  This may alter the bindings.
+        props.tryMatch(as.props, binds) match {
+          case fail: Fail => Fail("Sequence properties do not match.",
+          		this, subject, Some(fail))
+          case Match(newbinds) => doMatchSequences(newbinds)
+          case Many(iter) => Outcome.convert(iter ~> (doMatchSequences _),
+              Fail("Sequence properties do not match.", this, subject))
+        }
       case _ => Fail("An atom sequence may only match another atom sequence.",
           this, subject)
     }
@@ -181,7 +200,8 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * @return	The parseable string.
    */
   def toParseString = atoms.mkParseString(
-      "%" + (props.toShortString) + "(" , ", ", ")")
+      (if (props.isConstant) props.toShortString else props.toParseString) +
+      "(" , ", ", ")")
 
   /**
    * Provide a "naked" version of the sequence, without the parens and property
@@ -244,26 +264,34 @@ object AtomSeq {
    * @return	The possibly-new sequence.
    */
   private def process(props: AlgProp,
-      atoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] =
-    if (props.associative.getOrElse(false)) {
+      atoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
+    if (props.isA(false)) {
       // The list is associative.  Flatten any included lists.
       var newseq = OmitSeq[BasicAtom]()
       for (atom <- atoms) {
-  		  atom match {
-			    case AtomSeq(oprops, args) if props == oprops =>
-			      // Add the arguments directly to this list.  We can assume it has
-			      // already been processed, so no deeper checking is needed.
-			      newseq ++= args
-			    case _ =>
-			    	// Add this item to the list.
-			      newseq :+= atom
-			  }
+        if (props.absorber.isDefined && props.absorber.get == atom) {
+          newseq = OmitSeq[BasicAtom]()
+          newseq :+= atom
+          return newseq
+        }
+      	if (props.identity.isEmpty || props.identity.get != atom) {
+	  		  atom match {
+				    case AtomSeq(oprops, args) if props == oprops =>
+				      // Add the arguments directly to this list.  We can assume it has
+				      // already been processed, so no deeper checking is needed.
+				      newseq ++= args
+				    case _ =>
+				    	// Add this item to the list.
+				      newseq :+= atom
+				  }
+      	}
       } // Flatten lists.
       newseq
     } else {
       // The list is not associative.  Construct and return the list.
       atoms
     }
+  }
 }
 
 /**

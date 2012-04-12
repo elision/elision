@@ -36,8 +36,8 @@ import org.parboiled.scala.{ ANY => PANY }
 import org.parboiled.scala._
 import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
-import sjp.elision.core.{ ANY => EANY }
 import sjp.elision.core._
+import sjp.elision.core.{ ANY => EANY }
 
 /**
  * Provide abstract syntax tree nodes used during parsing, along with any
@@ -173,16 +173,17 @@ object AtomParser {
 	
 	/**
 	 * An abstract syntax tree node holding a simple list of atoms.
+	 * 
+	 * @param props	The properties of the list.
 	 * @param list	The actual list of atom nodes.
 	 */
-	case class AtomSeqNode(props: List[AlgProp], list: List[AstNode])
+	case class AtomSeqNode(props: AlgPropNode, list: List[AstNode])
 	extends AstNode {
 	  /**
 	   * Properties of this list, if known.
 	   */
 	  def interpret =
-	    AtomSeq(props.foldLeft(NoProps.asInstanceOf[AlgProp])(_ and _),
-	        list.toIndexedSeq[AstNode] map (_.interpret))
+	    AtomSeq(props.interpret, list.toIndexedSeq[AstNode] map (_.interpret))
 	}
 	
 	//----------------------------------------------------------------------
@@ -192,37 +193,47 @@ object AtomParser {
 	/** A property node. */
 	sealed abstract class PropertyNode
 	/** Associative property. */
-	case class AssociativeNode() extends PropertyNode
+	case class AssociativeNode(atom:AstNode) extends PropertyNode
 	/** Commutative property. */
-	case class CommutativeNode() extends PropertyNode
+	case class CommutativeNode(atom:AstNode) extends PropertyNode
 	/** Idempotent property. */
-	case class IdempotentNode() extends PropertyNode
+	case class IdempotentNode(atom:AstNode) extends PropertyNode
 	/** Absorber property. */
 	case class AbsorberNode(atom:AstNode) extends PropertyNode
 	/** Identity property. */
 	case class IdentityNode(atom:AstNode) extends PropertyNode
 	
+	/** A true node for fast access. */
+	case object TrueNode extends AstNode {
+	  def interpret = Literal.TRUE
+	}
+	
+	/** A false node for fast access. */
+	case object FalseNode extends AstNode {
+	  def interpret = Literal.FALSE
+	}
+	
 	/**
 	 * A data structure holding operator properties as they are discovered during
 	 * the parse.
 	 */
-	class OperatorPropertiesNode(props: Option[List[PropertyNode]]) {
+	class AlgPropNode(props: List[PropertyNode]) extends AstNode {
 	  /** An identity, if any. */
 	  var withIdentity: Option[AstNode] = None
 	  /** An absorber, if any. */
 	  var withAbsorber: Option[AstNode] = None
 	  /** True iff this operator is idempotent. */
-	  var isIdempotent = false
+	  var isIdempotent: Option[AstNode] = None
 	  /** True iff this operator is commutative. */ 
-	  var isCommutative = false
+	  var isCommutative: Option[AstNode] = None
 	  /** True iff this operator is associative. */
-	  var isAssociative = false
+	  var isAssociative: Option[AstNode] = None
 	  
 	  // Process any properties we were given.
-	  if (props.isDefined) for (prop <- props.get) prop match {
-	    case AssociativeNode() => isAssociative = true
-	    case CommutativeNode() => isCommutative = true
-	    case IdempotentNode() => isIdempotent = true
+	  for (prop <- props) prop match {
+	    case AssociativeNode(an) => isAssociative = Some(an)
+	    case CommutativeNode(cn) => isCommutative = Some(cn)
+	    case IdempotentNode(in) => isIdempotent = Some(in)
 	    case AbsorberNode(ab) => withAbsorber = Some(ab)
 	    case IdentityNode(id) => withIdentity = Some(id)
 	  }
@@ -230,30 +241,23 @@ object AtomParser {
 	  /** Print this properties object as a string. */
 	  override def toString = interpret.toString
 	  
-	  /**
-	   * Get the optional identity.
-	   * @return	The optional identity.
-	   */
-	  def identity = withIdentity match {
-	    case Some(node) => Some(node.interpret)
+	  private def _interpret(atom: Option[AstNode]) = atom match {
 	    case None => None
-	  }
-	  
-	  /**
-	   * Get the optional absorber.
-	   * @return	The optional absorber.
-	   */
-	  def absorber = withAbsorber match {
-	    case Some(node) => Some(node.interpret)
-	    case None => None
+	    case Some(real) => Some(real.interpret)
 	  }
 	  
 	  /**
 	   * Convert this into an operator properties instance.
 	   * @return	The operator properties object.
 	   */
-	  def interpret = AlgProp(Some(isAssociative), Some(isCommutative),
-	      Some(isIdempotent), absorber, identity)
+	  def interpret = AlgProp(_interpret(isAssociative),
+	      _interpret(isCommutative), _interpret(isIdempotent),
+	      _interpret(withAbsorber), _interpret(withIdentity))
+	}
+	
+	object AlgPropNode {
+	  def apply() = new AlgPropNode(List())
+	  def apply(list: List[PropertyNode]) = new AlgPropNode(list)
 	}
 	
 	/**
@@ -265,15 +269,12 @@ object AtomParser {
 	 */
 	class OperatorPrototypeNode(
 	    val name: String,
-	    val pars: Option[List[VariableNode]],
+	    val pars: List[VariableNode],
 	    val typ: Option[AstNode],
 	    val guards: List[AstNode]) {
 	  def interpret = OperatorPrototype(
 	      name,
-	      pars match {
-	        case Some(list) => list.toIndexedSeq[VariableNode].map(_.interpret)
-	        case None => IndexedSeq[Variable]()
-	      },
+	      pars.toIndexedSeq[VariableNode].map(_.interpret),
 	      typ match {
 	        case Some(actual) => actual.interpret
 	        case None => EANY
@@ -295,7 +296,7 @@ object AtomParser {
 	 */
 	case class SymbolicOperatorDefinitionNode(
 	    opn: OperatorPrototypeNode,
-	    prop: OperatorPropertiesNode) extends OperatorDefinitionNode {
+	    prop: AlgPropNode) extends OperatorDefinitionNode {
 	  def interpret = SymbolicOperatorDefinition(opn.interpret, prop.interpret)
 	}
 	
@@ -532,13 +533,11 @@ object AtomParser {
 	    // There are interesting "untyped" cases.  Without type, true and false
 	    // should be made Booleans, and Nothing should have type ANY.
 	    if (typ == None) sym match {
-	      case "Nothing" => return Literal.NOTHING
 	      case "true" => return Literal.TRUE
 	      case "false" => return Literal.FALSE
 	      case _ => Literal(SYMBOL, Symbol(sym))
 	    } else {
 	      typ.get.interpret match {
-	        case EANY if sym == "Nothing" => return Literal.NOTHING
 	        case BOOLEAN if sym == "true" => return Literal.TRUE
 	        case BOOLEAN if sym == "false" => return Literal.FALSE
 	        case t:Any => return Literal(t, Symbol(sym))
@@ -847,7 +846,7 @@ extends Parser {
     // be used as infix operators.  Associate to the right.
     FirstAtom ~ WS ~ InfixOperatorL ~ WS ~ Atom ~~> (
         (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomSeqNode(List(), List(larg, rarg))))
+        	ApplicationNode(context, op, AtomSeqNode(AlgPropNode(), List(larg, rarg))))
   }
   
   def RApply = rule {
@@ -855,7 +854,7 @@ extends Parser {
     // be used as infix operators.  Associate to left.
     Atom ~ WS ~ InfixOperatorR ~ WS ~ FirstAtom ~~> (
         (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomSeqNode(List(), List(larg, rarg))))
+        	ApplicationNode(context, op, AtomSeqNode(AlgPropNode(), List(larg, rarg))))
   }
 
   /**
@@ -930,6 +929,9 @@ extends Parser {
       
       // Parse a typed list.
       ParsedTypedList |
+      
+      // Parse a property set.
+      ParsedAlgProp |
       
       // Parse a variable.  The leading dollar sign is used to distinguish
       // between a symbol and a variable.  If a type is not specified for a
@@ -1052,6 +1054,39 @@ extends Parser {
   def SymNorm = rule { noneOf("""`\""") }.label("a character")
 
   //======================================================================
+  // Parse property lists.
+  //======================================================================
+  
+  def ParsedAlgProp = rule {
+    ParsedLongPropertyList | ParsedShortPropertyList
+  }
+  
+  def ParsedLongPropertyList = rule {
+    "{ " ~ "prop " ~ zeroOrMore(
+        ("associative "|"A ") ~ "= " ~ FirstAtom ~~> ((x) => AssociativeNode(x)) |
+        ("commutative "|"C ") ~ "= " ~ FirstAtom ~~> ((x) => CommutativeNode(x)) |
+        ("idempotent "|"I ") ~ "= " ~ FirstAtom ~~> ((x) => IdempotentNode(x)) |
+        ("absorber "|"B ") ~ "= " ~ FirstAtom ~~> ((x) => AbsorberNode(x)) |
+        ("identity "|"D ") ~ "= " ~ FirstAtom ~~> ((x) => IdentityNode(x)),
+        ", "
+        ) ~ "} " ~~>
+    (AlgPropNode(_))
+  }
+  
+  def ParsedShortPropertyList = rule {
+    "%" ~ zeroOrMore(
+        ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~> ((x) => AbsorberNode(x)) |
+        ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~> ((x) => IdentityNode(x)) |
+        ignoreCase("A") ~> ((x) => AssociativeNode(TrueNode)) |
+        ignoreCase("C") ~> ((x) => CommutativeNode(TrueNode)) |
+        ignoreCase("I") ~> ((x) => IdempotentNode(TrueNode)) |
+        ignoreCase("!A") ~> ((x) => AssociativeNode(FalseNode)) |
+        ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
+        ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
+    (AlgPropNode(_))
+  }
+
+  //======================================================================
   // Parse lists of atoms.
   //======================================================================
 
@@ -1059,15 +1094,8 @@ extends Parser {
    * Parse a "typed" list.  That is, a list whose properties are specified.
    */
   def ParsedTypedList = rule {
-    "%" ~ zeroOrMore(
-        ignoreCase("A") ~> ((x) => Associative) |
-        ignoreCase("C") ~> ((x) => Commutative) |
-        ignoreCase("I") ~> ((x) => Idempotent) |
-        ignoreCase("!A") ~> ((x) => !Associative) |
-        ignoreCase("!C") ~> ((x) => !Commutative) |
-        ignoreCase("!I") ~> ((x) => !Idempotent)) ~ WS ~
-        "( " ~ ParsedAtomSeq ~ ") " ~~>
-    ((props: List[AlgProp], list: AtomSeqNode) => AtomSeqNode(props, list.list))
+    ParsedAlgProp ~ WS ~ "( " ~ ParsedAtomSeq ~ ") " ~~>
+    ((props: AlgPropNode, list: AtomSeqNode) => AtomSeqNode(props, list.list))
   }.label("a typed list of atoms")
   
   /**
@@ -1075,13 +1103,7 @@ extends Parser {
    * commutativity, etc., is inferred at this point.
    */
   def ParsedAtomSeq = rule {
-    optional(Atom ~ zeroOrMore(", " ~ Atom)) ~~> (
-        (what: Option[(AstNode,List[AstNode])]) => what match {
-          case None =>
-            AtomSeqNode(List(), List[AstNode]())
-          case Some((head:AstNode, tail)) =>
-            AtomSeqNode(List(), head :: tail)
-        })
+    zeroOrMore(Atom, ", ") ~~> (AtomSeqNode(AlgPropNode(), _))
   }.label("a comma-separated list of atoms")
 
   //======================================================================
@@ -1141,9 +1163,8 @@ extends Parser {
    * `ruleset` or `rulesets`.
    */
   def ParsedRulesetList = rule {
-    (ignoreCase("rulesets") | ignoreCase("ruleset")) ~
-        WS ~ ESymbol ~ zeroOrMore(", " ~ ESymbol) ~~> (
-          (head: NakedSymbolNode, tail: List[NakedSymbolNode]) => head :: tail)
+    (ignoreCase("rulesets ") | ignoreCase("ruleset ")) ~
+    zeroOrMore(ESymbol, ", ")
   }.label("a comma-separated ruleset list")
   
   /**
@@ -1401,18 +1422,17 @@ extends Parser {
   
   /** Parse an operator prototype. */
   def ParsedOperatorPrototype = rule {
-    ESymbol ~ "( " ~ optional(ParsedParameterList) ~ ") " ~
+    ESymbol ~ "( " ~ ParsedParameterList ~ ") " ~
     optional(": " ~ FirstAtom) ~
     zeroOrMore("if " ~ FirstAtom) ~~>
-    ((name:NakedSymbolNode, pars:Option[List[VariableNode]],
+    ((name:NakedSymbolNode, pars:List[VariableNode],
         typ:Option[AstNode], guards:List[AstNode]) =>
           new OperatorPrototypeNode(name.str, pars, typ, guards))
   }.label("an operator prototype")
 
   /** Parse a parameter list. */
   def ParsedParameterList = rule {
-    ParsedTermVariable ~
-    zeroOrMore(", " ~ ParsedTermVariable) ~~> (_ :: _)
+    zeroOrMore(ParsedTermVariable, ", ")
   }.label("an operator parameter list")
   
   /** Parse an immediate definition for an operator. */
@@ -1422,9 +1442,15 @@ extends Parser {
   
   /** Parse a sequence of operator properties. */
   def ParsedOperatorProperties = rule {
-      optional("is " ~ ParsedOperatorProperty ~
-          zeroOrMore(", " ~ ParsedOperatorProperty) ~~> (_ :: _)) ~~>
-      (new OperatorPropertiesNode(_))
+    optional(
+        ParsedAlgProp |
+        "is " ~ oneOrMore(ParsedOperatorProperty, ", "
+    ) ~~> (AlgPropNode(_))) ~~> {
+      prop => prop match {
+        case None => AlgPropNode()
+        case Some(apn) => apn
+      }
+    }
   }.label("the operator properties")
   
   /**
@@ -1432,9 +1458,9 @@ extends Parser {
    * @param pop		An operator properties node to fill in.
    */
   def ParsedOperatorProperty: Rule1[PropertyNode] = rule {
-      "associative " ~> (x => AssociativeNode()) |
-      "commutative " ~> (x => CommutativeNode()) |
-      "idempotent " ~> (x => IdempotentNode()) |
+      "associative " ~> (x => AssociativeNode(TrueNode)) |
+      "commutative " ~> (x => CommutativeNode(TrueNode)) |
+      "idempotent " ~> (x => IdempotentNode(TrueNode)) |
       "absorber " ~ Atom ~~> (AbsorberNode(_)) |
       "identity " ~ Atom ~~> (IdentityNode(_))
   	}.label("an operator property")
@@ -1447,9 +1473,7 @@ extends Parser {
    * Parse a set of bindings.
    */
   def ParsedBindings = rule {
-  	"{ " ~ "bind " ~ "} " ~> (x => BindingsNode(List())) |
-    "{ " ~ "bind " ~ ParsedBind ~ zeroOrMore(", " ~ ParsedBind) ~ "} " ~~>
-    ((x:(NakedSymbolNode, AstNode), rest) => BindingsNode(x :: rest))
+    "{ " ~ "bind " ~ zeroOrMore(ParsedBind, ", ") ~ "} " ~~> (BindingsNode(_))
   }.label("a binding expression")
 
   /**

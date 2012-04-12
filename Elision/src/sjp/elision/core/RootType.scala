@@ -161,9 +161,19 @@ object STRATEGY extends NamedRootType("STRATEGY")
 object BINDING extends NamedRootType("BINDING")
 
 /**
- * The unusual type ANY that matches anything.
+ * The unusual type ANY that matches anything (but not nothing).
  */
 object ANY extends NamedRootType("ANY") {
   override def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
       hints: Option[Any] = None) = Match(binds)
+}
+
+/**
+ * The unusual type NOTHING that matches nothing (but not anything).
+ */
+object NONE extends NamedRootType("NONE") {
+  override def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
+      hints: Option[Any] = None) =
+    if (subject == NONE || subject == ANY) Match(binds)
+    else Fail("NONE only matches itself and ANY.")
 }

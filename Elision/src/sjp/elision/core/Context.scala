@@ -487,7 +487,7 @@ private object Completor {
         }
         
         // If the operator is not associative, we don't need to do anything.
-        if (!props.associative.getOrElse(false)) {
+        if (!props.isA(false)) {
           return list
         }
         
@@ -502,7 +502,7 @@ private object Completor {
             rule.guards, rule.rulesets, rule.cacheLevel, true)
         
         // If the operator is commutative, we are done.
-        if (props.commutative.getOrElse(false)) {
+        if (props.isC(false)) {
           return list
         }
         

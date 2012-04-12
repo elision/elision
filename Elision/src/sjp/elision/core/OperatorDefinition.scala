@@ -68,13 +68,12 @@ extends BasicAtom {
 	def rewrite(binds: Bindings) = (this, false)
   
   protected def check(proto: OperatorPrototype, props: AlgProp) {
-    if (!props.associative.getOrElse(false) &&
-        !props.commutative.getOrElse(false)) return
+    if (!props.isA(false) && !props.isC(false)) return
         
 	  // Absorbers, identities, and idempotency are only allowed when an operator
 	  // is associative.
-	  if (!props.associative.getOrElse(false)) {
-	    if (props.idempotent.getOrElse(false)) throw new IllegalOperatorDefinition(
+	  if (!props.isA(false)) {
+	    if (props.isI(false)) throw new IllegalOperatorDefinition(
 	        "Idempotent operators must be associative.")
 	    if (props.absorber != None) throw new IllegalOperatorDefinition(
 	        "Operators with an absorber must be associative.")
@@ -91,12 +90,12 @@ extends BasicAtom {
     // Both associative and commutative operators must have at least two
     // parameters.  An associative operator must have exactly two parameters.
     val pars = proto.pars
-    if (props.associative.getOrElse(false) && pars.length != 2) {
+    if (props.isA(false) && pars.length != 2) {
       throw new IllegalOperatorDefinition(
           "Illegal definition for operator " + proto.toParseString +
           ".  Associative operators must have exactly two parameters.")
     }
-    if (props.commutative.getOrElse(false) && pars.length < 2) {
+    if (props.isC(false) && pars.length < 2) {
       throw new IllegalOperatorDefinition(
           "Illegal definition for operator " + proto.toParseString +
           ".  Commutative operators must have at least two parameters.")
@@ -111,7 +110,7 @@ extends BasicAtom {
           "have the same type.")
     
     // An associative operator must have the same type.
-    if (props.associative.getOrElse(false) && proto.typ != typ)
+    if (props.isA(false) && proto.typ != typ)
       throw new IllegalOperatorDefinition(
           "Illegal definition for operator " + proto.toParseString +
           ".  The type an associative operator must be the same as the type " +

@@ -29,18 +29,116 @@
  */
 package sjp.elision.core
 
-/**
- * Represent algebraic properties of operators.
- */
-sealed class AlgProp(
-  val associative: Option[Boolean] = None,
-  val commutative: Option[Boolean] = None,
-  val idempotent: Option[Boolean] = None,
-  val absorber: Option[BasicAtom] = None,
-  val identity: Option[BasicAtom] = None) {
+class AlgProp(
+    val associative: Option[BasicAtom] = None,
+    val commutative: Option[BasicAtom] = None,
+    val idempotent: Option[BasicAtom] = None,
+    val absorber: Option[BasicAtom] = None,
+    val identity: Option[BasicAtom] = None) extends BasicAtom with Applicable {
   
-  /** This is constant iff any identity and absorber are constant. */
-  val isConstant = (absorber match {
+  /**
+   * Fast check for associativity.
+   * 
+   * @param default	What to return if unspecified.
+   */
+  def isA(default: Boolean) = associative match {
+    case Some(Literal.TRUE) => true
+    case Some(Literal.FALSE) => false
+    case _ => default
+  }
+  
+  /**
+   * Fast check for commutativity.
+   * 
+   * @param default	What to return if unspecified.
+   */
+  def isC(default: Boolean) = commutative match {
+    case Some(Literal.TRUE) => true
+    case Some(Literal.FALSE) => false
+    case _ => default
+  }
+  
+  /**
+   * Fast check for idempotency.
+   * 
+   * @param default	What to return if unspecified.
+   */
+  def isI(default: Boolean) = idempotent match {
+    case Some(Literal.TRUE) => true
+    case Some(Literal.FALSE) => false
+    case _ => default
+  }
+  
+  /**
+   * Fast check for absorber.
+   * 
+   * @param default	What to return if unspecified.
+   */
+  def getB(default: BasicAtom) = absorber match {
+    case Some(atom) => atom
+    case _ => default
+  }
+  
+  /**
+   * Fast check for identity.
+   * 
+   * @param default	What to return if unspecified.
+   */
+  def getD(default: BasicAtom) = absorber match {
+    case Some(atom) => atom
+    case _ => default
+  }
+  
+  /** The type. */
+  val theType = TypeUniverse
+  
+  private val _plist =
+    List(associative, commutative, idempotent, absorber, identity)
+  
+  /** The depth is equal to the maximum depth, plus one. */
+  val depth = _plist.foldLeft(0) {
+    (dbi: Int, opt: Option[BasicAtom]) => dbi max (opt match {
+      case None => 0
+      case Some(atom) => atom.depth
+    })
+  } + 1
+  
+  /** This is a term iff all its parts are terms. */
+  val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
+  
+  private val _proplist = {
+    var list = List[BasicAtom]()
+    def add(opt: Option[BasicAtom]) = opt match {
+      case None =>
+      case Some(atom) => list ::= atom
+    }
+    add(associative)
+    add(commutative)
+    add(idempotent)
+    add(absorber)
+    add(identity)
+    list
+  }
+  
+  def doApply(rhs: BasicAtom) = rhs match {
+    case as: AtomSeq => AtomSeq(this, as.atoms)
+    case _ => SimpleApply(this, rhs)
+  }
+  
+  /** The constant pool. */
+  val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
+  
+  /** This is constant iff all parts are constant. */
+  val isConstant = (associative match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (commutative match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (idempotent match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (absorber match {
     case None => true
     case Some(atom) => atom.isConstant
   }) && (identity match {
@@ -48,114 +146,87 @@ sealed class AlgProp(
     case Some(atom) => atom.isConstant
   })
   
-  override def toString = "AlgProp(" + associative + ", " + commutative + ", " +
-  		idempotent + ", " + absorber + ", " + identity + ")"
-
-  private def matchOneProp[A](pattern: Option[A],
-      subject: Option[A]): Option[Option[A]] = pattern match {
-    case None =>
-      // Any subject is acceptable.
-      Some(subject)
-    case Some(pval) =>
-      // The subject must match.
-      subject match {
-        case Some(sval) if pval == sval => Some(subject)
-        case _ => None
-      }
-  }
-
+  /** The De Bruijn index is the maximum of the parts. */
+  val deBruijnIndex =
+    _plist.foldLeft(0)(_ max _.getOrElse(Literal.TRUE).deBruijnIndex)
+  
   /**
-   * Match this property set against the provided property set.  We try to
-   * reconcile the two, and return the joint properties.
+   * Rewrite an optional atom.
    * 
-   * Essentially, if the pattern defines a property, the subject must match.
-   * 
-   * @param subject	The subject to match.
-   * @param binds		Bindings to apply for the identity and absorber.  This is
-   * 								presently ''ignored''.
-   * @return	Either the reconciled properties indicating a match, or None if
-   * 					no match is possible.
+   * @param opt		The optional atom.
+   * @param binds	The bindings.
+   * @return	The rewritten optional atom.
    */
-  def matchProps(subject: AlgProp, binds: Bindings): Option[AlgProp] = {
-    // The way properties match is as follows.  If pattern specifies a property,
-    // then the subject must match exactly.  Otherwise if the pattern does not
-    // specify a property, then the subject may use any value.  The absorber and
-    // identity must match exactly after the bindings are applied.  There is no
-    // chance for generating new bindings!
-    val massoc = matchOneProp(associative, subject.associative).getOrElse(return None)
-    val mcommu = matchOneProp(commutative, subject.commutative).getOrElse(return None)
-    val midemp = matchOneProp(idempotent,  subject.idempotent).getOrElse(return None)
-    val mabsor = matchOneProp(absorber,    subject.absorber).getOrElse(return None)
-    val mident = matchOneProp(identity,    subject.identity).getOrElse(return None)
-    return Some(AlgProp(massoc, mcommu, midemp, mabsor, mident))
-  }
-
-  /**
-   * Reflect the value of an optional Boolean using a string.
-   *
-   * @param char	The string.
-   * @param opt		The optional Boolean.
-   * @return	Empty string for None, the char for Some(true), and the negated
-   * 					(!) char for Some(false).
-   */
-  private def optToString(char: String, opt: Option[Boolean]) = opt match {
-    case None => ""
-    case Some(true) => char
-    case Some(false) => "!" + char
-  }
-
-  /**
-   * Create the shorthand representation of this property object.
-   *
-   * @return The string representation.
-   */
-  def toShortString = optToString("A", associative) +
-    optToString("C", commutative) + optToString("I", idempotent)
-    
-  /**
-   * Create a string representing this property object.
-   *
-   * @return The string representation.
-   */
-  def toParseString = {
-    var list = List[String]()
-    identity match {
-      case Some(atom) => list ::= "identity(" + atom.toParseString + ")"
-      case _ =>
+  private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = opt match {
+    case None => (None, false)
+    case Some(atom) => {
+      val newatom = atom.rewrite(binds)
+      (Some(newatom._1), newatom._2)
     }
-    absorber match {
-      case Some(atom) => list ::= "absorber(" + atom.toParseString + ")"
-      case _ =>
-    }
-    idempotent match {
-      case Some(true) => list ::= "idempotent"
-      case _ =>
-    }
-    commutative match {
-      case Some(true) => list ::= "commutative"
-      case _ =>
-    }
-    associative match {
-      case Some(true) => list ::= "associative"
-      case _ =>
-    }
-    if (list.isEmpty) "" else list.mkString("is ", ", ", "")
-  }
-
-  /**
-   * Implement the logic to join two Boolean options.
-   *
-   * @param o1	The first option.
-   * @param o2	The second option.
-   * @return	The joined option.
-   */
-  private def join(o1: Option[Boolean], o2: Option[Boolean]) = (o1, o2) match {
-    // The second option always wins if it is specified.
-    case (_, None) => o1
-    case (_, Some(true)) => o2
-    case (_, Some(false)) => o2
   }
   
+  def rewrite(binds: Bindings) = {
+    val assoc = _rewrite(associative, binds)
+    val commu = _rewrite(commutative, binds)
+    val idemp = _rewrite(idempotent, binds)
+    val absor = _rewrite(absorber, binds)
+    val ident = _rewrite(identity, binds)
+    if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) (this, false)
+    else (AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
+  }
+  
+  /**
+   * Match two optional atoms against one another.  A match is really only
+   * performed iff both are atoms.  If the pattern is unspecified, then the
+   * match succeeds.  If the pattern is specified, but the subject is not, then
+   * the pattern is matched against Nothing.  If both are specified, they are
+   * matched as usual.
+   * 
+   * @param pat		The pattern.
+   * @param sub		The subject.
+   * @param binds	The bindings.
+   * @return	The outcome.
+   */
+  private def _match(pat: Option[BasicAtom], sub: Option[BasicAtom],
+      binds: Bindings) = pat match {
+    case None => Match(binds)
+    case Some(pattern) => sub match {
+      case None => pattern.tryMatch(ANY, binds)
+      case Some(subject) => pattern.tryMatch(subject, binds)
+    }
+  }
+  
+  private def _matchAll(plist: List[Option[BasicAtom]],
+      slist: List[Option[BasicAtom]], binds: Bindings): Outcome =
+    if (plist.length == 0) Match(binds)
+    else {
+      _match(plist.head, slist.head, binds) match {
+        case fail: Fail => fail
+        case Match(newbinds) => _matchAll(plist.tail, slist.tail, newbinds)
+        case Many(iter) =>
+          Many(iter ~> ((newbinds: Bindings) =>
+            _matchAll(plist.tail, slist.tail, newbinds)))
+      }
+    }
+  
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = subject match {
+    case ap: AlgProp =>
+      _matchAll(
+          List(associative, commutative, idempotent, absorber, identity),
+          List(ap.associative, ap.commutative, ap.idempotent, ap.absorber, ap.identity),
+          binds)
+    case _ => Fail("Properties only match other properties.", this, subject)
+  }
+  
+  /**
+   * Join two optional atoms together.  The second, if specified, overrides
+   * the first.
+   * 
+   * @param a1	The first atom.
+   * @param a2	The second atom.
+   * @return	The result.
+   */
   private def joinatoms(a1: Option[BasicAtom],
       a2: Option[BasicAtom]) = (a1, a2) match {
     case (_, None) => a1
@@ -170,9 +241,9 @@ sealed class AlgProp(
    */
   def and(other: AlgProp) = {
     AlgProp(
-      join(associative, other.associative),
-      join(commutative, other.commutative),
-      join(idempotent, other.idempotent),
+      joinatoms(associative, other.associative),
+      joinatoms(commutative, other.commutative),
+      joinatoms(idempotent, other.idempotent),
       joinatoms(absorber, other.absorber),
       joinatoms(identity, other.identity))
   }
@@ -180,9 +251,10 @@ sealed class AlgProp(
   /**
    * Invert a single Boolean option.
    */
-  private def invert(opt: Option[Boolean]) = opt match {
-    case None => None
-    case Some(flag) => Some(!flag)
+  private def invert(opt: Option[BasicAtom]) = opt match {
+    case Some(Literal.TRUE) => Some(Literal.FALSE)
+    case Some(Literal.FALSE) => Some(Literal.TRUE)
+    case _ => opt
   }
 
   /**
@@ -203,15 +275,93 @@ sealed class AlgProp(
       identity == ap.identity
     case _ => false
   }
+
+  override def toString = "AlgProp(" + associative + ", " + commutative + ", " +
+  		idempotent + ", " + absorber + ", " + identity + ")"
+
+  /**
+   * Generate a parse string representation of the atom.
+   * 
+   * Each property that is specified is listed, followed by an equal sign,
+   * followed by the property specification (an atom).  For example, integer
+   * add has the following property specification.
+   * {{{
+   * { prop associativity=true, commutativity=true, idempotency=false,
+   *        identity=0 }
+   * }}}
+   * 
+   * @return	The parseable string.
+   */
+  override def toParseString = {
+    var list = List[String]()
+	  associative match {
+	    case None =>
+	    case Some(atom) => list ::= "associative=(" + atom.toParseString + ")"
+	  }
+	  commutative match {
+	    case None =>
+	    case Some(atom) => list ::= "commutative=(" + atom.toParseString + ")"
+	  }
+	  idempotent match {
+	    case None =>
+	    case Some(atom) => list ::= "idempotent=(" + atom.toParseString + ")"
+	  }
+	  absorber match {
+	    case None =>
+	    case Some(atom) => list ::= "absorber=(" + atom.toParseString + ")"
+	  }
+	  identity match {
+	    case None =>
+	    case Some(atom) => list ::= "identity=(" + atom.toParseString + ")"
+	  }
+	  list.mkString("{ prop ", ", ", " }")
+  }
+
+  /**
+   * Generate the short string version of this properties object.
+   * 
+   * The short properties string uses abbreviations.
+   *  - {{A}} for associative
+   *  - {{C}} for commutative
+   *  - {{I}} for idempotent
+   *  - {{B[}}''atom''{{]}} for absorber ''atom''
+   *  - {{D[}}''atom''{{]}} for identity ''atom''
+   * Associativity, commutativity, and idempotency can be negated by prefixing
+   * them with an exclamation mark ({{!}}).  Thus {{%A!C}} denotes associativity
+   * and non-commutativity.
+   * 
+   * @return	The short string.
+   */
+  def toShortString = "%" + (associative match {
+    case Some(Literal.TRUE) => "A"
+    case Some(Literal.FALSE) => "!A"
+    case _ => ""
+  }) + (commutative match {
+    case Some(Literal.TRUE) => "C"
+    case Some(Literal.FALSE) => "!C"
+    case _ => ""
+  }) + (idempotent match {
+    case Some(Literal.TRUE) => "I"
+    case Some(Literal.FALSE) => "!I"
+    case _ => ""
+  }) + (absorber match {
+    case None => ""
+    case Some(atom) => "B[" + atom.toParseString + "]"
+  }) + (identity match {
+    case None => ""
+    case Some(atom) => "D[" + atom.toParseString + "]"
+  })
 }
 
 /**
  * Simplified creation and matching.
  */
 object AlgProp {
-  def apply(associative: Option[Boolean] = None,
-      commutative: Option[Boolean] = None, idempotent: Option[Boolean] = None,
-      absorber: Option[BasicAtom] = None, identity: Option[BasicAtom] = None) =
+  def apply(associative: Option[BasicAtom] = None,
+      commutative: Option[BasicAtom] = None,
+      idempotent: Option[BasicAtom] = None,
+      absorber: Option[BasicAtom] = None,
+      identity: Option[BasicAtom] = None) =
     new AlgProp(associative, commutative, idempotent, absorber, identity)
 }
 
@@ -219,13 +369,13 @@ object AlgProp {
 case object NoProps extends AlgProp()
 
 /** The associative property. */
-case object Associative extends AlgProp(associative = Some(true))
+case class Associative(atom: BasicAtom) extends AlgProp(associative = Some(atom))
 
 /** The commutative property */
-case object Commutative extends AlgProp(commutative = Some(true))
+case class Commutative(atom: BasicAtom) extends AlgProp(commutative = Some(atom))
 
 /** The idempotent property. */
-case object Idempotent extends AlgProp(idempotent = Some(true))
+case class Idempotent(atom: BasicAtom) extends AlgProp(idempotent = Some(atom))
 
 /** An absorber. */
 case class Absorber(atom: BasicAtom) extends AlgProp(absorber = Some(atom))

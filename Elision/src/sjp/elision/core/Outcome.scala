@@ -37,6 +37,22 @@ package sjp.elision.core
 sealed abstract class Outcome
 
 /**
+ * Simplified construction.
+ */
+object Outcome {
+  /**
+   * Convert a match iterator to an outcome.  If the match iterator is empty,
+   * then we return some fail.
+   * 
+   * @param iter	The match iterator.
+   * @param fail	Failure, evaluated only when returned.
+   * @return	The outcome.
+   */
+  def convert(iter: MatchIterator, fail: => Fail) =
+    if (iter.hasNext) Many(iter) else fail
+}
+
+/**
  * An attempted match succeeded with the resulting bindings.  No alternative
  * matches are possible.
  * @param binds	The bindings that make the match succeed.

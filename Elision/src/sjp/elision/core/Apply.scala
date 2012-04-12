@@ -228,8 +228,8 @@ object Apply {
       op.opdef match {
         case SymbolicOperatorDefinition(_, props) =>
           // This is a symbolic operator.
-          val assoc = as.props.associative.getOrElse(props.associative.getOrElse(false))
-          val comm = as.props.commutative.getOrElse(props.commutative.getOrElse(false))
+          val assoc = as.props.isA(props.isA(false))
+          val comm = as.props.isC(props.isC(false))
           checkProto(op, props, as, assoc, comm,bypass)
         case ImmediateOperatorDefinition(_, body) =>
           // Match the arguments against the formal parameters.  This will
@@ -276,16 +276,16 @@ object Apply {
   private def checkProto(op: Operator, props: AlgProp, as: AtomSeq,
       assoc: Boolean, comm: Boolean, bypass: Boolean): BasicAtom = {
     // Check the properties and throw an exception if they do not match.
-    if (props.associative.getOrElse(assoc) && !assoc)
+    if (props.isA(assoc) && !assoc)
       throw new ArgumentListException("Non-associative argument list " +
       		"passed to associative operator.")
-    else if (props.commutative.getOrElse(comm) && !comm)
+    else if (props.isC(comm) && !comm)
       throw new ArgumentListException("Non-commutative argument list " +
       		"passed to commutative operator.")
-    else if (assoc && !props.associative.getOrElse(assoc))
+    else if (assoc && !props.isA(assoc))
       throw new ArgumentListException("Associative argument list passed " +
       		"to non-associative operator.")
-    else if (comm && !props.commutative.getOrElse(comm))
+    else if (comm && !props.isC(comm))
       throw new ArgumentListException("Commutative argument list passed " +
       		"to non-commutative operator.")
     
@@ -346,7 +346,7 @@ object Apply {
 		      newlist :+= atom
 		  }
     }
-    if (props.idempotent.getOrElse(false)) newlist = newlist.distinct
+    if (props.isI(false)) newlist = newlist.distinct
     
     // If the list is empty, and there is an identity, then the identity is
     // the result.  Otherwise the answer is a new list.
