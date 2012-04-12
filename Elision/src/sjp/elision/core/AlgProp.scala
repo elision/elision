@@ -28,6 +28,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package sjp.elision.core
+import sjp.elision.ElisionException
+
+/**
+ * Indicate a properties specification is illegal.
+ * 
+ * @param msg	Human readable message.
+ */
+class IllegalPropertiesSpecification(msg: String)
+extends ElisionException(msg)
 
 class AlgProp(
     val associative: Option[BasicAtom] = None,
@@ -35,6 +44,34 @@ class AlgProp(
     val idempotent: Option[BasicAtom] = None,
     val absorber: Option[BasicAtom] = None,
     val identity: Option[BasicAtom] = None) extends BasicAtom with Applicable {
+  
+  // Type check the Boolean properties.
+  private def _isNotBool(opt: Option[BasicAtom]) = opt match {
+    case Some(atom) =>
+      atom.theType match {
+        case ANY => false
+        case BOOLEAN => false
+        case _ => true
+      }
+    case None => false
+  }
+  if (_isNotBool(associative))
+    throw new IllegalPropertiesSpecification("Associativity must have a Boolean value.")
+  if (_isNotBool(commutative))
+    throw new IllegalPropertiesSpecification("Commutativity must have a Boolean value.")
+  if (_isNotBool(idempotent))
+    throw new IllegalPropertiesSpecification("Idempotency must have a Boolean value.")
+  
+  // If we are not associative, we cannot have idempotency, identities, or
+  // absorbers.
+  if (!isA(true)) {
+    if (isI(false))
+      throw new IllegalPropertiesSpecification("Idempotency requires associativity.")
+    if (getB(null) != null)
+      throw new IllegalPropertiesSpecification("An absorber requires associativity.")
+    if (getD(null) != null)
+      throw new IllegalPropertiesSpecification("An identity requires associativity.")
+  }
   
   /**
    * Fast check for associativity.
