@@ -184,7 +184,8 @@ class OperatorLibrary(
  	    case sod:SymbolicOperatorDefinition =>
  	      if (!sod.props.isConstant)
  	        throw new OperatorDefinitionException("Cannot add operators to " +
- 	        		"library if their properties are not constant: " + sod.props)
+ 	        		"library if their properties are not constant: " +
+ 	        		sod.props.toParseString)
  	    case _ =>
  	  }
  	  val name = od.proto.name
