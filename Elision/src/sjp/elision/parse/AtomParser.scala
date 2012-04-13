@@ -958,6 +958,16 @@ extends Parser {
   }.label("a simple atom")
   
   //======================================================================
+  // Parse the generalized "special form."
+  //======================================================================
+  
+  def ParseGF = rule {
+    "{ " ~
+    ESymbol ~ zeroOrMore(Atom, ", ") ~
+    zeroOrMore("#" ~ ESymbol ~ zeroOrMore(Atom, ", ")) ~ "} "
+  }
+  
+  //======================================================================
   // Parse a simple operator application.  The other form of application
   // (the more general kind) is parsed in Atom.
   //======================================================================
