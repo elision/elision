@@ -35,7 +35,7 @@ package bootstrap
 object Scheme {
 	def defs = """
 	// Basic definitions for Scheme lists.
-	{ ruleset Scheme }
+	declare(Scheme)
 	enable(Scheme)
 	{ operator cons($head: $T, $tail: CONS): CONS }
 	{ operator head($cons: CONS): ANY }

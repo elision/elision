@@ -33,6 +33,11 @@ import scala.collection.IndexedSeq
 import sjp.elision.core.matcher._
 
 /**
+ * Fast access to an untyped empty sequence.
+ */
+object EmptySeq extends AtomSeq(AlgProp(), IndexedSeq())
+
+/**
  * An atom sequence is just that: a sequence of atoms.
  * 
  * Atom sequences may have properties like operators.  That is, they may be

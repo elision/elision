@@ -447,22 +447,6 @@ object AtomParser {
 	//----------------------------------------------------------------------
 	
 	/**
-	 * A node representing the declaration of zero or more rulesets.
-	 * 
-	 * @param context		The context to get the rulesets.
-	 * @param rulesets	The ruleset names.
-	 */
-	case class RulesetDeclarationNode(context: Context,
-	    rulesets: List[NakedSymbolNode]) extends AstNode {
-	  require(context != null, "context")
-	  require(rulesets != null, "rulsets")
-	  def interpret = {
-	    rulesets.foreach(nsn => context.declareRuleset(nsn.str))
-	    Literal.TRUE
-	  }
-	}
-	
-	/**
 	 * A node representing a rewrite rule.
 	 * @param decls			Optional pattern variable declarations.
 	 * @param pattern		The pattern to match.
@@ -908,9 +892,6 @@ extends Parser {
       // Handle parenthetical expressions.
       "( " ~ Atom ~ ") " |
       
-      // Declare a ruleset.
-      ParsedRulesetDeclaration |
-      
       // Parse a rule.
       ParsedRule |
       
@@ -932,9 +913,6 @@ extends Parser {
       // Parse a lambda.
       ParsedLambda |
       
-      // Parse a set of bindings.
-      ParsedBindings |
-
       // Parse a typical operator application.
       ParsedApply |
       
@@ -1173,14 +1151,6 @@ extends Parser {
   //======================================================================
   // Parse a rewrite rule.
   //======================================================================
-  
-  /**
-   * Parse a ruleset declaration.
-   */
-  def ParsedRulesetDeclaration = rule {
-    "{ " ~ ParsedRulesetList ~ "} " ~~>
-    (RulesetDeclarationNode(context, _))
-  }.label("a ruleset declaration")
 
   /**
    * Parse a rule.
@@ -1517,24 +1487,6 @@ extends Parser {
       "absorber " ~ Atom ~~> (AbsorberNode(_)) |
       "identity " ~ Atom ~~> (IdentityNode(_))
   	}.label("an operator property")
-  
-  //======================================================================
-  // Bindings.
-  //======================================================================
-  
-  /**
-   * Parse a set of bindings.
-   */
-  def ParsedBindings = rule {
-    "{ " ~ "bind " ~ zeroOrMore(ParsedBind, ", ") ~ "} " ~~> (BindingsNode(_))
-  }.label("a binding expression")
-
-  /**
-   * Parse a single bind.
-   */
-  def ParsedBind = rule {
-    ESymbol ~ "-> " ~ Atom ~~> (_ -> _)
-  }.label("a single binding")
   
   //======================================================================
   // Matching.

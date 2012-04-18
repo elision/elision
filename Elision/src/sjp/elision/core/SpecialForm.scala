@@ -28,6 +28,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package sjp.elision.core
+import sjp.elision.ElisionException
+
+/**
+ * Construction of a special form failed for the specified reason.
+ * 
+ * @param msg	A human-readable message.
+ */
+class SpecialFormException(msg: String) extends ElisionException(msg)
+
+class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
+  def requireBindings = content match {
+    case ba:BindingsAtom => new BindingsHolder(tag, ba)
+    case _ =>
+      throw new SpecialFormException(
+          "Form " + tag.toParseString +
+          " expected bindings as content, but instead found: " +
+          content.toParseString + ".")
+  }
+}
+
+class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
+  def require(keys: String*) {
+  	keys foreach { key =>
+    	if (!content.contains(key))
+    		throw new SpecialFormException(
+    				"Form " + tag.toParseString +
+    				" requires key " + toESymbol(key) + " but it was not given.")
+  	}
+  }
+  def allow(keys: String*) {
+    val badkeys = content.keySet -- keys
+    if (!badkeys.isEmpty) {
+      throw new SpecialFormException(
+          "Form " + tag.toParseString +
+          " does not allow " + badkeys.mkString("{", ",", "}") + ".")
+    }
+  }
+  def check(test: Map[String,Boolean]) {
+    allow(test.keySet.toSeq:_*)
+    test foreach {
+      pair => pair match {
+        case (key, true) => require(key)
+        case _ =>
+      }
+    }
+  }
+  def fetchAs[TYPE](key: String, default: Option[TYPE] = None)
+  (implicit m: scala.reflect.Manifest[TYPE]): TYPE = {
+    content.get(key) match {
+      case None => default match {
+        case Some(value) => value
+        case None =>
+	        throw new SpecialFormException(
+	            "Form " + tag.toParseString +
+	            " requires key " + toESymbol(key) + " but it was not given.")
+      }
+      case Some(item) =>
+        if (!key.isInstanceOf[TYPE])
+          throw new SpecialFormException(
+              "The value for key " + toESymbol(key) + " of form " +
+              tag.toParseString + " is of the wrong type: " + item.toParseString)
+        else
+          item.asInstanceOf[TYPE]
+    }
+  }
+}
 
 /**
  * This is the generalized "special form" of atom.
@@ -75,8 +141,19 @@ extends BasicAtom {
     "{: " + tag.toParseString + " " + content.toParseString + " :}"
 }
 
+/**
+ * Construction and matching of special forms.
+ * 
+ * Known special forms register their handlers here.  The apply method
+ * handles dispatch to the appropriate implementation.m
+ */
 object SpecialForm {
   def apply(tag: BasicAtom, content: BasicAtom) = tag match {
+    case sl:SymbolLiteral => sl.value match {
+      case 'bind => BindingsAtom(sl, content)
+      case 'rule => RewriteRule(new SpecialFormHolder(sl, content))
+      case _ => new SpecialForm(sl, content)
+    }
     case _ => new SpecialForm(tag, content)
   }
 }

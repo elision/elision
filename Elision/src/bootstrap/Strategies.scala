@@ -36,7 +36,7 @@ object Strategies {
 
   val defs = """
   // Declare the rulesets.
-  { rulesets IF, STRAT }
+  declare(IF, STRAT)
     
   // Declare the if operator and the rules to make it work.
   { operator if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T }
@@ -46,14 +46,14 @@ object Strategies {
   // The no-op strategy leaves atoms unmodified.  The flag is always set to
   // true.
   { operator s_noop(): STRATEGY }
-  { rule (s_noop().$a) -> { bind atom->$a, flag->true } ruleset STRAT level 1 }
+  { rule (s_noop().$a) -> {bind atom->$a flag->true} ruleset STRAT level 1 }
     
   // Declare operators to modify the flag returned from a strategy.
   { operator s_true($s: STRATEGY): STRATEGY }
-  { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom, flag->true}
+  { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom flag->true}
     ruleset STRAT level 1 }
   { operator s_false($s: STRATEGY): STRATEGY }
-  { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom, flag->false} 
+  { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom flag->false} 
     ruleset STRAT level 1 }
     
   // Declare the if strategy.  This executes the first strategy, and checks

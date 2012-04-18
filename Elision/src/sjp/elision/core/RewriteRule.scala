@@ -218,6 +218,40 @@ object RewriteRule {
    */
   def unapply(rule: RewriteRule) = Some((rule.pattern, rule.rewrite,
       rule.guards, rule.rulesets, rule.cacheLevel))
+      
+  def apply(sfh: SpecialFormHolder): RewriteRule = {
+    // A rewrite rule must be given with a binding.
+    val bh = sfh.requireBindings
+    // Check the content.
+    bh.check(Map(""->true, "if"->false, "ruleset"->false, "rulesets"->false))
+    // Get the map pair.
+    val mappair = bh.fetchAs[AtomSeq]("")
+    if (mappair.length < 1)
+      throw new SpecialFormException(
+          "Rewrite rule does not contain a map pair.")
+    if (mappair.length > 1)
+      throw new SpecialFormException(
+          "Too many items at the top level of a rewrite rule; did you forget a marker?")
+    val pair = mappair(0) match {
+      case mp:MapPair => mp
+      case x =>
+        throw new SpecialFormException(
+            "Top-level item in rewrite rule is not a map pair: " + x.toParseString)
+    }
+    // Get the guards.
+    val guards = bh.fetchAs[AtomSeq]("if", Some(EmptySeq))
+    // Get the rulesets.
+    val rulesets = bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq)) map {
+      rs => rs match {
+        case SymbolLiteral(_, name) => name.name
+        case _ =>
+          throw new SpecialFormException(
+              "Ruleset specification is not a symbol: " + rs.toParseString)
+      }
+    }
+    // Build the rule.
+    RewriteRule(pair.left, pair.right, guards.atoms, rulesets.toSet, 0)
+  }
 }
 
 /**

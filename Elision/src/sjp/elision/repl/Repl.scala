@@ -643,6 +643,7 @@ object Repl {
         				|
 		            | bind(v,a) .................. Bind variable v to atom a.
 		            | context() .................. Display contents of the current context.
+		            | declare(r1,r2,...) ......... Declare rulesets r1, r2, ...
 		            | disable(r) ................. Disable ruleset r.
 		            | enable(r) .................. Enable ruleset r.
 	        			| help() ..................... Show this help text.
@@ -744,6 +745,20 @@ object Repl {
             _no_show
           case _ => _no_show
         })
+        
+    // Declare a ruleset.
+    execute("{ operator declare($r1: SYMBOL, $r2: SYMBOL): SYMBOL %ACI}")
+    _context.operatorLibrary.register("declare",
+        (_, list:AtomSeq, _) => {
+        	list foreach { _ match {
+	          case sl:SymbolLiteral =>
+	            // Declare the specified ruleset.
+	            _context.declareRuleset(sl.value.name)
+	            emitln("Declared ruleset " + sl.toParseString + ".")
+	          case _ =>
+        	}}
+        	_no_show
+      	})
         
     // Enable a ruleset.
     execute("{ operator enable($x: SYMBOL) }")

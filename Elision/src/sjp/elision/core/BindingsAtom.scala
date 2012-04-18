@@ -39,11 +39,17 @@ import scala.collection.mutable.ListBuffer
  * this class is provided and typically operates by implicit conversion.
  *
  * ==Structure and Syntax==
+ * Bindings are a special form, and the general syntax is the tag ''bind''
+ * and content equal to a list of map pairs, each of whose left-hand sides
+ * must be a symbol.
  * 
  * ==Type==
+ * All bindings atoms have the special type BINDING.
  * 
  * ==Equality and Matching==
- * 
+ * Bindings are equal iff they bind the same symbols to equal values.  They
+ * match only if they bind the same symbols, and their respective bindings
+ * match.
  */
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
@@ -128,8 +134,9 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    * 
    * @return	A parseable version of this atom.
    */
-  def toParseString() = "{ bind " + (mybinds.map(pair =>
-    toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(", ") + " }"
+  def toParseString() = "{: bind %(" + (mybinds.map(pair =>
+    toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(", ") +
+    ") :}"
 
   /**
    * Generate a Scala parseable representation of this atom.  This requires that
@@ -161,4 +168,40 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 	      // back is the result.
 	      atom.rewrite(mybinds)._1
     }
+}
+
+object BindingsAtom {
+  def apply(tag: SymbolLiteral, binds: BasicAtom): BindingsAtom = binds match {
+    case AtomSeq(_, atoms) =>
+      // The bindings are given as a list of map pairs.
+      var binds = Bindings()
+      (atoms foreach { atom => atom match {
+        case MapPair(lhs, rhs) => lhs match {
+          case SymbolLiteral(_,name) => binds += (name.name -> rhs)
+          case _ =>
+            throw new SpecialFormException(
+                "Bindings LHS is not a symbol: " + lhs.toParseString)
+        }
+        case _ =>
+          throw new SpecialFormException(
+              "Element of binding list is not a map pair: " + atom.toParseString)
+      }})
+      new BindingsAtom(binds)
+    case BindingsAtom(subbinds) =>
+      // The bindings may be given as the bound value of the empty string.
+      if (subbinds.keySet.subsetOf(Set(""))) {
+        // Good.  Either the bindings for the empty string are specified or
+        // they are not.  Either way is okay at this point.
+	      subbinds.get("") match {
+	        case Some(sublist) => apply(tag, sublist)
+	        case None => new BindingsAtom(Bindings())
+	      }
+      } else {
+        throw new SpecialFormException(
+            "Binding atom is not a 'naked' list of map pairs: " + binds.toParseString)
+      }
+    case _ =>
+      throw new SpecialFormException(
+          "Binding atom content is not a list of map pairs: " + binds.toParseString)
+  } 
 }
