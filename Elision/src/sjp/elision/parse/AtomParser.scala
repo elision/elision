@@ -38,6 +38,14 @@ import org.parboiled.errors.{ ParseError, ErrorUtils, ParsingException }
 import scala.collection.mutable.LinkedList
 import sjp.elision.core._
 import sjp.elision.core.{ ANY => EANY }
+import sjp.elision.ElisionException
+
+/**
+ * A special form was incorrectly formatted.
+ * 
+ * @param msg	The human-readable message.
+ */
+class SpecialFormException(msg: String) extends ElisionException(msg)
 
 /**
  * Provide abstract syntax tree nodes used during parsing, along with any
@@ -118,7 +126,7 @@ object AtomParser {
 	 * A node representing a simple type, which must be a root type.
 	 * @param TYPE	The type.
 	 */
-	case class SimpleTypeNode(TYPE: RootType) extends AstNode {
+	case class SimpleTypeNode(TYPE: NamedRootType) extends AstNode {
 	  def interpret = TYPE
 	}
 	
@@ -417,6 +425,21 @@ object AtomParser {
 	    case Some(guard) =>
 	      MetaVariable(vx.typ.interpret, vx.name, guard.interpret, labels)
 	  }
+	}
+	
+	//----------------------------------------------------------------------
+	// Special form node.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a general special form.
+	 * 
+	 * @param tag			The tag identifying the special form.
+	 * @param content	The content portion of the special form.
+	 */
+	case class SpecialFormNode(tag: AstNode, content: AstNode) extends AstNode {
+	  override def interpret: BasicAtom =
+	    SpecialForm(tag.interpret, content.interpret)
 	}
 	
 	//----------------------------------------------------------------------
@@ -952,6 +975,8 @@ extends Parser {
       AnyNumber ~ ": " ~ FirstAtom ~~> (
           (num:NumberNode, typ:AstNode) => num.retype(typ)) |
       AnyNumber |
+      
+      ParsedSpecialForm |
 
       // Parse the special type universe.
       "^TYPE " ~> (x => TypeUniverseNode()))
@@ -961,10 +986,21 @@ extends Parser {
   // Parse the generalized "special form."
   //======================================================================
   
-  def ParseGF = rule {
-    "{ " ~
-    ESymbol ~ zeroOrMore(Atom, ", ") ~
-    zeroOrMore("#" ~ ESymbol ~ zeroOrMore(Atom, ", ")) ~ "} "
+  def ParsedSpecialForm = rule {
+    ParsedGeneralForm | ParsedSpecialBindForm
+  }
+  
+  def ParsedGeneralForm = rule {
+    "{: " ~ Atom ~ Atom ~ ":} " ~~> (SpecialFormNode(_,_))
+  }
+  
+  def ParsedSpecialBindForm = rule {
+    "{ " ~ Atom ~ (
+        zeroOrMore(Atom) ~~> (NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(),_)) ~
+        zeroOrMore(
+            "#" ~ ESymbol ~ zeroOrMore(Atom) ~~> (_ -> AtomSeqNode(AlgPropNode(),_))
+        )
+    ) ~~> ((x,y) => BindingsNode(x::y)) ~ "} " ~~> (SpecialFormNode(_,_))
   }
   
   //======================================================================

@@ -44,21 +44,9 @@ package sjp.elision.core
  * ==Equality and Matching==
  * The type universe is equal only to itself, and matches only itself.
  */
-object TypeUniverse extends RootType {
+object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
   /** The type of the type universe is itself. */
-  val theType = this
-  
-  /** The type universe is constant. */
-  val isConstant = true
-  
-  /** The type universe is a term. */
-  val isTerm = true
-
-  /** The type universe is represented by ^TYPE. */
-  def toParseString = "^TYPE"
-  
-  /** The type universe contains no constant children. */
-  val constantPool = None
+  override val theType = this
 
   /**
    * Type universe matching is a special case, and the basis case, for matching
@@ -74,6 +62,35 @@ object TypeUniverse extends RootType {
   /** The type universe is known (in Scala) as `TypeUniverse`. */
   override def toString = "TypeUniverse"
     
+  override def toParseString = "^TYPE"
+    
+  /**
+   * Try to match this type against the provided atom.  Note that root types
+   * match only themselves, so the match works iff the subject is equal to this
+   * pattern.
+   * 
+   * @param subject	The subject to match.
+   * @param binds		The bindings to honor.
+   * @param hints		Optional hints.
+   * @return	The outcome of the match.
+   */
+  override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
+    // A root type matches only itself.
+    if (this == subject) Match(binds)
+    else Fail("This type matches only itself.", this, subject)
+
+  /**
+   * The root types cannot be rewritten, as they do not have children.
+   * 
+   * @param binds	The bindings.
+   * @return	This type.
+   */
+  override def rewrite(binds: Bindings) = (this, false)
+
+    
   /** Compute the hash code. */
   override lazy val hashCode = toParseString.hashCode
+  
+  override def equals(other: Any) = TypeUniverse eq other.asInstanceOf[AnyRef]
 }

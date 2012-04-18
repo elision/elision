@@ -30,44 +30,6 @@
 package sjp.elision.core
 
 /**
- * A "root type" is a simple type that is well-known and used globally in the
- * system.  It cannot be rewritten, and matches only itself.
- * 
- * The implementation of `RootType` does not allow these types to have children.
- */
-abstract class RootType extends BasicAtom {
-	/** The index of a symbol or root type is zero. */
-  val deBruijnIndex = 0
-  
-  /** Unless overridden, the depth of all root types is zero. */
-  val depth = 0
-
-  /**
-   * Try to match this type against the provided atom.  Note that root types
-   * match only themselves, so the match works iff the subject is equal to this
-   * pattern.
-   * 
-   * @param subject	The subject to match.
-   * @param binds		The bindings to honor.
-   * @param hints		Optional hints.
-   * @return	The outcome of the match.
-   */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) =
-    // A root type matches only itself.
-    if (this == subject) Match(binds)
-    else Fail("This type matches only itself.", this, subject)
-
-  /**
-   * The root types cannot be rewritten, as they do not have children.
-   * 
-   * @param binds	The bindings.
-   * @return	This type.
-   */
-  def rewrite(binds: Bindings) = (this, false)
-}
-
-/**
  * Provide a very simple implementation of `RootType`.  This is a trivial root
  * type with a specified name and the type universe as its type.
  * 
@@ -78,34 +40,53 @@ abstract class RootType extends BasicAtom {
  * 
  * @param name	The name.
  */
-case class NamedRootType(name: String) extends RootType {
+class NamedRootType protected (val name: String)
+extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   // Save this instance in the registry.  This is essential so that the parser
   // can find root types.
   NamedRootType.set(this)
   
-  /** All named root types are in the type universe. */
-  val theType = TypeUniverse
-  
-  /** All named root types are constants. */
-  val isConstant = true
-  
-  /** All named types are terms. */
-  val isTerm = true
-  
-  /** Root types contain no constant children. */
-  val constantPool = None
-  
   /**
-   * The parse string is the name of the root type, as a symbol.  For this to
-   * work the parser must know about all these types.
+	 * Try to match this type against the provided atom.  Note that root types
+	 * match only themselves, so the match works iff the subject is equal to this
+	 * pattern.
+	 * 
+	 * @param subject	The subject to match.
+	 * @param binds		The bindings to honor.
+	 * @param hints		Optional hints.
+	 * @return	The outcome of the match.
+	 */
+	override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+	    hints: Option[Any]) =
+	  // A root type matches only itself.
+	  if (this == subject) Match(binds)
+	  else Fail("This type matches only itself.", this, subject)
+
+  /**
+   * The root types cannot be rewritten, as they do not have children.
+   * 
+   * @param binds	The bindings.
+   * @return	This type.
    */
-  def toParseString = toESymbol(name)
+  override def rewrite(binds: Bindings) = (this, false)
+
   
   /** Generate the Scala, and protect the string. */
   override def toString = "NamedRootType(" + toEString(name) + ")"
   
   /** Generate the hash code. */
   override lazy val hashCode = name.hashCode()
+  
+  override def toParseString = toESymbol(name)
+  
+  /**
+   * Because of careful use of names, two named root types are equal
+   * iff they have the same name.
+   */
+  override def equals(other: Any) = other match {
+    case NamedRootType(oname) if name == oname => true
+    case _ => false
+  }
 }
 
 /**
@@ -115,7 +96,13 @@ case class NamedRootType(name: String) extends RootType {
  */
 object NamedRootType {
   /** The map of names to known root types. */
-  private val _known = scala.collection.mutable.HashMap[String,NamedRootType]()
+  private lazy val _known =
+    scala.collection.mutable.HashMap[String,NamedRootType]()
+  
+  def apply(name: String) =
+    _known.getOrElseUpdate(name, new NamedRootType(name))
+  
+  def unapply(nrt: NamedRootType) = Some(nrt.name)
   
   /**
    * Get the named root type, if it is known.
@@ -133,12 +120,23 @@ object NamedRootType {
    * 					the type has already been declared.
    */
   def set(typ: NamedRootType) = _known.getOrElseUpdate(typ.name, typ)
+
+  // Initialize the default set of root types.  This just forces them to all
+  // get constructed, and then installed.  It must be the last thing in this
+  // object.
+  List(STRING, SYMBOL,
+      INTEGER, FLOAT,
+      BOOLEAN, RULETYPE,
+      OPTYPE, STRATEGY,
+      BINDING,
+      ANY, NONE)
 }
 
 //======================================================================
 // Make some well-known types.
 // Note that the type universe gets its own entire class, since it is
-// special (it has itself as its type).
+// special (it has itself as its type).  In particular, it is not a
+// "named root type."
 //======================================================================
 
 /** The STRING type. */

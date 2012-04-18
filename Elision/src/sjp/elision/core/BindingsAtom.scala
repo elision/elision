@@ -83,22 +83,23 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    * @return	The result of the match.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) =
-    subject match {
+      hints: Option[Any]) = subject match {
     case BindingsAtom(obinds) =>
       // The bindings must bind the same variables.  Check that first.
       if (mybinds.keySet != obinds.keySet) {
         Fail("Bindings bind different variables.", this, subject)
+      } else {
+	      // Now iterate over the keys.  The ordering does not matter.  This
+	      // creates two lists of atoms that we then match using the sequence
+        // matcher.
+	      var mine = OmitSeq[BasicAtom]()
+	      var theirs = OmitSeq[BasicAtom]()
+	      for ((key, value) <- mybinds) {
+	        mine :+= value
+	        theirs :+= obinds(key)
+	      } // Build lists of atoms.
+	      SequenceMatcher.tryMatch(mine, theirs, binds)
       }
-      // Now iterate over the keys.  The ordering does not matter.  This creates
-      // two lists of atoms that we then match using the sequence matcher.
-      var mine = OmitSeq[BasicAtom]()
-      var theirs = OmitSeq[BasicAtom]()
-      for ((key, value) <- mybinds) {
-        mine :+= value
-        theirs :+= obinds(key)
-      } // Build lists of atoms.
-      SequenceMatcher.tryMatch(mine, theirs)
     case _ => Fail("Bindings can only match other bindings.", this, subject)
   }
 

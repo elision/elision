@@ -271,7 +271,7 @@ http://stacyprowell.com/wiki/doku.php?id=elision
 \end_inset
 
 .
- Elision contains Praboiled, a parser expression grammar (PEG) library.
+ Elision contains Parboiled, a parser expression grammar (PEG) library.
  See 
 \begin_inset Flex URL
 status collapsed
@@ -297,6 +297,8 @@ https://github.com/jline/jline2
 \end_inset
 
  for details, including the license agreement.
+ Note that Elision actually uses the modified version of JLine built for
+ the Scala REPL.
 \end_layout
 
 \begin_layout Section
@@ -1015,7 +1017,7 @@ Elision
 
 \begin_layout Enumerate
 Start Eclipse.
- You will probably be propted to run the Scala Setup Diagnostics.
+ You will probably be prompted to run the Scala Setup Diagnostics.
  Click Yes to run them.
  Make sure you open Eclipse in the correct workspace containing the Elision
  distribution.
@@ -1056,7 +1058,7 @@ Scala Code
 
 \begin_layout Standard
 Elision is written in Scala, and provides a Scala API.
- Discussions of the Scala API are highlighed in blue.
+ Discussions of the Scala API are highlighted in blue.
 \end_layout
 
 \begin_layout Standard
@@ -2268,6 +2270,23 @@ $repl
 round-trip testing
 \emph default
  by the system.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This testing is used to assure 
+\emph on
+referential transparency
+\emph default
+, and can be disabled using the 
+\family typewriter
+setroundtrip(false)
+\family default
+ command.
+\end_layout
+
+\end_inset
+
  This is testing that determines whether or not an atom's representation
  can be successfully re-parsed to yield the original atom, and this output
  can safely be ignored.
@@ -2570,10 +2589,10 @@ ation succeeded.
 \begin_layout Standard
 Atoms can be combined to make composite atoms
 \begin_inset Foot
-status collapsed
+status open
 
 \begin_layout Plain Layout
-No, not mollecules.
+No, not molecules.
  This is not chemistry.
 \end_layout
 
@@ -2642,7 +2661,7 @@ it's turtles all the way down.
 \begin_inset Formula $a:B:C$
 \end_inset
 
- denoes 
+ denotes 
 \begin_inset Formula $a:(B:C)$
 \end_inset
 
@@ -2701,7 +2720,7 @@ core.TypeUniverse
 core
 \family default
  package.
- Backticks must be used since 
+ Back ticks must be used since 
 \family typewriter
 ^TYPE
 \family default
@@ -2796,7 +2815,7 @@ Fred21
 
 \begin_layout Standard
 Other characters may occur in symbols, but the entire symbol must be enclosed
- in backticks, which are not themselves part of the symbol.
+ in back ticks, which are not themselves part of the symbol.
  Several escape sequences are interpreted; these are listed in 
 \begin_inset CommandInset ref
 LatexCommand formatted
@@ -2945,7 +2964,7 @@ Tab Character
 \begin_inset Text
 
 \begin_layout Plain Layout
-Backtick
+Back tick
 \end_layout
 
 \end_inset
@@ -3014,7 +3033,7 @@ Backslash
 
 \end_inset
 
- Using the backtick notation the following are also legal symbol literals.
+ Using the back tick notation the following are also legal symbol literals.
 \end_layout
 
 \begin_layout Standard
@@ -3134,7 +3153,7 @@ Strings
 \begin_layout Standard
 A string is a sequence of characters enclosed in double quotation marks,
  which are not themselves part of the symbol.
- As with backtick-quoted symbols, escape codes are interpreted in the string.
+ As with back-tick-quoted symbols, escape codes are interpreted in the string.
  The escape codes are listed in 
 \begin_inset CommandInset ref
 LatexCommand formatted
@@ -6081,7 +6100,7 @@ core.Bindings
 \family default
 .
  The bindings are the result of matching the operator parameters against
- the arguments, and may be indispensble in some cases.
+ the arguments, and may be indispensable in some cases.
  The closure must then return an atom.
  Matching, binding, and rewriting are all explained in more detail in 
 \begin_inset CommandInset ref
@@ -6227,7 +6246,7 @@ first
 \emph default
 .
  Thus it is possible to attempt to construct a symbolic operator application
- with a native constructor and never have the native constuctor get invoked.
+ with a native constructor and never have the native constructor get invoked.
  For instance, 
 \family typewriter
 add(0)
@@ -6474,7 +6493,7 @@ core.Operator
 \family default
 .
  The operator definition, and thus the prototype and properties (or body
- depending on the kind of defintion), can be obtained from the operator
+ depending on the kind of definition), can be obtained from the operator
  instance.
  Alternately, you can use the 
 \family typewriter
@@ -7643,7 +7662,7 @@ proper
 \end_layout
 
 \begin_layout Standard
-In Elision every atom has an associated Dr Brujin index.
+In Elision every atom has an associated De Bruijn index.
  Literals and (most) variables have index zero.
  Other terms have De Bruijn index equal to the maximum index of their parts.
 \end_layout

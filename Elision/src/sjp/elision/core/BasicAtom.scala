@@ -291,12 +291,12 @@ abstract class BasicAtom {
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
     if (subject == ANY && !this.isBindable)
-      // Any pattern is allowed to match the subject ANYTYPE.  In the matching
-      // implementation for ANYTYPE, any subject is allowed to match ANYTYPE.
-      // Thus ANYTYPE is a kind of wild card.  Note that no bindings are
-      // applied - anything can match ANYTYPE.
+      // Any pattern is allowed to match the subject ANY.  In the matching
+      // implementation for ANY, any subject is allowed to match ANY.
+      // Thus ANY is a kind of wild card.  Note that no bindings are
+      // applied - anything can match ANY.
       //
-      // Of course, if this atom is bindable, we might want to bind to ANYTYPE,
+      // Of course, if this atom is bindable, we might want to bind to ANY,
       // so we exempt that case.
       Match(binds)
     else if (depth > subject.depth)

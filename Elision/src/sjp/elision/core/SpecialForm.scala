@@ -33,63 +33,50 @@ package sjp.elision.core
  * This is the generalized "special form" of atom.
  * 
  * @param tag			The tag identifying this particular form.
- * @param first		The first list of atoms in the form.
- * @param other		Other tagged lists in the form, if any.
+ * @param content	The content of the atom.
  */
-class SpecialForm(
-    val tag: SymbolLiteral,
-    val first: AtomSeq,
-    val other: List[(SymbolLiteral, AtomSeq)]) extends BasicAtom {
-  
-  private val _children = List(tag, first) :::
-  		other.foldLeft(List(tag, first))((x,y) => x ::: List(y._1, y._2))
-  val depth = _children.foldLeft(0)(_ max _.depth) + 1
-  val deBruijnIndex = _children.foldLeft(0)(_ max _.deBruijnIndex)
-  val isConstant = _children.forall(_.isConstant)
+class SpecialForm(val tag: BasicAtom, val content: BasicAtom)
+extends BasicAtom {
+
+  val depth = (tag.depth max content.depth) + 1
+  val deBruijnIndex = tag.deBruijnIndex max content.deBruijnIndex
+  val isConstant = tag.isConstant && content.isConstant
   val theType = TypeUniverse
-  val isTerm = _children.forall(_.isTerm)
-  val constantPool = Some(BasicAtom.buildConstantPool(17, _children:_*))
+  val isTerm = tag.isTerm && content.isTerm
+  val constantPool = Some(BasicAtom.buildConstantPool(17, tag, content))
+  
+  override def equals(other: Any) = other match {
+    case sf:SpecialForm => tag == sf.tag && content == sf.content
+    case _ => false
+  }
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = subject match {
     case sf:SpecialForm =>
-      SequenceMatcher.tryMatch(OmitSeq(tag, first), OmitSeq(sf.tag, sf.first))
+      tag.tryMatch(sf.tag) match {
+        case fail:Fail => Fail("Tags do not match.", tag, sf.tag, Some(fail))
+        case Match(newbinds) => content.tryMatch(sf.content, newbinds, hints)
+        case Many(matches) =>
+          Many(MatchIterator(content.tryMatch(sf.content, _, hints), matches))
+      }
     case _ => Fail("Special forms match only special forms.", this, subject)
   }
 
   def rewrite(binds: Bindings) = {
-    var changed = false
-    val newfirst = AtomSeq(first.props, first.map {
-      atom =>
-        val newatom = atom.rewrite(binds)
-        changed |= newatom._2
-        newatom._1
-    })
-    val newother = other.map {
-      item =>
-        (item._1, AtomSeq(item._2.props, item._2.map {
-          atom =>
-            val newatom = atom.rewrite(binds)
-            changed |= newatom._2
-            newatom._1
-        }))
-    }
-    if (changed) (SpecialForm(tag, newfirst, newother), true) else (this, false)
+    val newtag = tag.rewrite(binds)
+    val newcontent = content.rewrite(binds)
+    if (newtag._2 || newcontent._2) (SpecialForm(newtag._1, newcontent._1), true)
+    else (this, false)
   }
   
-  override def toString = "SpecialForm(" + tag + ", " + first + ", " + other + ")"
+  override def toString = "SpecialForm(" + tag + ", " + content + ")"
 
-  def toParseString(): String = "{ " + tag.toParseString +
-  		first.mkParseString(" ", ", ", "") + other.map {
-    item =>
-      val key = "#" + item._1.toParseString
-      val stuff = item._2.mkParseString(" ", ", ", "")
-      key + stuff
-  }.mkString(" ", "", "") + " }"
+  def toParseString(): String =
+    "{: " + tag.toParseString + " " + content.toParseString + " :}"
 }
 
 object SpecialForm {
-  def apply(tag: SymbolLiteral, first: AtomSeq,
-      other: List[(SymbolLiteral, AtomSeq)]) =
-    new SpecialForm(tag, first, other)
+  def apply(tag: BasicAtom, content: BasicAtom) = tag match {
+    case _ => new SpecialForm(tag, content)
+  }
 }

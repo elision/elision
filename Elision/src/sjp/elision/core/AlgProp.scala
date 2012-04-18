@@ -51,16 +51,19 @@ class AlgProp(
       atom.theType match {
         case ANY => false
         case BOOLEAN => false
-        case _ => true
+        case _ => println(atom.theType); true
       }
     case None => false
   }
   if (_isNotBool(associative))
-    throw new IllegalPropertiesSpecification("Associativity must have a Boolean value.")
+    throw new IllegalPropertiesSpecification(
+        "Associativity is not a Boolean value: " + associative)
   if (_isNotBool(commutative))
-    throw new IllegalPropertiesSpecification("Commutativity must have a Boolean value.")
+    throw new IllegalPropertiesSpecification(
+        "Commutativity is not a Boolean value: " + commutative)
   if (_isNotBool(idempotent))
-    throw new IllegalPropertiesSpecification("Idempotency must have a Boolean value.")
+    throw new IllegalPropertiesSpecification(
+        "Idempotency is not a Boolean value: " + idempotent)
   
   // If we are not associative, we cannot have idempotency, identities, or
   // absorbers.
