@@ -996,11 +996,18 @@ extends Parser {
   
   def ParsedSpecialBindForm = rule {
     "{ " ~ Atom ~ (
-        zeroOrMore(Atom) ~~> (NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(),_)) ~
-        zeroOrMore(
-            "#" ~ ESymbol ~ zeroOrMore(Atom) ~~> (_ -> AtomSeqNode(AlgPropNode(),_))
-        )
+        zeroOrMore(Atom) ~~> (
+            NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(),_)) ~
+        zeroOrMore(BindBlock | ListBlock)
     ) ~~> ((x,y) => BindingsNode(x::y)) ~ "} " ~~> (SpecialFormNode(_,_))
+  }
+  
+  def ListBlock = rule {
+    "#" ~ ESymbol ~ zeroOrMore(Atom) ~~> (_ -> AtomSeqNode(AlgPropNode(), _))
+  }
+  
+  def BindBlock = rule {
+    "#" ~ ESymbol ~ "= " ~ Atom ~~> (_ -> _)
   }
   
   //======================================================================
