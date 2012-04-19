@@ -46,6 +46,8 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
           " expected bindings as content, but instead found: " +
           content.toParseString + ".")
   }
+  
+  def toSpecialForm() = new SpecialForm(tag, content)
 }
 
 class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
@@ -93,6 +95,8 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
           item.asInstanceOf[TYPE]
     }
   }
+  
+  def toSpecialForm() = new SpecialForm(tag, content)
 }
 
 /**
@@ -148,12 +152,16 @@ extends BasicAtom {
  * handles dispatch to the appropriate implementation.m
  */
 object SpecialForm {
-  def apply(tag: BasicAtom, content: BasicAtom) = tag match {
-    case sl:SymbolLiteral => sl.value match {
-      case 'bind => BindingsAtom(sl, content)
-      case 'rule => RewriteRule(new SpecialFormHolder(sl, content))
-      case _ => new SpecialForm(sl, content)
-    }
-    case _ => new SpecialForm(tag, content)
+  def apply(tag: BasicAtom, content: BasicAtom) = {
+    val sfh = new SpecialFormHolder(tag, content)
+    tag match {
+	    case sl:SymbolLiteral => sl.value match {
+	      case 'bind => BindingsAtom(sfh)
+	      case 'rule => RewriteRule(sfh)
+	      case 'prop => AlgProp(sfh)
+	      case _ => sfh.toSpecialForm
+	    }
+	    case _ => sfh.toSpecialForm
+	  }
   }
 }

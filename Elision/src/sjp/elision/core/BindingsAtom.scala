@@ -171,37 +171,28 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 }
 
 object BindingsAtom {
-  def apply(tag: SymbolLiteral, binds: BasicAtom): BindingsAtom = binds match {
-    case AtomSeq(_, atoms) =>
-      // The bindings are given as a list of map pairs.
-      var binds = Bindings()
-      (atoms foreach { atom => atom match {
-        case MapPair(lhs, rhs) => lhs match {
-          case SymbolLiteral(_,name) => binds += (name.name -> rhs)
-          case _ =>
-            throw new SpecialFormException(
-                "Bindings LHS is not a symbol: " + lhs.toParseString)
-        }
+  
+  def apply(sfh: SpecialFormHolder): BindingsAtom = sfh.content match {
+    case AtomSeq(_, atoms) => _build(atoms)
+    case _ =>
+      val bh = sfh.requireBindings
+      bh.check(Map("" -> true))
+      val seq = bh.fetchAs[AtomSeq]("")
+      _build(seq.atoms)
+  }
+  
+  private def _build(atoms: Seq[BasicAtom]) = atoms.foldLeft(Bindings()) {
+    (binds, atom) => binds + (atom match {
+      case MapPair(left, right) => left match {
+        case SymbolLiteral(_, sym) => (sym.name -> right)
         case _ =>
           throw new SpecialFormException(
-              "Element of binding list is not a map pair: " + atom.toParseString)
-      }})
-      new BindingsAtom(binds)
-    case BindingsAtom(subbinds) =>
-      // The bindings may be given as the bound value of the empty string.
-      if (subbinds.keySet.subsetOf(Set(""))) {
-        // Good.  Either the bindings for the empty string are specified or
-        // they are not.  Either way is okay at this point.
-	      subbinds.get("") match {
-	        case Some(sublist) => apply(tag, sublist)
-	        case None => new BindingsAtom(Bindings())
-	      }
-      } else {
-        throw new SpecialFormException(
-            "Binding atom is not a 'naked' list of map pairs: " + binds.toParseString)
+              "Invalid binding specification: " + atom.toParseString)
       }
-    case _ =>
-      throw new SpecialFormException(
-          "Binding atom content is not a list of map pairs: " + binds.toParseString)
-  } 
+      case _ =>
+        throw new SpecialFormException(
+            "Invalid binding specification (not a map pair): " +
+            atom.toParseString)
+    })
+  }
 }
