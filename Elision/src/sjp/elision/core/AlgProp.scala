@@ -322,67 +322,38 @@ class AlgProp(
   /**
    * Generate a parse string representation of the atom.
    * 
-   * Each property that is specified is listed, followed by an equal sign,
-   * followed by the property specification (an atom).  For example, integer
-   * add has the following property specification.
-   * {{{
-   * { prop associativity=true, commutativity=true, idempotency=false,
-   *        identity=0 }
-   * }}}
-   * 
-   * @return	The parseable string.
-   */
-  override def toParseString = {
-    var list = List[String]()
-	  associative match {
-	    case None =>
-	    case Some(atom) => list ::= "associative->(" + atom.toParseString + ")"
-	  }
-	  commutative match {
-	    case None =>
-	    case Some(atom) => list ::= "commutative->(" + atom.toParseString + ")"
-	  }
-	  idempotent match {
-	    case None =>
-	    case Some(atom) => list ::= "idempotent->(" + atom.toParseString + ")"
-	  }
-	  absorber match {
-	    case None =>
-	    case Some(atom) => list ::= "absorber->(" + atom.toParseString + ")"
-	  }
-	  identity match {
-	    case None =>
-	    case Some(atom) => list ::= "identity->(" + atom.toParseString + ")"
-	  }
-	  list.mkString("{ prop ", " ", " }")
-  }
-
-  /**
-   * Generate the short string version of this properties object.
-   * 
    * The short properties string uses abbreviations.
    *  - {{A}} for associative
    *  - {{C}} for commutative
    *  - {{I}} for idempotent
    *  - {{B[}}''atom''{{]}} for absorber ''atom''
    *  - {{D[}}''atom''{{]}} for identity ''atom''
+   *  
    * Associativity, commutativity, and idempotency can be negated by prefixing
    * them with an exclamation mark ({{!}}).  Thus {{%A!C}} denotes associativity
    * and non-commutativity.
    * 
+   * Other atoms (such as variables) can be specified for associativity,
+   * commutativity, and idempotency, by giving the atom in square brackets
+   * after the abbreviation.  Thus {{%A[$a]C}} has a variable {{$a}} for
+   * associativity, with commutativity true.
+   * 
    * @return	The short string.
    */
-  def toShortString = "%" + (associative match {
+  def toParseString = "%" + (associative match {
     case Some(Literal.TRUE) => "A"
     case Some(Literal.FALSE) => "!A"
+    case Some(atom) => "A[" + atom.toParseString + "]"
     case _ => ""
   }) + (commutative match {
     case Some(Literal.TRUE) => "C"
     case Some(Literal.FALSE) => "!C"
+    case Some(atom) => "C[" + atom.toParseString + "]"
     case _ => ""
   }) + (idempotent match {
     case Some(Literal.TRUE) => "I"
     case Some(Literal.FALSE) => "!I"
+    case Some(atom) => "I[" + atom.toParseString + "]"
     case _ => ""
   }) + (absorber match {
     case None => ""

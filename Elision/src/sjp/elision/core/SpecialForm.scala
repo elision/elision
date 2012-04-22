@@ -108,12 +108,13 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
 class SpecialForm(val tag: BasicAtom, val content: BasicAtom)
 extends BasicAtom {
 
-  val depth = (tag.depth max content.depth) + 1
-  val deBruijnIndex = tag.deBruijnIndex max content.deBruijnIndex
-  val isConstant = tag.isConstant && content.isConstant
-  val theType = TypeUniverse
-  val isTerm = tag.isTerm && content.isTerm
-  val constantPool = Some(BasicAtom.buildConstantPool(17, tag, content))
+  lazy val depth = (tag.depth max content.depth) + 1
+  lazy val deBruijnIndex = tag.deBruijnIndex max content.deBruijnIndex
+  lazy val isConstant = tag.isConstant && content.isConstant
+  val theType: BasicAtom = TypeUniverse
+  lazy val isTerm = tag.isTerm && content.isTerm
+  lazy val constantPool = Some(BasicAtom.buildConstantPool(17, tag, content))
+  override lazy val hashCode = tag.hashCode * 31 + content.hashCode
   
   override def equals(other: Any) = other match {
     case sf:SpecialForm => tag == sf.tag && content == sf.content
@@ -159,6 +160,7 @@ object SpecialForm {
 	      case 'bind => BindingsAtom(sfh)
 	      case 'rule => RewriteRule(sfh)
 	      case 'prop => AlgProp(sfh)
+	      case 'match => MatchAtom(sfh)
 	      case _ => sfh.toSpecialForm
 	    }
 	    case _ => sfh.toSpecialForm

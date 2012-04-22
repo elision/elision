@@ -447,42 +447,6 @@ object AtomParser {
 	//----------------------------------------------------------------------
 	
 	/**
-	 * A node representing a rewrite rule.
-	 * @param decls			Optional pattern variable declarations.
-	 * @param pattern		The pattern to match.
-	 * @param rewrite		The rewrite to apply when the pattern matches.
-	 * @param guards		The list of guards.
-	 * @param rulesets	The optional list of rulesets.
-	 * @param level			The optional cache level.
-	 */
-	case class RuleNode(
-	    decls: Option[List[VariableNode]],
-	    mappair: MapPairNode,
-	    guards: List[AstNode],
-	    rulesets: Option[List[NakedSymbolNode]],
-	    level: Option[UnsignedIntegerNode]) extends AstNode {
-	  def interpret = {
-	    // Get the rulesets as a list of strings.
-	    val rs = rulesets match {
-	      case None => Set[String]()
-	      case Some(list) => list.map(_.str).toSet
-	    }
-	    // Get the cache level.  The default is zero.
-	    val cl = level match {
-	      case None => 0
-	      case Some(value) => value.asInt.toInt
-	    }
-	    // Make the rule.
-	    RewriteRule(
-	        mappair.left.interpret,
-	        mappair.right.interpret,
-	        guards.map(_.interpret),
-	        rs,
-	        cl)
-	  }
-	}
-	
-	/**
 	 * A node representing a ruleset strategy.
 	 * 
 	 * @param context		A context to supply the rules.
@@ -892,9 +856,6 @@ extends Parser {
       // Handle parenthetical expressions.
       "( " ~ Atom ~ ") " |
       
-      // Parse a rule.
-      ParsedRule |
-      
       // Parse a ruleset strategy.
       ParsedRulesetStrategy |
       
@@ -1089,28 +1050,15 @@ extends Parser {
   //======================================================================
   
   def ParsedAlgProp = rule {
-    ParsedLongPropertyList | ParsedShortPropertyList
-  }
-  
-  def ParsedLongPropertyList = rule {
-    "{ " ~ "prop " ~ zeroOrMore(
-        ("associative "|"A ") ~ "= " ~ FirstAtom ~~> ((x) => AssociativeNode(x)) |
-        ("commutative "|"C ") ~ "= " ~ FirstAtom ~~> ((x) => CommutativeNode(x)) |
-        ("idempotent "|"I ") ~ "= " ~ FirstAtom ~~> ((x) => IdempotentNode(x)) |
-        ("absorber "|"B ") ~ "= " ~ FirstAtom ~~> ((x) => AbsorberNode(x)) |
-        ("identity "|"D ") ~ "= " ~ FirstAtom ~~> ((x) => IdentityNode(x)),
-        ", "
-        ) ~ "} " ~~>
-    (AlgPropNode(_))
-  }
-  
-  def ParsedShortPropertyList = rule {
     "%" ~ zeroOrMore(
         ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~> ((x) => AbsorberNode(x)) |
         ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~> ((x) => IdentityNode(x)) |
-        ignoreCase("A") ~> ((x) => AssociativeNode(TrueNode)) |
-        ignoreCase("C") ~> ((x) => CommutativeNode(TrueNode)) |
-        ignoreCase("I") ~> ((x) => IdempotentNode(TrueNode)) |
+        ignoreCase("A") ~ optional("[ " ~ Atom ~ "]") ~~>
+        	((x) => AssociativeNode(x.getOrElse(TrueNode))) |
+        ignoreCase("C") ~ optional("[ " ~ Atom ~ "]") ~~>
+        	((x) => CommutativeNode(x.getOrElse(TrueNode))) |
+        ignoreCase("I") ~ optional("[ " ~ Atom ~ "]") ~~>
+        	((x) => IdempotentNode(x.getOrElse(TrueNode))) |
         ignoreCase("!A") ~> ((x) => AssociativeNode(FalseNode)) |
         ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
         ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
@@ -1151,35 +1099,6 @@ extends Parser {
   //======================================================================
   // Parse a rewrite rule.
   //======================================================================
-
-  /**
-   * Parse a rule.
-   */
-  def ParsedRule = rule(
-    "{ " ~
-    
-    // First there are optional variable declarations.  This may go away!
-    optional("@ " ~ ParsedVariable ~
-        zeroOrMore(anyOf(",@") ~ WS ~ ParsedVariable) ~~> (
-        (head: VariableNode, tail: List[VariableNode]) => head :: tail)) ~
-
-    // Next is the rule itself, consisting of a pattern, a rewrite, and zero
-    // or more guards.
-    ignoreCase("rule") ~ WS ~
-    ParsedMapPair ~ zeroOrMore("if " ~ Atom) ~
-
-    // Next the rule can be declared to be in zero or more rulesets.
-    optional(ParsedRulesetList) ~
-
-    // Finally the rule's cache level can be declared.  This must be the
-    // last item, if present.
-    optional("level " ~ AnyInteger) ~ "} " ~~> (
-        RuleNode(
-            _: Option[List[VariableNode]],
-            _: MapPairNode,
-            _: List[AstNode],
-            _: Option[List[NakedSymbolNode]],
-            _: Option[UnsignedIntegerNode]))).label("a rewrite rule")
             
   /**
    * Parse a comma-separated list of ruleset names, introduced by the keyword

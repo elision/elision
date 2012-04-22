@@ -7,6 +7,8 @@
 %%\usepackage{minted}
 \definecolor{shadecolor}{rgb}{0.8,0.8,1}
 \sloppypar
+%\usepackage{nameref}
+\usepackage{fancybox}
 \end_preamble
 \use_default_options true
 \begin_modules
@@ -7757,6 +7759,1525 @@ $`:2`
 \family default
  with De Bruijn index of two, and thus the entire lambda constructs a new
  
+\end_layout
+
+\begin_layout Chapter
+Grammar
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+term}[1]{
+\backslash
+fbox{
+\backslash
+texttt{#1}}}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+citerm}[1]{
+\backslash
+doublebox{
+\backslash
+texttt{#1}}}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand
+\backslash
+defntx[1]{~
+\backslash
+
+\backslash
+[1em]
+\backslash
+textbf{#1}~::=~}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand
+\backslash
+defnt[1]{~
+\backslash
+
+\backslash
+[1em]
+\backslash
+textbf{#1}~::=~}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+nt}[1]{
+\backslash
+emph{#1}}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+ordef}{~
+\backslash
+
+\backslash
+
+\backslash
+hspace{0.5in}|~}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+shortor}{~|~}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+zeroOrMore}[1]{(#1){*}}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+optional}[1]{(#1)?}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+caret}{
+\backslash
+textasciicircum{}}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+juxt}{$
+\backslash
+cdot$}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The grammar for Elision is described in extended Backus-Naur form (EBNF)
+ in this appendix.
+ Terminals are indicated with text in fixed font, boxed, as 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{terminal}
+\end_layout
+
+\end_inset
+
+.
+ Elision is normally case-sensitive, but some terminals are case-insensitive.
+ These are indicated with a double box, as 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+citerm{terminal}
+\end_layout
+
+\end_inset
+
+.
+ Nonterminals are indicated with italics, as 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+nt{nonterminal}
+\end_layout
+
+\end_inset
+
+.
+ Character ranges in unicode are indicated by a dash, so any single nonzero
+ digit is 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{1}
+\end_layout
+
+\end_inset
+
+-
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{9}
+\end_layout
+
+\end_inset
+
+.
+ Productions are indicated with ::=.
+ Parentheses indicate grouping.
+ If an item may appear zero or more times, this is indicated with a suffixed
+ asterisk, as 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+zeroOrMore{
+\backslash
+nt{atom}}
+\end_layout
+
+\end_inset
+
+.
+ Optional items are indicated with a suffixed question mark, as 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+optional{
+\backslash
+nt{atom}}
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+In general arbitrary white space is allowed.
+ When no whitespace is allowed between two elements of the grammar, the
+ elements are joined by a dot, as 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{
+\backslash
+#}
+\backslash
+juxt
+\backslash
+nt{atom}
+\end_layout
+
+\end_inset
+
+.
+ The special terminal 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{ANY}
+\end_layout
+
+\end_inset
+
+ is described at the end, and corresponds to any character other than the
+ backslash 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{
+\backslash
+textbackslash}
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\align left
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{atom-seq} 
+\backslash
+zeroOrMore{
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{atom} 
+\backslash
+nt{first-atom} 
+\backslash
+term{->} 
+\backslash
+nt{first-atom}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+ordef
+\backslash
+nt{first-atom} 
+\backslash
+zeroOrMore{
+\backslash
+term{.} 
+\backslash
+nt{first-atom})}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{first-atom} 
+\backslash
+term{(} 
+\backslash
+nt{atom} 
+\backslash
+term{)}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{special-form}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{lambda}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{apply}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{typed-list}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{alg-prop}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{variable}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{operator-symbol}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{literal}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+nt{number}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+term{
+\backslash
+caret TYPE}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{special-form} 
+\backslash
+term{
+\backslash
+{:} 
+\backslash
+nt{atom} 
+\backslash
+nt{atom} 
+\backslash
+term{:
+\backslash
+}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+term{
+\backslash
+{} 
+\backslash
+nt{atom} 
+\backslash
+zeroOrMore{
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+		
+\backslash
+zeroOrMore{
+\backslash
+nt{sf-bound-atom}|
+\backslash
+nt{sf-bound-list}} 
+\backslash
+term{
+\backslash
+}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{sf-bound-atom} 
+\backslash
+term{
+\backslash
+#}
+\backslash
+juxt
+\backslash
+nt{SYMBOL} 
+\backslash
+term{=} 
+\backslash
+nt{atom}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{sf-bound-list} 
+\backslash
+term{
+\backslash
+#}
+\backslash
+juxt
+\backslash
+nt{SYMBOL} 
+\backslash
+zeroOrMore{
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{lambda} 
+\backslash
+term{
+\backslash
+textbackslash{}} 
+\backslash
+nt{variable} 
+\backslash
+term{.} 
+\backslash
+nt{first-atom}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{apply} 
+\backslash
+nt{SYMBOL} 
+\backslash
+term{(} 
+\backslash
+nt{atom-sequence} 
+\backslash
+term{)}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{atom-sequence} 
+\backslash
+nt{atom} 
+\backslash
+zeroOrMore{
+\backslash
+term{,} 
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{typed-list} 
+\backslash
+nt{alg-prop} 
+\backslash
+term{(} 
+\backslash
+nt{atom-sequence} 
+\backslash
+term{)}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{alg-prop} 
+\backslash
+term{
+\backslash
+%}
+\backslash
+juxt 
+\backslash
+zeroOrMore{
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+citerm{A}
+\backslash
+optional{
+\backslash
+term{=}
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{C}
+\backslash
+optional{
+\backslash
+term{=}
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{I}
+\backslash
+optional{
+\backslash
+term{=}
+\backslash
+nt{atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{!A}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{!C}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{!I}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{B}
+\backslash
+term{[}
+\backslash
+nt{atom}
+\backslash
+term{]}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+citerm{D}
+\backslash
+term{[}
+\backslash
+nt{atom}
+\backslash
+term{]}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{variable} (
+\backslash
+term{
+\backslash
+$}
+\backslash
+shortor
+\backslash
+term{
+\backslash
+$
+\backslash
+$})
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+nt{SYMBOL}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+term{
+\backslash
+{} 
+\backslash
+nt{atom} 
+\backslash
+term{
+\backslash
+}}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+term{:} 
+\backslash
+nt{first-atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+zeroOrMore{
+\backslash
+term{@} 
+\backslash
+nt{SYMBOL}}
+\end_layout
+
+\begin_layout Plain Layout
+
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{operator-symbol} 
+\backslash
+nt{SYMBOL} 
+\backslash
+term{:} 
+\backslash
+term{OPTYPE}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{literal} 
+\backslash
+nt{SYMBOL}
+\backslash
+shortor
+\backslash
+nt{STRING}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{number} 
+\backslash
+nt{any-number} 
+\backslash
+optional{
+\backslash
+term{:} 
+\backslash
+nt{first-atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{any-number} 
+\backslash
+nt{hex-number}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{hex-number}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{binary-number}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{decimal-number}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{octal-number}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{hex-number} 
+\backslash
+nt{hex-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt
+\backslash
+term{.}
+\backslash
+nt{hex-digit}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt
+\backslash
+citerm{P}
+\backslash
+juxt
+\backslash
+nt{exponent}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{binary-number}
+\backslash
+nt{binary-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt
+\backslash
+term{.}
+\backslash
+juxt
+\backslash
+nt{binary-digit}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt(
+\backslash
+citerm{E}
+\backslash
+shortor
+\backslash
+citerm{P})
+\backslash
+juxt
+\backslash
+nt{exponent}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{decimal-number}
+\backslash
+nt{decimal-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt
+\backslash
+term{.}
+\backslash
+juxt
+\backslash
+nt{decimal-digit}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt(
+\backslash
+citerm{E}
+\backslash
+shortor
+\backslash
+citerm{P})
+\backslash
+juxt
+\backslash
+nt{exponent}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{octal-number}
+\backslash
+nt{octal-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt
+\backslash
+term{.}
+\backslash
+juxt
+\backslash
+nt{octal-digit}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{
+\backslash
+juxt(
+\backslash
+citerm{E}
+\backslash
+shortor
+\backslash
+citerm{P})
+\backslash
+juxt
+\backslash
+nt{exponent}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{exponent} 
+\backslash
+optional{
+\backslash
+term{-}
+\backslash
+shortor
+\backslash
+term{+}} 
+\backslash
+juxt
+\backslash
+nt{any-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{any-integer} 
+\backslash
+nt{hex-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{hex-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{binary-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{decimal-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor 
+\backslash
+nt{octal-integer}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{hex-integer} 
+\backslash
+citerm{0X} 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+nt{hex-digit}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{binary-integer} 
+\backslash
+citerm{0B} 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+term{0}
+\backslash
+shortor
+\backslash
+term{1}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{decimal-integer} 
+\backslash
+term{1}-
+\backslash
+term{9} 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+nt{digit}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{octal-integer} 
+\backslash
+term{0} 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+term{0}-
+\backslash
+term{7}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{hex-digit} 
+\backslash
+citerm{A}-
+\backslash
+citerm{F}
+\backslash
+shortor
+\backslash
+nt{digit}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{SYMBOL} (
+\backslash
+nt{letter}
+\backslash
+shortor
+\backslash
+term{
+\backslash
+_}) 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+nt{letter}
+\backslash
+shortor
+\backslash
+nt{digit}
+\backslash
+shortor
+\backslash
+term{
+\backslash
+_}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+term{`} 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+nt{escape}
+\backslash
+shortor
+\backslash
+nt{ANY}} 
+\backslash
+juxt
+\backslash
+term{`}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{STRING} 
+\backslash
+term{"} 
+\backslash
+juxt
+\backslash
+zeroOrMore{
+\backslash
+nt{escape}
+\backslash
+shortor 
+\backslash
+nt{ANY}} 
+\backslash
+juxt
+\backslash
+term{"}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{escape} 
+\backslash
+term{
+\backslash
+textbackslash{}"}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor
+\backslash
+term{
+\backslash
+textbackslash{}"}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor
+\backslash
+term{
+\backslash
+textbackslash{}'}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor
+\backslash
+term{
+\backslash
+textbackslash{}n}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor
+\backslash
+term{
+\backslash
+textbackslash{}r}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor
+\backslash
+term{
+\backslash
+textbackslash{}t}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+shortor
+\backslash
+term{
+\backslash
+textbackslash{}
+\backslash
+textbackslash{}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{letter} 
+\backslash
+citerm{A}-
+\backslash
+citerm{Z}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{digit} 
+\backslash
+term{0}-
+\backslash
+term{9}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{ANY} 
+\backslash
+emph{Any character other than} 
+\backslash
+term{
+\backslash
+textbackslash{}}.
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \end_body

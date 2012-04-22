@@ -40,21 +40,21 @@ object Strategies {
     
   // Declare the if operator and the rules to make it work.
   { operator if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T }
-  { rule if(true, $thenpart, $elsepart) -> $thenpart ruleset IF level 2 }
-  { rule if(false, $thenpart, $elsepart) -> $elsepart ruleset IF level 2 }
+  { rule if(true, $thenpart, $elsepart) -> $thenpart #ruleset IF }
+  { rule if(false, $thenpart, $elsepart) -> $elsepart #ruleset IF }
     
   // The no-op strategy leaves atoms unmodified.  The flag is always set to
   // true.
   { operator s_noop(): STRATEGY }
-  { rule (s_noop().$a) -> {bind atom->$a flag->true} ruleset STRAT level 1 }
+  { rule (s_noop().$a) -> {bind atom->$a flag->true} #ruleset STRAT }
     
   // Declare operators to modify the flag returned from a strategy.
   { operator s_true($s: STRATEGY): STRATEGY }
-  { rule (s_true($s).$a) -> ($s.$a).{bind atom->$atom flag->true}
-    ruleset STRAT level 1 }
+  { rule (s_true($s).$a) -> (($s.$a).{bind atom->$atom flag->true})
+    #ruleset STRAT }
   { operator s_false($s: STRATEGY): STRATEGY }
-  { rule (s_false($s).$a) -> ($s.$a).{bind atom->$atom flag->false} 
-    ruleset STRAT level 1 }
+  { rule (s_false($s).$a) -> (($s.$a).{bind atom->$atom flag->false}) 
+    #ruleset STRAT }
     
   // Declare the if strategy.  This executes the first strategy, and checks
   // the flag.  If it is true, the second strategy is executed.  Otherwise the
@@ -63,28 +63,28 @@ object Strategies {
   { operator s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
   	$elsepart: STRATEGY @lazy): STRATEGY }
   { rule (s_if($test, $thenpart, $elsepart).$a) ->
-    ($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom))
-    ruleset STRAT level 1 }
+    (($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom)))
+    #ruleset STRAT }
     
   // The while strategy executes the subordinate strategy for as long as it
   // yields the true flag.
   { operator s_while($test: STRATEGY): STRATEGY }
   { rule (s_while($test).$a) ->
-    (s_if($test, s_while($test), s_noop()).$a) ruleset STRAT level 1 }
+    (s_if($test, s_while($test), s_noop()).$a) #ruleset STRAT }
     
   { operator s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
   { rule (s_then($p, $q).$a) ->
-    ($q.(($p.$a).$atom)) ruleset STRAT level 1 }
+    ($q.(($p.$a).$atom)) #ruleset STRAT }
     
   { operator s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
   { rule (s_and($p, $q).$a) ->
-    (s_if($p, $q, s_noop()).$a) ruleset STRAT level 1 }
+    (s_if($p, $q, s_noop()).$a) #ruleset STRAT }
     
   { operator s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
   { rule (s_or($p, $q).$a) ->
-    (s_if($p, s_noop(), $q).$a) ruleset STRAT level 1 }
+    (s_if($p, s_noop(), $q).$a) #ruleset STRAT }
     
-  { operator s_td($part: STRATEGY): STRATEGY}
-  { rule (s_td($s).$a) -> s_then($s,{map s_td($s)}).$a ruleset STRAT level 1}
+  { operator s_td($part: STRATEGY): STRATEGY }
+  { rule (s_td($s).$a) -> (s_then($s,{map s_td($s)}).$a) #ruleset STRAT }
   """
 }

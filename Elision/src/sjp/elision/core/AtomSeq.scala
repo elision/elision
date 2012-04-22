@@ -204,9 +204,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * 
    * @return	The parseable string.
    */
-  def toParseString = atoms.mkParseString(
-      (if (props.isConstant) props.toShortString else props.toParseString) +
-      "(" , ", ", ")")
+  def toParseString = atoms.mkParseString(props.toParseString + "(" , ", ", ")")
 
   /**
    * Provide a "naked" version of the sequence, without the parens and property

@@ -499,7 +499,7 @@ private object Completor {
         var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
         list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
             Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, rule.cacheLevel, true)
+            rule.guards, rule.rulesets, true)
         
         // If the operator is commutative, we are done.
         if (props.isC(false)) {
@@ -512,14 +512,14 @@ private object Completor {
         newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
         list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
             Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, rule.cacheLevel, true)
+            rule.guards, rule.rulesets, true)
             
         // And again add the argument on the right-hand side.
         newpatternlist = newpatternlist :+ right
         newrewritelist = newrewritelist :+ right
         list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
             Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, rule.cacheLevel, true)
+            rule.guards, rule.rulesets, true)
             
         // Done.
         return list

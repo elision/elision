@@ -190,11 +190,10 @@ object RewriteRule {
 	 * @param rewrite			The rewrite to apply on match.
 	 * @param guards			Guards that must be true to accept a match.
 	 * @param rulesets		The rulesets that contain this rule.
-	 * @param cachelLevel	Memoization cache level.
    */
   def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
-      rulesets: Set[String], cacheLevel: Int) =
-		  new RewriteRule(pattern, rewrite, guards, rulesets, cacheLevel, false)
+      rulesets: Set[String]) =
+		  new RewriteRule(pattern, rewrite, guards, rulesets, false)
   
   /**
    * Create a rewrite rule.
@@ -203,21 +202,20 @@ object RewriteRule {
 	 * @param rewrite			The rewrite to apply on match.
 	 * @param guards			Guards that must be true to accept a match.
 	 * @param rulesets		The rulesets that contain this rule.
-	 * @param cachelLevel	Memoization cache level.
 	 * @param synthetic		If true, this is a synthetic rule.
    */
   def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
-      rulesets: Set[String], cacheLevel: Int, synthetic: Boolean) =
-		  new RewriteRule(pattern, rewrite, guards, rulesets, cacheLevel, synthetic)
+      rulesets: Set[String], synthetic: Boolean) =
+		  new RewriteRule(pattern, rewrite, guards, rulesets, synthetic)
 
   /**
    * Break a rewrite rule into its parts.  The synthetic flag is not returned.
    * 
    * @param rule	The rewrite rule.
-   * @return	The pattern, rewrite, guards, rulesets, and cache level.
+   * @return	The pattern, rewrite, guards, and rulesets.
    */
   def unapply(rule: RewriteRule) = Some((rule.pattern, rule.rewrite,
-      rule.guards, rule.rulesets, rule.cacheLevel))
+      rule.guards, rule.rulesets))
       
   def apply(sfh: SpecialFormHolder): RewriteRule = {
     // A rewrite rule must be given with a binding.
@@ -250,7 +248,7 @@ object RewriteRule {
       }
     }
     // Build the rule.
-    RewriteRule(pair.left, pair.right, guards.atoms, rulesets.toSet, 0)
+    RewriteRule(pair.left, pair.right, guards.atoms, rulesets.toSet)
   }
 }
 
@@ -267,11 +265,10 @@ object RewriteRule {
  * @param rewrite			The rewrite to apply on match.
  * @param guards			Guards that must be true to accept a match.
  * @param rulesets		The rulesets that contain this rule.
- * @param cachelLevel	Memoization cache level.
  * @param synthetic		If true, this is a synthetic rule.
  */
 class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
-    val guards: Seq[BasicAtom], val rulesets: Set[String], val cacheLevel: Int,
+    val guards: Seq[BasicAtom], val rulesets: Set[String],
     val synthetic: Boolean = false)
     extends BasicAtom with Rewriter {
   val theType = STRATEGY
@@ -303,7 +300,7 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
       hints: Option[Any]) =
     // Rules match only other rules.
     subject match {
-	    case RewriteRule(opat, orew, ogua, orul, olev) =>
+	    case RewriteRule(opat, orew, ogua, orul) =>
 	      SequenceMatcher.tryMatch(pattern +: rewrite +: guards.toIndexedSeq,
 	          opat +: orew +: ogua.toIndexedSeq)
 	    case _ => Fail("Rules cannot match non-rules.", this, subject)
@@ -323,9 +320,9 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
     })
     
     // If any part of the rewrite rule changed, generate a new rewrite rule,
-    // preserving the ruleset membership and cache level.
+    // preserving the ruleset membership.
     if (changed)
-      (RewriteRule(newpat, newrew, newgua, rulesets, cacheLevel), true)
+      (RewriteRule(newpat, newrew, newgua, rulesets), true)
     else (this, false)
   }
   
@@ -380,12 +377,12 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
     }
   }
   
-  def toParseString = "{ RULE " + pattern.toParseString + " -> " +
+  def toParseString = "{ rule " + pattern.toParseString + " -> " +
   	rewrite.toParseString +
-  	(if (!guards.isEmpty) guards.mkParseString(" if ", " if ", "") else "") +
+  	(if (!guards.isEmpty) guards.mkParseString(" #if ", " ", "") else "") +
   	(if (!rulesets.isEmpty)
-  	  rulesets.map(toESymbol(_)).mkString(" rulesets ", ", ", "") else "") +
-  	" level " + cacheLevel + " }"
+  	  rulesets.map(toESymbol(_)).mkString(" #rulesets ", " ", "") else "") +
+  	" }"
   	
   // To make a Scala parseable string we have to make the ruleset names into
   // parseable strings.
@@ -393,8 +390,7 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
   	pattern.toString + ", " +
   	rewrite.toString + ", " +
   	guards.toString + ", " +
-  	rulesets.map(toEString(_)) + ", " +
-  	cacheLevel + ")"
+  	rulesets.map(toEString(_)) + ")"
   	
   override lazy val hashCode = (pattern.hashCode * 31 + rewrite.hashCode) *
       31 + guards.hashCode

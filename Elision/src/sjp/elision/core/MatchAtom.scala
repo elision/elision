@@ -33,34 +33,17 @@ package sjp.elision.core
  * @author ysp
  *
  */
-case class MatchAtom(pat: BasicAtom) extends BasicAtom with Applicable {
+class MatchAtom(tag: BasicAtom, val pat: BasicAtom)
+extends SpecialForm(tag, pat) with Applicable {
   /** The type of this atom. */
-  val theType = OperatorLibrary.MAP(ANY, BINDING)
-  
-  /** The apply is constant iff its pattern is. */
-  val isConstant = pat.isConstant
-  
-  /** This is a term iff its pattern is. */
-  val isTerm = pat.isTerm
-  
-  /** The constant pool aggregated from the child. */
-  val constantPool = Some(BasicAtom.buildConstantPool(13, pat))
-  
-  /** The depth is one more than the depth of the child. */
-  val depth = pat.depth + 1
-  
-  /** The De Bruijn index computed from the child. */
-  val deBruijnIndex = pat.deBruijnIndex
-  
-  /** The hash code for this apply. */
-  override lazy val hashCode = "match".hashCode * 31 + pat.hashCode
+  override val theType = OperatorLibrary.MAP(ANY, BINDING)
 
   /**
    * Apply this match atom to the given atom.  This performs the matc
    * and returns either the bindings of the first match, or Nothing if
    * it does not match.
    * 
-   * @param atom	The subject ot match.
+   * @param atom	The subject to match.
    * @return	Bindings, or Nothing.
    */
   def doApply(atom: BasicAtom): BasicAtom = pat.tryMatch(atom) match {
@@ -68,37 +51,6 @@ case class MatchAtom(pat: BasicAtom) extends BasicAtom with Applicable {
     case Match(binds) => BindingsAtom(binds)
     case Many(iter) => BindingsAtom(iter.next)
   }
-
-  /**
-   * Try to match this atom against another.
-   * 
-   * @param subject	The subject.
-   * @param binds		Bindings to honor.
-   * @param hints		Hints.
-   */
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]): Outcome = subject match {
-    case MatchAtom(opat) => pat.tryMatch(opat, binds, hints)
-    case _ => Fail("Subject is not a match atom.", this, subject)
-  }
-
-  /**
-   * Rewrite this atom with the provided bindings.
-   * 
-   * @param binds		The bindings to apply.
-   * @return	The rewitten atom, and a flag indicating success.
-   */
-  def rewrite(binds: Bindings) = pat.rewrite(binds) match {
-    case (newpat, true) => (MatchAtom(newpat), true)
-    case _ => (this, false)
-  }
-
-  /**
-   * Make a parseable string for this match atom.
-   * 
-   * @return	A parseable atom.
-   */
-  def toParseString() = "{ match " + pat.toParseString + " }"
   
   /**
    * Make a Scala parseable representation of this atom.
@@ -106,4 +58,17 @@ case class MatchAtom(pat: BasicAtom) extends BasicAtom with Applicable {
    * @return 	A parseable atom.
    */
   override def toString = "MatchAtom(" + pat.toString + ")"
+}
+
+object MatchAtom {
+  def apply(sfh: SpecialFormHolder): MatchAtom = {
+    sfh.requireBindings.fetchAs[AtomSeq]("") match {
+      case Args(atom: BasicAtom) =>
+        new MatchAtom(sfh.tag, sfh.content)
+      case x =>
+        throw new SpecialFormException(
+            "Did not find exactly one pattern: " + x.toParseString)
+    }
+  }
+  def apply(pat: BasicAtom) = new MatchAtom(Literal('match), pat)
 }

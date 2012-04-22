@@ -40,10 +40,10 @@ object Scheme {
 	{ operator cons($head: $T, $tail: CONS): CONS }
 	{ operator head($cons: CONS): ANY }
 	{ operator tail($cons: CONS): ANY }
-	{ rule head(NIL:CONS) -> ERROR ruleset Scheme }
-	{ rule tail(NIL:CONS) -> NIL:CONS ruleset Scheme }
-	{ rule head(cons($h, $t)) -> $h ruleset Scheme }
-	{ rule tail(cons($h, $t)) -> $t ruleset Scheme }
+	{ rule head(NIL:CONS) -> ERROR #ruleset Scheme }
+	{ rule tail(NIL:CONS) -> NIL:CONS #ruleset Scheme }
+	{ rule head(cons($h, $t)) -> $h #ruleset Scheme }
+	{ rule tail(cons($h, $t)) -> $t #ruleset Scheme }
 	  
 	// SKI Calculus.
 	bind($S, \$x.\$y.\$z.($x.$z.($y.$z)))
