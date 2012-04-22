@@ -9,6 +9,13 @@
 \sloppypar
 %\usepackage{nameref}
 \usepackage{fancybox}
+\newenvironment{elision}{%
+\VerbatimEnvironment
+\begin{lstlisting}%
+}{%
+\end{lstlisting}%
+}
+\definecolor{listing}{RGB}{224,224,224}
 \end_preamble
 \use_default_options true
 \begin_modules
@@ -67,7 +74,7 @@ figs-within-sections
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
-\listings_params "language=Java,numbers=left"
+\listings_params "backgroundcolor={\color{listing}},basewidth={.5em},basicstyle={\ttfamily\small},columns=fixed,commentstyle={\color{blue}\emph},language=Java,morecomment={[l]{e>}},morecomment={[l]{q>}},morecomment={[l]{\ >}},numbers=none"
 \tracking_changes false
 \output_changes false
 \html_math_output 0
@@ -1251,32 +1258,49 @@ Atoms can span multiple lines.
  The newlines are converted to spaces.
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
 e> { operator set($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN
 \end_layout
 
-\begin_layout LyX-Code
- >   is associative, commutative, idempotent
+\begin_layout Plain Layout
+
+ >   %ACI
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
  > }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 e> "
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
  > Fred
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
  > "
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl19 = " Fred "
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
@@ -1296,115 +1320,146 @@ history()
  command.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-history()
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> history()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 1: {operator neg($x:INTEGER):INTEGER}
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 2: {rule add($x,neg($x)) -> 0}
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 3: add(21,17,$x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 4: history()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Persistent history is found in: /home/userguy/.elision
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 It is possible to recall any prior history element by entering the history
  index after an exclamation mark.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> !3
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-!3
-\end_layout
+\begin_layout Plain Layout
 
-\begin_layout LyX-Code
 add(21,17,$x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl14 = add($x, 38)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-bind($x, 2)
+\begin_layout Plain Layout
+
+e> bind($x, 2)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Bound $x
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-!3
+\begin_layout Plain Layout
+
+e> !3
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 add(21,17,$x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl15 = 40
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-history()
+\begin_layout Plain Layout
+
+e> history()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 1: {native neg($x:INTEGER):INTEGER}
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 2: {rule add($x,neg($x)) -> 0}
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 3: add(21,17,$x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 4: history()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 5: add(21,17,$x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 6: bind($x, 2)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 7: add(21,17,$x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 8: history()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Persistent history is found in: /home/userguy/.elision
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
@@ -1548,60 +1603,67 @@ unbind
 \end_inset
 
  them first.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> bind($x,7)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-bind($x,7)
-\end_layout
+\begin_layout Plain Layout
 
-\begin_layout LyX-Code
 Bound $x
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-bind($y,
+\begin_layout Plain Layout
+
+e> bind($y,
 \backslash
 $x.%($x,$x))
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Bound $y
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-$x
+\begin_layout Plain Layout
+
+e> $x
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl16 = 7
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-$y
+\begin_layout Plain Layout
+
+e> $y
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl17 = 
 \backslash
 $`:1`.%($`:1`, $`:1`)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-$y.$x
+\begin_layout Plain Layout
+
+e> $y.$x
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl18 = %(7, 7)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1632,24 +1694,34 @@ $y.$x
  No error is generated if a variable is not bound.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-unbind($x)
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> unbind($x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Unbound $x
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-$y.$x
+\begin_layout Plain Layout
+
+e> $y.$x
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl19 = %($x, $x)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1704,48 +1776,59 @@ showprior()
  command.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-bind($x,10)
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> bind($x,10)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Bound $x
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-showprior()
+\begin_layout Plain Layout
+
+e> showprior()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Showing prior term is ON.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-add($x,$x,0)
+\begin_layout Plain Layout
+
+e> add($x,$x,0)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 add($x, $x)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl20 = 20
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-showprior()
+\begin_layout Plain Layout
+
+e> showprior()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Showing prior term is OFF.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1826,35 +1909,46 @@ core
  package is imported.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-showscala()
+\begin_layout Plain Layout
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> showscala()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Showing Scala is ON.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
+\begin_layout Plain Layout
 
+e> 
 \backslash
 $x:$T.$T
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T", BooleanLite
 ral(NamedRootType("BOOLEAN"), true), Set()), ":1", BooleanLiteral(NamedRootType(
 "BOOLEAN"), true), Set()), Variable(NamedRootType("ANY"), "T", BooleanLiteral(Na
 medRootType("BOOLEAN"), true), Set()))
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl28 = 
 \backslash
 $`:1`:$T.$T
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Plain Layout
@@ -1910,30 +2004,39 @@ disable(RS)
  command.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-if (true, 6, 7)
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> if (true, 6, 7)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl19 = if(true, 6, 7)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-enable(IF)
+\begin_layout Plain Layout
+
+e> enable(IF)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-if (true, 6, 7)
+\begin_layout Plain Layout
+
+e> if (true, 6, 7)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl20 = 6
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1969,19 +2072,30 @@ atom
  is the atom to test.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-showrules(if (true, 6, 7))
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> showrules(if (true, 6, 7))
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 { RULE if(true, $thenpart, $elsepart) -> $thenpart rulesets IF level 2 }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 { RULE if(false, $thenpart, $elsepart) -> $elsepart rulesets IF level 2
  } 
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout LyX-Code
