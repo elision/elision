@@ -47,23 +47,27 @@ class AlgProp(
   
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {
+    case Some(ANY) => false
     case Some(atom) =>
       atom.theType match {
         case ANY => false
         case BOOLEAN => false
-        case _ => println(atom.theType); true
+        case _ => true
       }
     case None => false
   }
   if (_isNotBool(associative))
     throw new IllegalPropertiesSpecification(
-        "Associativity is not a Boolean value: " + associative)
+        "Associativity value must be a Boolean, but the provided value was: " +
+        associative.get.toParseString)
   if (_isNotBool(commutative))
     throw new IllegalPropertiesSpecification(
-        "Commutativity is not a Boolean value: " + commutative)
+        "Commutativity value must be a Boolean, but the provided value was: " +
+        commutative.get.toParseString)
   if (_isNotBool(idempotent))
     throw new IllegalPropertiesSpecification(
-        "Idempotency is not a Boolean value: " + idempotent)
+        "Idempotency value must be a Boolean, but the provided value was: " +
+        idempotent.get.toParseString)
   
   // If we are not associative, we cannot have idempotency, identities, or
   // absorbers.
@@ -211,8 +215,9 @@ class AlgProp(
     val idemp = _rewrite(idempotent, binds)
     val absor = _rewrite(absorber, binds)
     val ident = _rewrite(identity, binds)
-    if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) (this, false)
-    else (AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
+    if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2)
+      (AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
+    else (this, false)
   }
   
   /**
@@ -372,8 +377,16 @@ object AlgProp {
       commutative: Option[BasicAtom] = None,
       idempotent: Option[BasicAtom] = None,
       absorber: Option[BasicAtom] = None,
-      identity: Option[BasicAtom] = None) =
-    new AlgProp(associative, commutative, idempotent, absorber, identity)
+      identity: Option[BasicAtom] = None) = {
+    // Having the value ANY is really the same as being unspecified, so
+    // we correct that now.
+    def _adjust(opt: Option[BasicAtom]) = opt match {
+      case Some(ANY) => None
+      case _ => opt
+    }
+    new AlgProp(_adjust(associative), _adjust(commutative), _adjust(idempotent),
+        _adjust(absorber), _adjust(identity))
+  }
 }
 
 /** No properties. */

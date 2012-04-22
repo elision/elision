@@ -176,8 +176,8 @@ object BindingsAtom {
     case AtomSeq(_, atoms) => _build(atoms)
     case _ =>
       val bh = sfh.requireBindings
-      bh.check(Map("" -> true))
-      val seq = bh.fetchAs[AtomSeq]("")
+      bh.check(Map("" -> false))
+      val seq = bh.fetchAs[AtomSeq]("", Some(EmptySeq))
       _build(seq.atoms)
   }
   
