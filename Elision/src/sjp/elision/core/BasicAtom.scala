@@ -33,6 +33,20 @@ package sjp.elision.core
 import scala.collection.immutable.HashMap
 
 /**
+ * This marker trait is used to frighten developers and strike fear into
+ * anyone trying to parallelize something in the library.  If you see it,
+ * BEWARE!  The associated class contains some form of mutable data!
+ */
+trait Mutable
+
+/**
+ * This marker trait is used to frighten developers and strike fear into
+ * anyone trying to get some work done.  If you see it, BEWARE!  The associated
+ * class is going to change dramatically, disappear, or explode violently.
+ */
+trait Fickle
+
+/**
  * A ''rewriter'' is an atom that can be applied to some other atom to generate
  * a potentially new atom.  It also needs to report its ''success'' via a flag.
  */

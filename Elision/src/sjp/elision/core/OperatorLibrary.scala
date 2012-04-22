@@ -84,7 +84,7 @@ class UndefinedOperatorException(msg: String) extends ElisionException(msg)
  */
 class OperatorLibrary(
     val allowUndefined: Boolean = false,
-    val allowRedefinition: Boolean = false) {
+    val allowRedefinition: Boolean = false) extends Fickle with Mutable {
 
   /**
    * The mapping from operator name to operator.  This holds the mapping as it

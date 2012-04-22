@@ -92,6 +92,7 @@ extends HashMap[String, BasicAtom] {
  * Simplified construction of bindings.
  */
 object Bindings {
+  val EmptyBinds = new Bindings(new HashMap[String,BasicAtom]())
   def apply(map: HashMap[String,BasicAtom]) = new Bindings(map)
-  def apply() = new Bindings(new HashMap[String,BasicAtom])
+  def apply() = EmptyBinds
 }

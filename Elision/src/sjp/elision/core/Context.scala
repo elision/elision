@@ -52,7 +52,7 @@ class StrategyRedefinitionException(msg: String) extends ElisionException(msg)
  * 
  * @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
  */
-class Context(val allowUndeclared:Boolean = false) {
+class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   //======================================================================
   // Global bindings management.

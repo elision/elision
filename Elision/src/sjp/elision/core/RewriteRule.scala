@@ -80,6 +80,27 @@ extends BasicAtom with Rewriter {
   }
 }
 
+class MapStrat(sfh: SpecialFormHolder, val lhs: BasicAtom,
+    val include: BasicAtom, val exclude: BasicAtom)
+extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
+  override val theType = STRATEGY
+	
+	def doRewrite(atom: BasicAtom) = atom match {
+	  // We only process two kinds of atoms here: atom lists and operator
+	  // applications.  Figure out what we have.
+	  case AtomSeq(props, atoms) =>
+	    // All we can do is apply the lhs to each atom in the list.
+	    (AtomSeq(props, atoms.map(Apply(lhs,_))), true)
+	  case Apply(op, AtomSeq(props, atoms)) =>
+      // We apply the lhs to each argument whose parameter meets the
+      // label criteria.  This is modestly tricky.
+      (Apply(op, AtomSeq(props, atoms.map(Apply(lhs,_)))), true)
+	  case _ =>
+	    // Do nothing in this case.
+	    (atom, false)
+	}
+}
+
 case class MapStrategy(include: Set[String], exclude: Set[String],
     lhs: BasicAtom) extends BasicAtom with Rewriter {
 	val theType = STRATEGY
@@ -183,6 +204,8 @@ case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
  * Easier construction and pattern matching of rewrite rules.
  */
 object RewriteRule {
+  val tag = Literal(Symbol("rule"))
+  
   /**
    * Create a rewrite rule.  The rule is not synthetic.
    * 
@@ -192,8 +215,10 @@ object RewriteRule {
 	 * @param rulesets		The rulesets that contain this rule.
    */
   def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
-      rulesets: Set[String]) =
-		  new RewriteRule(pattern, rewrite, guards, rulesets, false)
+      rulesets: Set[String]) = {
+    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets)
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, false)
+  }
   
   /**
    * Create a rewrite rule.
@@ -205,8 +230,25 @@ object RewriteRule {
 	 * @param synthetic		If true, this is a synthetic rule.
    */
   def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
-      rulesets: Set[String], synthetic: Boolean) =
-		  new RewriteRule(pattern, rewrite, guards, rulesets, synthetic)
+      rulesets: Set[String], synthetic: Boolean) = {
+    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets)
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, synthetic)
+  }
+  
+  private def _makeSpecialFormHolder(pattern: BasicAtom, rewrite: BasicAtom,
+      guards: Seq[BasicAtom], rulesets: Set[String]) = {
+    // Make the map pair.
+    val mappair = MapPair(pattern, rewrite)
+    // Make the binding.
+    val binds:Bindings = Bindings() +
+    	(""->mappair) +
+    	("if"->AtomSeq(Associative(true) and Commutative(true), guards.toIndexedSeq[BasicAtom])) +
+    	("rulesets"->
+    		AtomSeq(Associative(true) and Commutative(true), rulesets.map {
+    			str => Literal(Symbol(str))
+    		}.toIndexedSeq[BasicAtom]))
+    new SpecialFormHolder(tag, BindingsAtom(binds))
+  }
 
   /**
    * Break a rewrite rule into its parts.  The synthetic flag is not returned.
@@ -248,7 +290,7 @@ object RewriteRule {
       }
     }
     // Build the rule.
-    RewriteRule(pair.left, pair.right, guards.atoms, rulesets.toSet)
+    new RewriteRule(sfh, pair.left, pair.right, guards.atoms, rulesets.toSet)
   }
 }
 
@@ -261,72 +303,20 @@ object RewriteRule {
  * 
  * ==Equality and Matching==
  * 
+ * @param sfh					The special form holder.
  * @param pattern			The pattern to match.
  * @param rewrite			The rewrite to apply on match.
  * @param guards			Guards that must be true to accept a match.
  * @param rulesets		The rulesets that contain this rule.
  * @param synthetic		If true, this is a synthetic rule.
  */
-class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
+class RewriteRule private (
+    sfh: SpecialFormHolder,
+    val pattern: BasicAtom, val rewrite: BasicAtom,
     val guards: Seq[BasicAtom], val rulesets: Set[String],
     val synthetic: Boolean = false)
-    extends BasicAtom with Rewriter {
-  val theType = STRATEGY
-  
-  lazy val isConstant = pattern.isConstant && rewrite.isConstant &&
-  	guards.forall(_.isConstant)
-  	
-  lazy val isTerm = pattern.isTerm && rewrite.isTerm &&
-  	guards.forall(_.isTerm)
-  	
-  val constantPool =
-    Some(BasicAtom.buildConstantPool(theType.hashCode,
-        (pattern +: rewrite +: guards):_*))
-  
-  // The De Bruijn index of a rewrite rule is equal to the maximum index of
-  // the children of the rule.
-  val deBruijnIndex =
-    guards.foldLeft(pattern.deBruijnIndex max rewrite.deBruijnIndex) {
-    _ max _.deBruijnIndex
-  }
-  
-  /**
-   * The depth of a rewrite rule is equal to the maximum depth of the pattern,
-   * guard, and rewrite rules, plus one.
-   */
-  val depth = guards.foldLeft(pattern.depth max rewrite.depth)(_ max _.depth) + 1
-
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) =
-    // Rules match only other rules.
-    subject match {
-	    case RewriteRule(opat, orew, ogua, orul) =>
-	      SequenceMatcher.tryMatch(pattern +: rewrite +: guards.toIndexedSeq,
-	          opat +: orew +: ogua.toIndexedSeq)
-	    case _ => Fail("Rules cannot match non-rules.", this, subject)
-	  }
-
-  def rewrite(binds: Bindings) = {
-    // Rewrite the pattern and rewrite.
-    val (newpat, patchanged) = pattern.rewrite(binds)
-    val (newrew, rewchanged) = rewrite.rewrite(binds)
-    
-    // Rewrite all the guards.
-    var changed = patchanged || rewchanged
-    var newgua = guards.map(gua => {
-      val (newgua, guachanged) = gua.rewrite(binds)
-      changed |= guachanged
-      newgua
-    })
-    
-    // If any part of the rewrite rule changed, generate a new rewrite rule,
-    // preserving the ruleset membership.
-    if (changed)
-      (RewriteRule(newpat, newrew, newgua, rulesets), true)
-    else (this, false)
-  }
-  
-  def doRewrite(atom: BasicAtom) = tryRewrite(atom)
+    extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
+  override val theType = STRATEGY
   
   /**
    * Attempt to apply this rule to a given atom.
@@ -376,13 +366,6 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
         return (subject, false)
     }
   }
-  
-  def toParseString = "{ rule " + pattern.toParseString + " -> " +
-  	rewrite.toParseString +
-  	(if (!guards.isEmpty) guards.mkParseString(" #if ", " ", "") else "") +
-  	(if (!rulesets.isEmpty)
-  	  rulesets.map(toESymbol(_)).mkString(" #rulesets ", " ", "") else "") +
-  	" }"
   	
   // To make a Scala parseable string we have to make the ruleset names into
   // parseable strings.
@@ -392,17 +375,7 @@ class RewriteRule private (val pattern: BasicAtom, val rewrite: BasicAtom,
   	guards.toString + ", " +
   	rulesets.map(toEString(_)) + ")"
   	
-  override lazy val hashCode = (pattern.hashCode * 31 + rewrite.hashCode) *
-      31 + guards.hashCode
-      
-  override def equals(rule: Any) = rule match {
-    case orule:RewriteRule =>
-      pattern == orule.pattern &&
-      rewrite == orule.rewrite &&
-      guards == orule.guards &&
-      rulesets == orule.rulesets
-    case _ => false
-  }
+  def doRewrite(atom: BasicAtom) = doRewrite(atom, Bindings())
   
   def doRewrite(atom: BasicAtom, binds: Bindings) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
