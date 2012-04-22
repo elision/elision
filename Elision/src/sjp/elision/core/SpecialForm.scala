@@ -159,7 +159,6 @@ object SpecialForm {
 	    case sl:SymbolLiteral => sl.value match {
 	      case 'bind => BindingsAtom(sfh)
 	      case 'rule => RewriteRule(sfh)
-	      case 'prop => AlgProp(sfh)
 	      case 'match => MatchAtom(sfh)
 	      case _ => sfh.toSpecialForm
 	    }

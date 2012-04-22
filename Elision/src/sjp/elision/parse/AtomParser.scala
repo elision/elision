@@ -832,7 +832,7 @@ extends Parser {
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
-    FirstAtom ~ WS ~ "-> " ~ FirstAtom ~~> (MapPairNode(_,_)) |
+    FirstAtom ~ WS ~ "-> " ~ Atom ~~> (MapPairNode(_,_)) |
     //LApply |
     // Handle the special case of the general operator application.  These
     // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).

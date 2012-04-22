@@ -374,44 +374,6 @@ object AlgProp {
       absorber: Option[BasicAtom] = None,
       identity: Option[BasicAtom] = None) =
     new AlgProp(associative, commutative, idempotent, absorber, identity)
-  
-  def apply(sfh: SpecialFormHolder): AlgProp = sfh.content match {
-    case AtomSeq(_, atoms) => _build(atoms)
-    case _ =>
-      val bh = sfh.requireBindings
-      bh.check(Map("" -> true))
-      val seq = bh.fetchAs[AtomSeq]("")
-      _build(seq.atoms)
-  }
-  
-  private def _build(atoms: Seq[BasicAtom]) = atoms.foldLeft[AlgProp](NoProps) {
-    (props, atom) => props and (atom match {
-      case MapPair(left, right) => left match {
-        case SymbolLiteral(_, 'A) => Associative(right)
-        case SymbolLiteral(_, 'C) => Commutative(right)
-        case SymbolLiteral(_, 'I) => Idempotent(right)
-        case SymbolLiteral(_, 'a) => Associative(right)
-        case SymbolLiteral(_, 'c) => Commutative(right)
-        case SymbolLiteral(_, 'i) => Idempotent(right)
-        case SymbolLiteral(_, 'associative) => Associative(right)
-        case SymbolLiteral(_, 'commutative) => Commutative(right)
-        case SymbolLiteral(_, 'idempotent) => Idempotent(right)
-        case SymbolLiteral(_, 'B) => Absorber(right)
-        case SymbolLiteral(_, 'b) => Absorber(right)
-        case SymbolLiteral(_, 'absorber) => Absorber(right)
-        case SymbolLiteral(_, 'D) => Identity(right)
-        case SymbolLiteral(_, 'd) => Identity(right)
-        case SymbolLiteral(_, 'identity) => Identity(right)
-        case _ =>
-          throw new SpecialFormException(
-              "Invalid property specification: " + atom.toParseString)
-      }
-      case _ =>
-        throw new SpecialFormException(
-            "Invalid property specification (not a map pair): " +
-            atom.toParseString)
-    })
-  }
 }
 
 /** No properties. */
