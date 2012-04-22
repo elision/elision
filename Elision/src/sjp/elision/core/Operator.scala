@@ -144,3 +144,63 @@ object ProtoOperator {
   def apply(typ: BasicAtom, opdef: OperatorDefinition) =
     new ProtoOperator(typ, opdef)
 }
+
+object CaseOperator {
+  val tag = Literal(Symbol("op"))
+  
+  def apply(sfh: SpecialFormHolder): CaseOperator = {
+    val bh = sfh.requireBindings
+    bh.check(Map("name"->true, "cases"->true, "type"->false))
+    val name = bh.fetchAs[SymbolLiteral]("name").value.name
+    val cases = bh.fetchAs[AtomSeq]("cases")
+    val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
+    return new CaseOperator(sfh, name, typ, cases)
+  }
+  
+  def apply(name: String, typ: BasicAtom, cases: AtomSeq): CaseOperator = {
+    val nameS = Literal(Symbol(name))
+    val binds = Bindings() + ("name"->nameS) + ("cases"->cases)
+    val sfh = new SpecialFormHolder(tag, binds)
+    return new CaseOperator(sfh, name, typ, cases)
+  }
+  
+  def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases))
+}
+
+class CaseOperator private (sfh: SpecialFormHolder, val name: String,
+    val typ: BasicAtom, val cases: AtomSeq)
+extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+  override val theType = typ
+  
+  def doApply(args: BasicAtom) = {
+    // Traverse the list of cases and try to find a case that the arguments
+    // match.  Every case should be a rewritable, an applicable, or an atom.
+    // If a rewritable, apply it and if it succeeds, choose the result.
+    // If an applicable, apply it.  If any other atom, choose that atom.
+    var result: Option[BasicAtom] = None
+    cases.exists { _ match {
+      case rew: Rewriter =>
+        val pair = rew.doRewrite(args)
+        result = Some(pair._1)
+        pair._2
+      case app: Applicable =>
+        result = Some(app.doApply(args))
+        true
+      case atom =>
+        result = Some(atom)
+        true
+    }}
+    // If nothing worked, then we need to generate an error since the operator
+    // was incorrectly applied.
+    if (result.isEmpty)
+      throw new ArgumentListException("Applied the operator " +
+          toESymbol(name) + " to an incorrect argument list: " +
+          args.toParseString)
+    // If the result turned out to be ANY, then just construct a simple
+    // apply for this operator.
+    result.get match {
+      case ANY => SimpleApply(this, args)
+      case other => other
+    }
+  }
+}

@@ -64,7 +64,8 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
     if (!badkeys.isEmpty) {
       throw new SpecialFormException(
           "Form " + tag.toParseString +
-          " does not allow " + badkeys.mkString("{", ",", "}") + ".")
+          " does not allow key(s) " +
+          badkeys.map(toESymbol(_)).mkString("", ", ", "") + ".")
     }
   }
   def check(test: Map[String,Boolean]) {
@@ -160,6 +161,7 @@ object SpecialForm {
 	      case 'bind => BindingsAtom(sfh)
 	      case 'rule => RewriteRule(sfh)
 	      case 'match => MatchAtom(sfh)
+	      case 'op => CaseOperator(sfh)
 	      case _ => sfh.toSpecialForm
 	    }
 	    case _ => sfh.toSpecialForm

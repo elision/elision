@@ -936,9 +936,14 @@ extends Parser {
   def ParsedSpecialBindForm = rule {
     "{ " ~ Atom ~ (
         zeroOrMore(Atom) ~~> (
-            NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(),_)) ~
+            first =>
+              if (first.length == 0) None
+              else Some(NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(),first))) ~
         zeroOrMore(BindBlock | ListBlock)
-    ) ~~> ((x,y) => BindingsNode(x::y)) ~ "} " ~~> (SpecialFormNode(_,_))
+    ) ~~> ((x,y) => x match {
+      case None => BindingsNode(y)
+      case Some(map) => BindingsNode(map::y)
+    }) ~ "} " ~~> (SpecialFormNode(_,_))
   }
   
   def ListBlock = rule {
