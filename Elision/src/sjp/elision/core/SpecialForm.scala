@@ -161,8 +161,8 @@ object SpecialForm {
 	      case 'bind => BindingsAtom(sfh)
 	      case 'rule => RewriteRule(sfh)
 	      case 'match => MatchAtom(sfh)
-	      case 'op => CaseOperator(sfh)
-	      case 'oper => SymbolicOperator(sfh)
+	      case 'case => CaseOperator(sfh)
+	      case 'operator => SymbolicOperator(sfh)
 	      case _ => sfh.toSpecialForm
 	    }
 	    case _ => sfh.toSpecialForm

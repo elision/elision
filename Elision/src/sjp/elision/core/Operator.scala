@@ -59,94 +59,12 @@ class ArgumentListException(msg: String) extends ElisionException(msg)
  * 
  * @param opdef	The operator definition.
  */
-case class Operator(opdef: OperatorDefinition) extends BasicAtom {
-	import OperatorLibrary._
-
-	/**
-   * The type of an operator is a mapping from the operator domain to the
-   * operator codomain.
-   */
-  lazy val theType = opdef.proto.pars match {
-	  case Seq() => MAP(NONE, opdef.proto.typ)
-	  case Seq(atom) => MAP(atom.theType, opdef.proto.typ)
-	  case _ => MAP(xx(opdef.proto.pars.map(_.theType)), opdef.proto.typ)
-	}
-  
-  /** The operator is constant iff its definition is a constant. */
-  val isConstant = opdef.isConstant
-  
-  /** All operators are terms. */
-  val isTerm = true
-  
-  /**
-   * Since operator definitions do not maintain a constant pool, neither does
-   * an operator.
-   */
-  val constantPool = None
-  
-  /** The native handler, if one is declared. */
-  protected[core]
-  var handler: Option[(Operator,AtomSeq,Bindings) => BasicAtom] = None
-  
-  /** Provide quick access to the operator name. */
-  lazy val name = opdef.proto.name
-  
-  val deBruijnIndex = 0
-  
-  /** The depth of an operator is zero. */
-  val depth = 0
-
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) = subject match {
-      case Operator(oopdef) if opdef == oopdef => Match(binds)
-      case _ => Fail("Operators do not match.", this, subject)
-    }
-
-  def rewrite(binds: Bindings) = (this, false)
-
-  def toParseString = toESymbol(name) + ":OPTYPE"
-    
-  override lazy val hashCode = opdef.hashCode
-  
-  override def equals(other: Any) = other match {
-    case op:Operator => opdef == op.opdef
-    case _ => false
-  }
-}
-
-/**
- * A ''proto''operator is an operator whose type can be overridden.
- * 
- * Typically the type of an operator is inferred from the types of its
- * parameter list, but the result would itself be an operator application
- * (a MAP) and this means we could potentially have an infinite regress.
- * To avoid that we define this class solely for use in defining the special
- * operators that are used to specify the types of other operators.
- * 
- * @param typ			The typ of this operator.
- * @param opdef		The operator definition.
- */
-class ProtoOperator(typ: BasicAtom, override val opdef: OperatorDefinition)
-extends Operator(opdef) {
-  override lazy val theType = typ
-}
-
-/**
- * Companion object for the proto operator.
- */
-object ProtoOperator {
-  /**
-   * Make a new proto operator.
-   * 
-	 * @param typ			The typ of this operator.
-	 * @param opdef		The operator definition.
-   */
-  def apply(typ: BasicAtom, opdef: OperatorDefinition) =
-    new ProtoOperator(typ, opdef)
-}
+abstract class Operator(sfh: SpecialFormHolder,
+    val name: String, val typ: BasicAtom, definition: AtomSeq)
+    extends SpecialForm(sfh.tag, sfh.content) with Applicable
 
 object CaseOperator {
-  val tag = Literal(Symbol("op"))
+  val tag = Literal(Symbol("case"))
   
   def apply(sfh: SpecialFormHolder): CaseOperator = {
     val bh = sfh.requireBindings
@@ -167,9 +85,9 @@ object CaseOperator {
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases))
 }
 
-class CaseOperator private (sfh: SpecialFormHolder, val name: String,
-    val typ: BasicAtom, val cases: AtomSeq)
-extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+class CaseOperator private (sfh: SpecialFormHolder,
+    name: String, typ: BasicAtom, val cases: AtomSeq)
+		extends Operator(sfh, name, typ, cases) {
   override val theType = typ
   
   def doApply(args: BasicAtom) = {
@@ -182,12 +100,17 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
       case rew: Rewriter =>
         val pair = rew.doRewrite(args)
         result = Some(pair._1)
+        println(rew.toParseString)
+        println(pair)
         pair._2
       case app: Applicable =>
         result = Some(app.doApply(args))
+        println(app.toParseString)
+        println(result)
         true
       case atom =>
         result = Some(atom)
+        println(atom.toParseString)
         true
     }}
     // If nothing worked, then we need to generate an error since the operator
@@ -206,7 +129,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
 }
 
 object SymbolicOperator {
-  val tag = Literal(Symbol("oper"))
+  val tag = Literal(Symbol("operator"))
   
   def apply(sfh: SpecialFormHolder): SymbolicOperator = {
     val bh = sfh.requireBindings
@@ -227,9 +150,9 @@ object SymbolicOperator {
   def unapply(so: SymbolicOperator) = Some((so.name, so.theType, so.params))
 }
 
-class SymbolicOperator private (sfh: SpecialFormHolder, name: String,
-    typ: BasicAtom, params: AtomSeq)
-extends PseudoOperator(sfh, name, typ, params) {
+class SymbolicOperator private (sfh: SpecialFormHolder,
+    name: String, typ: BasicAtom, params: AtomSeq)
+		extends PseudoOperator(sfh, name, typ, params) {
 	/**
    * The type of an operator is a mapping from the operator domain to the
    * operator codomain.
@@ -260,9 +183,9 @@ object PseudoOperator {
   }
 }
 
-class PseudoOperator protected (sfh: SpecialFormHolder, val name: String,
-    val typ: BasicAtom, val params: AtomSeq)
-extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+class PseudoOperator protected (sfh: SpecialFormHolder,
+    name: String, typ: BasicAtom, val params: AtomSeq)
+		extends Operator(sfh, name, typ, params) {
 
 	override val theType: BasicAtom = ANY
   
@@ -283,16 +206,14 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   
   def doApply(args: AtomSeq, bypass: Boolean): BasicAtom = {
     // There are special cases to handle here.  First, if the argument list
-    // is empty, but there is an identity, return it.  Otherwise return the
-    // operator applied to the empty list.
+    // is empty, but there is an identity, return it.
     if (args.length == 0) {
       params.identity match {
-        case None =>
-          // No identity.
-          return SimpleApply(this, AtomSeq(params.props, args.atoms))
         case Some(ident) =>
           // Return the identity.
           return ident
+        case None =>
+          // No identity.  Proceed with caution.
       }
     }
     
@@ -344,7 +265,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
         if (handler.isDefined) return handler.get(this, newargs, binds)
       }
       // No native handler.
-      return SimpleApply(this, newargs)
+      return OpApply(this, newargs, binds)
     }
     
     // We've run out of special cases to handle.  Now just try to match the

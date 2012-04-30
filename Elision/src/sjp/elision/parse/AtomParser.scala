@@ -195,7 +195,7 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
-	// Operator definition.
+	// Algebraic properties.
 	//----------------------------------------------------------------------
 	
 	/** A property node. */
@@ -267,58 +267,7 @@ object AtomParser {
 	  def apply() = new AlgPropNode(List())
 	  def apply(list: List[PropertyNode]) = new AlgPropNode(list)
 	}
-	
-	/**
-	 * Represent an operator prototype.
-	 * @param name			The operator name.
-	 * @param pars			The formal parameter.
-	 * @param typ				The type.
-	 * @param guards		The guards, if any.
-	 */
-	class OperatorPrototypeNode(
-	    val name: String,
-	    val pars: List[VariableNode],
-	    val typ: Option[AstNode],
-	    val guards: List[AstNode]) {
-	  def interpret = OperatorPrototype(
-	      name,
-	      pars.toIndexedSeq[VariableNode].map(_.interpret),
-	      typ match {
-	        case Some(actual) => actual.interpret
-	        case None => EANY
-	      },
-	      guards.map(_.interpret))
-	}
-	
-	/**
-	 * The common root class for all operator definition nodes.
-	 */
-	sealed abstract class OperatorDefinitionNode extends AstNode {
-	  def interpret: OperatorDefinition
-	}
-	
-	/**
-	 * Represent a symbolic operator definition.
-	 * @param opn		The prototype node.
-	 * @param prop	The properties.
-	 */
-	case class SymbolicOperatorDefinitionNode(
-	    opn: OperatorPrototypeNode,
-	    prop: AlgPropNode) extends OperatorDefinitionNode {
-	  def interpret = SymbolicOperatorDefinition(opn.interpret, prop.interpret)
-	}
-	
-	/**
-	 * Represent an immediate operator definition.
-	 * @param opn		The prototype node.
-	 * @param prop	The body.
-	 */
-	case class ImmediateOperatorDefinitionNode(
-	    opn: OperatorPrototypeNode,
-	    body: AstNode) extends OperatorDefinitionNode {
-	  def interpret = ImmediateOperatorDefinition(opn.interpret, body.interpret)
-	}
-	
+
 	//----------------------------------------------------------------------
 	// Object and binding nodes.
 	//----------------------------------------------------------------------
@@ -867,9 +816,6 @@ extends Parser {
       
       // Parse a match.
       ParsedMatch |
-      
-      // Parse an operator definition.
-      ParsedOperatorDefinition |
         
       // Parse a lambda.
       ParsedLambda |
@@ -1310,107 +1256,6 @@ extends Parser {
   
   /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }.label("a binary digit")
-  
-  //======================================================================
-  // Define an operator.
-  //======================================================================
-  
-  /**
-   * Parse an operator definition.
-   * 
-   * Operator definitions look as follows.
-   * 
-   * An operator whose definition is provided by a body.  Whenever the operator
-   * is encountered, it is replaced at construction time by binding the formal
-   * parameters and then rewriting the body.  It is essentially a macro.
-   * {{{
-   *   { operator abel(\$x: STRING, \$y: ^TYPE): ^TYPE = cain(\$x, seth(\$y)) }
-   * }}}
-   * A symbolic operator whose properties are specified, if any.
-   * {{{
-   *   { operator join(\$x: ^TYPE, \$y: ^TYPE): ^TYPE }
-   *   { operator product(\$x: NUMBER, \$y: NUMBER): NUMBER is
-   *     associative, commutative, absorber 0, identity 1 }
-   *   { operator or(\$p: BOOLEAN, \$q: BOOLEAN): BOOLEAN is
-   *     associative, commutative, idempotent, identity false, absorber true }
-   * }}} 
-   */
-  def ParsedOperatorDefinition = rule {
-    ParsedSymbolicOperatorDefinition |
-    ParsedImmediateOperatorDefinition
-  }.label("an operator definition")
-  
-  /**
-   * Parse a symbolic operator definition.
-   * {{{
-   * { operator join(\$x: ^TYPE, \$y: ^TYPE): ^TYPE }
-   * { operator product(\$x: NUMBER, \$y: NUMBER): NUMBER is
-   *   associative, commutative, absorber 0, identity 1 }
-   * { operator or(\$p: BOOLEAN, \$q: BOOLEAN): BOOLEAN is
-   *   associative, commutative, idempotent, identity false, absorber true }
-   * }}}
-   */
-  def ParsedSymbolicOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedOperatorProperties ~
-    "} " ~~> (SymbolicOperatorDefinitionNode(_,_))
-  }.label("a symbolic operator definition")
-  
-  /**
-   * Parse an immediate operator definition.
-   * {{{
-   * { operator abel(\$x: STRING, \$y: ^TYPE): ^TYPE = cain(\$x, seth(\$y)) }
-   * { macro body(\\$x.\$body:\$T):\$T = \$body }
-   * }}}
-   */
-  def ParsedImmediateOperatorDefinition: Rule1[OperatorDefinitionNode] = rule {
-    "{ " ~ "operator " ~ ParsedOperatorPrototype ~ ParsedImmediateDefinition ~
-    "} " ~~> (ImmediateOperatorDefinitionNode(_,_))
-  }.label("an immediate operator definition")
-  
-  /** Parse an operator prototype. */
-  def ParsedOperatorPrototype = rule {
-    ESymbol ~ "( " ~ ParsedParameterList ~ ") " ~
-    optional(": " ~ FirstAtom) ~
-    zeroOrMore("if " ~ FirstAtom) ~~>
-    ((name:NakedSymbolNode, pars:List[VariableNode],
-        typ:Option[AstNode], guards:List[AstNode]) =>
-          new OperatorPrototypeNode(name.str, pars, typ, guards))
-  }.label("an operator prototype")
-
-  /** Parse a parameter list. */
-  def ParsedParameterList = rule {
-    zeroOrMore(ParsedTermVariable, ", ")
-  }.label("an operator parameter list")
-  
-  /** Parse an immediate definition for an operator. */
-  def ParsedImmediateDefinition = rule {
-    "= " ~ Atom
-  }.label("equal (=) and the immediate operator's body")
-  
-  /** Parse a sequence of operator properties. */
-  def ParsedOperatorProperties = rule {
-    optional(
-        ParsedAlgProp |
-        "is " ~ oneOrMore(ParsedOperatorProperty, ", "
-    ) ~~> (AlgPropNode(_))) ~~> {
-      prop => prop match {
-        case None => AlgPropNode()
-        case Some(apn) => apn
-      }
-    }
-  }.label("the operator properties")
-  
-  /**
-   * Parse an operator property.
-   * @param pop		An operator properties node to fill in.
-   */
-  def ParsedOperatorProperty: Rule1[PropertyNode] = rule {
-      "associative " ~> (x => AssociativeNode(TrueNode)) |
-      "commutative " ~> (x => CommutativeNode(TrueNode)) |
-      "idempotent " ~> (x => IdempotentNode(TrueNode)) |
-      "absorber " ~ Atom ~~> (AbsorberNode(_)) |
-      "identity " ~ Atom ~~> (IdentityNode(_))
-  	}.label("an operator property")
   
   //======================================================================
   // Matching.

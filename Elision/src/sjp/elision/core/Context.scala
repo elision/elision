@@ -481,9 +481,9 @@ private object Completor {
     pattern match {
       case Apply(op:Operator, as:AtomSeq) => {
         // Extract the operator properties.
-        val props = op.opdef match {
-          case iod: ImmediateOperatorDefinition => NoProps
-          case sod: SymbolicOperatorDefinition => sod.props
+        val props = op match {
+          case po: PseudoOperator => po.params.props
+          case _ => NoProps
         }
         
         // If the operator is not associative, we don't need to do anything.

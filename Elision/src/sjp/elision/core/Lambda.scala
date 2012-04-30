@@ -121,7 +121,7 @@ extends ElisionException(msg)
 class Lambda private (val lvar: Variable, val body: BasicAtom, isFixed: Boolean)
 extends BasicAtom with Applicable {
   /** The type is a mapping from the variable type to the body type. */
-  val theType = OperatorLibrary.MAP(lvar.theType, body.theType)
+  val theType = PseudoOperator.MAP(lvar.theType, body.theType)
   
   /**
    * A lambda is constant iff its body is constant.  This is different from

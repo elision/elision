@@ -36,7 +36,7 @@ package sjp.elision.core
 class MatchAtom(tag: BasicAtom, val pat: BasicAtom)
 extends SpecialForm(tag, pat) with Applicable {
   /** The type of this atom. */
-  override val theType = OperatorLibrary.MAP(ANY, BINDING)
+  override val theType = PseudoOperator.MAP(ANY, BINDING)
 
   /**
    * Apply this match atom to the given atom.  This performs the matc

@@ -99,7 +99,7 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	def toParseString =
- 	  _nameToOperator.values.map(_.opdef.toParseString).mkString("","\n","\n")
+ 	  _nameToOperator.values.map(_.toParseString).mkString("","\n","\n")
  	  
  	/**
  	 * Turn the operator library into a sequence of newline-terminated strings
@@ -108,7 +108,7 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	override def toString =
- 	  _nameToOperator.values.map(_.opdef.toString).mkString("","\n","\n")
+ 	  _nameToOperator.values.map(_.toString).mkString("","\n","\n")
  	
  	/**
  	 * Register a native handler for an operator.  The operator must already be
@@ -132,9 +132,9 @@ class OperatorLibrary(
  	    case None =>
  	      warn("Operator " + name + " undeclared; ignoring native handler.")
  	    case Some(op) =>
- 	      if (op.opdef.isInstanceOf[ImmediateOperatorDefinition]) 
-          warn("Operator " + name + " is immediate; ignoring native handler.")
- 	      op.handler = Some(handler)
+ 	      if (!op.isInstanceOf[PseudoOperator]) 
+          warn("Operator " + name + " is not symbolic; ignoring native handler.")
+ 	      op.asInstanceOf[PseudoOperator].handler = Some(handler)
  	  }
  	  this
  	}
@@ -153,59 +153,20 @@ class OperatorLibrary(
  	}
  	
  	/**
- 	 * Get an operator by name.  If the operator is known, it is returned.  If
- 	 * not, and if undefined operators are allowed, then the operator is
- 	 * immediately defined and returned.  Otherwise None is returned.
+ 	 * Get an operator by name.  If the operator is known, it is returned.
+ 	 * Otherwise None is returned.
+ 	 * 
  	 * @param name	The name of the operator.
  	 * @return	The optional operator.
  	 */
  	def get(name: String): Option[Operator] = _nameToOperator.get(name) match {
  	  case s:Some[_] => s
- 	  case None if allowUndefined == true =>
- 	    // Make the operator now.
- 	    val od = SymbolicOperatorDefinition(
- 	        Proto(name, ANY, ("x", ANY), ("y", ANY)),
- 	        Associative(true))
- 	    add(od)
- 	    get(name)
  	  case _ => None
  	}
  	
  	/**
- 	 * Add an operator definition to this library.
- 	 * @param od		The operator definition to add.
- 	 * @return	The operator just added, to enable chaining if desired.
- 	 * @throws OperatorRedefinitionError
- 	 * 					The operator is already defined and redefinitions are not allowed.
- 	 */
- 	def add(od: OperatorDefinition) = {
- 	  // Operator definitions must have constant properties.
- 	  od match {
- 	    case sod:SymbolicOperatorDefinition =>
- 	      if (!sod.props.isConstant)
- 	        throw new OperatorDefinitionException("Cannot add operators to " +
- 	        		"library if their properties are not constant: " +
- 	        		sod.props.toParseString)
- 	    case _ =>
- 	  }
- 	  val name = od.proto.name
- 	  if (_nameToOperator.contains(name))
- 	    if (allowRedefinition) {
- 	      warn("Redefining operator " + od.proto.name + ".")
- 	      warn("Prior definition: " + _nameToOperator(name).opdef.toParseString)
- 	    } else {
- 	    	// Reject this!  The operator is already defined.
- 	    	throw new OperatorRedefinitionException(
- 	    			"Attempt to re-define known operator " + name + ".")
- 	    }
-    // Accept this and store it in the map.  Return the definition.
- 	  val op = Operator(od)
-    _nameToOperator += (name -> op)
- 	  op
- 	}
- 	
- 	/**
- 	 * Add an operator definition to this library.
+ 	 * Add an operator to this library.
+ 	 * 
  	 * @param op		The operator to add.
  	 * @return	The operator just added, to enable chaining if desired.
  	 * @throws OperatorRedefinitionError
@@ -216,14 +177,14 @@ class OperatorLibrary(
  	  if (_nameToOperator.contains(name))
  	    if (allowRedefinition) {
  	      warn("Redefining operator " + op.name + ".")
- 	      warn("Prior definition: " + _nameToOperator(name).opdef.toParseString)
+ 	      warn("Prior definition: " + _nameToOperator(name).toParseString)
  	    } else {
-	 	    // Reject this!  The operator is already defined.
-	 	    throw new OperatorRedefinitionException(
-	 	        "Attempt to re-define known operator " + name + ".")
+ 	    	// Reject this!  The operator is already defined.
+ 	    	throw new OperatorRedefinitionException(
+ 	    			"Attempt to re-define known operator " + name + ".")
  	    }
- 	  // Accept this and store it in the map.  Return the operator.
- 	  _nameToOperator += (name -> op)
+    // Accept this and store it in the map.  Return the definition.
+    _nameToOperator += (name -> op)
  	  op
  	}
  	
@@ -231,42 +192,7 @@ class OperatorLibrary(
  	import OperatorLibrary._
  	
  	// Add the well-known operators.
- 	_nameToOperator += (MapOperator.name -> MapOperator)
- 	_nameToOperator += (CrossOperator.name -> CrossOperator)
-}
-
-object OperatorLibrary {
-    
-  //======================================================================
-  // Universally-known operators.
-  //======================================================================
-  
- 	/**
- 	 * The well-known map operator.  Every time an operator library is created,
- 	 * it should explicitly add this operator to itself.
- 	 */
- 	private val MapOperator = ProtoOperator(TypeUniverse,
- 	    SymbolicOperatorDefinition(
- 	        Proto("MAP", ANY, ("domain", ANY), ("codomain", ANY)),
- 	        NoProps))
-  
- 	/**
- 	 * Construct a map type, given a domain and range.
- 	 */
-  def MAP(dom: BasicAtom, ran: BasicAtom) =
-    Apply(MapOperator, AtomSeq(NoProps, dom, ran))
-
-  /**
-   * The well-known cross operator used to build operator types.
-   */
-  private val CrossOperator = ProtoOperator(TypeUniverse,
-      SymbolicOperatorDefinition(
-          Proto("xx", ANY, ("a", ANY), ("b", ANY)),
-          Associative(true)))
-  
-  /**
-   * Make a cross type.
-   */
-  def xx(atoms: IndexedSeq[BasicAtom]) =
-    Apply(CrossOperator, AtomSeq(NoProps, atoms))
+ 	import PseudoOperator.{MAP, xx}
+ 	_nameToOperator += (MAP.name -> MAP)
+ 	_nameToOperator += (xx.name -> xx)
 }
