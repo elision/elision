@@ -838,16 +838,30 @@ In your Emacs startup file (typically
  on Linux or UNIX) add the following two lines.
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=Lisp"
+inline false
+status open
+
+\begin_layout Plain Layout
+
 (add-to-list 'load-path
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   "/usr/local/scala/misc/scala-tool-support/emacs")
-\begin_inset Newline newline
-\end_inset
+\end_layout
+
+\begin_layout Plain Layout
 
 (require 'scala-mode-auto)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1265,7 +1279,12 @@ status open
 
 \begin_layout Plain Layout
 
-e> { operator set($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN
+e> { operator
+\end_layout
+
+\begin_layout Plain Layout
+
+ >   set($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN
 \end_layout
 
 \begin_layout Plain Layout
@@ -2125,201 +2144,254 @@ Several things trigger the matching system.
  Of course, the most obvious way is by explicitly trying to match two atoms.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-tracematch()
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> tracematch()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Match tracing is ON.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
+\begin_layout Plain Layout
 
+e> 
 \backslash
 $x:$T.$T.add:OPTYPE
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Sequence Matcher called: $domain,$codomain -> $T,ANY / { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (cceafb50) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $domain
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: $T
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (cceafb50): { bind domain -> $T }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (ba5fa5c) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $codomain
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: ANY
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind domain -> $T }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (ba5fa5c): { bind domain -> $T }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (94a4e9fe) in class sjp.elision.core.Lambda$$anon$1:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $`:1`:$T
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: add:OPTYPE
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Sequence Matcher called: $`::1`,$`::2` -> INTEGER,INTEGER / { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (e4055fd3) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $`::1`
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: INTEGER
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (e4055fd3): { bind `::1` -> INTEGER }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (e4055ff2) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $`::2`
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: INTEGER
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind `::1` -> INTEGER }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (e4055ff2): { bind `::1` -> INTEGER, `::2` -> INTEGER }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Sequence Matcher called: $domain,$codomain -> xx(INTEGER, INTEGER),INTEGER
  / { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (516c94d7) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $domain
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: xx(INTEGER, INTEGER)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (516c94d7): { bind domain -> xx(INTEGER, INTEGER) }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (b28a4874) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $codomain
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: INTEGER
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind domain -> xx(INTEGER, INTEGER) }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (b28a4874): { bind domain -> xx(INTEGER, INTEGER), codomain -> INTEGER
  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (2b270a36) in class sjp.elision.core.Variable:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: $T
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: MAP(xx(INTEGER, INTEGER), INTEGER)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (2b270a36): { bind T -> MAP(xx(INTEGER, INTEGER), INTEGER) }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (94a4e9fe): { bind `:1` -> add:OPTYPE, T -> MAP(xx(INTEGER, INTEGER),
  INTEGER) }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl21 = MAP(xx(INTEGER, INTEGER), INTEGER)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -2413,62 +2485,84 @@ $repl
  and ignore subsequent output.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-{match 7}.$x
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {match 7}.$x
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (de6d60a9) in class sjp.elision.core.IntegerLiteral:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: 7
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: $x
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 TRYING  (493d55a8) in class sjp.elision.core.INTEGER$:
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: INTEGER
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: ANY
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   with: { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 SUCCESS (493d55a8): { bind  }
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 FAILURE (de6d60a9): Literal pattern does not match subject.
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   pattern: 7
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
   subject: $x
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl41 = Nothing:ANY
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -2498,32 +2592,39 @@ traceparse()
  command.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-traceparse()
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> traceparse()
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Parser tracing is ON.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-7
+\begin_layout Plain Layout
+
+e> 7
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 Starting new parsing run
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 a sequence of atoms/ZeroOrMore/AtomSeqPush1Action1, matched, cursor at 1:1
  after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(1)../ZeroOrMore/ZeroOrMore/Sequence/an atom/LApply/a simple atom/whitespace
  or comments/FirstOf/OneOrMore/[ 
 \backslash
@@ -2536,92 +2637,119 @@ t
 f], failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(9)../OneOrMore, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(8)../FirstOf/Sequence/"/*", failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(9)../Sequence, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(8)../FirstOf/Sequence/"//", failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(9)../Sequence, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(8)../FirstOf, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(7)../whitespace or comments, matched, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(6)../a simple atom/FirstOf/Sequence/'(', failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(8)../Sequence, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(7)../FirstOf/a ruleset declaration/'{', failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(8)../a ruleset declaration, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(7)../FirstOf/a rewrite rule/'{', failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(8)../a rewrite rule, failed, cursor at 1:1 after ""
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ...
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(3)../Sequence, failed, cursor at 1:2 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(2)../FirstOf/Sequence/"//", failed, cursor at 1:2 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(3)../Sequence, failed, cursor at 1:2 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(2)../FirstOf, failed, cursor at 1:2 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ..(1)../whitespace or comments, matched, cursor at 1:2 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 a sequence of atoms/EOI, matched, cursor at 1:3 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 a sequence of atoms, matched, cursor at 1:3 after "7"
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl14 = 7
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -5677,20 +5805,29 @@ multiset
  allows repeated elements to be present.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-{operator mset($x,$y) is associative, commutative}
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {operator mset($x,$y) is associative, commutative}
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-mset(7, fred, "James", blue, 7, blue)
+\begin_layout Plain Layout
+
+e> mset(7, fred, "James", blue, 7, blue)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl18 = mset(7, fred:SYMBOL, "James", blue:SYMBOL, 7, blue:SYMBOL)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -5701,20 +5838,29 @@ set
  does not allow repeated elements.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-{operator set($x,$y) is associative, commutative, idempotent}
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {operator set($x,$y) is associative, commutative, idempotent}
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-set(7, fred, "James", blue, 7, blue)
+\begin_layout Plain Layout
+
+e> set(7, fred, "James", blue, 7, blue)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl19 = set(7, fred:SYMBOL, "James", blue:SYMBOL)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -6753,16 +6899,26 @@ add
  defined in the current REPL session, try the following.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
 
+\begin_layout Plain Layout
+
+e> 
 \backslash
 $x:$T.$T.add:OPTYPE
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 repl0 = MAP(xx(INTEGER, INTEGER), INTEGER)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -7020,14 +7176,24 @@ not
 Making a list idempotent has an immediate effect: duplicates are removed.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-%I(4,5,4,5,4,5)
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> %I(4,5,4,5,4,5)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl14 = %I(4,5)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -7038,44 +7204,54 @@ provided
  the subordinate lists have the same specified properties.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-%A(%A(4,3),6)
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> %A(%A(4,3),6)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl15 = %A(4, 3, 6)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-%A(%(4,3),6)
+\begin_layout Plain Layout
+
+e> %A(%(4,3),6)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl16 = %A(%(4, 3), 6)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-%A(%AC(4,3),6)
+\begin_layout Plain Layout
+
+e> %A(%AC(4,3),6)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl17 = %A(%AC(4, 3), 6)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-%AI(%AI(4,3,6),6)
+\begin_layout Plain Layout
+
+e> %AI(%AI(4,3,6),6)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl18 = %AI(4,3,6)
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -7239,34 +7415,44 @@ naked
  If it is not found, it will issue an error.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-fred
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> fred
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl14 = fred:SYMBOL
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-fred(5)
+\begin_layout Plain Layout
+
+e> fred(5)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ERROR: The operator fred is not known.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-fred.james
+\begin_layout Plain Layout
+
+e> fred.james
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ERROR: The operator fred is not known.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -7281,58 +7467,69 @@ SYMBOL
  application, and not the applicative dot.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-fred:SYMBOL.james
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> fred:SYMBOL.james
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl15 = fred:SYMBOL.james
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-(fred)(5)
+\begin_layout Plain Layout
+
+e> (fred)(5)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl16 = fred:SYMBOL
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl17 = 5
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-(fred).5
+\begin_layout Plain Layout
+
+e> (fred).5
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ERROR: The operator fred is not known.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-(fred:SYMBOL).5
+\begin_layout Plain Layout
+
+e> (fred:SYMBOL).5
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl18 = (fred:SYMBOL.5)
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-fred:SYMBOL(5)
+\begin_layout Plain Layout
+
+e> fred:SYMBOL(5)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ERROR: The operator SYMBOL is not known.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -7349,14 +7546,24 @@ OPTYPE
 .
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-(fred:OPTYPE)(5)
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> (fred:OPTYPE)(5)
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 ERROR: The operator fred is not known.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -7669,24 +7876,43 @@ Now we have an operator that generates the type of anything on the right
  of an applicative dot.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-typeof.5
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> typeof.5
 \end_layout
 
-\begin_layout LyX-Code
+\begin_layout Plain Layout
+
 $repl4 = INTEGER
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 It is possible to do even stranger things.
 \end_layout
 
-\begin_layout LyX-Code
-e> 
-\series bold
-{operator swap case $x -> $x.$_}
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {operator swap case $x -> $x.$_}
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter

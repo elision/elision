@@ -159,7 +159,7 @@ object CaseOperator {
   
   def apply(name: String, typ: BasicAtom, cases: AtomSeq): CaseOperator = {
     val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name"->nameS) + ("cases"->cases)
+    val binds = Bindings() + ("name"->nameS) + ("cases"->cases) + ("type"->typ)
     val sfh = new SpecialFormHolder(tag, binds)
     return new CaseOperator(sfh, name, typ, cases)
   }
@@ -201,6 +201,165 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
     result.get match {
       case ANY => SimpleApply(this, args)
       case other => other
+    }
+  }
+}
+
+object SymbolicOperator {
+  val tag = Literal(Symbol("oper"))
+  
+  def apply(sfh: SpecialFormHolder): SymbolicOperator = {
+    val bh = sfh.requireBindings
+    bh.check(Map("name"->true, "params"->true, "type"->false))
+    val name = bh.fetchAs[SymbolLiteral]("name").value.name
+    val params = bh.fetchAs[AtomSeq]("params")
+    val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
+    return new SymbolicOperator(sfh, name, typ, params)
+  }
+  
+  def apply(name: String, typ: BasicAtom, params: AtomSeq): SymbolicOperator = {
+    val nameS = Literal(Symbol(name))
+    val binds = Bindings() + ("name"->nameS) + ("params"->params) + ("type"->typ)
+    val sfh = new SpecialFormHolder(tag, binds)
+    return new SymbolicOperator(sfh, name, typ, params)
+  }
+  
+  def unapply(so: SymbolicOperator) = Some((so.name, so.theType, so.params))
+}
+
+class SymbolicOperator private (sfh: SpecialFormHolder, name: String,
+    typ: BasicAtom, params: AtomSeq)
+extends PseudoOperator(sfh, name, typ, params) {
+	/**
+   * The type of an operator is a mapping from the operator domain to the
+   * operator codomain.
+   */
+	override val theType = PseudoOperator.makeOperatorType(params, typ)
+}
+
+object PseudoOperator {
+  val tag = Literal(Symbol(""))
+  
+  def apply(name: String, typ: BasicAtom, params: AtomSeq): PseudoOperator = {
+    val nameS = Literal(Symbol(name))
+    val binds = Bindings() + ("name"->nameS) + ("params"->params) + ("type"->typ)
+    val sfh = new SpecialFormHolder(tag, binds)
+    return new PseudoOperator(sfh, name, typ, params)
+  }
+  
+  def unapply(so: PseudoOperator) = Some((so.name, so.theType, so.params))
+
+  val MAP = PseudoOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain))
+  val xx = PseudoOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y))
+  
+  def makeOperatorType(params: AtomSeq, typ: BasicAtom) =
+  params.length match {
+    case 0 => MAP(NONE, typ)
+    case 1 => MAP(params(0).theType, typ)
+    case _ => MAP(xx(params.map(_.theType):_*), typ)
+  }
+}
+
+class PseudoOperator protected (sfh: SpecialFormHolder, val name: String,
+    val typ: BasicAtom, val params: AtomSeq)
+extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+
+	override val theType: BasicAtom = ANY
+  
+  /** The native handler, if one is declared. */
+  protected[core]
+  var handler: Option[(PseudoOperator,AtomSeq,Bindings) => BasicAtom] = None
+	
+  def apply(args: BasicAtom*): BasicAtom = {
+    // Make an atom list from the arguments.
+    val seq = AtomSeq(NoProps, args:_*)
+    doApply(seq, false)
+  }
+  
+  def doApply(arg: BasicAtom) = arg match {
+    case as: AtomSeq => doApply(as, false)
+    case _ => SimpleApply(this, false)
+  }
+  
+  def doApply(args: AtomSeq, bypass: Boolean): BasicAtom = {
+    // There are special cases to handle here.  First, if the argument list
+    // is empty, but there is an identity, return it.  Otherwise return the
+    // operator applied to the empty list.
+    if (args.length == 0) {
+      params.identity match {
+        case None =>
+          // No identity.
+          return SimpleApply(this, AtomSeq(params.props, args.atoms))
+        case Some(ident) =>
+          // Return the identity.
+          return ident
+      }
+    }
+    
+    // If the argument list is associative and we have a single element, then
+    // that element must match the type of the operator, and we return it.
+    if (args.length == 1) {
+      if (params.associative) {
+        // Get the atom.
+        val atom = args(0)
+        // Match the type of the atom against the type of the parameters.
+        val param = params(0)
+        param.tryMatch(atom) match {
+          case Fail(reason, index) =>
+            // The argument is invalid.  Reject!
+			      throw new ArgumentListException("Incorrect argument for operator " +
+			          toESymbol(name) + " at position 0: " + atom.toParseString)
+          case mat: Match =>
+            // The argument matches.
+            return atom
+          case many: Many =>
+            // The argument matches.
+            return atom
+        }
+      }
+    }
+    
+    // If the operator is associative, we pad the parameter list to get faster
+    // matching.  Otherwise we just match as-is.  In any case, when we are done
+    // we can just use the sequence matcher.
+    val newparams = if (params.associative) {
+      var newatoms: OmitSeq[BasicAtom] = EmptySeq
+      val atom = params(0)
+      for (index <- 0 until args.length) {
+        var param = Variable(atom.theType, ""+index)
+        newatoms = param +: newatoms
+      } // Build new parameter list.
+      newatoms
+    } else {
+      params.atoms
+    }
+    
+    // Handle actual operator application.
+    def handleApply(binds: Bindings): BasicAtom = {
+      // Re-package the arguments with the correct properties.
+      val newargs = AtomSeq(params.props, args.atoms)
+      // See if we are bypassing the native handler.
+      if (!bypass) {
+        // Run any native handler.
+        if (handler.isDefined) return handler.get(this, newargs, binds)
+      }
+      // No native handler.
+      return SimpleApply(this, newargs)
+    }
+    
+    // We've run out of special cases to handle.  Now just try to match the
+    // arguments against the parameters.
+    SequenceMatcher.tryMatch(newparams, args) match {
+      case Fail(reason, index) =>
+	      throw new ArgumentListException("Incorrect argument for operator " +
+	          toESymbol(name) + " at position " + index + ": " +
+	          args(0).toParseString)
+      case Match(binds) =>
+        // The argument list matches.
+        return handleApply(binds)
+      case Many(iter) =>
+        // The argument list matches.
+        return handleApply(iter.next)
     }
   }
 }

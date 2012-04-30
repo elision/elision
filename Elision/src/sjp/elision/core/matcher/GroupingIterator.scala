@@ -100,9 +100,7 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
 	private def advance {
 	  var here = _limit-1
 	  while(true) {
-	    println("1: " + here + "/" + _limit)
 	    _markers(here) += 1
-	    println("2: " + here + "/" + _limit)
 	    if (_markers(here) > _endpoint(here)) {
 	      here -= 1
 	      if (here < 0) {

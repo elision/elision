@@ -137,6 +137,12 @@ object Apply {
 	      case oper:Operator =>
 	        // The lhs is an operator; this is a highly likely case.
 	      	opApply(oper, arg, bypass)
+	      case oper: SymbolicOperator =>
+	        // The lhs is an operator.  The rhs must be an atom sequence.
+	        arg match {
+	          case as:AtomSeq => oper.doApply(as, bypass)
+	          case _ => SimpleApply(oper, arg)
+	        }
 		    case app:Applicable =>
 		      // The lhs is applicable; invoke its apply method.  This will return
 		      // some atom, and that atom is the overall result.
@@ -414,7 +420,7 @@ object Apply {
  * @param op			The operator.
  * @param arg			The argument list.
  * @param pabinds	The bindings from parameter name to argument.  Note that
- * 								if the operator is associative, some parameters may be
+ * 								if the operator is associative the parameters may be
  * 								synthetic!
  */
 case class OpApply(override val op: Operator, override val arg: AtomSeq,

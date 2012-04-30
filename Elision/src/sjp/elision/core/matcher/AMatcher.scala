@@ -154,20 +154,21 @@ object AMatcher {
      * iterator.
      */
     protected def findNext {
-      print("A Searching... ")
+      if (BasicAtom.traceMatching) print("A Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
       else {
         _local = null
         if (_groups.hasNext)
           SequenceMatcher.tryMatch(patterns.atoms, _groups.next, binds) match {
-          case Fail(_,_) =>
+          case fail:Fail =>
             // We ignore this case.  We only fail if we exhaust all attempts.
+            if (BasicAtom.traceMatching) println(fail)
             findNext
 	        case Match(binds) =>
 	          // This case we care about.  Save the bindings as the current match.
 	          _current = binds
-	          println("A Found.")
+	          if (BasicAtom.traceMatching) println("A Found.")
 	        case Many(iter) =>
 	          // We've potentially found many matches.  We save this as a local
 	          // iterator and then use it in the future.
@@ -177,7 +178,7 @@ object AMatcher {
 	        // We have exhausted the permutations.  We have exhausted this
 	        // iterator.
 	        _exhausted = true
-	        println("A Exhausted.")
+	        if (BasicAtom.traceMatching) println("A Exhausted.")
 	      }
       }
     }
