@@ -398,6 +398,18 @@ object Repl {
     
     // Skip blank lines.
     if (lline == "") return
+              
+    // If the line is a history reference, go and look it up now.
+    if (lline.startsWith("!")) {
+      // This is a history reference, so go and get it.
+      val num = lline.substring(1).trim.toInt
+      val prior = _hist.get(num)
+      if (prior == null) {
+        error("No such history entry: " + line)
+        return
+      }
+      lline = prior.toString
+    }
     
     // Parse the line.  Handle each atom obtained.
     try {
@@ -911,10 +923,15 @@ object Repl {
     // Is bindable.
     execute("def({ operator #name=is_bindable #params=%($x) #type=BOOLEAN })")
     _context.operatorLibrary.register("is_bindable",
-        (op: Operator, args: AtomSeq, _) => args match {
-          case Args(term) => if (term.isBindable) Literal.TRUE else Literal.FALSE
-          case _ => Apply(op, args, true)
-        })
+        (op: Operator, args: AtomSeq, _) => {println("F")
+          args match {
+          case Args(term) =>
+            println("E")
+            if (term.isBindable) Literal.TRUE else Literal.FALSE
+          case _ =>
+            println("D")
+            Apply(op, args, true)
+        }})
         
     // The operator are defined.
     _opsDefined = true

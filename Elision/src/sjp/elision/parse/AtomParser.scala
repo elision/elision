@@ -301,22 +301,6 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
-	// Matching nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node denoting a pattern to match when applied on the left.
-	 * 
-	 * @param pat	The pattern.
-	 * @return	A match atom.
-	 */
-	case class MatchNode(pat: AstNode) extends AstNode {
-	  def interpret = {
-	    MatchAtom(pat.interpret)
-	  }
-	}
-	
-	//----------------------------------------------------------------------
 	// Symbol nodes.
 	//----------------------------------------------------------------------
 	
@@ -404,28 +388,6 @@ object AtomParser {
 	case class RulesetsNode(context: Context, rulesets: List[NakedSymbolNode])
 	extends AstNode {
 	  def interpret = RulesetStrategy(context, rulesets.map(_.str))
-	}
-	
-	/**
-	 * A node representing the map strategy.
-	 * 
-	 * @param labels	The labels to receive the mapping.
-	 * @param exclude	Labels to exclude from the mapping.
-	 * @param atom		The atom to map.
-	 */
-	case class MapNode(include: List[NakedSymbolNode],
-	    exclude: List[NakedSymbolNode], atom: AstNode) extends AstNode {
-	  def interpret = MapStrategy(
-	      include.map(_.str).toSet, exclude.map(_.str).toSet, atom.interpret)
-	}
-	
-	/**
-	 * A node representing the right map strategy.
-	 * 
-	 * @param atom		The atom to map.
-	 */
-	case class RMapNode(atom: AstNode) extends AstNode {
-	  def interpret = RMapStrategy(atom.interpret)
 	}
 	
 	//----------------------------------------------------------------------
@@ -807,33 +769,12 @@ extends Parser {
       
       // Parse a ruleset strategy.
       ParsedRulesetStrategy |
-      
-      // Parse a map strategy.
-      ParsedMap |
-      
-      // Parse a right-map strategy.
-      ParsedRMap |
-      
-      // Parse a match.
-      ParsedMatch |
         
       // Parse a lambda.
       ParsedLambda |
       
       // Parse a typical operator application.
       ParsedApply |
-      
-      // Parse the special root types.
-      /*
-      "STRING " ~ push(SimpleTypeNode(STRING)) |
-      "SYMBOL " ~ push(SimpleTypeNode(SYMBOL)) |
-      "INTEGER " ~ push(SimpleTypeNode(INTEGER)) |
-      "FLOAT " ~ push(SimpleTypeNode(FLOAT)) |
-      "BOOLEAN " ~ push(SimpleTypeNode(BOOLEAN)) |
-      "OPTYPE " ~ push(SimpleTypeNode(OPTYPE)) |
-      "RULETYPE " ~ push(SimpleTypeNode(RULETYPE)) |
-      "ANY " ~ push(SimpleTypeNode(ANY)) |
-      */
       
       // Parse a typed list.
       ParsedTypedList |
@@ -847,8 +788,8 @@ extends Parser {
       ParsedVariable |
 
       // A "naked" operator is specified by explicitly giving the operator
-      // type OPTYPE.  Otherwise it is parsed as a symbol.
-      ESymbol ~ ": " ~ "OPTYPE " ~~> (
+      // type OPREF.  Otherwise it is parsed as a symbol.
+      ESymbol ~ ": " ~ "OPREF " ~~> (
           (sym: NakedSymbolNode) =>
             OperatorNode(sym.str, context.operatorLibrary)) |
        
@@ -1067,25 +1008,6 @@ extends Parser {
     "{ " ~ "apply " ~ ParsedRulesetList ~ "} " ~~>
     (RulesetsNode(context, _))
   }.label("a ruleset application")
-  
-  /**
-   * Parse a map strategy.
-   */
-  def ParsedMap = rule {
-    "{ " ~ "map " ~
-    zeroOrMore("@ " ~ ESymbol) ~
-    zeroOrMore("- " ~ "@ " ~ ESymbol) ~
-    Atom ~ "} " ~~>
-    (MapNode(_,_,_))
-  }.label("a map expression")
-  
-  /**
-   * Parse a rmap strategy.
-   */
-  def ParsedRMap = rule {
-    "{ " ~ "rmap " ~ Atom ~ "} " ~~>
-    (RMapNode(_))
-  }.label("a right-map expression")
 
   //======================================================================
   // Parse variables.
@@ -1256,18 +1178,6 @@ extends Parser {
   
   /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }.label("a binary digit")
-  
-  //======================================================================
-  // Matching.
-  //======================================================================
-  
-  /**
-   * Parse a match between two atoms.
-   */
-  def ParsedMatch = rule {
-    "{ " ~ "match " ~ Atom ~ "} " ~~>
-    (pat => MatchNode(pat))
-  }.label("a match expression")
 
   //======================================================================
   // Other methods affecting the parse.

@@ -33,8 +33,8 @@ package sjp.elision.core
  * @author ysp
  *
  */
-class MatchAtom(tag: BasicAtom, val pat: BasicAtom)
-extends SpecialForm(tag, pat) with Applicable {
+class MatchAtom(sfh: SpecialFormHolder, val pat: BasicAtom)
+extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   /** The type of this atom. */
   override val theType = PseudoOperator.MAP(ANY, BINDING)
 
@@ -51,24 +51,19 @@ extends SpecialForm(tag, pat) with Applicable {
     case Match(binds) => BindingsAtom(binds)
     case Many(iter) => BindingsAtom(iter.next)
   }
-  
-  /**
-   * Make a Scala parseable representation of this atom.
-   * 
-   * @return 	A parseable atom.
-   */
-  override def toString = "MatchAtom(" + pat.toString + ")"
 }
 
 object MatchAtom {
   def apply(sfh: SpecialFormHolder): MatchAtom = {
-    sfh.requireBindings.fetchAs[AtomSeq]("") match {
+    val bh = sfh.requireBindings
+    bh.check(Map(""->true))
+    bh.fetchAs[AtomSeq]("") match {
       case Args(atom: BasicAtom) =>
-        new MatchAtom(sfh.tag, sfh.content)
+        new MatchAtom(sfh, atom)
       case x =>
         throw new SpecialFormException(
             "Did not find exactly one pattern: " + x.toParseString)
     }
   }
-  def apply(pat: BasicAtom) = new MatchAtom(Literal('match), pat)
+  def unapply(ma: MatchAtom) = Some((ma.pat))
 }

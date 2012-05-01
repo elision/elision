@@ -172,7 +172,7 @@ object Apply {
  * 								synthetic!
  */
 case class OpApply(override val op: Operator, override val arg: AtomSeq,
-    pabinds: Bindings) extends Apply(op, arg) {
+    val pabinds: Bindings) extends Apply(op, arg) {
   /**
    * Compute the type from the type specified by the operator, and the bindings
    * provided during parameter matching.  This allows rewriting otherwise
@@ -192,6 +192,14 @@ case class OpApply(override val op: Operator, override val arg: AtomSeq,
    * Generate a parseable string.
    */
   def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
+  
+  override def rewrite(binds: Bindings) = {
+    // Rewrite the argument, but not the operator.  In reality, operators
+    // should protect their arguments using De Bruijn indices, but that's
+    // not implemented just yet.
+    val pair = arg.rewrite(binds)
+    if (pair._2) (Apply(op, pair._1), true) else (this, false)
+  }
 }
 
 case class SimpleApply(override val op: BasicAtom, override val arg: BasicAtom)

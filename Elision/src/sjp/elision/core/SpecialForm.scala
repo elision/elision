@@ -158,6 +158,7 @@ object SpecialForm {
     val sfh = new SpecialFormHolder(tag, content)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {
+	      case 'map => MapStrategy(sfh)
 	      case 'bind => BindingsAtom(sfh)
 	      case 'rule => RewriteRule(sfh)
 	      case 'match => MatchAtom(sfh)

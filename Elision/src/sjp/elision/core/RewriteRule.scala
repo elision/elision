@@ -80,10 +80,24 @@ extends BasicAtom with Rewriter {
   }
 }
 
-class MapStrat(sfh: SpecialFormHolder, val lhs: BasicAtom,
-    val include: BasicAtom, val exclude: BasicAtom)
+class MapStrategy(sfh: SpecialFormHolder, val lhs: BasicAtom,
+    val include: AtomSeq, val exclude: AtomSeq)
 extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
   override val theType = STRATEGY
+  
+  // Make the include and exclude lists into sets.
+  private lazy val _inSet =
+    include.
+    filter(_.isInstanceOf[SymbolLiteral]).
+    asInstanceOf[IndexedSeq[SymbolLiteral]].
+    map(_.value.name).
+    toSet
+  private lazy val _exSet =
+    exclude.
+    filter(_.isInstanceOf[SymbolLiteral]).
+    asInstanceOf[IndexedSeq[SymbolLiteral]].
+    map(_.value.name).
+    toSet
 	
 	def doRewrite(atom: BasicAtom) = atom match {
 	  // We only process two kinds of atoms here: atom lists and operator
@@ -91,113 +105,85 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	  case AtomSeq(props, atoms) =>
 	    // All we can do is apply the lhs to each atom in the list.
 	    (AtomSeq(props, atoms.map(Apply(lhs,_))), true)
-	  case Apply(op, AtomSeq(props, atoms)) =>
-      // We apply the lhs to each argument whose parameter meets the
-      // label criteria.  This is modestly tricky.
-      (Apply(op, AtomSeq(props, atoms.map(Apply(lhs,_)))), true)
+	  case Apply(op, seq: AtomSeq) => op match {
+	    case so: SymbolicOperator => _apply(so, seq)
+	    case _ => (Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_)))), true)
+	  }
 	  case _ =>
 	    // Do nothing in this case.
 	    (atom, false)
 	}
+  
+  private def _apply(op: PseudoOperator, args: AtomSeq): (BasicAtom, Boolean) = {
+    val plen = op.params.length
+  	def getP(index: Int) = op.params(if (index > plen) plen-1 else index)
+  	// If there are no parameters, we can't do anything.
+  	if (plen == 0) {
+      return (Apply(op, AtomSeq(args.props, args.map(Apply(lhs,_)))), true)
+  	}
+    // We examine each argument and look at the labels (if any) on the
+    // corresponding parameter.  If any label is in the exclude set, then
+    // we exclude the argument.  Next if the include set is not empty and
+    // no label is in the include set, we exclude the argument.  Otherwise
+    // we include it.
+    var newargs: OmitSeq[BasicAtom] = EmptySeq
+    var changed = false
+    for (index <- 0 until args.length) {
+      // Get the argument.
+      var arg = args(index)
+      // Get the corresponding parameter.
+      val param = getP(index).asInstanceOf[Variable]
+      // Get the labels.
+      val labels = param.labels
+      // If any label is excluded, then the argument is excluded.
+      if (_exSet.intersect(labels).isEmpty) {
+        // The label was not excluded.  If the include set is nonempty, then
+        // the label must be in the include set.
+        if (_inSet.isEmpty || !_inSet.intersect(labels).isEmpty) {
+          // The argument is admitted.  Rewrite it and continue.
+          arg = Apply(lhs, arg)
+          if (!changed && arg != args(index)) changed = true
+        }
+      }
+      // Add the argument to the new argument list.
+      newargs :+= arg
+    } // Loop over arguments.
+    // If anything changed, make a new apply and return it.
+    if (changed) return (Apply(op, AtomSeq(args.props, newargs)), true)
+    else return (this, false)
+  }
 }
 
-case class MapStrategy(include: Set[String], exclude: Set[String],
-    lhs: BasicAtom) extends BasicAtom with Rewriter {
-	val theType = STRATEGY
-	
-	val isConstant = lhs.isConstant
-	val isTerm = lhs.isTerm
-	val deBruijnIndex = lhs.deBruijnIndex
-	val depth = lhs.depth + 1
-	val constantPool =
-	  Some(BasicAtom.buildConstantPool(theType.hashCode, lhs))
-	  
-	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-	    hints: Option[Any]) =
-  	subject match {
-	  case MapStrategy(oin, oex, olhs) =>
-	    if (include != oin || exclude != oex)
-	      Fail("Labels do not match.", this, subject)
-      else
-        lhs.tryMatch(olhs, binds, hints)
-	  case _ => Fail("Subject is not a map strategy.", this, subject)
-	}
-	  
-	def rewrite(binds: Bindings) = lhs.rewrite(binds) match {
-	  case (newlhs, true) => (MapStrategy(include, exclude, newlhs), true)
-	  case _ => (this, false)
-	}
-	
-	def toParseString = "{ map " +
-			include.map("@" + toESymbol(_)).mkString(" ") +
-			exclude.map("-@" + toESymbol(_)).mkString(" ") +
-			" " + lhs.toParseString + " }"
-			
-  override def toString = "MapStrategy(" +
-  		include.map(toEString(_)).mkString("List(", ", ", ")") +
-  		exclude.map(toEString(_)).mkString("List(", ", ", ")") +
-  		", " + lhs.toString + ")"
-  		
-  override def hashCode = lhs.hashCode
-	
-	def doRewrite(atom: BasicAtom) = atom match {
-	  // We only process two kinds of atoms here: atom lists and operator
-	  // applications.  Figure out what we have.
-	  case AtomSeq(props, atoms) =>
-	    // All we can do is apply the lhs to each atom in the list.
-	    (AtomSeq(props, atoms.map(Apply(lhs,_))), true)
-	  case Apply(op, AtomSeq(props, atoms)) =>
-      // We apply the lhs to each argument whose parameter meets the
-      // label criteria.  This is modestly tricky.
-      (Apply(op, AtomSeq(props, atoms.map(Apply(lhs,_)))), true)
-	  case _ =>
-	    // Do nothing in this case.
-	    (atom, false)
-	}
-}
-
-case class RMapStrategy(rhs: BasicAtom) extends BasicAtom with Rewriter {
-	val theType = STRATEGY
-	
-	val isConstant = rhs.isConstant
-	val isTerm = rhs.isTerm
-	val deBruijnIndex = rhs.deBruijnIndex
-	val depth = rhs.depth + 1
-	val constantPool =
-	  Some(BasicAtom.buildConstantPool(theType.hashCode, rhs))
-	  
-	def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-	    hints: Option[Any]) =
-  	subject match {
-	  case RMapStrategy(orhs) => rhs.tryMatch(orhs, binds, hints)
-	  case _ => Fail("Subject is not an rmap strategy.", this, subject)
-	}
-	  
-	def rewrite(binds: Bindings) = rhs.rewrite(binds) match {
-	  case (newrhs, true) => (RMapStrategy(newrhs), true)
-	  case _ => (this, false)
-	}
-	
-	def toParseString = "{ rmap " + rhs.toParseString + " }"
-			
-  override def toString = "RMapStrategy(" + rhs.toString + ")"
-  		
-  override def hashCode = rhs.hashCode
-	
-	def doRewrite(atom: BasicAtom) = atom match {
-	  // We only process two kinds of atoms here: atom lists and operator
-	  // applications.  Figure out what we have.
-	  case AtomSeq(props, atoms) =>
-	    // All we can do is apply the rhs to each atom in the list.
-	    (AtomSeq(props, atoms.map(Apply(_,rhs))), true)
-	  case Apply(op, AtomSeq(props, atoms)) =>
-      // We apply the rhs to each argument whose parameter meets the
-      // label criteria.  This is modestly tricky.
-      (Apply(op, AtomSeq(props, atoms.map(Apply(_,rhs)))), true)
-	  case _ =>
-	    // Do nothing in this case.
-	    (atom, false)
-	}
+object MapStrategy {
+  val tag = Literal(Symbol("map"))
+  
+  def apply(sfh: SpecialFormHolder): MapStrategy = {
+    val bh = sfh.requireBindings
+    bh.check(Map(""->true, "include"->false, "exclude"->false))
+    val lhs = bh.fetchAs[AtomSeq]("")
+    val include = bh.fetchAs[AtomSeq]("include", Some(EmptySeq))
+    val exclude = bh.fetchAs[AtomSeq]("exclude", Some(EmptySeq))
+    if (lhs.length < 1) {
+      throw new SpecialFormException("Map requires exactly one item " +
+      		"(specified first) to apply to each matching child.  None " +
+      		"was given.  Be sure it is given before any #include or #exclude.")
+    }
+    if (lhs.length > 1) {
+      throw new SpecialFormException("Map requires exactly one item " +
+      		"(specified first) to apply to each matching child.  Too many " +
+      		"were given.  Did you forget a delimiter or an #include or #exclude?")
+    }
+    return new MapStrategy(sfh, lhs(0), include, exclude)
+  }
+  
+  def apply(lhs: BasicAtom, include: AtomSeq, exclude: AtomSeq): MapStrategy = {
+    val binds = Bindings() + (""->AtomSeq(NoProps, lhs)) +
+    		("include"->include) + ("exclude"->exclude)
+    val sfh = new SpecialFormHolder(tag, binds)
+    return new MapStrategy(sfh, lhs, include, exclude)
+  }
+  
+  def unapply(map: MapStrategy) = Some((map.lhs, map.include, map.exclude))
 }
 
 /**

@@ -62,7 +62,7 @@ class ArgumentListException(msg: String) extends ElisionException(msg)
 abstract class Operator(sfh: SpecialFormHolder,
     val name: String, val typ: BasicAtom, definition: AtomSeq)
     extends SpecialForm(sfh.tag, sfh.content) with Applicable
-
+    
 object CaseOperator {
   val tag = Literal(Symbol("case"))
   
@@ -85,6 +85,30 @@ object CaseOperator {
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases))
 }
 
+class OperatorRef(val op: Operator) extends BasicAtom with Applicable {
+  val depth = 0
+  val deBruijnIndex = 0
+  val constantPool = None
+  val isTerm = true
+  val isConstant = true
+  val theType = OPREF
+  def doApply(atom: BasicAtom) = op.doApply(atom)
+  def toParseString = toESymbol(op.name) + ":OPREF"
+  def rewrite(binds: Bindings) = (this, false)
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
+    if (subject == this) Match(binds)
+    else subject match {
+      case OperatorRef(oop) if (oop == op) => Match(binds)
+      case oop: Operator if (oop == op) => Match(binds)
+      case _ => Fail("Operator reference does not match subject.", this, subject)
+    }
+}
+
+object OperatorRef {
+  def unapply(ref: OperatorRef) = Some(ref.op)
+  def apply(op: Operator) = new OperatorRef(op)
+}
+
 class CaseOperator private (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val cases: AtomSeq)
 		extends Operator(sfh, name, typ, cases) {
@@ -100,17 +124,12 @@ class CaseOperator private (sfh: SpecialFormHolder,
       case rew: Rewriter =>
         val pair = rew.doRewrite(args)
         result = Some(pair._1)
-        println(rew.toParseString)
-        println(pair)
         pair._2
       case app: Applicable =>
         result = Some(app.doApply(args))
-        println(app.toParseString)
-        println(result)
         true
       case atom =>
         result = Some(atom)
-        println(atom.toParseString)
         true
     }}
     // If nothing worked, then we need to generate an error since the operator
@@ -186,7 +205,8 @@ object PseudoOperator {
 class PseudoOperator protected (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val params: AtomSeq)
 		extends Operator(sfh, name, typ, params) {
-
+	println("MAKING an instance of: " + name)
+	(new Exception()).printStackTrace
 	override val theType: BasicAtom = ANY
   
   /** The native handler, if one is declared. */

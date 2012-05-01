@@ -127,7 +127,7 @@ object NamedRootType {
   List(STRING, SYMBOL,
       INTEGER, FLOAT,
       BOOLEAN, RULETYPE,
-      OPTYPE, STRATEGY,
+      OPREF, STRATEGY,
       BINDING,
       ANY, NONE)
 }
@@ -152,7 +152,7 @@ object BOOLEAN extends NamedRootType("BOOLEAN")
 /** A type for all rules. */
 object RULETYPE extends NamedRootType("RULETYPE")
 /** A type for all operators. */
-object OPTYPE extends NamedRootType("OPTYPE")
+object OPREF extends NamedRootType("OPREF")
 /** A type for all strategies. */
 object STRATEGY extends NamedRootType("STRATEGY")
 /** A type for all bindings. */
