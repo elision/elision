@@ -35,18 +35,21 @@ import sjp.elision.ElisionException
 
 /**
  * Indicate an attempt to re-define an already-known operator.
+ * 
  * @param msg		A human readable message.
  */
 class OperatorRedefinitionException(msg: String) extends ElisionException(msg)
 
 /**
  * Indicate an attempt to improperly define an operator.
+ * 
  * @param msg		A human readable message.
  */
 class OperatorDefinitionException(msg: String) extends ElisionException(msg)
 
 /**
  * A requested operator was not found, and could not be created.
+ * 
  * @param msg		A human readable message.
  */
 class UndefinedOperatorException(msg: String) extends ElisionException(msg)
@@ -56,34 +59,15 @@ class UndefinedOperatorException(msg: String) extends ElisionException(msg)
  * are managed by name, and two operators in the same library cannot have the
  * same name (but there can be multiple libraries).
  * 
- * = Undefined Operators =
- * 
- * You can set this class to allow undefined operators to be used.  When an
- * operator f that has not previously been defined is requested, a definition
- * is created at that point using the following prototype and properties.
- * 
- * {{{
- * operator { f(x: ^TYPE, y: ^TYPE): ^TYPE is associative }
- * }}}
- * 
- * This is borderline useless, and is only intended for testing and debugging.
- * Since you cannot modify the operator definition, and the above is probably
- * not what you want, there is little reason to use this "feature" and it may
- * be removed in the future.
- * 
- * = Native Operators =
- * 
+ * == Native Operators ==
  * Handlers for native operators come here to register themselves.  Pass a
- * closure that takes the argument list.
+ * closure of the proper form (see `register`).
  * 
- * @param allowUndefined		If true, allow undefined operators as described
- * 													above.  This is false by default.
  * @param allowRedefinition	If true, allow redefinition of operators (madness)
  * 													as described above.  A warning is always generated!
  * 													This is false by default.
  */
 class OperatorLibrary(
-    val allowUndefined: Boolean = false,
     val allowRedefinition: Boolean = false) extends Fickle with Mutable {
 
   /**

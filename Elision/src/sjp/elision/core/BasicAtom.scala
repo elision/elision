@@ -35,14 +35,15 @@ import scala.collection.immutable.HashMap
 /**
  * This marker trait is used to frighten developers and strike fear into
  * anyone trying to parallelize something in the library.  If you see it,
- * BEWARE!  The associated class contains some form of mutable data!
+ * '''BEWARE'''!  The associated class contains some form of mutable data!
  */
 trait Mutable
 
 /**
  * This marker trait is used to frighten developers and strike fear into
- * anyone trying to get some work done.  If you see it, BEWARE!  The associated
- * class is going to change dramatically, disappear, or explode violently.
+ * anyone trying to get some work done.  If you see it, '''BEWARE'''!  The
+ * associated class is going to change dramatically, disappear, or explode
+ * violently.
  */
 trait Fickle
 
@@ -53,8 +54,16 @@ trait Fickle
 trait Rewriter {
   /**
    * Apply this rewriter to the given atom, yielding a potentially new atom.
-   * The rewriter must also provide a flag indicating whether it ''succeeded''
+   * The rewriter must also provide a flag indicating whether it "succeeded"
    * in some appropriate sense.
+   * 
+   * The specific sense of "success" is dependent on the rewriter, and does
+   * not necessarily mean that the rewritten atom is different from the
+   * original atom.
+   * 
+   * Atoms that have this trait can be placed on the left-hand side of the
+   * applicative dot.  This method will get invoked when that happens, with
+   * the right-hand side passed as the atom.
    * 
    * @param atom	The atom to rewrite.
    * @return	A pair consisting of a potentially new atom and a flag indicating
@@ -76,10 +85,16 @@ trait Applicable {
    * applicative dot.  This method will get invoked when that happens, with
    * the right-hand side passed as the atom.
    * 
-   * @param atom		The atom to apply this to.
+   * An applicable such as an operator might have a native handler registered.
+   * To control when these are applied, a `bypass` flag is provided.  If 
+   * `true` then no native handler should be invoked.  By default the flag
+   * is `false`.
+   * 
+   * @param rhs		The atom to apply this to.
+   * @param bypass	Whether to bypass native handlers.
    * @return	A potentially new atom.
    */
-  def doApply(atom: BasicAtom): BasicAtom
+  def doApply(rhs: BasicAtom, bypass: Boolean = false): BasicAtom
 }
 
 /**
@@ -147,6 +162,13 @@ trait Applicable {
  *    // Common implementation with children.
  *    val isConstant = children.forall(_.isConstant)
  *    }}}
+ *    
+ *  - Write code to compute the `constantPool`.  This is somewhat complex;
+ *    see the documentation for the field for how to do this without going
+ *    insane.
+ *    
+ *  - Specify whether this atom represents a term, or a metaterm.  If a term,
+ *    then set `isTerm` to `true`.  Otherwise, set it to `false`.
  */
 abstract class BasicAtom {
   import scala.collection.mutable.{Map => MMap}
@@ -391,6 +413,9 @@ abstract class BasicAtom {
 
 /**
  * Mutable controls affecting all atoms and matching go here.
+ * 
+ * In addition you can find the helper method `buildConstantPool` to
+ * compute the constant pool for an atom.
  */
 object BasicAtom {
   /** Enable (if true) or disable (if false) match tracing. */

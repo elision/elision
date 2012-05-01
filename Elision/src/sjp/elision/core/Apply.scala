@@ -34,11 +34,19 @@ package sjp.elision.core
 import scala.collection.mutable.ListBuffer
 
 /**
- * The common root for all application atoms.
+ * The common root for all application atoms.  This class represents the
+ * "applicative dot."
  * 
+ * == Purpose ==
  * An ''apply'' takes two atoms and applies the first (as an operator,
- * rewriter, etc.) to the second (as the argument).  Elements common across
- * all types are found here.
+ * rewriter, etc.) to the second (as the argument).
+ * 
+ * In general this just forms a pair, but certain left-hand sides will
+ * undergo specialized processing by the system.
+ * 
+ * == Use ==
+ * Use this class via the companion object, so that the correct result is
+ * returned.  The result may be any kind of atom.
  * 
  * @param op		The left-hand element of the apply (operator).
  * @param arg		The right-hand element of the apply (argument).
@@ -100,7 +108,8 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
 }
 
 /**
- * Provide construction and extraction for an `Apply`.
+ * Provide construction and extraction for an `Apply`.  This is the correct
+ * place to come to make an application object.
  */
 object Apply {
   /**
@@ -113,7 +122,18 @@ object Apply {
   
   /**
    * Construct an application.  We key off the left hand side (the operator)
-   * to decide how to handle this.
+   * to decide how to handle this.  Specifically, automatic handling is
+   * performed for [[sjp.elision.core.Applicable]] and
+   * [[sjp.elision.core.Rewriter]].
+   * 
+   * If the right-hand side is ''not'' a term, then none of the special
+   * handling described above is performed, and the applicative pair is
+   * returned as-is.
+   * 
+   * Operators may have native handlers, and these may subsequently return
+   * here.  To prevent an infinite loop, the native handler can specify
+   * the `bypass` flag when it calls here to prevent the native handler
+   * from being re-invoked.
    * 
    * @param op			The lhs of the apply, typically an operator.
    * @param arg			The rhs of the apply, typically an argument.
@@ -125,12 +145,6 @@ object Apply {
     if (!arg.isTerm) SimpleApply(op, arg)
     else {
 	    op match {
-	      case oper: SymbolicOperator =>
-	        // The lhs is an operator.  The rhs must be an atom sequence.
-	        arg match {
-	          case as:AtomSeq => oper.doApply(as, bypass)
-	          case _ => SimpleApply(oper, arg)
-	        }
 		    case app:Applicable =>
 		      // The lhs is applicable; invoke its apply method.  This will return
 		      // some atom, and that atom is the overall result.
@@ -156,14 +170,23 @@ object Apply {
  * An ''operator apply''.  This is the common case of applying a known operator
  * to some argument list.
  * 
+ * This has some special syntax (operator name juxtaposed with argument list
+ * in parentheses) and provides special handling for the type (the type is
+ * rewritten using the bindings resulting from matching the arguments against
+ * the parameters).
+ * 
+ * Based on properties and any native handler, this may never be constructed
+ * for an operator application.  '''Do not use this directly.'''  Instead,
+ * use the methods in the [[sjp.elision.core.Apply]] companion object.
+ * 
  * @param op			The operator.
  * @param arg			The argument list.
  * @param pabinds	The bindings from parameter name to argument.  Note that
  * 								if the operator is associative the parameters may be
  * 								synthetic!
  */
-case class OpApply(override val op: OperatorRef, override val arg: AtomSeq,
-    val pabinds: Bindings) extends Apply(op, arg) {
+case class OpApply protected[core] (override val op: OperatorRef,
+    override val arg: AtomSeq, val pabinds: Bindings) extends Apply(op, arg) {
   /**
    * Compute the type from the type specified by the operator, and the bindings
    * provided during parameter matching.  This allows rewriting otherwise
@@ -171,9 +194,6 @@ case class OpApply(override val op: OperatorRef, override val arg: AtomSeq,
    */
   val theType = op.operator.typ.rewrite(pabinds)._1
   
-  /**
-   * Generate a parseable string.
-   */
   def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
   
   override def rewrite(binds: Bindings) = {
@@ -185,8 +205,19 @@ case class OpApply(override val op: OperatorRef, override val arg: AtomSeq,
   }
 }
 
-case class SimpleApply(override val op: BasicAtom, override val arg: BasicAtom)
-extends Apply(op, arg) {
+/**
+ * A ''simple apply''.  This is the class used if an apply "survives"
+ * processing, such as when the right-hand side is not a term.
+ * 
+ * '''Do not use this directly.''' Instead, use the methods in the
+ * [[sjp.elision.core.Apply]] companion object to create an apply using
+ * the correct processing.
+ * 
+ * @param op		The operator.
+ * @param arg		The argument.
+ */
+case class SimpleApply protected[core] (override val op: BasicAtom,
+    override val arg: BasicAtom) extends Apply(op, arg) {
   /**
    * We take the type from the operator.  This may be an incomplete type, but
    * we cannot rewrite it yet because we don't know the full bindings.  This
@@ -194,11 +225,15 @@ extends Apply(op, arg) {
    */
   val theType = op.theType
   
-  /**
-   * Generate a parseable string.
-   */
+  // When an integer literal is present, we have to surround it with parens
+  // so that the system does not interpret the applicative dot as a decimal
+  // point.  If a named root type is present, it can also cause trouble, so
+  // we must explicitly annotate it.
   def toParseString = "(" +
   	(if (op.isInstanceOf[IntegerLiteral])
-  	  "(" + op.toParseString + ")" else op.toParseString) +
+  	  "(" + op.toParseString + ")"
+	  else if (op.isInstanceOf[NamedRootType])
+	    op.toParseString + ":^TYPE"
+    else op.toParseString) +
     "." + arg.toParseString + ")"
 }

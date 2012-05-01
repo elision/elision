@@ -376,21 +376,6 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
-	// Rule nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a ruleset strategy.
-	 * 
-	 * @param context		A context to supply the rules.
-	 * @param rulesets	Names of the rulesets to use.
-	 */
-	case class RulesetsNode(context: Context, rulesets: List[NakedSymbolNode])
-	extends AstNode {
-	  def interpret = RulesetStrategy(context, rulesets.map(_.str))
-	}
-	
-	//----------------------------------------------------------------------
 	// Literal nodes - that is, nodes that hold literal values.
 	//----------------------------------------------------------------------
 	
@@ -755,9 +740,6 @@ extends Parser {
     WS ~ (
       // Handle parenthetical expressions.
       "( " ~ Atom ~ ") " |
-      
-      // Parse a ruleset strategy.
-      ParsedRulesetStrategy |
         
       // Parse a lambda.
       ParsedLambda |
@@ -976,27 +958,6 @@ extends Parser {
   def ParsedMapPair = rule {
     FirstAtom ~ "-> " ~ Atom ~~> (MapPairNode(_,_))
   }
-  
-  //======================================================================
-  // Parse a rewrite rule.
-  //======================================================================
-            
-  /**
-   * Parse a comma-separated list of ruleset names, introduced by the keyword
-   * `ruleset` or `rulesets`.
-   */
-  def ParsedRulesetList = rule {
-    (ignoreCase("rulesets ") | ignoreCase("ruleset ")) ~
-    zeroOrMore(ESymbol, ", ")
-  }.label("a comma-separated ruleset list")
-  
-  /**
-   * Parse a ruleset strategy.
-   */
-  def ParsedRulesetStrategy = rule {
-    "{ " ~ "apply " ~ ParsedRulesetList ~ "} " ~~>
-    (RulesetsNode(context, _))
-  }.label("a ruleset application")
 
   //======================================================================
   // Parse variables.

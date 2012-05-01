@@ -30,40 +30,125 @@
 package sjp.elision.core
 
 /**
- * @author ysp
- *
+ * Encapsulate a simple atom to perform basic matching.
+ * 
+ * == Purpose ==
+ * This atom holds a single pattern ''P''.  When applied to another atom ''A'',
+ * it tries to match ''A'' against pattern ''P''.  If the match fails, then
+ * `NONE` is returned.  The first match that satisfies the guards (if any) is
+ * returned.
+ * 
+ * == Rules ==
+ * This is almost a rewrite rule.  Consider the following rule.
+ * {{{
+ * { rule $x:INTEGER -> 0 #if equal($$x,5) }
+ * }}}
+ * We can ''almost'' write this as follows, provided we are very careful with
+ * metavariables.
+ * {{{
+ * \$$x.(({match $$x:INTEGER #if equal($$x,5)}.$$x).0)
+ * }}}
+ * The reason the above two are not the same is that in the second case
+ * we might get `NONE` as the result from the match and this will not
+ * get "digested" by the applicative dot.
  */
-class MatchAtom(sfh: SpecialFormHolder, val pat: BasicAtom)
+class MatchAtom(sfh: SpecialFormHolder,
+    val pattern: BasicAtom, val guards: AtomSeq)
 extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   /** The type of this atom. */
   override val theType = SymbolicOperator.MAP(ANY, BINDING)
+  
+  /**
+   * Perform the matching.
+   * 
+   * @param subject		The subject to match.
+   * @param binds			Bindings to honor.
+   * @return	Some bindings if the match was successful, and `None` if not.
+   */
+  private def _doMatching(subject: BasicAtom, binds: Bindings = Bindings()) = {
+    // Local function to check the guards.
+    def checkGuards(candidate: Bindings): Boolean = {
+      for (guard <- guards) {
+        val (newguard, _) = guard.rewrite(candidate)
+        if (!newguard.isTrue) return false
+      }
+      true
+    }
+    
+    // Try to match the given atom against the pattern.
+    pattern.tryMatch(subject, binds) match {
+      case fail:Fail => None
+      case Match(newbinds) =>
+        // We got a match.  Check the guards.
+        if (checkGuards(newbinds)) Some(newbinds) else None
+      case Many(iter) =>
+        // We might have many matches.  We search through them until we find
+        // one that satisfies the guards, or until we run out of candidates.
+        for (newbinds <- iter) {
+          if (checkGuards(newbinds)) Some(newbinds)
+        }
+        None
+    }
+  }
 
   /**
-   * Apply this match atom to the given atom.  This performs the matc
-   * and returns either the bindings of the first match, or Nothing if
+   * Apply this match atom to the given atom.  This performs the match
+   * and returns either the bindings of the first match, or `NONE` if
    * it does not match.
    * 
-   * @param atom	The subject to match.
+   * @param subject	The subject to match.
+   * @param bypass	Whether to bypass native handlers.
    * @return	Bindings, or Nothing.
    */
-  def doApply(atom: BasicAtom): BasicAtom = pat.tryMatch(atom) match {
-    case fail:Fail => NONE
-    case Match(binds) => BindingsAtom(binds)
-    case Many(iter) => BindingsAtom(iter.next)
+  def doApply(subject: BasicAtom, bypass: Boolean) = _doMatching(subject) match {
+    case None => NONE
+    case Some(binds) => BindingsAtom(binds)
   }
 }
 
+/**
+ * Provide construction and matching.
+ */
 object MatchAtom {
+  /** The special form tag. */
+  val tag = Literal('match)
+  
+  /**
+   * Make a new pair from the provided special form data.
+   * 
+   * @param	sfh		Parsed special form data.
+   */
   def apply(sfh: SpecialFormHolder): MatchAtom = {
     val bh = sfh.requireBindings
-    bh.check(Map(""->true))
+    bh.check(Map(""->true, "if"->false))
+    val guards = bh.fetchAs[AtomSeq]("if", Some(EmptySeq))
     bh.fetchAs[AtomSeq]("") match {
       case Args(atom: BasicAtom) =>
-        new MatchAtom(sfh, atom)
+        new MatchAtom(sfh, atom, guards)
       case x =>
         throw new SpecialFormException(
             "Did not find exactly one pattern: " + x.toParseString)
     }
   }
-  def unapply(ma: MatchAtom) = Some((ma.pat))
+  
+  /**
+   * Make a new match atom from the provided parts.
+   * 
+   * @param pattern		The pattern to match.
+   * @param guards		The guards, if any.
+   */
+  def apply(pattern: BasicAtom, guards: BasicAtom*) = {
+    val guardseq = AtomSeq(NoProps, guards.toIndexedSeq)
+    val binds = Bindings() + (""->AtomSeq(NoProps, pattern)) + ("if"->guardseq)
+    val sfh = new SpecialFormHolder(tag, binds)
+    new MatchAtom(sfh, pattern, guardseq)
+  }
+  
+  /**
+   * Extract the pattern atom and any guards.
+   * 
+   * @param ma	The match atom.
+   * @return	The pattern and then guards.
+   */
+  def unapply(ma: MatchAtom) = Some((ma.pattern, ma.guards))
 }

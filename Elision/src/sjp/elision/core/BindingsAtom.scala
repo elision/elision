@@ -33,20 +33,28 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 /**
+ * Encapsulate a set of bindings as an atom.
+ * 
+ * While bindings are a special form, they are also a key ingredient of most
+ * special forms, and thus get some specialized handling here.  In particular,
+ * they do not extend [[sjp.elision.core.SpecialForm]], though this might
+ * change.  This helps avoid a loop in the use hierarchy.
+ * 
+ * == Purpose ==
  * A bindings atom wraps a set of bindings and allows them to be treated as if
  * they were an atom (matched and rewritten, for instance).  Since this is
  * costly, and since bindings are critical to the operation of the rewriter,
- * this class is provided and typically operates by implicit conversion.
+ * this class is typically used "just in time" by an implicit conversion.
  *
- * ==Structure and Syntax==
+ * == Structure and Syntax ==
  * Bindings are a special form, and the general syntax is the tag ''bind''
  * and content equal to a list of map pairs, each of whose left-hand sides
  * must be a symbol.
  * 
- * ==Type==
+ * == Type ==
  * All bindings atoms have the special type BINDING.
  * 
- * ==Equality and Matching==
+ * == Equality and Matching ==
  * Bindings are equal iff they bind the same symbols to equal values.  They
  * match only if they bind the same symbols, and their respective bindings
  * match.
@@ -56,23 +64,10 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   
   /** The type of a bindings atom is the special bindings type. */
   val theType = BINDING
-  
-  /** This atom is constant iff the bound value of each variable is constant. */
   val isConstant = mybinds.values.forall(_.isConstant)
-  
-  /** The binding is a term iff all values are terms. */
   val isTerm = mybinds.values.forall(_.isTerm)
-  
-  /** The De Bruijn index is the maximum index of the bindings. */
   val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
-  
-  /** The depth is equal to the maximum depth of the bindings, plus one. */
   val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
-  
-  /**
-   * Build the constant pool.  This might be costly, and we might not need it
-   * that often, so we make it lazy.
-   */
   lazy val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode, mybinds.values.toSeq:_*))
     
@@ -82,11 +77,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    * Two binding atoms match iff they bind the same variables to terms that
    * can be matched.  The variables that are bound cannot be matched against
    * variables, but the bindings can be.
-   * 
-   * @param subject	The atom to match.
-   * @param binds		Bindings to honor.
-   * @param hints		Optional hints.
-   * @return	The result of the match.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = subject match {
@@ -109,14 +99,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
     case _ => Fail("Bindings can only match other bindings.", this, subject)
   }
 
-  /**
-   * Rewrite these bindings with the provided bindings.
-   * 
-   * @param binds	The binds to use to rewrite these bindings.
-   * @return	A pair consisting of the potentially modified bindings, and a
-   * 					Boolean true iff these bindings were changed in any way by the
-   * 					rewrite.
-   */
   def rewrite(binds: Bindings) = {
     var changed = false
     var newmap = Bindings()
@@ -153,7 +135,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
     case _ => false
   }
   
-  def doApply(atom: BasicAtom) =
+  def doApply(atom: BasicAtom, bypass: Boolean) =
     // Check the argument to see if it is a single symbol.
     atom match {
       case SymbolLiteral(SYMBOL, sym) =>
@@ -170,8 +152,18 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
     }
 }
 
+/**
+ * Simplified construction of bindings atoms.
+ */
 object BindingsAtom {
+  /** The special form tag. */
+  val tag = Literal('binds)
   
+  /**
+   * Make a bindings atom from the specified special form data.
+   * 
+   * @param sfh	Parsed special form data.
+   */
   def apply(sfh: SpecialFormHolder): BindingsAtom = sfh.content match {
     case AtomSeq(_, atoms) => _build(atoms)
     case _ =>
@@ -181,6 +173,12 @@ object BindingsAtom {
       _build(seq.atoms)
   }
   
+  /**
+   * Make a bindings atom from the provided sequence of atoms.  Every atom
+   * must be an instance of [[sjp.elision.core.MapPair]].
+   * 
+   * @param atoms	The atoms making up the binding.
+   */
   private def _build(atoms: Seq[BasicAtom]) = atoms.foldLeft(Bindings()) {
     (binds, atom) => binds + (atom match {
       case MapPair(left, right) => left match {

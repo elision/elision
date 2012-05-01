@@ -40,9 +40,18 @@ object EmptySeq extends AtomSeq(AlgProp(), IndexedSeq())
 /**
  * An atom sequence is just that: a sequence of atoms.
  * 
+ * == Properties ==
  * Atom sequences may have properties like operators.  That is, they may be
- * commutative, associative, and idempotent.  These properties have an effect
- * on the atom sequence when it is constructed.
+ * commutative, associative, idempotent, and may have absorbers and identities.
+ * These properties have an effect on the list when it is constructed.  For
+ * example, a list that is associative, commutative, and idempotent is
+ * essentially a set.  If not idempotent, it is a multiset.  Properties are
+ * specified with an algebraic properties object.
+ * 
+ * == Use ==
+ * Create a list by specifying the properties and then providing a list of 
+ * atoms to include in the list.  The atoms are specified using an instance
+ * of an `IndexedSeq`.
  * 
  * @param props		The properties for this atom sequence.
  * @param xatoms	The sequence of atoms in this sequence.  Note that, depending
@@ -88,34 +97,28 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * The atoms in this sequence.
    */
   val atoms = AtomSeq.process(props, if (idempotent) xatoms.distinct else xatoms)
-  
+
   /**
-   * Map each constant in the sequence to its index.
+   * This is a mapping from constants in the sequence to the (zero-based)
+   * index of the constant.
    */
   val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
   for (i <- 0 until atoms.length)
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
     
-  /** The type of all sequences is the type universe. */
+  /**
+   * The type of all sequences is the type universe.  There is probably a
+   * better answer for this, but for now this will have to do.
+   */
   val theType = TypeUniverse
-  
-  /** A sequence is constant iff all elements are constant. */
   val isConstant = atoms.forall(_.isConstant)
-  
-  /** This sequence is a term iff all elements are terms. */
   val isTerm = atoms.forall(_.isTerm)
-  
-  /** The constant pool is derived from the children of the sequence. */
   val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))
-  
-  /** The De Bruijn index is equal to the maximum index of the children. */
   val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
-  
-  /** The depth is equal to the maximum depth of the child atoms, plus one. */
   val depth = atoms.foldLeft(0)(_ max _.depth) + 1
   
   /**
-   * Get an element of this sequence by index.
+   * Get an element of this sequence by (zero-based) index.
    * 
    * @param idx	The index.
    * @return	The requested element.
@@ -130,12 +133,8 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * Atom sequences only match other atom sequences, and they only match if
    * they have the same properties and elements.  The provided bindings must be
    * honored by any successful match, and the hint may be used to specify an
-   * operator.
-   * 
-   * @param subject	The atom to match.
-   * @param binds		Any bindings to honor.
-   * @param hints		An optional operator to use for associative matching.
-   * @return	The match outcome.
+   * operator.  The operator is then used during associative matching to
+   * correctly type subsequences.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = {
@@ -184,26 +183,16 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     }
   }
 
-  /**
-   * Rewrite this atom sequence based on the provided bindings.  At present the
-   * properties cannot be rewritten.
-   * 
-   * @param binds	The bindings.
-   * @return	A pair consisting of an atom and a flag that is true iff the
-   * 					rewrite "succeeded."
-   */
-  def rewrite(binds: Bindings) = {
+  def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
+    // Rewrite the properties.
+    val (newprop, pchanged) = props.rewrite(binds)
     // We must rewrite every child atom, and collect them into a new sequence.
-    val (newseq, changed) = SequenceMatcher.rewrite(atoms, binds)
-    if (changed) (new AtomSeq(props, newseq), true) else (this, false)
+    val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
+    // If anything changed, make a new sequence.
+    if (pchanged || schanged) (new AtomSeq(newprop, newseq), true)
+    else (this, false)
   }
 
-  /**
-   * An atom sequence uses a percent sign followed by the properties
-   * specification, followed by a comma-separated list of atoms in parentheses.
-   * 
-   * @return	The parseable string.
-   */
   def toParseString = atoms.mkParseString(props.toParseString + "(" , ", ", ")")
 
   /**
@@ -215,12 +204,18 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * 					parse string is used for those atoms.
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
-  
+
+  /**
+   * Make a Scala-parseable version of this atom.
+   */
   override def toString = "AtomSeq(" + props + ", " +
   		atoms.mkString("Vector(", ",", ")") + ")"
   
   override lazy val hashCode = atoms.hashCode
-  
+
+  /**
+   * Two sequences are equal iff their properties and atoms are equal.
+   */
   override def equals(other: Any) = other match {
     case AtomSeq(oprops, oatoms) if (oatoms == atoms && oprops == props) => true
     case _ => false
@@ -228,9 +223,10 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 }
 
 /**
- * Simplified construction and matching
+ * Simplified construction and matching for atom sequences.
  */
 object AtomSeq {
+  
   /**
    * Match an atom sequence's parts.
    * 
@@ -261,6 +257,8 @@ object AtomSeq {
    * Process the atoms and build the new sequence.  This reduces any included
    * associative sequences, and incidentally makes sure the result is an
    * `OmitSeq`.
+   * 
+   * This method is used during instance construction.
    * 
    * @param props	The properties.
    * @param atoms	The atoms.
@@ -299,6 +297,14 @@ object AtomSeq {
 
 /**
  * Improve matching of atom sequences as lists of atoms.
+ * 
+ * This is intended for use in matching.  The general form is:
+ * {{{
+ * args match {
+ *   case Args(item1: Lambda, item2: Variable) => //...
+ *   //...
+ * }
+ * }}}
  */
 object Args {
   /**

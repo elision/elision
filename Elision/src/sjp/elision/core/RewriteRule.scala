@@ -32,51 +32,97 @@
 package sjp.elision.core
 
 /**
- * This strategy applies the rules in a ruleset.  The first rule, in declared
- * order, to rewrite the atom wins.  At most one rewrite is performed.
+ * The ruleset strategy.
  * 
- * The basic syntax is:
- * {{{
- * { rulesets NAME1, NAME2, ..., NAMEn }
- * }}}
- * This applies rules from the named rulesets.  The listing order of the
- * rulesets is //not// significant; only the declaration order of the rules.
+ * == Purpose ==
+ * This strategy is only applied if it is concrete; that is, the list of
+ * ruleset names consists of just symbols.
  * 
- * @param context	The context supplying the rules.
- * @param names		The names of the rulesets to apply.
+ * This strategy applies the rules in the identified rulesets to the atom.
+ * The first rule, in declared order, to rewrite the atom wins.  At most
+ * one rewrite is performed.
+ * 
+ * The success flag is determined by the rule applied, or is `false` if no
+ * rule is applied.
  */
-case class RulesetStrategy(context: Context, names: List[String])
-extends BasicAtom with Rewriter {
-  val theType = STRATEGY
-  val isConstant = true
-  val isTerm = true
-  val constantPool = None
-  val deBruijnIndex = 0
-  val depth = 0
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) = subject match {
-    case RulesetStrategy(_, onames) if names == onames => Match(binds)
-    case _ => Fail("Ruleset strategies do not match.", this, subject)
-  }
-  def rewrite(binds: Bindings) = (this, false)
-  def toParseString =
-    names.map(toESymbol(_)).mkString("{ apply rulesets ", ", ", " }")
-  override def toString = "RulesetStrategy(" + context + ", " +
-  		names.map(toESymbol(_)).mkString(", ") + ")"
-  		
-  /**
-   * Apply this strategy.  If any rule completes then the returned flag is
-   * true.  Otherwise it is false.
-   */
-  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean) = {
-    // Get the rules.
-    val rules = context.getRules(atom, names)
-    // Now try every rule until one applies.
-    for (rule <- rules) {
-      val (newatom, applied) = rule.tryRewrite(atom)
-      if (applied) return (newatom, applied)
+class RulesetStrategy private (sfh: SpecialFormHolder,
+    val context: Context, val names: AtomSeq)
+extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
+  /** True if all ruleset names are concrete. */
+  private var _conc = true
+  /** The ruleset names that are concrete. */
+  private val _namelist = names.map {
+    _ match {
+      case SymbolLiteral(_, sym) => sym.name
+      case StringLiteral(_, name) => name
+      case _ =>
+        _conc = false
+        ""
     }
-    return (atom, false)
+  }
+  
+  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean) = {
+    // If this is not concrete, do not execute.
+    if (!_conc) return (SimpleApply(this, atom), false)
+    else {
+	    // Get the rules.
+	    val rules = context.getRules(atom, _namelist)
+	    // Now try every rule until one applies.
+	    for (rule <- rules) {
+	      val (newatom, applied) = rule.tryRewrite(atom)
+	      if (applied) return (newatom, applied)
+	    }
+	    return (atom, false)
+    }
+  }
+}
+
+/**
+ * Make and match ruleset strategy objects.
+ */
+object RulesetStrategy {
+  /** The special form tag. */
+  val tag = Literal('apply)
+  
+  /**
+   * Make a ruleset strategy from the given special form data.
+   * 
+   * @param sfh	The special form data.
+   * @return	The strategy object.
+   */
+  def apply(sfh: SpecialFormHolder, context: Context): RulesetStrategy = {
+    val bh = sfh.requireBindings
+    bh.check(Map(""->true))
+    val names = bh.fetchAs[AtomSeq]("", Some(EmptySeq))
+    new RulesetStrategy(sfh, context, names)
+  }
+  
+  /**
+   * Make a ruleset strategy from the components.
+   * 
+   * @param context	The context providing the rules.
+   * @param names		The ruleset names; order is not significant.
+   * @return	The strategy object.
+   */
+  def apply(context: Context, names: AtomSeq): RulesetStrategy = {
+    val binds = Bindings() + (""->names)
+    val sfh = new SpecialFormHolder(tag, binds)
+    new RulesetStrategy(sfh, context, names)
+  }
+  
+  /**
+   * Make a ruleset strategy from the components.
+   * 
+   * @param context	The context providing the rules.
+   * @param names		The ruleset names; order is not significant.
+   * @return	The strategy object.
+   */
+  def apply(context: Context, names: String*): RulesetStrategy = {
+    val nameseq =
+      AtomSeq(NoProps, names.map(str => Literal(Symbol(str))).toIndexedSeq)
+    val binds = Bindings() + (""->nameseq)
+    val sfh = new SpecialFormHolder(tag, binds)
+    new RulesetStrategy(sfh, context, nameseq)
   }
 }
 
@@ -155,7 +201,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 }
 
 object MapStrategy {
-  val tag = Literal(Symbol("map"))
+  val tag = Literal('map)
   
   def apply(sfh: SpecialFormHolder): MapStrategy = {
     val bh = sfh.requireBindings
@@ -190,7 +236,7 @@ object MapStrategy {
  * Easier construction and pattern matching of rewrite rules.
  */
 object RewriteRule {
-  val tag = Literal(Symbol("rule"))
+  val tag = Literal('rule)
   
   /**
    * Create a rewrite rule.  The rule is not synthetic.

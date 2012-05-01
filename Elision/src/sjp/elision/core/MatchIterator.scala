@@ -32,7 +32,16 @@
 package sjp.elision.core
 
 /**
- * Provide the architecture to create a match iterator.
+ * Provide an iterator over multiple matches.
+ * 
+ * == Purpose ==
+ * A single attempt to match a pattern and subject can result in no match,
+ * a single match, or many possible matches.  In the last case we need a way
+ * to communicate these, and that is the purpose of the match iterator.
+ * 
+ * == Use ==
+ * This class is the common base class for the custom match iterators and
+ * match iterator combinators.  It should work like any other iterator.
  */
 abstract class MatchIterator extends Iterator[Bindings] {
   /**
@@ -73,12 +82,13 @@ abstract class MatchIterator extends Iterator[Bindings] {
       null
     }
   
+  import scala.annotation.tailrec
   /**
    * Determine if there is a next match.
    * 
    * @return	True if there is a next match, and false if not.
    */
-  def hasNext: Boolean = {
+  final def hasNext: Boolean = {
     if (_exhausted) {
       // The iterator is exhausted.
       return false
@@ -196,6 +206,9 @@ abstract class MatchIterator extends Iterator[Bindings] {
   protected def findNext
 }
 
+/**
+ * Construct match iterators.
+ */
 object MatchIterator {
 	/**
 	 * Build an iterator to handle completing matches from another match
@@ -228,18 +241,11 @@ object MatchIterator {
    * 
    * @param binds	The one binding to return.
    */
-  def apply(binds: Bindings) = new SingleMatchIterator(binds)
-}
-
-/**
- * A match iterator that returns a single match and is then exhausted.
- * 
- * @param binds	The single match to return.
- */
-class SingleMatchIterator(val binds: Bindings) extends MatchIterator {
-  _current = binds
-  def findNext = {
-    _exhausted = true
+  def apply(binds: Bindings) = new MatchIterator {
+    _current = binds
+    def findNext = {
+      _exhausted = true
+    }
   }
 }
 

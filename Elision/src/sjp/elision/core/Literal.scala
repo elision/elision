@@ -32,9 +32,10 @@ package sjp.elision.core
 import scala.collection.immutable.HashMap
 
 /**
- * Represent a literal.
+ * Represent a literal.  This is the common root class for all literals.
+ * See the companion object for construction and matching of literals.
  * 
- * ==Structure and Syntax==
+ * == Structure and Syntax ==
  * Literals come in the following forms.
  *  - An '''integer''' of arbitrary precision, and one of the following radices:
  *    - Binary, indicated with a prefix of `0b`
@@ -67,24 +68,27 @@ import scala.collection.immutable.HashMap
  *     
  *  - A '''Boolean''' value that may be either `true` or `false`.
  * 
- * ==Type==
+ * == Type ==
  * Literals have the following types by default.
- *  - Integers are of type INTEGER.
- *  - Floating point numbers are of type FLOAT.
- *  - String values are of type STRING.
- *  - Symbol values are of type SYMBOL.
- *  - Boolean values are of type BOOLEAN.
+ *  - Integers are of type `INTEGER`.
+ *  - Floating point numbers are of type `FLOAT`.
+ *  - String values are of type `STRING`.
+ *  - Symbol values are of type `SYMBOL`.
+ *  - Boolean values are of type `BOOLEAN`.
  * The type can be supplied at construction time to override these choices
  * with any other type.
  * 
- * ==Equality and Matching==
+ * == Equality and Matching ==
  * Two instances are equal iff their types and values are equal.  Literals
  * match iff their types match and their values match.
  * 
  * @param TYPE	The type of data stored in this literal.
  * @param typ		The Elision type of this literal.
+ * @param mTYPE	The manifest for `TYPE`.
  */
-abstract class Literal[TYPE](typ: BasicAtom) extends BasicAtom {
+abstract class Literal[TYPE](typ: BasicAtom)(implicit mTYPE: Manifest[TYPE])
+extends BasicAtom {
+  
   /** The type. */
   val theType = typ
   
@@ -106,13 +110,6 @@ abstract class Literal[TYPE](typ: BasicAtom) extends BasicAtom {
   /** The value stored in this literal. */
   val value:TYPE
   
-  /**
-   * Two literals match iff their values are equal.
-   * 
-   * @param subject	The subject.
-   * @param binds		Bindings to honor.
-   * @return	The match outcome.
-   */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = subject match {
     case lit: Literal[_] if value == lit.value => Match(binds)
@@ -135,41 +132,80 @@ abstract class Literal[TYPE](typ: BasicAtom) extends BasicAtom {
 }
 
 /**
- * Provide more convenient ways to construct and extract literals. 
+ * Provide more convenient ways to construct and extract literals.
  */
 object Literal {
+  /** Make an integer literal from a big integer. */
 	def apply(value: BigInt): IntegerLiteral = new IntegerLiteral(value)
+	/** Make an integer literal from a Scala integer value. */
 	def apply(value: Int): IntegerLiteral = new IntegerLiteral(value)
+	/** Make a string literal from a Scala string value. */
 	def apply(value: String): StringLiteral = new StringLiteral(value)
+	/** Make a symbol literal from a Scala symbol value. */
 	def apply(value: Symbol): SymbolLiteral = new SymbolLiteral(value)
+	/**
+	 * Get the appropriate Boolean literal for a Scala Boolean value.
+	 */
 	def apply(value: Boolean): BooleanLiteral = if (value) TRUE else FALSE
+	/**
+	 * Make a floating point literal.
+	 * 
+	 * @param significand		The significand.
+	 * @param exponent			The exponent.
+	 * @param radix					The radix, which must be 2, 8, 10, or 16.
+	 */
 	def apply(significand: BigInt, exponent: Int, radix: Int): FloatLiteral =
 	  new FloatLiteral(significand, exponent, radix)
+	/** Make an integer literal from a big integer, and override the type. */
 	def apply(typ: BasicAtom, value: BigInt): IntegerLiteral =
 	  IntegerLiteral(typ, value)
+	/** Make an integer literal from a Scala integer value and override the type. */
 	def apply(typ: BasicAtom, value: Int): IntegerLiteral =
 	  IntegerLiteral(typ, value)
+	/** Make an string literal from a Scala string value and override the type. */
 	def apply(typ: BasicAtom, value: String): StringLiteral =
 	  StringLiteral(typ, value)
+	/** Make an symbol literal from a Scala symbol value and override the type. */
 	def apply(typ: BasicAtom, value: Symbol): SymbolLiteral =
 	  SymbolLiteral(typ, value)
+	/**
+	 * Get the appropriate Boolean literal for a Scala Boolean value, and
+	 * override the type.
+	 */
 	def apply(typ: BasicAtom, value: Boolean): BooleanLiteral =
 	  BooleanLiteral(typ, value)
+	/**
+	 * Make a floating point literal, and override the default type.
+	 *
+	 * @param typ						The type to use.
+	 * @param significand		The significand.
+	 * @param exponent			The exponent.
+	 * @param radix					The radix, which must be 2, 8, 10, or 16.
+	 */
 	def apply(typ: BasicAtom, significand: BigInt, exponent: Int,
 	    radix: Int): FloatLiteral = FloatLiteral(typ, significand, exponent, radix)
+	/** Boolean true literal. */
 	val TRUE = new BooleanLiteral(BOOLEAN, true)
+	/** Boolean false literal. */
 	val FALSE = new BooleanLiteral(BOOLEAN, false)
 }
 
 /**
- * Provide an integer literal.
+ * Provide an integer literal.  Integer literals are backed by the Scala
+ * `BigInt` type, so they can contain arbitrarily large values.
  * 
  * @param typ		The type.
  * @param value	The value.
  */
 case class IntegerLiteral(typ: BasicAtom, value: BigInt)
 extends Literal[BigInt](typ) {
+  /**
+   * Alternate constructor with default `INTEGER` type.
+   */
   def this(value: BigInt) = this(INTEGER, value)
+  /**
+   * Alternate constructor with default `INTEGER` type.
+   */
   def this(value: Int) = this(INTEGER, value)
   def rewrite(binds: Bindings) = theType.rewrite(binds) match {
 	  case (newtype, true) =>
@@ -181,8 +217,15 @@ extends Literal[BigInt](typ) {
     (if (typ != INTEGER) ":" + typ.toParseString else "") 
 }
 
+/**
+ * Provide a string literal.  String literals are backed by the `String`
+ * type.
+ */
 case class StringLiteral(typ: BasicAtom, value: String)
 extends Literal[String](typ) {
+  /**
+   * Alternate constructor with default `STRING` type.
+   */
   def this(value: String) = this(STRING, value)
   def rewrite(binds: Bindings) = theType.rewrite(binds) match {
 	  case (newtype, true) =>
@@ -195,8 +238,15 @@ extends Literal[String](typ) {
     (if (typ != STRING) ":" + typ.toParseString else "") 
 }
 
+/**
+ * Provide a symbol literal.  Symbol literals are backed by the Scala
+ * `Symbol` type.
+ */
 case class SymbolLiteral(typ: BasicAtom, value: Symbol)
 extends Literal[Symbol](typ) {
+  /**
+   * Alternate constructor with default `SYMBOL` type.
+   */
   def this(value: Symbol) = this(SYMBOL, value)
   def rewrite(binds: Bindings) = theType.rewrite(binds) match {
 	  case (newtype, true) =>
@@ -209,10 +259,22 @@ extends Literal[Symbol](typ) {
   def toParseString = toESymbol(value.name) + ":" + typ.toParseString 
 }
 
+/**
+ * Provide a Boolean literal.  Boolean literals are backed by the
+ * `Boolean` type.  '''Do not use this.'''  It is wasteful; instead
+ * just use the predefined constants contained in the `Literal`
+ * companion object.
+ * 
+ * The only reason to use this is to create a Boolean literal with a
+ * type other than `BOOLEAN`.  Why?
+ */
 case class BooleanLiteral(typ: BasicAtom, value: Boolean)
 extends Literal[Boolean](typ) {
   override val isTrue = value == true
   override val isFalse = value == false
+  /**
+   * Alternate constructor with default `BOOLEAN` type.
+   */
   def this(value: Boolean) = this(BOOLEAN, value)
   def rewrite(binds: Bindings) = theType.rewrite(binds) match {
 	  case (newtype, true) =>
@@ -224,6 +286,10 @@ extends Literal[Boolean](typ) {
     (if (typ != BOOLEAN) ":" + typ.toParseString else "")
 }
 
+/**
+ * Provide data and methods for representing values from the IEEE 754 floating
+ * point standard.
+ */
 case class IEEE754(width: Int, significand: Int) {
   require (significand < (width - 2))
   /** The exponent width. */
@@ -238,6 +304,7 @@ case class IEEE754(width: Int, significand: Int) {
   lazy val exponentBias = (1L << (exponent - 1)) - 1
   /** The hidden one. */
   lazy val hiddenOne = 1L << significand
+  
   /**
    * Break a number into its components.
    * 
@@ -258,6 +325,7 @@ case class IEEE754(width: Int, significand: Int) {
     // Return the parts.
     (if (sign) 1 else 0, epart, spart)
   }
+  
   /**
    * Create a number from its components.
    * 
@@ -276,13 +344,26 @@ case class IEEE754(width: Int, significand: Int) {
   }
 }
 
+/** IEEE 754 128-bit float. */
 object IEEE754Quadruple extends IEEE754(128, 112)
+/** IEEE 754 64-bit float. */
 object IEEE754Double extends IEEE754(64, 52)
+/** IEEE 754 32-bit float. */
 object IEEE754Single extends IEEE754(32, 23)
+/** IEEE 754 16-bit float. */
 object IEEE754Half extends IEEE754(16, 10)
 
+/**
+ * Provide a floating-point literal value.
+ * 
+ * @param typ						The type.
+ * @param significand		The significand.
+ * @param exponent			The exponent.
+ * @param radix					The radix, which must be 2, 8, 10, or 16.
+ */
 case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     radix: Int) extends Literal[(BigInt, Int, Int)](typ) {
+  // Validate the radix and compute the prefix string.
   private lazy val _prefix = radix match {
     case 16 => "0x"
     case 10 => ""
@@ -290,22 +371,45 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     case 2  => "0b"
     case _  => require(false, "Invalid radix.")
   }
+  /** Is the significand negative. */
   private val _sneg = significand < 0
+  /** Is the exponent negative. */
   private val _eneg = exponent < 0
+  /** Absolute value of significand. */
   private val _spos = if (_sneg) -significand else significand
+  /** Absolute value of exponent. */
   private val _epos = if (_eneg) -exponent else exponent
+  
   override def toParseString =
     (if (_sneg) "-" else "") + _prefix + _spos.toString(radix) +
     (if (radix == 16) "P" else "e") +
     (if (_eneg) "-" else "") + _prefix + Integer.toString(_epos, radix) +
     (if (typ != FLOAT) ":" + typ.toParseString else "")
+    
+  /** This value as a platform-dependent floating point value. */
   lazy val toFloat = significand.toFloat * scala.math.pow(radix, exponent).toFloat
+  
+  /** This value as a platform-dependent double-precision floating point value. */
   lazy val toDouble = significand.toDouble * scala.math.pow(radix, exponent)
+  
+  /**
+   * Get this in the specified IEEE 754 representation.
+   * 
+   * @param plaf		The floating point representation to use.
+   */
   def toIEEE754(plaf: IEEE754 = FloatLiteral.platform) = {
     // Get the representation in bits.
     val bits = java.lang.Double.doubleToRawLongBits(toDouble)
     plaf.fromBits(bits)
   }
+  
+  /**
+   * Transform this into a new floating point literal by passing it through
+   * the specified IEEE 754 representation.  No reduction in exponent is
+   * performed.
+   * 
+   * @param plaf		The floating point representation to use.
+   */
   def toUnreducedBinary(plaf: IEEE754 = FloatLiteral.platform) = {
     var (sign, ne, ns) = toIEEE754(plaf)
     // We want to use the significand as an integer, so we need to multiply the
@@ -318,6 +422,14 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     // Done!
     FloatLiteral(theType, if (sign != 0) -ns else ns, ne.toInt, 2)
   }
+
+  /**
+   * Transform this into a new floating point literal by passing it through
+   * the specified IEEE 754 representation.  Trailing zeros of the
+   * significand are removed, and the exponent correspondingly adjusted.
+   * 
+   * @param plaf		The floating point representation to use.
+   */
   def toBinary(plaf: IEEE754 = FloatLiteral.platform) = {
     var (sign, ne, ns) = toIEEE754(plaf)
     // We want to use the significand as an integer, so we need to multiply the
@@ -334,9 +446,20 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     }
     FloatLiteral(theType, ns, ne.toInt, 2)
   }
+  
+  /** The value as a triple: significand, exponent, and radix. */
   val value = (significand, exponent, radix)
+  
+  /**
+   * Alternate constructor using the default type `FLOAT`.
+   * 
+	 * @param significand		The significand.
+	 * @param exponent			The exponent.
+	 * @param radix					The radix, which must be 2, 8, 10, or 16.
+   */
   def this(significand: BigInt, exponent: Int, radix: Int) =
     this(FLOAT, significand, exponent, radix)
+    
   def rewrite(binds: Bindings) = theType.rewrite(binds) match {
 	  case (newtype, true) =>
 	    (Literal(newtype, significand, exponent, radix), true)
@@ -345,6 +468,10 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
 	}
 }
 
+/**
+ * Companion object specifying the default IEEE 754 platform to use.
+ */
 object FloatLiteral {
+  /** The default platform to use for floating point work. */
   var platform: IEEE754 = IEEE754Double
 }

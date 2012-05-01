@@ -86,7 +86,10 @@ extends ElisionException(msg)
 /**
  * A lambda creates an operator that binds a single variable in a term.
  * 
- * ==Structure and Syntax==
+ * To create an instance (or to match an instance) use the methods in the
+ * companion object.
+ * 
+ * == Structure and Syntax ==
  * A lambda is indicated by a backslash (`\`) followed by the lambda variable,
  * a dot (`.`), and the lambda body.
  * {{{
@@ -98,11 +101,11 @@ extends ElisionException(msg)
  * converted to a De Bruijn index as described in the documentation for
  * [[sjp.elision.core.BasicAtom]] (see the field `deBruijnIndex`).
  * 
- * ==Type==
+ * == Type ==
  * The type of a lambda is a mapping from the type of the lambda variable to
  * the type of the lambda body.  Of course either - or both - may be variables.
  * 
- * ==Equality and Matching==
+ * == Equality and Matching ==
  * Lambdas are equal iff their variables and bodies are equal ''after'' the
  * De Bruijn index substitution.  This means that the following two lambdas
  * are equal.
@@ -134,13 +137,11 @@ extends BasicAtom with Applicable {
   /** The De Bruijn index is the max of the parameter and body. */
   val deBruijnIndex = body.deBruijnIndex max lvar.deBruijnIndex
   
-  /** The lambda is a term iff its body is a term. */
-  val isTerm = body.isTerm
-  
-  /** The depth is equal to the depth of the body, plus one. */
+  /**
+   * The lambda is a term iff its body is a term.  
+   */
+  val isTerm = body.isTerm  
   val depth = body.depth + 1
-  
-  /** A lambda's body may be a constant. */
   val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode, lvar, body))
     
@@ -182,7 +183,7 @@ extends BasicAtom with Applicable {
     case _ => false
   }
   
-  def doApply(atom: BasicAtom) = {
+  def doApply(atom: BasicAtom, bypass: Boolean) = {
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
     // overflow here, and bail out.
@@ -214,25 +215,34 @@ extends BasicAtom with Applicable {
  * Companion object with convenient methods to create lambdas.
  */
 object Lambda {
-  /** Whether to use De Bruijn indices. */
+  /**
+   * Control whether we are using De Bruijn indices.  This is `true` by
+   * default, and you shoud probably '''leave it alone''' unless you are
+   * doing something that involves debugging lambdas.  You aren't, so don't
+   * modify this.
+   */
   var useDeBruijnIndices = true
   
-  //+var depth: Int = 0
-  
-  //+def print(str: String) = println("  " * depth + str)
-  
+  /**
+   * Break a lambda into its parameter and body.
+   * 
+   * @param lambda	The lambda to match.
+   * @return	The variable and then body.
+   */
   def unapply(lambda: Lambda) = Some(lambda.lvar, lambda.body)
   
+  /**
+   * Make a lambda from the provided parameter and body.
+   *
+   * @param lvar	The lambda parameter.
+   * @param body	The lambda body.
+   */
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
-    //+print("Asked to make \\" + lvar.toParseString + "." + body.toParseString)
-    //+depth += 1
     // Make and return the new lambda.
     if (useDeBruijnIndices) {
       // Decide what De Bruijn index to use for this lambda.  We will use one
       // greater than the maximum index of the body.
 	    val dBI = body.deBruijnIndex + 1
-	    //+print("Body " + body.toParseString + " (dBI: " + body.deBruijnIndex + ")")
-	    //+print("Using DBI " + dBI)
 
 	    // Classes that implement De Bruijn indices.
 	    class DBIV(typ: BasicAtom, val dBI: Int, guard: BasicAtom, lvar: Set[String])
@@ -253,18 +263,13 @@ object Lambda {
         else
         	new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
       )
-      //+print("Constructed variable: " + newvar.toParseString)
 	    
 	    // Bind the old variable to the new one and rewrite the body.
 	    var binds = Bindings()
 	    binds += (lvar.name -> newvar)
-	    //+print("Bindings are: " + binds.toParseString)
 	    val (newbody, notfixed) = body.rewrite(binds)
-	    //+print("Adjusted body to: " + newbody.toParseString)
 	    
 	    // Compute the new lambda.
-	    //+print("Lambda is: \\" + newvar.toParseString + "." + newbody.toParseString)
-	    //+depth -= 1
 	    if (notfixed)	new Lambda(newvar, newbody, false)
 	    else new Lambda(newvar, body, true)
     }

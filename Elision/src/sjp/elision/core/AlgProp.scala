@@ -234,11 +234,8 @@ class AlgProp(
   /**
    * Apply this to the given atom.  If the provided atom is an atom sequence,
    * then this will overwrite (replace) the properties of the atom sequence.
-   *   
-   * @param rhs	The provided atom.
-   * @return	The result of application.
    */
-  def doApply(rhs: BasicAtom) = rhs match {
+  def doApply(rhs: BasicAtom, bypass: Boolean) = rhs match {
     case as: AtomSeq => AtomSeq(this, as.atoms)
     case _ => SimpleApply(this, rhs)
   }
@@ -258,7 +255,7 @@ class AlgProp(
     }
   }
   
-  def rewrite(binds: Bindings) = {
+  def rewrite(binds: Bindings): (AlgProp, Boolean) = {
     val assoc = _rewrite(associative, binds)
     val commu = _rewrite(commutative, binds)
     val idemp = _rewrite(idempotent, binds)

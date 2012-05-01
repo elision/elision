@@ -36,12 +36,14 @@ import sjp.elision.ElisionException
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
+ * 
  * @param msg		A human readable message.
  */
 class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 
 /**
  * Indicate an attempt to re-define a strategy.
+ * 
  * @param msg		A human readable message.
  */
 class StrategyRedefinitionException(msg: String) extends ElisionException(msg)
@@ -49,6 +51,18 @@ class StrategyRedefinitionException(msg: String) extends ElisionException(msg)
 /**
  * A context provides access to operator libraries and rules, along with
  * the global set of bindings in force at any time.
+ * 
+ * '''This class is likely to change.'''
+ * 
+ * == Use ==
+ * In general it is not necessary to make an instance; one is typically
+ * provided by a higher-level (semantically) class.
+ * 
+ * This class provides for management of four things:
+ *  - A set of [[sjp.elision.core.Bindings]].
+ *  - An instance of [[sjp.elision.core.OperatorLibrary]].
+ *  - Rulesets.
+ *  - "Automatic" rewriting of atoms using rules.
  * 
  * @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
  */
@@ -101,6 +115,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   /**
    * Get the current operator library.  If none has explicitly been set, then
    * a default instance is created and returned.
+   * 
    * @return	The current operator library.
    */
   def operatorLibrary = {
@@ -110,6 +125,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
     
   /**
    * Set the operator library to use.  Any prior value is lost.
+   * 
    * @param lib	The new operator library.
    * @return	This context.
    */
@@ -128,6 +144,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
 
   /**
    * Enable a ruleset.
+   * 
    * @param name	The name of the ruleset to enable.
    * @return	This context.
    */
@@ -135,6 +152,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Disable a ruleset.
+   * 
    * @param name	The name of the ruleset to disable.
    * @return	This context.
    */
@@ -152,6 +170,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Set the limit for the number of rewrites.
+   * 
    * @param limit	The limit of the number of rewrites.
    * @return	This context.
    */
@@ -159,6 +178,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Set whether to rewrite children recursively.
+   * 
    * @param descend	Whether to rewrite children recursively.
    * @return	This context.
    */
@@ -167,6 +187,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   /**
    * Rewrite the provided atom once, if possible.  Children may be rewritten,
    * depending on whether descent is enabled.
+   * 
    * @param atom	The atom to rewrite.
    * @return	The rewritten atom, and true iff any rules were successfully
    * 					applied.
@@ -183,6 +204,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Rewrite the atom at the top level, once.
+   * 
    * @param atom	The atom to rewrite.
    * @return	The rewritten atom, and true iff any rules were successfully
    * 					applied.
@@ -232,6 +254,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
    * rulesets.  This is limited by the rewrite limit.
+   * 
    * @param atom	The atom to rewrite.
    */
   def rewrite(atom: BasicAtom) = doRewrite(atom)
@@ -239,6 +262,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
    * rulesets.  This is limited by the rewrite limit.
+   * 
    * @param atom	The atom to rewrite.
    * @param bool	Flag used for tracking whether any rules have succeeded.
    * @param limit	The remaining rewrite limit.
@@ -278,6 +302,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Get the bit for a ruleset.
+   * 
    * @param name	The ruleset name.
    * @return	The bit for the ruleset.
    * @throws	NoSuchRulesetException
@@ -292,6 +317,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Declare the ruleset.
+   * 
    * @param name	The name of the new ruleset.
    * @return	True if the ruleset was declared, and false if it was already
    * 					(previously) declared.
@@ -359,6 +385,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Add a rewrite rule to this context.
+   * 
    * @param rule	The rewrite rule to add.
    * @throws	NoSuchRulesetException
    * 					At least one ruleset mentioned in the rule has not been declared,
@@ -372,6 +399,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Add a rewrite rule to this context.
+   * 
    * @param rule	The rewrite rule to add.
    * @throws	NoSuchRulesetException
    * 					At least one ruleset mentioned in the rule has not been declared,
@@ -391,6 +419,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   
   /**
    * Helper method to get all rules for a particular kind of atom.
+   * 
    * @param atom	The atom.
    * @return	The list of rules for the given kind of atom.
    */
@@ -405,6 +434,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   /**
    * Get the list of rules that apply to the given atom and which are in any
    * of the currently active rulesets.
+   * 
    * @param atom	The atom to which the rule may apply.
    * @return	A list of rules.
    */
@@ -415,11 +445,12 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   /**
    * Get the list of rules that apply to the given atom and which are in any
    * of the specified rulesets.
+   * 
    * @param atom	The atom to which to the rules may apply.
    * @param name	The ruleset names.
    * @return	A list of rules.
    */
-  def getRules(atom: BasicAtom, names: List[String]) = {
+  def getRules(atom: BasicAtom, names: Seq[String]) = {
     val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
     for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
       yield rule

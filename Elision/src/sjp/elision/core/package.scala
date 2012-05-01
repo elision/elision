@@ -43,7 +43,10 @@ import sjp.elision.parse.AtomParser
  * [[http://eclipse.org Eclipse]].
  * 
  *  - TODO: Documentation cleanup.
- *  - TODO: Ruleset change actions. DEFER.
+ *  - TODO: Alternative parser.
+ *  - TODO: Implicit corecions.
+ *  - TODO: REPL refactoring.
+ *  - TODO: New native form: [tag, arg, arg...[text]].
  *  - TODO: Infix. DEFER.
  * 
  * == Design Goals ==

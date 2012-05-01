@@ -37,7 +37,7 @@ package sjp.elision.core
 sealed abstract class Outcome
 
 /**
- * Simplified construction.
+ * Simplified construction of outcomes.
  */
 object Outcome {
   /**
@@ -55,6 +55,7 @@ object Outcome {
 /**
  * An attempted match succeeded with the resulting bindings.  No alternative
  * matches are possible.
+ * 
  * @param binds	The bindings that make the match succeed.
  */
 case class Match(binds: Bindings) extends Outcome
@@ -62,12 +63,14 @@ case class Match(binds: Bindings) extends Outcome
 /**
  * An attempted match succeeded.  Multiple alternative matches may be possible,
  * and can be obtained from the provided iterator.
+ * 
  * @param matches	An iterator over all possible matches.
  */
 case class Many(matches: MatchIterator) extends Outcome
 
 /**
  * An attempted match failed for the specified reason.
+ * 
  * @param reason	The reason the match failed, as a closure.
  * @param index		A failure index, in cases where that has meaning, such as
  * 								when matching a sequence of atoms against another sequence.
@@ -93,6 +96,7 @@ case class Fail(reason: () => String, index: Int) extends Outcome {
 object Fail {
   /**
    * Construct a new Fail using a simple string instead of a closure.
+   * 
    * @param reason	The reason the match failed.
    */
   def apply(reason: String) = new Fail(() => reason, 0)
@@ -101,6 +105,7 @@ object Fail {
    * Construct a new Fail using the given reason string, showing the pattern
    * and subject.  The result is packaged as a closure, so the final string is
    * not constructed unless it is needed.
+   * 
    * @param reason	The reason matching failed.
    * @param pattern	The pattern.
    * @param subject	The subject.

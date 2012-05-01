@@ -34,10 +34,21 @@ import scala.collection.immutable.HashMap
  * Bindings are used to store variable / value maps used during matching, and
  * as the result of a successful match.
  * 
- * The bindings class is a proxy to Scala's HashMap.  This is not possible
+ * == Purpose ==
+ * The bindings class is a proxy to Scala's `HashMap`.  This is not possible
  * to implement correctly (so far as I can tell) using the current (2.9)
- * collection proxy classes, becuase the type decoration is lost when
+ * collection proxy classes, because the type decoration is lost when
  * invoking methods that return a map.
+ * 
+ * This is not an atom!  If an atom to hold the bindings is needed, then
+ * an instance of [[sjp.elision.core.BindingsAtom]] is created.  This is
+ * typically done implicitly by Elision at the point it is needed, since
+ * object creation is costly.
+ * 
+ * == Use ==
+ * See the companion object for methods to create bindings, or for the
+ * singleton object representing empty bindings.  Since bindings are
+ * immutable, it is wasteful to repeatedly create empty bindings!
  * 
  * @param self	The backing map.
  */
@@ -51,7 +62,10 @@ extends HashMap[String, BasicAtom] {
   def +(kv: (String, BasicAtom)): Bindings = new Bindings(self + kv)
   override def -(key: String): Bindings = new Bindings(self - key)
   
+  /** This is a cache used during associative / commutative matching. */
   private var _patcache: OmitSeq[BasicAtom] = null
+  
+  /** This is a cache used during associative / commutative matching. */
   private var _subcache: OmitSeq[BasicAtom] = null
   
   /**
@@ -92,7 +106,24 @@ extends HashMap[String, BasicAtom] {
  * Simplified construction of bindings.
  */
 object Bindings {
+  /**
+   * An empty bindings object.  Since bindings are immutable, you should use
+   * this to avoid object construction when you just need an empty set of
+   * bindings.
+   */
   val EmptyBinds = new Bindings(new HashMap[String,BasicAtom]())
+  
+  /**
+   * Create bindings from the provided map.
+   * 
+   * @param map	The map to transform into a bindings object.
+   */
   def apply(map: HashMap[String,BasicAtom]) = new Bindings(map)
+  
+  /**
+   * Get an empty bindings object.  This helps enforce the "don't create
+   * bindings objects unnecessarily" rule, and just returns the
+   * `EmptyBinds`.
+   */
   def apply() = EmptyBinds
 }

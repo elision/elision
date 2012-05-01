@@ -97,7 +97,7 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
     }
   }
   def fetchAs[TYPE](key: String, default: Option[TYPE] = None)
-  (implicit m: scala.reflect.Manifest[TYPE]): TYPE = {
+  (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
     content.get(key) match {
       case None => default match {
         case Some(value) => value
@@ -107,7 +107,7 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
 	            " requires key " + toESymbol(key) + " but it was not given.")
       }
       case Some(item) =>
-        if (!key.isInstanceOf[TYPE])
+        if (mTYPE >:> Manifest.classType(key.getClass))
           throw new SpecialFormException(
               "The value for key " + toESymbol(key) + " of form " +
               tag.toParseString + " is of the wrong type: " + item.toParseString)
@@ -170,18 +170,26 @@ extends BasicAtom {
  * Construction and matching of special forms.
  * 
  * Known special forms register their handlers here.  The apply method
- * handles dispatch to the appropriate implementation.m
+ * handles dispatch to the appropriate implementation.
  */
 object SpecialForm {
+  /**
+   * Make the appropriate object from the special form data.
+   * 
+   * @param tag				The form tag.
+   * @param content		The content.
+   * @return	The constructed special form.
+   */
   def apply(tag: BasicAtom, content: BasicAtom) = {
     val sfh = new SpecialFormHolder(tag, content)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {
-	      case 'map => MapStrategy(sfh)
-	      case 'bind => BindingsAtom(sfh)
-	      case 'rule => RewriteRule(sfh)
-	      case 'match => MatchAtom(sfh)
-	      case 'operator => Operator(sfh)
+	      case MapStrategy.tag => MapStrategy(sfh)
+	      case BindingsAtom.tag => BindingsAtom(sfh)
+	      case RewriteRule.tag => RewriteRule(sfh)
+	      case MatchAtom.tag => MatchAtom(sfh)
+	      case Operator.tag => Operator(sfh)
+	      //case RulesetStrategy.tag => RulesetStrategy(sfh, context)
 	      case _ => sfh.toSpecialForm
 	    }
 	    case _ => sfh.toSpecialForm
