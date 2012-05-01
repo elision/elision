@@ -128,6 +128,56 @@ class AlgProp(
       throw new IllegalPropertiesSpecification("An identity requires associativity.")
   }
   
+  private val _plist =
+    List(associative, commutative, idempotent, absorber, identity)
+  
+  private val _proplist = {
+    var list = List[BasicAtom]()
+    def add(opt: Option[BasicAtom]) = opt match {
+      case None =>
+      case Some(atom) => list ::= atom
+    }
+    add(associative)
+    add(commutative)
+    add(idempotent)
+    add(absorber)
+    add(identity)
+    list
+  }
+  
+  val theType = TypeUniverse
+  
+  val depth = _plist.foldLeft(0) {
+    (dbi: Int, opt: Option[BasicAtom]) => dbi max (opt match {
+      case None => 0
+      case Some(atom) => atom.depth
+    })
+  } + 1
+  
+  val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
+  
+  val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
+  
+  val isConstant = (associative match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (commutative match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (idempotent match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (absorber match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  }) && (identity match {
+    case None => true
+    case Some(atom) => atom.isConstant
+  })
+  
+  val deBruijnIndex =
+    _plist.foldLeft(0)(_ max _.getOrElse(Literal.TRUE).deBruijnIndex)
+  
   /**
    * Fast check for associativity.
    * 
@@ -180,35 +230,6 @@ class AlgProp(
     case Some(atom) => atom
     case _ => default
   }
-  
-  /** The type. */
-  val theType = TypeUniverse
-  
-  private val _plist =
-    List(associative, commutative, idempotent, absorber, identity)
-  
-  val depth = _plist.foldLeft(0) {
-    (dbi: Int, opt: Option[BasicAtom]) => dbi max (opt match {
-      case None => 0
-      case Some(atom) => atom.depth
-    })
-  } + 1
-  
-  val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
-  
-  private val _proplist = {
-    var list = List[BasicAtom]()
-    def add(opt: Option[BasicAtom]) = opt match {
-      case None =>
-      case Some(atom) => list ::= atom
-    }
-    add(associative)
-    add(commutative)
-    add(idempotent)
-    add(absorber)
-    add(identity)
-    list
-  }
 
   /**
    * Apply this to the given atom.  If the provided atom is an atom sequence,
@@ -221,28 +242,6 @@ class AlgProp(
     case as: AtomSeq => AtomSeq(this, as.atoms)
     case _ => SimpleApply(this, rhs)
   }
-  
-  val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
-  
-  val isConstant = (associative match {
-    case None => true
-    case Some(atom) => atom.isConstant
-  }) && (commutative match {
-    case None => true
-    case Some(atom) => atom.isConstant
-  }) && (idempotent match {
-    case None => true
-    case Some(atom) => atom.isConstant
-  }) && (absorber match {
-    case None => true
-    case Some(atom) => atom.isConstant
-  }) && (identity match {
-    case None => true
-    case Some(atom) => atom.isConstant
-  })
-  
-  val deBruijnIndex =
-    _plist.foldLeft(0)(_ max _.getOrElse(Literal.TRUE).deBruijnIndex)
   
   /**
    * Rewrite an optional atom.
@@ -445,7 +444,7 @@ class AlgProp(
 }
 
 /**
- * Simplified creation and matching.
+ * Simplified creation and matching for algebraic properties objects.
  */
 object AlgProp {
   /**

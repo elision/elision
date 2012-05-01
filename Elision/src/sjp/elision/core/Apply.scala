@@ -44,28 +44,15 @@ import scala.collection.mutable.ListBuffer
  * @param arg		The right-hand element of the apply (argument).
  */
 abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
-  /** The apply is constant iff its parts are. */
   val isConstant = op.isConstant && arg.isConstant
-  
-  /** This is a term iff both sides are terms. */
   val isTerm = op.isTerm && arg.isTerm
-  
-  /** The constant pool aggregated from the children. */
   val constantPool = Some(BasicAtom.buildConstantPool(2, op, arg))
-  
-  /** The depth is one more than the depth of the children. */
   val depth = (op.depth max arg.depth) + 1
-  
-  /** The De Bruijn index computed from the children. */
   val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
   
   /** The hash code for this apply. */
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   
-  /**
-   * Rewrite this apply with the bindings.  Each part is rewritten, and then
-   * a new apply is generated.
-   */
   def rewrite(binds: Bindings) = {
     val (nop, nof) = op.rewrite(binds)
     val (narg, naf) = arg.rewrite(binds)
@@ -108,8 +95,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
 }
 
 /**
- * Provide construction and extraction for an ''apply''.  Deferred applications
- * are handled elsewhere.  See [[sjp.elision.core.DeferApply]].
+ * Provide construction and extraction for an `Apply`.
  */
 object Apply {
   /**
