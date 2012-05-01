@@ -482,7 +482,7 @@ private object Completor {
       case Apply(op:Operator, as:AtomSeq) => {
         // Extract the operator properties.
         val props = op match {
-          case po: PseudoOperator => po.params.props
+          case po: SymbolicOperator => po.params.props
           case _ => NoProps
         }
         

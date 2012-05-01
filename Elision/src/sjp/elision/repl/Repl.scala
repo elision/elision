@@ -502,7 +502,7 @@ object Repl {
   private def defineOps {
     // Bootstrap.  To get started, we need a way to define operators and put
     // them in the operator library.  So, first, define that operator.
-    val defOper = SymbolicOperator("def", NONE, AtomSeq(NoProps, 'op))
+    val defOper = TypedSymbolicOperator("def", NONE, AtomSeq(NoProps, 'op))
     _context.operatorLibrary.add(defOper)
     _context.operatorLibrary.register("def",
         (_, list:AtomSeq, _) => list match {

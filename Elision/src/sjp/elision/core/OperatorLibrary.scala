@@ -90,7 +90,7 @@ class OperatorLibrary(
    * The mapping from operator name to operator.  This holds the mapping as it
    * changes.
    */
- 	private var _nameToOperator = MMap[String, Operator]()
+ 	private var _nameToOperator = MMap[String, OperatorRef]()
  	
  	/**
  	 * Turn the operator library into a sequence of newline-terminated strings
@@ -99,7 +99,7 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	def toParseString =
- 	  _nameToOperator.values.map(_.toParseString).mkString("","\n","\n")
+ 	  _nameToOperator.values.map(_.operator.toParseString).mkString("","\n","\n")
  	  
  	/**
  	 * Turn the operator library into a sequence of newline-terminated strings
@@ -132,9 +132,9 @@ class OperatorLibrary(
  	    case None =>
  	      warn("Operator " + name + " undeclared; ignoring native handler.")
  	    case Some(op) =>
- 	      if (!op.isInstanceOf[PseudoOperator]) 
+ 	      if (!op.operator.isInstanceOf[SymbolicOperator]) 
           warn("Operator " + name + " is not symbolic; ignoring native handler.")
- 	      op.asInstanceOf[PseudoOperator].handler = Some(handler)
+ 	      op.operator.asInstanceOf[SymbolicOperator].handler = Some(handler)
  	  }
  	  this
  	}
@@ -143,6 +143,7 @@ class OperatorLibrary(
  	 * Get the named operator, if it is defined.  If not already defined, and
  	 * `allowUndefined` is true, then the operator is immediately defined as
  	 * described in the class comments.
+ 	 * 
  	 * @param name	The operator name.
  	 * @return	The operator, if known.
  	 */
@@ -159,8 +160,8 @@ class OperatorLibrary(
  	 * @param name	The name of the operator.
  	 * @return	The optional operator.
  	 */
- 	def get(name: String): Option[Operator] = _nameToOperator.get(name) match {
- 	  case s:Some[_] => s
+ 	def get(name: String): Option[OperatorRef] = _nameToOperator.get(name) match {
+ 	  case some:Some[_] => some
  	  case _ => None
  	}
  	
@@ -183,16 +184,17 @@ class OperatorLibrary(
  	    	throw new OperatorRedefinitionException(
  	    			"Attempt to re-define known operator " + name + ".")
  	    }
-    // Accept this and store it in the map.  Return the definition.
-    _nameToOperator += (name -> op)
- 	  op
+    // Accept this and store it in the map.  Return the operator reference.
+ 	  val ref = OperatorRef(op)
+    _nameToOperator += (name -> ref)
+ 	  ref
  	}
  	
  	// Get the well-known operators.
  	import OperatorLibrary._
  	
  	// Add the well-known operators.
- 	import PseudoOperator.{MAP, xx}
+ 	import SymbolicOperator.{MAP, xx}
  	_nameToOperator += (MAP.name -> MAP)
  	_nameToOperator += (xx.name -> xx)
 }

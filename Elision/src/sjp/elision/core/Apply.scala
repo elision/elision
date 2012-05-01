@@ -157,14 +157,14 @@ object Apply {
  * 								if the operator is associative the parameters may be
  * 								synthetic!
  */
-case class OpApply(override val op: Operator, override val arg: AtomSeq,
+case class OpApply(override val op: OperatorRef, override val arg: AtomSeq,
     val pabinds: Bindings) extends Apply(op, arg) {
   /**
    * Compute the type from the type specified by the operator, and the bindings
    * provided during parameter matching.  This allows rewriting otherwise
    * abstract type information to get a proper type.
    */
-  val theType = op.theType.rewrite(pabinds)._1
+  val theType = op.operator.theType.rewrite(pabinds)._1
   
   /**
    * Applications are equal to each other iff their parts are equal.

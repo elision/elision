@@ -163,7 +163,7 @@ object SpecialForm {
 	      case 'rule => RewriteRule(sfh)
 	      case 'match => MatchAtom(sfh)
 	      case 'case => CaseOperator(sfh)
-	      case 'operator => SymbolicOperator(sfh)
+	      case 'operator => TypedSymbolicOperator(sfh)
 	      case _ => sfh.toSpecialForm
 	    }
 	    case _ => sfh.toSpecialForm

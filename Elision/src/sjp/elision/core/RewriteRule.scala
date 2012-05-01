@@ -114,7 +114,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	    (atom, false)
 	}
   
-  private def _apply(op: PseudoOperator, args: AtomSeq): (BasicAtom, Boolean) = {
+  private def _apply(op: SymbolicOperator, args: AtomSeq): (BasicAtom, Boolean) = {
     val plen = op.params.length
   	def getP(index: Int) = op.params(if (index > plen) plen-1 else index)
   	// If there are no parameters, we can't do anything.
