@@ -68,6 +68,25 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
           badkeys.map(toESymbol(_)).mkString("", ", ", "") + ".")
     }
   }
+  def either(key1: String, key2: String): String = {
+    val has1 = content.contains(key1)
+    val has2 = content.contains(key2)
+    if (has1 && has2) {
+      throw new SpecialFormException(
+          "Form " + tag.toParseString +
+          " requires either key " + toESymbol(key1) +
+          " or " + toESymbol(key2) +
+          " (not both), but both were given.")
+    }
+    if (!has1 && !has2) {
+      throw new SpecialFormException(
+          "Form " + tag.toParseString +
+          " requires either key " + toESymbol(key1) +
+          " or " + toESymbol(key2) +
+          ", but neither was given.")
+    }
+    if (has1) key1 else key2
+  }
   def check(test: Map[String,Boolean]) {
     allow(test.keySet.toSeq:_*)
     test foreach {
@@ -162,8 +181,7 @@ object SpecialForm {
 	      case 'bind => BindingsAtom(sfh)
 	      case 'rule => RewriteRule(sfh)
 	      case 'match => MatchAtom(sfh)
-	      case 'case => CaseOperator(sfh)
-	      case 'operator => TypedSymbolicOperator(sfh)
+	      case 'operator => Operator(sfh)
 	      case _ => sfh.toSpecialForm
 	    }
 	    case _ => sfh.toSpecialForm

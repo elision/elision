@@ -64,7 +64,56 @@ abstract class Operator(sfh: SpecialFormHolder,
     extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   def apply(atoms: BasicAtom*): BasicAtom
 }
-    
+
+object Operator {
+  val tag = Literal(Symbol("operator"))
+  def apply(sfh: SpecialFormHolder): Operator = {
+    val bh = sfh.requireBindings
+    bh.check(Map("name"->true, "cases"->false, "params"->false, "type"->false))
+    if (bh.either("cases", "params") == "cases") {
+      CaseOperator(sfh)
+    } else {
+      TypedSymbolicOperator(sfh)
+    }
+  }
+  def unapply(op: Operator) = op match {
+    case so: SymbolicOperator => Some((so.name, so.theType, so.params))
+    case co: CaseOperator => Some((co.name, co.theType, co.cases))
+  }
+}
+
+class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
+  val depth = 0
+  val deBruijnIndex = 0
+  val constantPool = None
+  val isTerm = true
+  val isConstant = true
+  val theType = OPREF
+  val name = operator.name
+  def doApply(atom: BasicAtom) = operator.doApply(atom)
+  def toParseString = toESymbol(operator.name) + ":OPREF"
+  def rewrite(binds: Bindings) = (this, false)
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
+    if (subject == this) Match(binds)
+    else subject match {
+      case OperatorRef(oop) if (oop == operator) => Match(binds)
+      case oop: Operator if (oop == operator) => Match(binds)
+      case _ => Fail("Operator reference does not match subject.", this, subject)
+    }
+  def apply(atoms: BasicAtom*) = operator(atoms:_*)
+  override def equals(other: Any) = other match {
+    case OperatorRef(oop) if (oop == operator) => true
+    case oop: Operator if (oop == operator) => true
+    case _ => false
+  }
+  override lazy val hashCode = 83 * operator.hashCode
+}
+
+object OperatorRef {
+  def unapply(ref: OperatorRef) = Some(ref.operator)
+  def apply(op: Operator) = new OperatorRef(op)
+}
+
 object CaseOperator {
   val tag = Literal(Symbol("case"))
   
@@ -87,32 +136,6 @@ object CaseOperator {
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases))
 }
 
-class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
-  val depth = 0
-  val deBruijnIndex = 0
-  val constantPool = None
-  val isTerm = true
-  val isConstant = true
-  val theType = OPREF
-  val name = operator.name
-  def doApply(atom: BasicAtom) = operator.doApply(atom)
-  def toParseString = toESymbol(operator.name) + ":OPREF"
-  def rewrite(binds: Bindings) = (this, false)
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-    if (subject == this) Match(binds)
-    else subject match {
-      case OperatorRef(oop) if (oop == operator) => Match(binds)
-      case oop: Operator if (oop == operator) => Match(binds)
-      case _ => Fail("Operator reference does not match subject.", this, subject)
-    }
-  def apply(atoms: BasicAtom*) = operator(atoms:_*)
-}
-
-object OperatorRef {
-  def unapply(ref: OperatorRef) = Some(ref.operator)
-  def apply(op: Operator) = new OperatorRef(op)
-}
-
 class CaseOperator private (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val cases: AtomSeq)
 		extends Operator(sfh, name, typ, cases) {
@@ -127,7 +150,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
     // If a rewritable, apply it and if it succeeds, choose the result.
     // If an applicable, apply it.  If any other atom, choose that atom.
     var result: Option[BasicAtom] = None
-    cases.exists { _ match {
+    val done = cases.exists { _ match {
       case rew: Rewriter =>
         val pair = rew.doRewrite(args)
         result = Some(pair._1)
@@ -141,7 +164,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
     }}
     // If nothing worked, then we need to generate an error since the operator
     // was incorrectly applied.
-    if (result.isEmpty)
+    if (!done)
       throw new ArgumentListException("Applied the operator " +
           toESymbol(name) + " to an incorrect argument list: " +
           args.toParseString)
@@ -212,8 +235,6 @@ object SymbolicOperator {
 class SymbolicOperator protected (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val params: AtomSeq)
 		extends Operator(sfh, name, typ, params) {
-	println("MAKING an instance of: " + name)
-	(new Exception()).printStackTrace
 	override val theType: BasicAtom = ANY
   
   /** The native handler, if one is declared. */

@@ -178,7 +178,7 @@ class OperatorLibrary(
  	  if (_nameToOperator.contains(name))
  	    if (allowRedefinition) {
  	      warn("Redefining operator " + op.name + ".")
- 	      warn("Prior definition: " + _nameToOperator(name).toParseString)
+ 	      warn("Prior definition: " + _nameToOperator(name).operator.toParseString)
  	    } else {
  	    	// Reject this!  The operator is already defined.
  	    	throw new OperatorRedefinitionException(

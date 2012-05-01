@@ -53,6 +53,11 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   /** The hash code for this apply. */
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   
+  override def equals(other: Any) = other match {
+    case Apply(oop, oarg) => oop == op && oarg == arg
+    case _ => false
+  }
+  
   def rewrite(binds: Bindings) = {
     val (nop, nof) = op.rewrite(binds)
     val (narg, naf) = arg.rewrite(binds)
@@ -164,15 +169,7 @@ case class OpApply(override val op: OperatorRef, override val arg: AtomSeq,
    * provided during parameter matching.  This allows rewriting otherwise
    * abstract type information to get a proper type.
    */
-  val theType = op.operator.theType.rewrite(pabinds)._1
-  
-  /**
-   * Applications are equal to each other iff their parts are equal.
-   */
-  override def equals(other: Any) = other match {
-    case OpApply(oop, oarg, _) => op.equals(oop) && arg.equals(oarg)
-    case _ => false
-  }
+  val theType = op.operator.typ.rewrite(pabinds)._1
   
   /**
    * Generate a parseable string.
@@ -196,14 +193,6 @@ extends Apply(op, arg) {
    * might cause trouble with matching.
    */
   val theType = op.theType
-  
-  /**
-   * Applications are equal to each other iff their parts are equal.
-   */
-  override def equals(other: Any) = other match {
-    case SimpleApply(oop, oarg) => op.equals(oop) && arg.equals(oarg)
-    case _ => false
-  }
   
   /**
    * Generate a parseable string.

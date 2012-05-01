@@ -519,7 +519,17 @@ object Repl {
         })
     
     // Type of.
-    execute("def({ case #name=typeof #cases %($x:$T)->$T })")
+    execute("def({ operator #name=typeof #cases %($x:$T)->$T })")
+    
+    // Dereference operator.
+    execute("def({ operator #name=getop #params=%($x:OPREF) })")
+    _context.operatorLibrary.register("getop",
+        (_, list:AtomSeq, _) => list match {
+          case Args(opref:OperatorRef) =>
+            // Get the referenced operator.
+            opref.operator
+          case _ => _no_show
+        })
     
     // Bind.
     execute("def({ operator #name=bind #params=%($v,$a) })")
