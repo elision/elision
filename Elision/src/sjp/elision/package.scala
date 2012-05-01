@@ -31,7 +31,17 @@ package sjp
 
 /** 
  * Elision is a term rewriter.
+ * 
+ * This is the root package of the Elision system, and it contains classes
+ * and definitions shared by everything else in the system.
+ * 
+ * == Packages ==
+ * There are several sub-packages.
+ *  - [[sjp.elision.core]] is the core package that contains the primary classes.
+ *  - [[sjp.elision.parse]] contains the Elision parser(s).
+ *  - [[sjp.elision.repl]] contains the Elision REPL(s) and related classes.
+ *  - [[sjp.elision.test]] contains tests to verify Elision functionality.
  */
 package object elision {
-
+	// No content at the present time.
 }

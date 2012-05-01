@@ -38,6 +38,54 @@ import sjp.elision.ElisionException
 class IllegalPropertiesSpecification(msg: String)
 extends ElisionException(msg)
 
+/**
+ * Encapsulate the algebraic properties ascribed to some object.
+ * 
+ * == Properties ==
+ * The following properties are supported.
+ *  - ''Associativity'' implies that children can be arbitrarily grouped.
+ *    For example, string concatenation is associative.
+ *  - ''Commutativity'' implies that children can be arbitrarily ordered.
+ *    For example, multiplication is commutative.
+ *  - ''Idempotency'' implies that repeated children are ignored.  For
+ *    example, Boolean '''or''' is idempotent.
+ *  - An ''absorber'' is a special atom ''A'' that, when added to the children,
+ *    causes the result to evaluate to simply ''A''.  Zero is a multiplicative
+ *    absorber.
+ *  - An ''identity'' is a special atom ''I'' that can be introduced or
+ *    omitted from the child list without changing the value.  Zero is the
+ *    additive identity.
+ *    
+ * == Restrictions ==
+ * Some properties require others.  At present idempotency requires
+ * associativity.  If an absorber or identity is present, associativity is
+ * also required.
+ * 
+ * == Use ==
+ * To use this, make an instance and specify the properties.  There are several
+ * child classes that may make this easier.
+ *  - [[sjp.elision.core.NoProps]]
+ *  - [[sjp.elision.core.Associative]]
+ *  - [[sjp.elision.core.Commutative]]
+ *  - [[sjp.elision.core.Idempotent]]
+ *  - [[sjp.elision.core.Absorber]]
+ *  - [[sjp.elision.core.Identity]]
+ * These can be combined with `and` and the Boolean-valued properties negated
+ * with `!`.  Thus one can write `Associative and !Commutative`.
+ * 
+ * Properties can be specified, or left unspecified.  The entire properties
+ * object can be matched and rewritten.
+ * 
+ * == Application ==
+ * Instances are applicable; applied to a typed list of atoms, they "overwrite"
+ * the lists properties.
+ * 
+ * @param associative		Optional associativity.  Default is none.
+ * @param commutative		Optional commutativity.  Default is none.
+ * @param idempotent		Optional idempotency.  Default is none.
+ * @param absorber			Optional absorber.  Default is none.
+ * @param identity			Optional identity.  Default is none.
+ */
 class AlgProp(
     val associative: Option[BasicAtom] = None,
     val commutative: Option[BasicAtom] = None,
@@ -139,7 +187,6 @@ class AlgProp(
   private val _plist =
     List(associative, commutative, idempotent, absorber, identity)
   
-  /** The depth is equal to the maximum depth, plus one. */
   val depth = _plist.foldLeft(0) {
     (dbi: Int, opt: Option[BasicAtom]) => dbi max (opt match {
       case None => 0
@@ -147,7 +194,6 @@ class AlgProp(
     })
   } + 1
   
-  /** This is a term iff all its parts are terms. */
   val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
   
   private val _proplist = {
@@ -163,16 +209,21 @@ class AlgProp(
     add(identity)
     list
   }
-  
+
+  /**
+   * Apply this to the given atom.  If the provided atom is an atom sequence,
+   * then this will overwrite (replace) the properties of the atom sequence.
+   *   
+   * @param rhs	The provided atom.
+   * @return	The result of application.
+   */
   def doApply(rhs: BasicAtom) = rhs match {
     case as: AtomSeq => AtomSeq(this, as.atoms)
     case _ => SimpleApply(this, rhs)
   }
   
-  /** The constant pool. */
   val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
   
-  /** This is constant iff all parts are constant. */
   val isConstant = (associative match {
     case None => true
     case Some(atom) => atom.isConstant
@@ -190,7 +241,6 @@ class AlgProp(
     case Some(atom) => atom.isConstant
   })
   
-  /** The De Bruijn index is the maximum of the parts. */
   val deBruijnIndex =
     _plist.foldLeft(0)(_ max _.getOrElse(Literal.TRUE).deBruijnIndex)
   
@@ -241,6 +291,15 @@ class AlgProp(
     }
   }
   
+  /**
+   * Match two lists of options using `_match` for each, and return the
+   * result.
+   * 
+   * @param plist		The pattern list.
+   * @param slist		The subject list.
+   * @param binds		Bindings to honor in any match.
+   * @return	The outcome.
+   */
   private def _matchAll(plist: List[Option[BasicAtom]],
       slist: List[Option[BasicAtom]], binds: Bindings): Outcome =
     if (plist.length == 0) Match(binds)
@@ -280,9 +339,11 @@ class AlgProp(
 
   /**
    * Combine this with another property and yield the resulting property.
+   * Properties in the second override properties in the first, if they
+   * are specified.
    *
-   * @param other	Another property to consider.
-   * @return	A new list property.
+   * @param other	Another properties list to consider.
+   * @return	A new algebraic properties list.
    */
   def and(other: AlgProp) = {
     AlgProp(
@@ -295,6 +356,9 @@ class AlgProp(
 
   /**
    * Invert a single Boolean option.
+   * 
+   * @param opt		An optional atom.
+   * @return	The atom, with its sense inverted.
    */
   private def invert(opt: Option[BasicAtom]) = opt match {
     case Some(Literal.TRUE) => Some(Literal.FALSE)
@@ -305,12 +369,18 @@ class AlgProp(
   /**
    * Invert the sense of the specified properties.
    *
-   * @return	The new list property.
+   * @return	The new algebraic properties list.
    */
   def unary_! = {
     AlgProp(invert(associative), invert(commutative), invert(idempotent))
   }
   
+  /**
+   * Determine if this atom is equal to another atom.
+   * 
+   * @param other	The other atom.
+   * @return	True iff the atoms are equal.
+   */
   override def equals(other: Any) = other match {
     case ap:AlgProp =>
       associative == ap.associative &&
@@ -321,6 +391,11 @@ class AlgProp(
     case _ => false
   }
 
+  /**
+   * Generate Scala code to create an atom equal to this one.
+   * 
+   * @return	The Scala code.
+   */
   override def toString = "AlgProp(" + associative + ", " + commutative + ", " +
   		idempotent + ", " + absorber + ", " + identity + ")"
 
@@ -328,19 +403,19 @@ class AlgProp(
    * Generate a parse string representation of the atom.
    * 
    * The short properties string uses abbreviations.
-   *  - {{A}} for associative
-   *  - {{C}} for commutative
-   *  - {{I}} for idempotent
-   *  - {{B[}}''atom''{{]}} for absorber ''atom''
-   *  - {{D[}}''atom''{{]}} for identity ''atom''
+   *  - `A` for associative
+   *  - `C` for commutative
+   *  - `I` for idempotent
+   *  - `B[`''atom''`]` for absorber ''atom''
+   *  - `D[`''atom''`]` for identity ''atom''
    *  
    * Associativity, commutativity, and idempotency can be negated by prefixing
-   * them with an exclamation mark ({{!}}).  Thus {{%A!C}} denotes associativity
+   * them with an exclamation mark (`!`).  Thus `%A!C` denotes associativity
    * and non-commutativity.
    * 
    * Other atoms (such as variables) can be specified for associativity,
    * commutativity, and idempotency, by giving the atom in square brackets
-   * after the abbreviation.  Thus {{%A[$a]C}} has a variable {{$a}} for
+   * after the abbreviation.  Thus `%A[\$a]C` has a variable `\$a` for
    * associativity, with commutativity true.
    * 
    * @return	The short string.
@@ -373,6 +448,16 @@ class AlgProp(
  * Simplified creation and matching.
  */
 object AlgProp {
+  /**
+   * Create an algebraic properties object.
+   * 
+	 * @param associative		Optional associativity.  Default is none.
+	 * @param commutative		Optional commutativity.  Default is none.
+	 * @param idempotent		Optional idempotency.  Default is none.
+	 * @param absorber			Optional absorber.  Default is none.
+	 * @param identity			Optional identity.  Default is none.
+	 * @return	The new algebraic properties object.
+   */
   def apply(associative: Option[BasicAtom] = None,
       commutative: Option[BasicAtom] = None,
       idempotent: Option[BasicAtom] = None,
@@ -387,6 +472,15 @@ object AlgProp {
     new AlgProp(_adjust(associative), _adjust(commutative), _adjust(idempotent),
         _adjust(absorber), _adjust(identity))
   }
+  
+  /**
+   * Pull apart an algebraic properties object.
+   * 
+   * @param ap	The algebraic properties object.
+   * @return	Associativity, commutativity, idempotency, absorber, and identity.
+   */
+  def unapply(ap: AlgProp) = Some((ap.associative, ap.commutative,
+      ap.idempotent, ap.absorber, ap.identity))
 }
 
 /** No properties. */
@@ -401,8 +495,16 @@ case class Commutative(atom: BasicAtom) extends AlgProp(commutative = Some(atom)
 /** The idempotent property. */
 case class Idempotent(atom: BasicAtom) extends AlgProp(idempotent = Some(atom))
 
-/** An absorber. */
+/**
+ * An absorber.
+ * 
+ * @param atom	The absorber atom.
+ */
 case class Absorber(atom: BasicAtom) extends AlgProp(absorber = Some(atom))
 
-/** An identity. */
+/**
+ * An identity.
+ * 
+ * @param atom	The identity atom.
+ */
 case class Identity(atom: BasicAtom) extends AlgProp(identity = Some(atom))

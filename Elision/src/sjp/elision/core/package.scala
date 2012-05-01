@@ -36,34 +36,13 @@ import org.parboiled.errors.ParsingException
 import sjp.elision.parse.AtomParser
 
 /**
- * Basic definitions used in this package.
+ * The core classes and definitions that make up the Elision runtime.
  * 
  * == Punch List ==
  * This is the current punch list for Elision.  This list gets picked up by
- * Eclipse.
+ * [[http://eclipse.org Eclipse]].
  * 
- *  - TODO: Revisit every atom class wrt case class or not.
- *  - TODO: Implement pairs and smaps.
- * 
- *  - TODO: Pull common, but large, items out of toString and toParseString.
- * 
- *  - TODO: Bindings cleanup / doc.
- *  - TODO: Literal cleanup / doc.
- *  - TODO: Variable cleanup / doc.
- *  - TODO: Lambda cleanup / doc.
- *  - TODO: Apply cleanup / doc.
- *  - TODO: Context cleanup / doc.
- *  - TODO: OperatorDefinition cleanup / doc.
- *  - TODO: TypeUniverse cleanup / doc.
- *  - TODO: MatchIterator cleanup / doc.
- *  - TODO: Outcome cleanup / doc.
- *  - TODO: Operator cleanup / doc.
- *  - TODO: OperatorDefinition cleanup / doc.
- *  - TODO: AtomList cleanup / doc.
- *  - TODO: SequenceMatcher cleanup / doc.
- *  - TODO: RewriteRule cleanup / doc.
- *  - TODO: AtomParser cleanup / doc.
- * 
+ *  - TODO: Documentation cleanup.
  *  - TODO: Ruleset change actions. DEFER.
  *  - TODO: Infix. DEFER.
  * 
@@ -213,8 +192,9 @@ package object core {
   //======================================================================
     
   /**
-   * Magically add a mkParseString, roughly equivalent to mkString, to every
-   * sequence of objects that extend BasicAtom.  Try that with Java!
+   * Magically add a `mkParseString`, roughly equivalent to `mkString`, to
+   * every sequence of objects that extend [[sjp.elision.core.BasicAtom]].
+   * Try that with Java!
    * 
    * @param seq		The sequence to get the new method.
    */
@@ -234,7 +214,7 @@ package object core {
   }
   
   /**
-   * Invoking the omit method on an indexed sequence automagically transforms
+   * Invoking the `omit` method on an indexed sequence automagically transforms
    * it into an omit sequence with the original sequence as its backing store.
    * 
    * @param seq	The original sequence.

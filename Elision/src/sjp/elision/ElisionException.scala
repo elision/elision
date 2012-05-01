@@ -34,12 +34,16 @@ package sjp.elision
  * internally to signal errors, such as during parsing, and do not represent
  * critical failure conditions.
  * 
+ * Such an exception should be caught at the top level of a REPL, and the
+ * message displayed.  For this reason, please choose suitable human-readable
+ * messages.
+ * 
  * @param msg	Human-readable message.
  */
 class ElisionException(val msg: String) extends Exception(msg)
 
 /**
- * Define convenient construction / extraction for Elision exception.
+ * Define convenient construction / extraction for Elision exceptions.
  */
 object ElisionException {
   /**
