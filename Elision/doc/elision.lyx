@@ -280,7 +280,12 @@ http://stacyprowell.com/wiki/doku.php?id=elision
 \end_inset
 
 .
- Elision contains Parboiled, a parser expression grammar (PEG) library.
+ This page contains a frequently updated version, along with documentation
+ links and a like to Elision's github page.
+\end_layout
+
+\begin_layout Standard
+Elision contains Parboiled, a parser expression grammar (PEG) library.
  See 
 \begin_inset Flex URL
 status collapsed
@@ -889,9 +894,6 @@ Makefile
 make
 \family default
  each time you update.
-
-\family typewriter
- 
 \end_layout
 
 \begin_layout Section
@@ -1139,7 +1141,7 @@ Interacting with the REPL
 
 \begin_layout Standard
 The REPL is Elision's read, evaluate, print loop.
- It provides a way to directly interact with the rewriter.
+ It provides a way to interact directly with the rewriter.
 \end_layout
 
 \begin_layout Section
@@ -1284,17 +1286,32 @@ e> { operator
 
 \begin_layout Plain Layout
 
- >   set($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN
+ >   #name=set
 \end_layout
 
 \begin_layout Plain Layout
 
- >   %ACI
+ >   #params=%ACI($P: BOOLEAN, $Q: BOOLEAN)
+\end_layout
+
+\begin_layout Plain Layout
+
+ >   #type=BOOLEAN
 \end_layout
 
 \begin_layout Plain Layout
 
  > }
+\end_layout
+
+\begin_layout Plain Layout
+
+$repl0 = {: operator:SYMBOL { binds name -> set:SYMBOL
+\end_layout
+
+\begin_layout Plain Layout
+
+  params -> %ACI($P:BOOLEAN, $Q:BOOLEAN) type -> BOOLEAN } :}
 \end_layout
 
 \begin_layout Plain Layout
@@ -1314,7 +1331,7 @@ e> "
 
 \begin_layout Plain Layout
 
-$repl19 = " Fred "
+$repl1 = " Fred "
 \end_layout
 
 \end_inset
@@ -1351,7 +1368,7 @@ e> history()
 
 \begin_layout Plain Layout
 
-1: {operator neg($x:INTEGER):INTEGER}
+1: {operator #name=test #params=%($x:INTEGER) #type=INTEGER}
 \end_layout
 
 \begin_layout Plain Layout
