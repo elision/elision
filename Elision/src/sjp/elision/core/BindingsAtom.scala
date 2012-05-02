@@ -63,7 +63,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
   /** The type of a bindings atom is the special bindings type. */
-  val theType = BINDING
+  val theType = ANY
   val isConstant = mybinds.values.forall(_.isConstant)
   val isTerm = mybinds.values.forall(_.isTerm)
   val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
@@ -116,9 +116,9 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    * 
    * @return	A parseable version of this atom.
    */
-  def toParseString() = "{: bind %(" + (mybinds.map(pair =>
-    toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(", ") +
-    ") :}"
+  def toParseString() = "{ binds " + (mybinds.map(pair =>
+    toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(" ") +
+    " }"
 
   /**
    * Generate a Scala parseable representation of this atom.  This requires that

@@ -36,22 +36,29 @@ import scala.collection.mutable.HashMap
 /**
  * Represent a variable.
  * 
- * ==Structure and Syntax==
+ * == Structure and Syntax ==
  * A variable is indicated with a leading dollar sign (`$`) followed by a
  * valid symbol.  So the following are valid variables:
  * - `$``x`
  * - `$``Fred51_2`
  * - <code>$`1`</code>
  * 
- * ==Type==
+ * == Guards ==
+ * A variable is allowed to have a guard.  The guard is substituted before the
+ * variable is bound, and must evaluate to `true` to allow the binding to take
+ * place.
+ * 
+ * == Type ==
  * Every variable must have a type, and the type can be `ANY`.
  * 
- * ==Equality and Matching==
- * Variables are equal iff their name and type are equal.
+ * == Equality and Matching ==
+ * Variables are equal iff their name, type, guard, and labels are all equal.
  * 
  * Variables can be bound, so that gets checked during matching.  A variable
  * pattern matches a subject iff it is already bound to that subject, or if it
- * is unbound and the types match.
+ * is unbound and the types match.  Guards are not matched; this would be
+ * problematic, as the guards are used to determine whether a match succeeds!
+ * Labels are also not matched, as they serve a different semantic purpose.
  * 
  * @param typ			The variable type.
  * @param name		The variable name.
@@ -66,25 +73,24 @@ class Variable(typ: BasicAtom, val name: String,
     
   /** This variable is a term. */
   val isTerm = true
-  
-  /** The type of this variable. */
   val theType = typ
-  
-  /** The De Bruijn index is zero. */
   val deBruijnIndex = 0
-  
   /** Variables are not constant. */
   val isConstant = false
-  
-  /** The depth of a variable is zero. */
   val depth = 0
-  
   /** By default, variables can be bound. */
   override val isBindable = true
-  
-  /** Variables contain no constant children. */
   val constantPool = None
-  
+
+  /**
+   * Attempt to bind the variable.  The potential variable binding is added
+   * to the provided bindings, and the variable guard is rewritten.  If the
+   * guard is true, then the new bindings are returned.  If it is false, then
+   * a [[sjp.elision.core.Fail]] instance is returned.
+   * 
+   * @param subject		The atom to which the variable is to be bound.
+   * @param binds			Other bindings that must be honored.
+   */
   def bindMe(subject: BasicAtom, binds: Bindings): Outcome = {
     // Compute the new bindings.
     val newbinds = binds + (name -> subject)
@@ -158,11 +164,15 @@ class Variable(typ: BasicAtom, val name: String,
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   
   override def equals(varx: Any) = varx match {
-    case ovar:Variable => ovar.theType == theType && ovar.name == name
+    case ovar:Variable => ovar.theType == theType &&
+    		ovar.name == name && ovar.guard == guard && ovar.labels == labels
     case _ => false
   }
 }
 
+/**
+ * Simplified creation and matching of variables.
+ */
 object Variable {
   /**
    * Make a new variable instance.
@@ -188,6 +198,17 @@ object Variable {
 /**
  * Define a metavariable.
  * 
+ * == Purpose ==
+ * A metavariable is just like an ordinary variable, with the exception that
+ * any metavariables in an atom make that atom a meta atom, and meta atoms
+ * block evaluation in an apply.
+ * 
+ * For example, consider {{{is_bindable($x)}}}.  This will immediately
+ * evaluate to `true` since {{{$x}}} is bindable.  If we wanted to use this
+ * as a guard for a variable, however, this won't work.  Instead we write
+ * {{{is_bindable($$x)}}} using the metavariable, and evaluation is
+ * deferred until the atom is rewritten.
+ * 
  * @param typ			The variable type.
  * @param name		The variable name.
  * @param guard		The variable's guard.
@@ -198,6 +219,7 @@ class MetaVariable(typ: BasicAtom, name: String,
     labels: Set[String] = Set[String]())
     extends Variable(typ, name, guard, labels) {
   override val isTerm = false
+  /** Metavariable prefix. */
   override val prefix = "$$"
   override def toString =
     "MetaVariable(" +
@@ -207,6 +229,9 @@ class MetaVariable(typ: BasicAtom, name: String,
     labels.map(toEString(_)).mkString("Set(", ",", ")") + ")"
 }
 
+/**
+ * Companion object to make and match metavariables.
+ */
 object MetaVariable {
   /**
    * Make a new metavariable instance.

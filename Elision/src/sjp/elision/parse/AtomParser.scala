@@ -262,9 +262,18 @@ object AtomParser {
 	      _interpret(isCommutative), _interpret(isIdempotent),
 	      _interpret(withAbsorber), _interpret(withIdentity))
 	}
-	
+
+	/**
+	 * Represent an algebraic properties specification.
+	 */
 	object AlgPropNode {
+	  /** Make a new, empty specification. */
 	  def apply() = new AlgPropNode(List())
+	  /**
+	   * Make a new specification from the provided property nodes.
+	   * 
+	   * @param list		The property nodes.
+	   */
 	  def apply(list: List[PropertyNode]) = new AlgPropNode(list)
 	}
 
@@ -274,6 +283,7 @@ object AtomParser {
 
 	/**
 	 * Represent a bindings atom.
+	 * 
 	 * @param map	The bindings.
 	 */
 	case class BindingsNode(map: List[(NakedSymbolNode,AstNode)]) extends AstNode {
@@ -306,7 +316,8 @@ object AtomParser {
 	
 	/**
 	 * A node representing a "naked" symbol: a symbol whose type is the type
-	 * ANY.
+	 * `ANY`.
+	 * 
 	 * @param str	The symbol text.
 	 */
 	case class NakedSymbolNode(str: String) extends AstNode {
@@ -315,6 +326,7 @@ object AtomParser {
 	
 	/**
 	 * A node representing a symbol.
+	 * 
 	 * @param typ		The type.
 	 * @param name	The symbol text.
 	 */
@@ -328,6 +340,7 @@ object AtomParser {
 	
 	/**
 	 * A node representing a variable reference.
+	 * 
 	 * @param typ			The type.
 	 * @param name		The variable name.
 	 * @param guard		The variable's guard.
@@ -340,9 +353,21 @@ object AtomParser {
 	    case Some(guard) => Variable(typ.interpret, name, guard.interpret, labels)
 	  }
 	}
+	
+	/**
+	 * Simplified creation of variable nodes.
+	 */
 	object VariableNode {
-	  def apply(typ: AstNode, name: String, grd: Option[AstNode],
-	    labels: Set[String]) = new VariableNode(typ, name, grd, labels)
+	  /**
+	   * Make a new variable node.
+	   * 
+		 * @param typ			The type.
+		 * @param name		The variable name.
+		 * @param guard		The variable's guard.
+		 * @param labels	Labels associated with the variable.
+	   */
+	  def apply(typ: AstNode, name: String, guard: Option[AstNode],
+	    labels: Set[String]) = new VariableNode(typ, name, guard, labels)
 	}
 	
 	/**
@@ -381,6 +406,7 @@ object AtomParser {
 	
 	/**
 	 * A node representing a symbol literal.
+	 * 
 	 * @param typ		The type.
 	 * @param sym		The symbol text.
 	 */
@@ -415,6 +441,7 @@ object AtomParser {
 	
 	/**
 	 * A node representing a string literal.
+	 * 
 	 * @param typ		The type.
 	 * @param str		The string text.
 	 */
@@ -432,6 +459,7 @@ object AtomParser {
 	abstract class NumberNode extends AstNode {
 	  /**
 	   * Make a new version of this node, with the specified type.
+	   * 
 	   * @param newtyp		The new type.
 	   * @return	A new node with the given type.
 	   */
@@ -440,6 +468,7 @@ object AtomParser {
 	
 	/**
 	 * An abstract syntax tree node holding a numeric value.
+	 * 
 	 * @param sign			True if positive, false if negative.
 	 * @param integer		The integer portion of the number.
 	 * @param fraction	The fractional portion of the number, if any.
@@ -481,8 +510,9 @@ object AtomParser {
 	}
 	
 	/**
-	 * An abstract syntax tree node holding an unsigned integer.  The integer value
-	 * should be regarded as positive.
+	 * An abstract syntax tree node holding an unsigned integer.  The integer
+	 * value should be regarded as positive.
+	 * 
 	 * @param digits	The digits of the number.
 	 * @param radix		The radix.
 	 * @param typ			The type.  If not specified, INTEGER is used.
@@ -490,8 +520,10 @@ object AtomParser {
 	case class UnsignedIntegerNode(digits: String, radix: Int,
 	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
 	  def interpret = Literal(typ.interpret, asInt)
+	  
 	  /** Get the unsigned integer as a positive native integer value. */
 	  lazy val asInt = BigInt(digits, radix)
+
 	  def retype(newtyp: AstNode) = UnsignedIntegerNode(digits, radix, newtyp)
 	}
 	
@@ -505,8 +537,12 @@ object AtomParser {
 	case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
 	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
 	  def interpret = Literal(typ.interpret, asInt)
+	  
+	  /** Get the signed integer as a signed native integer value. */
 	  lazy val asInt = if (sign) asUInt else -asUInt
+	  /** Get the integer as a positive native integer value. */
 	  lazy val asUInt = BigInt(digits, radix)
+	  
 	  def retype(newtyp: AstNode) = SignedIntegerNode(sign, digits, radix, newtyp)
 	}
 	
@@ -522,6 +558,7 @@ object AtomParser {
 	  /**
 	   * Create a new signed integer from the given unsigned integer.  The radix
 	   * is the same as the signed integer.
+	   * 
 	   * @param sign		If true or None, positive.  If false, negative.
 	   * @param integer	The unsigned integer value.
 	   * @param typ			The type.
@@ -537,6 +574,7 @@ object AtomParser {
 	  /**
 	   * Create a new signed integer from the given unsigned integer.  The radix
 	   * is the same as the signed integer.
+	   * 
 	   * @param sign		If true or None, positive.  If false, negative.
 	   * @param integer	The unsigned integer value.
 	   */
@@ -547,6 +585,7 @@ object AtomParser {
 	
 	/**
 	 * An abstract syntax tree node holding a floating point value.
+	 * 
 	 * @param sign			True if positive, false if negative.
 	 * @param integer		The integer portion's digits.
 	 * @param fraction	The fractional portion's digits.
@@ -685,52 +724,14 @@ extends Parser {
     zeroOrMore(Atom) ~ WS ~ EOI
   }.label("a sequence of atoms")
   
-  def InfixOperatorL = rule {
-    oneOrMore(anyOf("~-!@#%^&*+=|';?/><")) ~> {
-      str => NakedSymbolNode(str)
-    }
-  }
-  
-  def InfixOperatorR = rule {
-    oneOrMore(anyOf("~-!@#%^&*+=|';?/><")) ~ ":" ~> {
-      str => NakedSymbolNode(str)
-    }
-  }
-  
-  def LApply = rule {
-    // Handle the odd case of an infix operator.  Only certain symbols can
-    // be used as infix operators.  Associate to the right.
-    FirstAtom ~ WS ~ InfixOperatorL ~ WS ~ Atom ~~> (
-        (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomSeqNode(AlgPropNode(), List(larg, rarg))))
-  }
-  
-  def RApply = rule {
-    // Handle the odd case of an infix operator.  Only certain symbols can
-    // be used as infix operators.  Associate to left.
-    Atom ~ WS ~ InfixOperatorR ~ WS ~ FirstAtom ~~> (
-        (larg: AstNode, op: NakedSymbolNode, rarg: AstNode) =>
-        	ApplicationNode(context, op, AtomSeqNode(AlgPropNode(), List(larg, rarg))))
-  }
-
   /**
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
     FirstAtom ~ WS ~ "-> " ~ Atom ~~> (MapPairNode(_,_)) |
-    //LApply |
-    // Handle the special case of the general operator application.  These
-    // bind to the right, so: f.g.h.7 denotes Apply(f,Apply(g,Apply(h,7))).
-//    zeroOrMore(FirstAtom ~ WS ~ ". ") ~ FirstAtom ~~> (
-//        (funlist: List[AstNode], lastarg: AstNode) =>
-//          funlist.foldRight(lastarg)(ApplicationNode(context,_,_))) |
     FirstAtom ~ zeroOrMore(". " ~ FirstAtom) ~~> (
         (firstarg: AstNode, funlist: List[AstNode]) =>
           funlist.foldLeft(firstarg)(ApplicationNode(context,_,_)))
-//    zeroOrMore(FirstAtom ~ WS ~ "-> ") ~ FirstAtom ~~> (
-//        (maplist: List[AstNode], lastarg: AstNode) =>
-//          maplist.foldRight(lastarg)(MapPairNode(_,_)))
-//    FirstAtom ~ WS ~ ". " ~ Atom ~~> (ApplicationNode(context,_,_)) |
   }.label("an atom")
   
   /**
@@ -768,11 +769,13 @@ extends Parser {
       // possible to always detect the kind of literal during parse.  By
       // default literals go into a simple type, but this can be overridden.
       ParsedLiteral |
-      
+
+      // Parse a number.  This can be any number.
       AnyNumber ~ ": " ~ FirstAtom ~~> (
           (num:NumberNode, typ:AstNode) => num.retype(typ)) |
       AnyNumber |
       
+      // Parse a special form.
       ParsedSpecialForm |
 
       // Parse the special type universe.
@@ -785,7 +788,7 @@ extends Parser {
   
   def ParsedSpecialForm = rule {
     ParsedGeneralForm | ParsedSpecialBindForm
-  }
+  }.label("a special form")
   
   def ParsedGeneralForm = rule {
     "{: " ~ Atom ~ Atom ~ ":} " ~~> (SpecialFormNode(_,_))
@@ -806,11 +809,11 @@ extends Parser {
   
   def ListBlock = rule {
     "#" ~ ESymbol ~ zeroOrMore(Atom, ", ") ~~> (_ -> AtomSeqNode(AlgPropNode(), _))
-  }
+  }.label("a # list block")
   
   def BindBlock = rule {
     "#" ~ ESymbol ~ "= " ~ Atom ~~> (_ -> _)
-  }
+  }.label("a # binding")
   
   //======================================================================
   // Parse a simple operator application.  The other form of application
@@ -912,6 +915,7 @@ extends Parser {
   // Parse property lists.
   //======================================================================
   
+  /** Parse an algebraic properties specification. */
   def ParsedAlgProp = rule {
     "%" ~ zeroOrMore(
         ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~> ((x) => AbsorberNode(x)) |
@@ -926,7 +930,7 @@ extends Parser {
         ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
         ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
     (AlgPropNode(_))
-  }
+  }.label("an algebraic properties specification.")
 
   //======================================================================
   // Parse lists of atoms.
@@ -970,30 +974,34 @@ extends Parser {
     ParsedTermVariable | ParsedMetaVariable
   }.label("a variable")
 
+  /** Parse a term variable. */
   def ParsedTermVariable = rule {
     "$" ~ (ParsedTypedVariable | ParsedUntypedVariable)
   }.label("a term variable")
   
+  /** Parse a meta variable. */
   def ParsedMetaVariable = rule {
     "$$" ~ (ParsedTypedVariable | ParsedUntypedVariable) ~~> (
         vx => MetaVariableNode(vx))
   }.label("a metavariable")
   
+  /** Parse a typed variable or metavariable. */
   def ParsedTypedVariable = rule {
     ESymbol ~ optional("{ " ~ Atom ~ "} ") ~ ": " ~ FirstAtom ~
     zeroOrMore("@" ~ ESymbol) ~~> (
       (sval: NakedSymbolNode, grd: Option[AstNode], typ: AstNode,
           list: List[NakedSymbolNode]) =>
         VariableNode(typ, sval.str, grd, list.map(_.str).toSet))
-  }.label("a variable with type information")
+  }.label("a variable name and type")
   
+  /** Parse an untyped variable or metavariable. */
   def ParsedUntypedVariable = rule {
     ESymbol ~ optional("{ " ~ Atom ~ "} ") ~
     zeroOrMore("@" ~ ESymbol) ~~> (
       (sval, grd, list) =>
         VariableNode(SimpleTypeNode(EANY), sval.str, grd,
             list.map(_.str).toSet))
-  }.label("an untyped variable")
+  }.label("a variable name")
 
   //======================================================================
   // Parse whitespace.

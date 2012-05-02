@@ -33,10 +33,29 @@ package sjp.elision.core
  * Provide a very simple implementation of `RootType`.  This is a trivial root
  * type with a specified name and the type universe as its type.
  * 
+ * == Registry ==
  * Named root types assume they can be parsed by their name, only.  This means
  * the rewriter must know about all named root types.  In order to make sure
  * we know all the root types, we keep a //global// registry of them in the
  * companion object.
+ * 
+ * The registry is updated by the constructor of this class, so there is no
+ * need to update it manually.
+ * 
+ * == Use ==
+ * If you want to create a new named root type, you should actually create an
+ * object that extends this class.  The following is an example of the Elision
+ * `BINDING` root type.
+ * {{{
+ * object BINDING extends NamedRootType("BINDING")
+ * }}}
+ * This registers the root type, and also causes the type to be available by
+ * name in the Scala environment.
+ * 
+ * If you use this approach, be sure to reference the new type before you try
+ * to parse it.  This causes the type to be constructed, and thus entered into
+ * the registry.  If you aren't able to parse the root type, or it parses as
+ * a symbol, this is the most likely cause.
  * 
  * @param name	The name.
  */
@@ -44,17 +63,12 @@ class NamedRootType protected (val name: String)
 extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   // Save this instance in the registry.  This is essential so that the parser
   // can find root types.
-  NamedRootType.set(this)
+  NamedRootType._set(this)
   
   /**
 	 * Try to match this type against the provided atom.  Note that root types
 	 * match only themselves, so the match works iff the subject is equal to this
 	 * pattern.
-	 * 
-	 * @param subject	The subject to match.
-	 * @param binds		The bindings to honor.
-	 * @param hints		Optional hints.
-	 * @return	The outcome of the match.
 	 */
 	override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
 	    hints: Option[Any]) =
@@ -64,9 +78,6 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
 
   /**
    * The root types cannot be rewritten, as they do not have children.
-   * 
-   * @param binds	The bindings.
-   * @return	This type.
    */
   override def rewrite(binds: Bindings) = (this, false)
 
@@ -93,15 +104,32 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
  * The companion object maintains a registry of the named root types that have
  * been created.  This can be used during parsing to detect the use of named
  * root types.
+ * 
+ * This companion object also provides methods to make and match named root
+ * types.
  */
 object NamedRootType {
   /** The map of names to known root types. */
   private lazy val _known =
     scala.collection.mutable.HashMap[String,NamedRootType]()
   
+  /**
+   * Make a new named root type.  In general you can avoid this method, and
+   * prefer instead to extend the class.  However, if you need to create a
+   * named root type programmatically, this will work.
+   * 
+   * @param name		The name of the new root type.
+   * @return	The new root type.
+   */
   def apply(name: String) =
     _known.getOrElseUpdate(name, new NamedRootType(name))
   
+  /**
+   * Extract the name of the root type.
+   * 
+   * @param nrt	The named root type.
+   * @return	The name.
+   */
   def unapply(nrt: NamedRootType) = Some(nrt.name)
   
   /**
@@ -119,7 +147,7 @@ object NamedRootType {
    * @return	The named root type.  This might be a different instance if
    * 					the type has already been declared.
    */
-  def set(typ: NamedRootType) = _known.getOrElseUpdate(typ.name, typ)
+  private def _set(typ: NamedRootType) = _known.getOrElseUpdate(typ.name, typ)
 
   // Initialize the default set of root types.  This just forces them to all
   // get constructed, and then installed.  It must be the last thing in this
@@ -159,7 +187,7 @@ object STRATEGY extends NamedRootType("STRATEGY")
 object BINDING extends NamedRootType("BINDING")
 
 /**
- * The unusual type ANY that matches anything (but not nothing).
+ * The unusual type ANY that matches anything (even NONE).
  */
 object ANY extends NamedRootType("ANY") {
   override def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
@@ -167,7 +195,7 @@ object ANY extends NamedRootType("ANY") {
 }
 
 /**
- * The unusual type NOTHING that matches nothing (but not anything).
+ * The unusual type NONE that matches just itself and ANY.
  */
 object NONE extends NamedRootType("NONE") {
   override def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),

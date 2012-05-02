@@ -68,11 +68,6 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
    * Try to match this type against the provided atom.  Note that root types
    * match only themselves, so the match works iff the subject is equal to this
    * pattern.
-   * 
-   * @param subject	The subject to match.
-   * @param binds		The bindings to honor.
-   * @param hints		Optional hints.
-   * @return	The outcome of the match.
    */
   override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =
@@ -82,9 +77,6 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
 
   /**
    * The root types cannot be rewritten, as they do not have children.
-   * 
-   * @param binds	The bindings.
-   * @return	This type.
    */
   override def rewrite(binds: Bindings) = (this, false)
 

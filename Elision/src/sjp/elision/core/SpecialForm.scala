@@ -37,7 +37,21 @@ import sjp.elision.ElisionException
  */
 class SpecialFormException(msg: String) extends ElisionException(msg)
 
+/**
+ * Hold the data from parsing (or constructing) a special form.  This
+ * really just holds the two parts: the ''tag'' and the ''content'',
+ * and provides a few methods for working with the content.
+ * 
+ * @param tag			The tag.
+ * @param content	The content.
+ */
 class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
+  /**
+   * Require that the content be a binding.  If the content is not, then
+   * an exception is thrown (`SpecialFormException`).
+   * 
+   * @return	A `BindingsHolder` instance.
+   */
   def requireBindings = content match {
     case ba:BindingsAtom => new BindingsHolder(tag, ba)
     case _ =>
@@ -47,10 +61,28 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
           content.toParseString + ".")
   }
   
+  /**
+   * Extract a special form instance from this holder.
+   * 
+   * @return	The special form instance.
+   */
   def toSpecialForm() = new SpecialForm(tag, content)
 }
 
+/**
+ * Hold data from a special form where the content is a bindings atom.
+ * 
+ * @param tag				The tag.
+ * @param content		The content (a bindings atom).
+ */
 class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
+  /**
+   * Require that the bindings atom specify all the listed keys.  If any
+   * are missing, a `SpecialFormException` is thrown.  Other keys not in
+   * the list are ignored.
+   * 
+   * @param keys		The keys to test.
+   */
   def require(keys: String*) {
   	keys foreach { key =>
     	if (!content.contains(key))
@@ -59,6 +91,14 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
     				" requires key " + toESymbol(key) + " but it was not given.")
   	}
   }
+  
+  /**
+   * Require that the bindings atom specify only the listed keys.  If any
+   * other keys are found, a `SpecialFormException` is thrown.  Keys in the
+   * list may or may not be present.
+   * 
+   * @param keys		The keys to test.
+   */
   def allow(keys: String*) {
     val badkeys = content.keySet -- keys
     if (!badkeys.isEmpty) {
@@ -68,6 +108,16 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
           badkeys.map(toESymbol(_)).mkString("", ", ", "") + ".")
     }
   }
+  
+  /**
+   * Require that the bindings atom specify exactly one of the two provided
+   * keys.  If both or neither is present, then a `SpecialFormException` is
+   * thrown.
+   * 
+   * @param key1			A key.
+   * @param key2			A key.
+   * @return	The key that is present.
+   */
   def either(key1: String, key2: String): String = {
     val has1 = content.contains(key1)
     val has2 = content.contains(key2)
@@ -87,6 +137,18 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
     }
     if (has1) key1 else key2
   }
+  
+  /**
+   * Check the bindings.  The provided map indicates which keys are required,
+   * and which are optional.  Only the keys in the map are permitted.
+   * 
+   * If a key is mapped to `true`, then it is required to be present.  If a
+   * key is mapped to `false`, then it is optional.
+   * 
+   * Errors result in a `SpecialFormException`.
+   * 
+   * @param test			The key mapping.
+   */
   def check(test: Map[String,Boolean]) {
     allow(test.keySet.toSeq:_*)
     test foreach {
@@ -96,6 +158,21 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
       }
     }
   }
+  
+  /**
+   * Fetch the value for the specified key from the bindings.  If no default
+   * value is specified (or is `None`), then the key is ''required'' to be
+   * present.  If a default is specified, and the key is not present, then
+   * the default is returned.  On error a `SpecialFormException` is thrown.
+   * 
+   * The value for the key is cast to the specified `TYPE`.  If the value is
+   * not of the specified `TYPE`, then a `SpecialFormException` is thrown.
+   * 
+   * @param TYPE				Type of the atom to return.
+   * @param key					The key.
+   * @param default			Optional default value if the key is not present.
+   * @return	The value of the key, cast to the correct type.
+   */
   def fetchAs[TYPE](key: String, default: Option[TYPE] = None)
   (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
     content.get(key) match {
@@ -116,11 +193,22 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
     }
   }
   
+  /**
+   * Extract a special form instance from this holder.
+   * 
+   * @return	The special form instance.
+   */
   def toSpecialForm() = new SpecialForm(tag, content)
 }
 
 /**
  * This is the generalized "special form" of atom.
+ * 
+ * == Purpose ==
+ * Special forms unify a lot of different syntax in the library, and this
+ * supports more unified matching and rewriting.
+ * 
+ * A special form is a pair of atoms.
  * 
  * @param tag			The tag identifying this particular form.
  * @param content	The content of the atom.
@@ -131,7 +219,8 @@ extends BasicAtom {
   lazy val depth = (tag.depth max content.depth) + 1
   lazy val deBruijnIndex = tag.deBruijnIndex max content.deBruijnIndex
   lazy val isConstant = tag.isConstant && content.isConstant
-  val theType: BasicAtom = TypeUniverse
+  /** All special forms use the type ANY as their type. */
+  val theType: BasicAtom = ANY
   lazy val isTerm = tag.isTerm && content.isTerm
   lazy val constantPool = Some(BasicAtom.buildConstantPool(17, tag, content))
   override lazy val hashCode = tag.hashCode * 31 + content.hashCode
@@ -169,8 +258,8 @@ extends BasicAtom {
 /**
  * Construction and matching of special forms.
  * 
- * Known special forms register their handlers here.  The apply method
- * handles dispatch to the appropriate implementation.
+ * The apply method handles dispatch to the appropriate implementation of each
+ * known special type.
  */
 object SpecialForm {
   /**
@@ -184,11 +273,11 @@ object SpecialForm {
     val sfh = new SpecialFormHolder(tag, content)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {
-	      case MapStrategy.tag => MapStrategy(sfh)
-	      case BindingsAtom.tag => BindingsAtom(sfh)
-	      case RewriteRule.tag => RewriteRule(sfh)
-	      case MatchAtom.tag => MatchAtom(sfh)
-	      case Operator.tag => Operator(sfh)
+	      case 'map => MapStrategy(sfh)
+	      case 'binds => BindingsAtom(sfh)
+	      case 'rule => RewriteRule(sfh)
+	      case 'match => MatchAtom(sfh)
+	      case 'operator => Operator(sfh)
 	      //case RulesetStrategy.tag => RulesetStrategy(sfh, context)
 	      case _ => sfh.toSpecialForm
 	    }

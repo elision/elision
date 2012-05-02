@@ -79,7 +79,7 @@ object Version {
   /** Minor version number (integer string). */
   var minor = "UNK"
     
-  /** Tweleve digit build identifier.  Date and time. */
+  /** Twelve digit build identifier.  Date and time. */
   var build = "UNK"
     
   /** If true then data was loaded.  If false, it was not. */

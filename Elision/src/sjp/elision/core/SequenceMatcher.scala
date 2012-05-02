@@ -34,22 +34,23 @@ package sjp.elision.core
 /**
  * Match two sequences of atoms.
  * 
+ * == Purpose ==
  * The goal here is to make matching simple(r).  For complex objects, you can
  * have several items to match, any of which can return a match iterator, etc.
  * It is best to concentrate that complexity here, and create a more general
  * solution (or so the logic goes).
  * 
+ * == Use ==
  * To use this, provide two sequences of atoms.  The sequences must be the
  * same length, or the whole match is immediately rejected.  This matcher
  * tries to match the respective atom pairs in order, from the first to the
  * last.  Matches are returned iff the entire sequence matches.
- * 
- * To use this invoke `tryMatch`, passing two sequences of atoms.
  */
 object SequenceMatcher {
 
   /**
    * Match two sequences of atoms, in order.
+   * 
    * @param patterns	The patterns.
    * @param subjects	The subjects.
    * @param binds			Bindings to honor in any match.  This can be omitted.
@@ -59,7 +60,7 @@ object SequenceMatcher {
       binds: Bindings = Bindings()): Outcome =
         if (patterns.length != subjects.length)
           Fail("Sequences are not the same length.")
-        else tryMatch(patterns, subjects, binds, 0)
+        else _tryMatch(patterns, subjects, binds, 0)
         
   /**
    * Rewrite a sequence of atoms by applying the given bindings to each.
@@ -82,6 +83,7 @@ object SequenceMatcher {
 
   /**
    * Match two sequences of atoms, in order.
+   * 
    * @param patterns	The patterns.
    * @param subjects	The subjects.
    * @param binds			Bindings to honor in any match.
@@ -89,8 +91,8 @@ object SequenceMatcher {
    * 									a failure index to return to the caller.
    * @return	The result of the match.
    */
-  private def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
-      binds: Bindings, position: Int): Outcome = {
+  private def _tryMatch(patterns: OmitSeq[BasicAtom],
+      subjects: OmitSeq[BasicAtom], binds: Bindings, position: Int): Outcome = {
     if (position == 0 && BasicAtom.traceMatching) {
     	println("Sequence Matcher called: " +
     	    patterns.mkParseString("",",","") + " -> " +
@@ -114,7 +116,7 @@ object SequenceMatcher {
       case Match(newbinds) =>
         // We found exactly one way in which the pattern could match, given the
         // bindings we received.  This is easy; proceed to the next element.
-        tryMatch(patterns.tail, subjects.tail, newbinds, position+1)
+        _tryMatch(patterns.tail, subjects.tail, newbinds, position+1)
       case Many(miter) =>
         // Matching returned a match iterator.  This is the nontrivial case.
         // Now we have to be careful, and build another match iterator that
@@ -122,7 +124,7 @@ object SequenceMatcher {
         // NOTE  It may be more efficient to replace this recursion.
         val (pt, st) = (patterns.tail, subjects.tail)
         Many(MatchIterator(
-            (newbinds: Bindings) => tryMatch(pt, st, newbinds, position+1),
+            (newbinds: Bindings) => _tryMatch(pt, st, newbinds, position+1),
             miter))
     }
   }

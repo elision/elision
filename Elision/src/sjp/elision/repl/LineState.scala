@@ -32,41 +32,46 @@ package sjp.elision.repl
 /**
  * Determine the state of the current provided line.
  * 
+ * == Purpose ==
+ * This is used to allow data entry at the prompt to span multiple lines.
+ * The number of open parentheses, brackets, and braces is tracked, along
+ * with whether a string is open.
+ * 
  * The line state indicates whether the line has properly closed all
  * open parens, braces, brackets, and quotation marks.
  */
 class LineState {
   /** Current unclosed parenthesis depth. */
-  var parenDepth = 0
+  private var _parenDepth = 0
   
   /** Current unclosed bracket depth. */
-  var bracketDepth = 0
+  private var _bracketDepth = 0
   
   /** Current unclosed brace depth. */
-  var braceDepth = 0
+  private var _braceDepth = 0
   
   /** Whether we are in a quoted string. */
-  var inString = false
+  private var _inString = false
   
   /** Whether we are in a quoted symbol. */
-  var inSymbol = false
+  private var _inSymbol = false
   
   /** Whether we are in an escape. */
-  var inEscape = false
+  private var _inEscape = false
   
   /** Most recent return value from process method. */
-  var state = false
+  private var _state = false
   
   /**
    * Reset this state object.
    */
   def reset() {
-    parenDepth = 0
-    bracketDepth = 0
-    braceDepth = 0
-    inString = false
-    inSymbol = false
-    inEscape = false
+    _parenDepth = 0
+    _bracketDepth = 0
+    _braceDepth = 0
+    _inString = false
+    _inSymbol = false
+    _inEscape = false
   }
   
   /**
@@ -80,44 +85,44 @@ class LineState {
     for (ch <- line) {
       // We deal with strings and symbols first.  We are only even in an
       // escape iff we are in either a symbol or a string.
-    	if (inEscape) inEscape = false	// A single character ends the escape.
-    	else if (inString) ch match {
-    	  case '\\' => inEscape = true	// Start of an escape.
-    	  case '"' => inString = false	// End of the string.
+    	if (_inEscape) _inEscape = false	// A single character ends the escape.
+    	else if (_inString) ch match {
+    	  case '\\' => _inEscape = true	// Start of an escape.
+    	  case '"' => _inString = false	// End of the string.
     	  case _ =>
-    	} else if (inSymbol) ch match {
-    	  case '\\' => inEscape = true	// Start of an escape.
-    	  case '`' => inSymbol = false	// End of symbol.
+    	} else if (_inSymbol) ch match {
+    	  case '\\' => _inEscape = true	// Start of an escape.
+    	  case '`' => _inSymbol = false	// End of symbol.
     	  case _ => 
     	} else ch match {
     	  // We are not in a string or symbol, so we match parens and such now,
     	  // and look for the start of strings or symbols.
-    	  case '(' => parenDepth += 1
+    	  case '(' => _parenDepth += 1
     	  case ')' =>
-    	    parenDepth -= 1
-    	    if (parenDepth < 0) {
+    	    _parenDepth -= 1
+    	    if (_parenDepth < 0) {
     	      return true
     	    }
-    	  case '{' => braceDepth += 1
+    	  case '{' => _braceDepth += 1
     	  case '}' =>
-    	    braceDepth -= 1
-    	    if (braceDepth < 0) {
+    	    _braceDepth -= 1
+    	    if (_braceDepth < 0) {
     	      return true
     	    }
-    	  case '[' => bracketDepth += 1
+    	  case '[' => _bracketDepth += 1
     	  case ']' =>
-    	    bracketDepth -= 1
-    	    if (bracketDepth < 0) {
+    	    _bracketDepth -= 1
+    	    if (_bracketDepth < 0) {
     	      return true
     	    }
-    	  case '"' => inString = true
-    	  case '`' => inSymbol = true
+    	  case '"' => _inString = true
+    	  case '`' => _inSymbol = true
     	  case _ =>
     	}
     }
     // Check for completeness.
-    state = !(inString || inSymbol || parenDepth > 0 || braceDepth > 0 ||
-        bracketDepth > 0)
-    return state
+    _state = !(_inString || _inSymbol || _parenDepth > 0 || _braceDepth > 0 ||
+        _bracketDepth > 0)
+    return _state
   }
 }
