@@ -63,12 +63,30 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bootstrap
-import ornl.elision.core._
+package ornl.elision
 
 /**
- * @author ysp
- *
+ * Root class for exceptions occurring within Elision.  These may be used
+ * internally to signal errors, such as during parsing, and do not represent
+ * critical failure conditions.
+ * 
+ * Such an exception should be caught at the top level of a REPL, and the
+ * message displayed.  For this reason, please choose suitable human-readable
+ * messages.
+ * 
+ * @param msg	Human-readable message.
  */
-object IntegerMath {
+class ElisionException(val msg: String) extends Exception(msg)
+
+/**
+ * Define convenient construction / extraction for Elision exceptions.
+ */
+object ElisionException {
+  /**
+   * Extract the message from an exception.
+   * 
+   * @param ee	An Elision exception.
+   * @return	The extracted message.
+   */
+  def unapply(ee: ElisionException) = Some(ee.msg)
 }

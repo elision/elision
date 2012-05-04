@@ -63,12 +63,98 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bootstrap
+package ornl.elision.core.matcher
 import ornl.elision.core._
 
 /**
- * @author ysp
- *
+ * Match unbindable atoms in a sequence of patterns to the unbindable atoms
+ * in a sequence of subjects.  This match is done commutatively.
+ * 
+ * To determine which atoms are left after this matcher completes, a specialized
+ * version of Bindings is returned.
+ * 
+ * @param patterns	The patterns to match.
+ * @param subjects	The subjects to match.
+ * @param binds			Bindings to honor in any match.
  */
-object IntegerMath {
+class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
+    subjects: OmitSeq[BasicAtom], binds: Bindings) extends MatchIterator {
+  /**
+   * Next index to start looking for a subject to match.
+   */
+  private var _nextsubindex = 0
+  
+  // Locate the first unbindable pattern and save its index.  This is the only
+  // pattern we try to match in this instance.
+  private val _patindex = patterns.indexWhere(!_.isBindable)
+  if (_patindex < 0) {
+    // There were no patterns.  Return the binding we got as the only "match."
+    // This will be returned, and then findNext will be invoked which will mark
+    // the iterator as exhausted.
+    _current = binds
+  }
+  
+  /**
+   * Return the match, but also cache the patterns and subjects at this point.
+   */
+  override def next = super.next match {
+    case null => null
+    case binds:Bindings => binds.set(patterns, subjects)
+  }
+  
+  /* Find the first unbindable pattern and then search the subjects to find a
+   * matching subject.  If we find one, save the iterator.  Then make a matcher
+   * for the unbindable patterns that remain, and join these with the match
+   * iterator combinator to yield a complete iterator.
+   * 
+   * If we cannot find a match, the iterator is exhausted.
+   */
+  
+  def findNext {
+    // If we had either a current match or a local iterator, then the matching
+    // infrastructure would use it up before calling this method.  Since we
+    // have arrived here, we do not have either.
+    
+    // If there are no more patterns, this matcher is exhausted.  This can
+    // happen if there were no suitable patterns to start with.
+    if (_patindex < 0) {
+      _exhausted = true
+      return
+    }
+
+    // Find the next unbindable subject.  We bump the _nextsubindex value so
+    // we look past this next time.
+    val subindex = subjects.indexWhere(!_.isBindable, _nextsubindex)
+    _nextsubindex = subindex + 1
+    
+    // If we ran off the end of the subjects, we have exhausted this match
+    // iterator.
+    if (subindex < 0) {
+      _exhausted = true
+      return
+    }
+    
+    // Try to match the subject and the pattern.
+    val iterator = patterns(_patindex).tryMatch(subjects(subindex)) match {
+      case fail:Fail =>
+        // The match failed, but we can try to keep searching.  The thing to
+        // do is look at the next subject index.
+        findNext
+        return
+      case Match(binds) =>
+        // The pattern and subject match.  This binding is the basis for the
+        // continued match.
+        MatchIterator(binds)
+      case Many(iter) =>
+        // The pattern and subject match in many ways.  We use this to build
+        // a new iterator for the next pattern.
+        iter
+    }
+    
+    // If we arrive here, we were able to match the subject and pattern, and
+    // we have an iterator over the matches.  Now we must combine this with
+    // the subsequent unbindable matches (if any).
+    _local = iterator ~ (bindings => new UnbindableMatcher(
+        patterns.omit(_patindex), subjects.omit(subindex), bindings))
+  }
 }

@@ -46,7 +46,7 @@ if [ ! -e api ] ; then mkdir api ; fi
 cd api
 
 # Locate all source files.
-srcdir=../../src/sjp/elision
+srcdir=../../src/ornl/elision
 files=`find $srcdir -name '*.scala'`
 
 # Build the documentation.

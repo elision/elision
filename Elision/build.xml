@@ -250,14 +250,14 @@ bin, lib, and other folders.</echo>
 			</archives>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="sjp.elision.repl.Repl"/>
+				<attribute name="Main-Class" value="ornl.elision.repl.Repl"/>
 			</manifest>
 		</jar>
 		<jar destfile = "${build.base}/${DSTAMP}/elision-src.jar">
 			<fileset dir="${build.src}"/>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="sjp.elision.repl.Repl"/>
+				<attribute name="Main-Class" value="ornl.elision.repl.Repl"/>
 			</manifest>
 		</jar>
 		<copy file="${build.latest}/${build.jar}"
@@ -280,7 +280,7 @@ bin, lib, and other folders.</echo>
 		 is not required. -->
 	<target name="repl" depends="compile"
 		description="Start the Elision REPL.">
-		<java classname="sjp.elision.repl.Repl" fork="true"
+		<java classname="ornl.elision.repl.Repl" fork="true"
 			classpathref="build.classpath">
 		</java>
 	</target>

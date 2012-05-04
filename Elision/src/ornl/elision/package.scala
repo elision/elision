@@ -63,12 +63,21 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bootstrap
-import ornl.elision.core._
+package sjp
 
-/**
- * @author ysp
- *
+/** 
+ * Elision is a term rewriter.
+ * 
+ * This is the root package of the Elision system, and it contains classes
+ * and definitions shared by everything else in the system.
+ * 
+ * == Packages ==
+ * There are several sub-packages.
+ *  - [[ornl.elision.core]] is the core package that contains the primary classes.
+ *  - [[ornl.elision.parse]] contains the Elision parser(s).
+ *  - [[ornl.elision.repl]] contains the Elision REPL(s) and related classes.
+ *  - [[ornl.elision.test]] contains tests to verify Elision functionality.
  */
-object IntegerMath {
+package object elision {
+	// No content at the present time.
 }

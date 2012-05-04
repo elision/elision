@@ -289,14 +289,25 @@ http://stacyprowell.com/wiki/doku.php?id=elision
 
 .
  This page contains a frequently updated version, along with documentation
- links and a like to Elision's github page.
+ links and a link to Elision's github page at 
+\begin_inset Flex URL
+status open
+
+\begin_layout Plain Layout
+
+https://github.com/sprowell/elision
+\end_layout
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
 Elision contains Parboiled, a parser expression grammar (PEG) library.
  See 
 \begin_inset Flex URL
-status collapsed
+status open
 
 \begin_layout Plain Layout
 
@@ -306,10 +317,10 @@ https://github.com/sirthias/parboiled/wiki
 \end_inset
 
  for details, including the license agreement.
- The Elision REPL uses JLine2, a Java library for handling console input.
+ The Elision REPL uses JLine, a Java library for handling console input.
  See 
 \begin_inset Flex URL
-status collapsed
+status open
 
 \begin_layout Plain Layout
 
@@ -320,7 +331,7 @@ https://github.com/jline/jline2
 
  for details, including the license agreement.
  Note that Elision actually uses the modified version of JLine built for
- the Scala REPL.
+ the Scala REPL and distributed with Scala.
 \end_layout
 
 \begin_layout Section
@@ -791,7 +802,7 @@ java -cp scala-library.jar -jar elision.jar
 \begin_layout Itemize
 To start the REPL from inside a program, invoke the 
 \family typewriter
-sjp.elision.repl.Repl.run()
+ornl.elision.repl.Repl.run()
 \family default
  method.
 \end_layout
@@ -1116,7 +1127,7 @@ Scala
 \begin_layout Plain Layout
 Elision's classes live in packages under 
 \family typewriter
-sjp.elision
+ornl.elision
 \family default
 .
  Throughout this document packages, classes, objects, traits, etc., will
@@ -1127,7 +1138,7 @@ core.BasicAtom
 \family default
  refers to the fully-qualified class name (FQCN) 
 \family typewriter
-sjp.elision.core.BasicAtom
+ornl.elision.core.BasicAtom
 \family default
 .
 \end_layout
@@ -1194,7 +1205,7 @@ java -cp scala-library.jar -jar elision.jar
 \begin_layout Itemize
 To start the REPL from inside a program, invoke the 
 \family typewriter
-sjp.elision.repl.Repl.run()
+ornl.elision.repl.Repl.run()
 \family default
  method.
  This is useful from the Scala prompt, assuming you have the correct 
@@ -2198,7 +2209,7 @@ Sequence Matcher called: $domain,$codomain -> $T,ANY / { bind  }
 
 \begin_layout Plain Layout
 
-TRYING  (cceafb50) in class sjp.elision.core.Variable:
+TRYING  (cceafb50) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2223,7 +2234,7 @@ SUCCESS (cceafb50): { bind domain -> $T }
 
 \begin_layout Plain Layout
 
-TRYING  (ba5fa5c) in class sjp.elision.core.Variable:
+TRYING  (ba5fa5c) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2248,7 +2259,7 @@ SUCCESS (ba5fa5c): { bind domain -> $T }
 
 \begin_layout Plain Layout
 
-TRYING  (94a4e9fe) in class sjp.elision.core.Lambda$$anon$1:
+TRYING  (94a4e9fe) in class ornl.elision.core.Lambda$$anon$1:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2273,7 +2284,7 @@ Sequence Matcher called: $`::1`,$`::2` -> INTEGER,INTEGER / { bind  }
 
 \begin_layout Plain Layout
 
-TRYING  (e4055fd3) in class sjp.elision.core.Variable:
+TRYING  (e4055fd3) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2298,7 +2309,7 @@ SUCCESS (e4055fd3): { bind `::1` -> INTEGER }
 
 \begin_layout Plain Layout
 
-TRYING  (e4055ff2) in class sjp.elision.core.Variable:
+TRYING  (e4055ff2) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2329,7 +2340,7 @@ Sequence Matcher called: $domain,$codomain -> xx(INTEGER, INTEGER),INTEGER
 
 \begin_layout Plain Layout
 
-TRYING  (516c94d7) in class sjp.elision.core.Variable:
+TRYING  (516c94d7) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2354,7 +2365,7 @@ SUCCESS (516c94d7): { bind domain -> xx(INTEGER, INTEGER) }
 
 \begin_layout Plain Layout
 
-TRYING  (b28a4874) in class sjp.elision.core.Variable:
+TRYING  (b28a4874) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2380,7 +2391,7 @@ SUCCESS (b28a4874): { bind domain -> xx(INTEGER, INTEGER), codomain -> INTEGER
 
 \begin_layout Plain Layout
 
-TRYING  (2b270a36) in class sjp.elision.core.Variable:
+TRYING  (2b270a36) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2522,7 +2533,7 @@ e> {match 7}.$x
 
 \begin_layout Plain Layout
 
-TRYING  (de6d60a9) in class sjp.elision.core.IntegerLiteral:
+TRYING  (de6d60a9) in class ornl.elision.core.IntegerLiteral:
 \end_layout
 
 \begin_layout Plain Layout
@@ -2542,7 +2553,7 @@ TRYING  (de6d60a9) in class sjp.elision.core.IntegerLiteral:
 
 \begin_layout Plain Layout
 
-TRYING  (493d55a8) in class sjp.elision.core.INTEGER$:
+TRYING  (493d55a8) in class ornl.elision.core.INTEGER$:
 \end_layout
 
 \begin_layout Plain Layout
@@ -6195,7 +6206,7 @@ add
 \end_layout
 
 \begin_layout LyX-Code
-import sjp.elision.core._
+import ornl.elision.core._
 \end_layout
 
 \begin_layout LyX-Code
@@ -6278,7 +6289,7 @@ Variable(ANY,"U")
 \end_layout
 
 \begin_layout LyX-Code
-import sjp.elision.core._
+import ornl.elision.core._
 \end_layout
 
 \begin_layout LyX-Code

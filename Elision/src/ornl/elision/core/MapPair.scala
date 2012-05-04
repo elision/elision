@@ -63,12 +63,73 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bootstrap
-import ornl.elision.core._
+package ornl.elision.core
 
 /**
- * @author ysp
- *
+ * Provide an ordered pair that also serves as a very simple kind of rewrite
+ * rule.
+ * 
+ * == Purpose ==
+ * The map pair can use used to construct a pair, but when applied on the
+ * left hand side of the applicative dot, it tries to match the right-hand
+ * side against its left-hand side.  If the match succeeds, the result is
+ * the rewrite of the map pair's right-hand side and a true flag.
+ * 
+ * At present there is no way to specify general guards, so the first match
+ * of the left hand side is used immediately and unconditionally.  (Variable
+ * guards are, of course, honored.)
  */
-object IntegerMath {
+case class MapPair(left: BasicAtom, right: BasicAtom) extends BasicAtom
+with Rewriter {
+	/** A map pair is actually a strategy. */
+  val theType = STRATEGY
+  val isConstant = left.isConstant && right.isConstant
+  val depth = (left.depth max right.depth) + 1
+  val constantPool = Some(BasicAtom.buildConstantPool(11, left, right))
+  val isTerm = left.isTerm && right.isTerm
+  val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
+  override lazy val hashCode = left.hashCode * 31 + right.hashCode
+
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]): Outcome = subject match {
+    case MapPair(oleft, oright) =>
+      SequenceMatcher.tryMatch(Vector(left, right),
+          Vector(oleft, oright), binds)
+    case _ =>
+      Fail("Subject of match is not a pair.", this, subject)
+  }
+
+  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+    val newleft = left.rewrite(binds)
+    val newright = right.rewrite(binds)
+    if (newleft._2 || newright._2) (MapPair(newleft._1, newright._2), true)
+    else (this, false)
+  }
+
+  /**
+   * Apply this map pair to the given atom, yielding a potentially new atom.
+   * The first match with the left-hand side is used to rewrite the right.
+   * 
+   * @param atom	The atom to rewrite.
+   * @return	A pair consisting of a potentially new atom and a flag indicating
+   * 					success or failure.
+   */
+  def doRewrite(atom: BasicAtom) = left.tryMatch(atom) match {
+    case file:Fail => (atom, false)
+    case Match(binds) =>
+      val res = right.rewrite(binds)
+      (res._1, true)
+    case Many(iter) =>
+      val res = right.rewrite(iter.next)
+      (res._1, true)
+  }
+
+  def toParseString = "(" + left.toParseString + " -> " +
+  		right.toParseString + ")"
+
+  /**
+   * Get the Scala code to create this instance.
+   */
+  override def toString = "MapPair(" + left.toString + ", " +
+  		right.toString + ")"
 }

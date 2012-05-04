@@ -63,12 +63,103 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package bootstrap
-import ornl.elision.core._
+package ornl.elision.core
+import scala.collection.immutable.HashMap
 
 /**
- * @author ysp
- *
+ * Bindings are used to store variable / value maps used during matching, and
+ * as the result of a successful match.
+ * 
+ * == Purpose ==
+ * The bindings class is a proxy to Scala's `HashMap`.  This is not possible
+ * to implement correctly (so far as I can tell) using the current (2.9)
+ * collection proxy classes, because the type decoration is lost when
+ * invoking methods that return a map.
+ * 
+ * This is not an atom!  If an atom to hold the bindings is needed, then
+ * an instance of [[ornl.elision.core.BindingsAtom]] is created.  This is
+ * typically done implicitly by Elision at the point it is needed, since
+ * object creation is costly.
+ * 
+ * == Use ==
+ * See the companion object for methods to create bindings, or for the
+ * singleton object representing empty bindings.  Since bindings are
+ * immutable, it is wasteful to repeatedly create empty bindings!
+ * 
+ * @param self	The backing map.
  */
-object IntegerMath {
+class Bindings(val self: HashMap[String, BasicAtom])
+extends HashMap[String, BasicAtom] {
+  override def size = self.size
+  override def foreach[U](f: ((String, BasicAtom)) =>  U): Unit =
+    self.foreach(f)
+  override def get(key: String): Option[BasicAtom] = self get key
+  override def iterator: Iterator[(String, BasicAtom)] = self.iterator
+  def +(kv: (String, BasicAtom)): Bindings = new Bindings(self + kv)
+  override def -(key: String): Bindings = new Bindings(self - key)
+  
+  /** This is a cache used during associative / commutative matching. */
+  private var _patcache: OmitSeq[BasicAtom] = null
+  
+  /** This is a cache used during associative / commutative matching. */
+  private var _subcache: OmitSeq[BasicAtom] = null
+  
+  /**
+   * Cache a list of patterns and subjects here.  This is useful during the
+   * associative and commutative matching cycle.  Once they are set, they
+   * cannot be modified (subsequent attempts are ignored).
+   * 
+   * @param patterns	The pattern sequence.
+   * @param subjects	The subject sequence.
+   * @return This binding instance, for chaining.
+   */
+  def set(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom]) = {
+    if (_patcache == null) {
+      _patcache = patterns
+      _subcache = subjects
+    }
+    this
+  }
+  
+  /**
+   * Get the cached patterns, if any.
+   * 
+   * @return	The cached patterns.
+   */
+  def patterns: Option[OmitSeq[BasicAtom]] =
+    if (_patcache == null) None else Some(_patcache)
+  
+  /**
+   * Get the cached subjects, if any.
+   * 
+   * @return	The cached subjects.
+   */
+  def subjects: Option[OmitSeq[BasicAtom]] =
+    if (_subcache == null) None else Some(_subcache)
+} 
+
+/**
+ * Simplified construction of bindings.
+ */
+object Bindings {
+  /**
+   * An empty bindings object.  Since bindings are immutable, you should use
+   * this to avoid object construction when you just need an empty set of
+   * bindings.
+   */
+  val EmptyBinds = new Bindings(new HashMap[String,BasicAtom]())
+  
+  /**
+   * Create bindings from the provided map.
+   * 
+   * @param map	The map to transform into a bindings object.
+   */
+  def apply(map: HashMap[String,BasicAtom]) = new Bindings(map)
+  
+  /**
+   * Get an empty bindings object.  This helps enforce the "don't create
+   * bindings objects unnecessarily" rule, and just returns the
+   * `EmptyBinds`.
+   */
+  def apply() = EmptyBinds
 }
