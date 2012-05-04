@@ -1273,6 +1273,48 @@ history
 history()
 \family default
 .
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+It is permissible to put spaces between the operator name and the opening
+ parenthesis: 
+\family typewriter
+history ()
+\family default
+.
+ This can lead to trouble.
+ Suppose you want to have the symbol 
+\family typewriter
+fred
+\family default
+ followed by a parenthesized expression: 
+\family typewriter
+fred (5).$x
+\family default
+.
+ Here the parentheses are necessary to prevent the parser from interpreting
+ the dot as a decimal point.
+ Unfortunately this will not work the way you might expect.
+ The system will parse this as 
+\family typewriter
+(fred(5)).$x
+\family default
+.
+ To prevent this, put parentheses around 
+\family typewriter
+fred
+\family default
+: 
+\family typewriter
+(fred) (5).$x
+\family default
+.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1469,7 +1511,7 @@ e> history()
 
 \begin_layout Plain Layout
 
-1: {native neg($x:INTEGER):INTEGER}
+1: {operator #name=test #params=%($x:INTEGER) #type=INTEGER}
 \end_layout
 
 \begin_layout Plain Layout
@@ -1596,6 +1638,20 @@ $x
 7
 \family default
 .
+ These bindings are stored in the REPL's 
+\emph on
+context
+\emph default
+.
+ Context atoms are explained in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Contexts"
+
+\end_inset
+
+; for now you only need to know that the REPL creates and maintains a context
+ for you.
 \end_layout
 
 \begin_layout Standard
@@ -1792,6 +1848,8 @@ $repl
 $repl1
 \family default
 .
+ Unlike the history, which is persistent between invocations of the REPL,
+ these variables are re-started at each session.
 \end_layout
 
 \begin_layout Standard

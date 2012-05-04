@@ -415,6 +415,7 @@ object Repl {
         return
       }
       lline = prior.toString
+      emitln(lline)
     }
     
     // Parse the line.  Handle each atom obtained.
