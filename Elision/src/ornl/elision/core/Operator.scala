@@ -464,10 +464,17 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		      }
 		    }
 		    
-		    // If the argument list is associative and we have a single element, then
-		    // that element must match the type of the operator, and we return it.
+		    // If the argument list is associative, we have an identity, and we
+		    // have a single element, then that element must match the type of
+		    // the operator, and we return it.  Why is this the rule?  We want
+		    // to use associative operators to mimic "var args", but don't want
+		    // them to "collapse" when there is just one argument.  That is, we
+		    // don't want f(x)->x when we just want a var args f.  But if we give
+		    // f an identity, it is probably a mathematical operator of some kind,
+		    // and we probably do want f(x)->x.  So, for now, that's the rule.
+		    // For greater control, you have to use a case operator.
 		    if (args.length == 1) {
-		      if (params.associative) {
+		      if (params.associative && params.identity.isDefined) {
 		        // Get the atom.
 		        val atom = args(0)
 		        // Match the type of the atom against the type of the parameters.

@@ -36,15 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 
-import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
 import ornl.elision.ElisionException
-
-/**
- * Indicate an attempt to use an undeclared ruleset.
- * 
- * @param msg		A human readable message.
- */
-class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 
 /**
  * Indicate an attempt to re-define a strategy.
@@ -68,10 +60,8 @@ class StrategyRedefinitionException(msg: String) extends ElisionException(msg)
  *  - An instance of [[ornl.elision.core.OperatorLibrary]].
  *  - Rulesets.
  *  - "Automatic" rewriting of atoms using rules.
- * 
- * @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
  */
-class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
+class Context extends Fickle with Mutable {
   
   //======================================================================
   // Global bindings management.
@@ -141,211 +131,38 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   }
   
   //======================================================================
-  // Controlling active rulesets.
+  // Rule library management.
   //======================================================================
-
-  /** The active rulesets. */
-  val _active = new BitSet()
-
-  /**
-   * Enable a ruleset.
-   * 
-   * @param name	The name of the ruleset to enable.
-   * @return	This context.
-   */
-  def enableRuleset(name: String) = _active += getRulesetBit(name) ; this
+  
+  /** The current rule library. */
+  private var _rulelib: RuleLibrary = _
   
   /**
-   * Disable a ruleset.
+   * Get the current rule library.  If none has explicitly been set, then
+   * a default instance is created and returned.
    * 
-   * @param name	The name of the ruleset to disable.
-   * @return	This context.
+   * @return	The current rule library.
    */
-  def disableRuleset(name: String) = _active -= getRulesetBit(name) ; this
-  
-  //======================================================================
-  // Rewriting.
-  //======================================================================
-
-  /** The rewrite limit. */
-  private var _limit: BigInt = 100
-  
-  /** Whether to recursively rewrite children. */
-  private var _descend = false
-  
-  /**
-   * Set the limit for the number of rewrites.
-   * 
-   * @param limit	The limit of the number of rewrites.
-   * @return	This context.
-   */
-  def setLimit(limit: BigInt) = _limit = limit ; this
-  
-  /**
-   * Set whether to rewrite children recursively.
-   * 
-   * @param descend	Whether to rewrite children recursively.
-   * @return	This context.
-   */
-  def setDescend(descend: Boolean) = _descend = descend ; this
-  
-  /**
-   * Rewrite the provided atom once, if possible.  Children may be rewritten,
-   * depending on whether descent is enabled.
-   * 
-   * @param atom	The atom to rewrite.
-   * @return	The rewritten atom, and true iff any rules were successfully
-   * 					applied.
-   */
-  def rewriteOnce(atom: BasicAtom): (BasicAtom, Boolean) = {
-    var (newtop, appliedtop) = rewriteTop(atom)
-    if (_descend) {
-	    var (newatom, applied) = rewriteChildren(newtop)
-	    (newatom, appliedtop || applied)
-    } else {
-      (newtop, appliedtop)
-    }
+  def ruleLibrary = {
+    if (_rulelib == null) { _rulelib = new RuleLibrary() }
+    _rulelib
   }
-  
+    
   /**
-   * Rewrite the atom at the top level, once.
+   * Set the rule library to use.  Any prior value is lost.
    * 
-   * @param atom	The atom to rewrite.
-   * @return	The rewritten atom, and true iff any rules were successfully
-   * 					applied.
+   * @param lib	The new rule library.
+   * @return	This context.
    */
-  def rewriteTop(atom: BasicAtom): (BasicAtom, Boolean) = {
-    // Get the rules.
-    val rules = getRules(atom)
-    // Now try every rule until one applies.
-    for (rule <- rules) {
-      val (newatom, applied) = rule.tryRewrite(atom)
-      if (applied) return (newatom, applied)
-    }
-    return (atom, false)
-  }
-  
-  /**
-   * Recursively rewrite the atom and its children.
-   * 
-   * @param atom	The atom to rewrite.
-   * @return	The rewritten atom, and true iff any rules were successfully
-   * 					applied.
-   */
-  def rewriteChildren(atom: BasicAtom): (BasicAtom, Boolean) = atom match {
-	  case AtomSeq(props, atoms) =>
-	    var flag = false
-	    (AtomSeq(props, atoms.map { atom =>
-	      val (newatom, applied) = rewriteOnce(atom)
-	      flag ||= applied
-	      newatom
-	    }), flag)
-	  case Apply(op, AtomSeq(props, atoms)) =>
-	    var flag = false
-	    (Apply(op, AtomSeq(props, atoms.map { atom =>
-	      val (newatom, applied) = rewriteOnce(atom)
-	      flag ||= applied
-	      newatom
-	    })), flag)
-	  case Apply(lhs, rhs) =>
-	    val newlhs = rewriteOnce(lhs)
-	    val newrhs = rewriteOnce(rhs)
-	    (Apply(newlhs._1, newrhs._1), newlhs._2 || newrhs._2)
-	  case _ =>
-	    // Do nothing in this case.
-	    (atom, false)
-  }
-  
-  /**
-   * Rewrite the given atom, repeatedly applying the rules of the active
-   * rulesets.  This is limited by the rewrite limit.
-   * 
-   * @param atom	The atom to rewrite.
-   */
-  def rewrite(atom: BasicAtom) = doRewrite(atom)
-
-  /**
-   * Rewrite the given atom, repeatedly applying the rules of the active
-   * rulesets.  This is limited by the rewrite limit.
-   * 
-   * @param atom	The atom to rewrite.
-   * @param bool	Flag used for tracking whether any rules have succeeded.
-   * @param limit	The remaining rewrite limit.
-   */
-  private def doRewrite(atom: BasicAtom, bool: Boolean = false,
-      limit: BigInt = _limit): (BasicAtom, Boolean) = {
-    if (limit <= 0) return (atom, bool)
-    else rewriteOnce(atom) match {
-      case (newatom, false) =>
-        (newatom, bool)
-      case (newatom, true) =>
-        doRewrite(newatom, true, limit-1)
-    }
+  def ruleLibrary_=(lib: RuleLibrary) = {
+    require(lib != null)
+    _rulelib = lib
+    this
   }
   
   //======================================================================
-  // Ruleset management.
+  // Printing.
   //======================================================================
-
-  /**
-   * A map from ruleset names to integers indicating the rulesets position
-   * in the bitsets.
-   */
-  private val _rs2bit = MMap[String,Int]()
-  
-  /** Bit index of the next ruleset. */
-  private var _nextrs = 1
-  
-  /** Local convenience method to get the next ruleset index. */
-  private def bump() = { val tmp = _nextrs ; _nextrs += 1 ; tmp }
-  
-  /** Bit zero is reserved for the default ruleset. */
-  _rs2bit += ("DEFAULT" -> 0)
-  
-  /** The default ruleset is on by default. */
-  enableRuleset("DEFAULT")
-  
-  /**
-   * Get the bit for a ruleset.
-   * 
-   * @param name	The ruleset name.
-   * @return	The bit for the ruleset.
-   * @throws	NoSuchRulesetException
-   * 					The ruleset has not been declared, and undeclared rulesets are
-   * 					not allowed.
-   */
-  private def getRulesetBit(name: String) =
-    _rs2bit.getOrElseUpdate(name, (
-        if (allowUndeclared) bump()
-        else throw new NoSuchRulesetException(
-            "The ruleset " + name + " has not been declared.")))
-  
-  /**
-   * Declare the ruleset.
-   * 
-   * @param name	The name of the new ruleset.
-   * @return	True if the ruleset was declared, and false if it was already
-   * 					(previously) declared.
-   */
-  def declareRuleset(name: String) =
-    _rs2bit.get(name) match {
-      case None => _rs2bit += (name -> bump()) ; true
-      case _ => false
-    }
-  
-  /**
-   * Map each kind of atom to a list of rules for rewriting that atom.  The
-   * rules are ordered, and each has an associated bit set that tells which
-   * rulesets the rule is in.
-   */
-  private val _kind2rules = MMap[Class[_],ListBuffer[(BitSet,RewriteRule)]]()
-  
-  /**
-   * Map each operator to a list of rules for rewriting terms with that
-   * operator at the root.  The rules are ordered, and each has an associated
-   * bit set that tells which rulesets the rule is in.
-   */
-  private val _op2rules = MMap[String,ListBuffer[(BitSet,RewriteRule)]]()
   
   /**
    * Generate a newline-separated list of rules that can be parsed using the
@@ -356,16 +173,12 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   def toParseString = {
     val buf = new StringBuilder
     buf append "// START of context.\n"
-    buf append "// Operator library.\n"
+    buf append "// START of operator library.\n"
     buf append operatorLibrary.toParseString
-    for ((kind,list) <- _kind2rules) {
-      buf append ("// Rules for " + kind.toString + ".\n")
-      buf append list.map(_._2).mkParseString("","\n","\n")
-    }
-    for ((name,list) <- _op2rules) {
-      buf append ("// Rules for operator " + name + ".\n")
-      buf append list.map(_._2).mkParseString("","\n","\n")
-    }
+    buf append "// END of operator library.\n"
+    buf append "// START of rule library.\n"
+    buf append ruleLibrary.toParseString
+    buf append "// END of rule library.\n"
     buf append "// END of context.\n"
     buf.toString()
   }
@@ -379,188 +192,7 @@ class Context(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
   override def toString = {
     val buf = new StringBuilder
     buf append operatorLibrary.toString
-    for ((_,list) <- _kind2rules) {
-      buf append list.map(_._2).mkString("","\n","\n")
-    }
-    for ((_,list) <- _op2rules) {
-      buf append list.map(_._2).mkString("","\n","\n")
-    }
+    buf append ruleLibrary.toString
     buf.toString()
-  }
-  
-  /**
-   * Add a rewrite rule to this context.
-   * 
-   * @param rule	The rewrite rule to add.
-   * @throws	NoSuchRulesetException
-   * 					At least one ruleset mentioned in the rule has not been declared,
-   * 					and undeclared rulesets are not allowed.
-   */
-  def add(rule: RewriteRule) = {
-    // Complete the rule.
-    for (rule2 <- Completor.complete(rule)) doAdd(rule2)
-    this
-  }
-  
-  /**
-   * Add a rewrite rule to this context.
-   * 
-   * @param rule	The rewrite rule to add.
-   * @throws	NoSuchRulesetException
-   * 					At least one ruleset mentioned in the rule has not been declared,
-   * 					and undeclared rulesets are not allowed.
-   */
-  private def doAdd(rule: RewriteRule) = {
-    // Figure out what rulesets this rule is in.  We build the bitset here.
-    val bits = new BitSet()
-    for (rs <- rule.rulesets) bits += getRulesetBit(rs)
-    // Get (or create) the list for the kind of atom the rule's pattern uses.
-    val list = getRuleList(rule.pattern)
-    // Okay, now add the rule to the list.  We perform no checking to see if
-    // the rule is already present.
-    list += Pair(bits, rule)
-    this
-  }
-  
-  /**
-   * Helper method to get all rules for a particular kind of atom.
-   * 
-   * @param atom	The atom.
-   * @return	The list of rules for the given kind of atom.
-   */
-  private def getRuleList(atom: BasicAtom) = atom match {
-    case Apply(op:Operator, _) =>
-      _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
-    case _ =>
-	    _kind2rules.getOrElseUpdate(atom.getClass(),
-	        ListBuffer[(BitSet, RewriteRule)]())
-  }
-        
-  /**
-   * Get the list of rules that apply to the given atom and which are in any
-   * of the currently active rulesets.
-   * 
-   * @param atom	The atom to which the rule may apply.
-   * @return	A list of rules.
-   */
-  def getRules(atom: BasicAtom) =
-    for ((bits, rule) <- getRuleList(atom) ; if (!(bits & _active).isEmpty))
-      yield rule
-      
-  /**
-   * Get the list of rules that apply to the given atom and which are in any
-   * of the specified rulesets.
-   * 
-   * @param atom	The atom to which to the rules may apply.
-   * @param name	The ruleset names.
-   * @return	A list of rules.
-   */
-  def getRules(atom: BasicAtom, names: Seq[String]) = {
-    val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
-    for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
-      yield rule
-  }
-}
-
-/**
- * Generate synthetic rules based on the provided rule, if necessary.
- * 
- * Synthetic rules are required when a rule pattern's root is an associative
- * operator.  There are two cases.
- * 
- * If the operator is both associative and commutative, then one synthetic rule
- * is constructed by adding an additional argument to the right-hand side of
- * the argument list in both the pattern and the rewrite.
- * 
- * Example:
- * {{{
- * { rule and($x, not($x)) -> false }
- * }}}
- * Synthetic Rule:
- * {{{
- * { rule and($x, not($x), $r) -> and(false, $r) }
- * }}}
- * (The rewrite in the above rule is of course reduced to `false`.)
- * 
- * If the operator is associative but not commutative, then we must add three
- * synthetic rules that add new arguments to either end of both the pattern
- * and rewrite.
- * 
- * Example:
- * {{{
- * { rule concat($x, inv($x)) -> "" }
- * }}}
- * Synthetic Rules:
- * {{{
- * { rule concat($l, $x, inv($x)) -> concat($l, "") }
- * { rule concat($x, inv($x), $r) -> concat("", $r) }
- * { rule concat($l, $x, inv($x), $r) -> concat($l, "", $r) }
- * }}}
- */
-private object Completor {
-  /**
-   * Perform partial completion for the given rule by generating the necessary
-   * synthetic rules.
-   * 
-   * @param rule	The provided rule.
-   * @return	A list of rules, including the original rule and any synthetic
-   * 					rules.
-   */
-  def complete(rule: RewriteRule): List[RewriteRule] = {
-    // Make a new list to hold the rules, and add the original rule.
-    var list = List[RewriteRule](rule)
-    
-    // Extract the pattern and rewrite, and then check the pattern to see if
-    // it uses an operator.
-    val pattern = rule.pattern
-    val rewrite = rule.rewrite
-    pattern match {
-      case Apply(op:Operator, as:AtomSeq) => {
-        // Extract the operator properties.
-        val props = op match {
-          case po: SymbolicOperator => po.params.props
-          case _ => NoProps
-        }
-        
-        // If the operator is not associative, we don't need to do anything.
-        if (!props.isA(false)) {
-          return list
-        }
-        
-        // The operator is associative.  We must at least add an argument on
-        // the right-hand side.  Make and add the argument, and then add the
-        // synthetic rule.
-        var right = Variable(as(0).theType, "::R")
-        var newpatternlist = as.atoms :+ right
-        var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-        
-        // If the operator is commutative, we are done.
-        if (props.isC(false)) {
-          return list
-        }
-        
-        // Repeat the above to add an argument on the left-hand side.
-        var left = Variable(as(0).theType, "::L")
-        newpatternlist = left +: as.atoms
-        newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-            
-        // And again add the argument on the right-hand side.
-        newpatternlist = newpatternlist :+ right
-        newrewritelist = newrewritelist :+ right
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-            
-        // Done.
-        return list
-      }
-      case _ => return list
-    }
   }
 }

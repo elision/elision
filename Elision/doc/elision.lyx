@@ -2046,10 +2046,28 @@ $x:$T.$T
 
 \begin_layout Plain Layout
 
-Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T", BooleanLite
-ral(NamedRootType("BOOLEAN"), true), Set()), ":1", BooleanLiteral(NamedRootType(
-"BOOLEAN"), true), Set()), Variable(NamedRootType("ANY"), "T", BooleanLiteral(Na
-medRootType("BOOLEAN"), true), Set()))
+Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T", 
+\end_layout
+
+\begin_layout Plain Layout
+
+  BooleanLiteral(NamedRootType("BOOLEAN"), true), Set()), ":1", 
+\end_layout
+
+\begin_layout Plain Layout
+
+  BooleanLiteral(NamedRootType("BOOLEAN"), true), Set()), 
+\end_layout
+
+\begin_layout Plain Layout
+
+  Variable(NamedRootType("ANY"), "T", BooleanLiteral(NamedRootType("BOOLEAN"),
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+  true), Set()))
 \end_layout
 
 \begin_layout Plain Layout
@@ -2067,6 +2085,16 @@ $`:1`:$T.$T
 \begin_layout Plain Layout
 This can be useful to discover how to construct an atom using the Scala
  API.
+\end_layout
+
+\begin_layout Plain Layout
+If the above seems excessively complex, 
+\emph on
+don't panic
+\emph default
+.
+ There are several helpful parts of the API, including implicit conversions,
+ to make this all much simpler.
 \end_layout
 
 \end_inset

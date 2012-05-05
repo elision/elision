@@ -797,7 +797,7 @@ object Repl {
         	list foreach { _ match {
 	          case sl:SymbolLiteral =>
 	            // Declare the specified ruleset.
-	            _context.declareRuleset(sl.value.name)
+	            _context.ruleLibrary.declareRuleset(sl.value.name)
 	            emitln("Declared ruleset " + sl.toParseString + ".")
 	          case _ =>
         	}}
@@ -810,7 +810,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
             // Enable the specified ruleset.
-            _context.enableRuleset(sym.name)
+            _context.ruleLibrary.enableRuleset(sym.name)
             _no_show
           case _ => _no_show
         })
@@ -821,7 +821,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
             // Disable the specified ruleset.
-            _context.disableRuleset(sym.name)
+            _context.ruleLibrary.disableRuleset(sym.name)
             _no_show
           case _ => _no_show
         })
@@ -832,7 +832,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(IntegerLiteral(_, count)) =>
             // Enable the specified ruleset.
-            _context.setLimit(count)
+            _context.ruleLibrary.setLimit(count)
             emitln("Rewrite limit is now " + count + ".")
             _no_show
           case _ => _no_show
@@ -856,7 +856,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(BooleanLiteral(_, flag)) =>
             // Set whether to descend.
-            _context.setDescend(flag)
+            _context.ruleLibrary.setDescend(flag)
             emitln("Top-down rewriting is " + (if (flag) "ON." else "OFF."))
             _no_show
           case _ => _no_show
@@ -893,7 +893,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(atom) =>
             // Get the rules, and print each one.
-            for (rule <- _context.getRules(atom)) {
+            for (rule <- _context.ruleLibrary.getRules(atom)) {
               println(rule.toParseString)
             }
             _no_show
@@ -972,7 +972,7 @@ object Repl {
 		    // Apply the global bindings to get the possibly-rewritten atom.
 		    var (newatom,_) = atom.rewrite(_binds)
 		    // Rewrite it using the active rulesets of the context.
-		    if (_rewrite) newatom = _context.rewrite(newatom)._1
+		    if (_rewrite) newatom = _context.ruleLibrary.rewrite(newatom)._1
 		    if (_bindatoms) {
 			    // Get the next bind variable name.
 			    _binds += ("repl"+_bindNumber -> newatom)
@@ -987,7 +987,7 @@ object Repl {
 		      case rule:RewriteRule =>
 		      		// Rules go in the rule library.
 		      		if (!rule.rulesets.isEmpty) {
-		      			_context.add(rule)
+		      			_context.ruleLibrary.add(rule)
 		      			emitln("Rule stored in library.")
 		      		}
 		      case _ =>
