@@ -71,7 +71,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     if (!_conc) return (SimpleApply(this, atom), false)
     else {
 	    // Get the rules.
-	    val rules = context.getRules(atom, _namelist)
+	    val rules = context.ruleLibrary.getRules(atom, _namelist)
 	    // Now try every rule until one applies.
 	    for (rule <- rules) {
 	      val (newatom, applied) = rule.tryRewrite(atom)
