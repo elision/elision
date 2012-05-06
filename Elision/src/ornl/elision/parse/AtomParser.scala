@@ -802,10 +802,23 @@ extends Parser {
       
       // Parse a special form.
       ParsedSpecialForm |
+      
+      // Invoke an external parser to do something.
+      ExternalParse.suppressNode |
 
       // Parse the special type universe.
       "^TYPE " ~> (x => TypeUniverseNode()))
   }.label("a simple atom")
+  
+  //======================================================================
+  // Invoke an external parser.
+  //======================================================================
+  
+  def ExternalParse = rule {
+    "[" ~ oneOrMore(ESymbol, ",") ~ "[" ~
+    zeroOrMore(&(!"]]") ~ PANY) ~
+    "]]" ~~> (AtomSeqNode(AlgPropNode(List()), _))
+  }
   
   //======================================================================
   // Parse the generalized "special form."

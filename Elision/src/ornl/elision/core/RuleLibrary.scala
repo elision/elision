@@ -60,6 +60,14 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   def rewrite(binds: Bindings) = (this, false)
   
   override def toString = "RulesetRef(context, "+toEString(name)+")"
+  
+  override def hashCode = 61*name.hashCode
+  
+  override def equals(other: Any) =
+    (other match {
+      case rr:RulesetRef => rr.name == name
+      case _ => false
+    })
 }
 
 /**
