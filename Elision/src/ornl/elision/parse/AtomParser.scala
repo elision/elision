@@ -143,6 +143,19 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
+	// Ruleset reference.
+	//----------------------------------------------------------------------
+
+	/**
+	 * A node representing a ruleset reference.
+	 * @param str	The ruleset name.
+	 * @param lib	The rule library that contains the ruleset.
+	 */
+	case class RulesetNode(str: String, lib: RuleLibrary) extends AstNode {
+	  def interpret = lib(str)
+	}
+	
+	//----------------------------------------------------------------------
 	// Operator application.
 	//----------------------------------------------------------------------
 	
@@ -769,6 +782,13 @@ extends Parser {
       ESymbol ~ ": " ~ "OPREF " ~~> (
           (sym: NakedSymbolNode) =>
             OperatorNode(sym.str, context.operatorLibrary)) |
+            
+      // A "naked" ruleset reference is specified by explicitly giving the
+      // ruleset reference type RSREF.  Otherwise we continue and parse as
+      // a symbol.
+      ESymbol ~ ": " ~ "RSREF " ~~> (
+          (sym: NakedSymbolNode) =>
+            RulesetNode(sym.str, context.ruleLibrary)) |
        
       // Parse a literal.  A literal can take many forms, but it should be
       // possible to always detect the kind of literal during parse.  By

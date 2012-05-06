@@ -42,7 +42,7 @@ class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 /**
  * A ruleset reference.
  */
-abstract class RulesetReference extends BasicAtom with Rewriter {
+abstract class RulesetRef extends BasicAtom with Rewriter {
   val depth = 0
   val deBruijnIndex = 0
   val constantPool = None
@@ -58,9 +58,42 @@ abstract class RulesetReference extends BasicAtom with Rewriter {
    * Ruleset references cannot be rewritten.
    */
   def rewrite(binds: Bindings) = (this, false)
+  
+  override def toString = "RulesetRef(context, "+toEString(name)+")"
+}
 
-  override def toString =
-    "context.makeRulesetReference(" + toEString(name) + ")"
+/**
+ * Creation and matching of ruleset references.
+ */
+object RulesetRef {
+  /**
+   * Extract the parts of a ruleset reference.
+   * 
+   * @param rr		The reference.
+   * @return	The ruleset name.
+   */
+  def unapply(rr: RulesetRef) = Some((rr.name))
+  
+  /**
+   * Make a new reference to the named ruleset in the rule library of the given
+   * context.
+   * 
+   * @param context		The context.
+   * @param name			The ruleset name.
+   * @return	The new reference.
+   */
+  def apply(context: Context, name: String) =
+    context.ruleLibrary.makeRulesetRef(name)
+    
+  /**
+   * Make a new reference to the named ruleset in the given rule library.
+   * 
+   * @param library		The rule library.
+   * @param name			The ruleset name.
+   * @return	The new reference.
+   */
+  def apply(library: RuleLibrary, name: String) =
+    library.makeRulesetRef(name)
 }
 
 /**
@@ -286,7 +319,26 @@ extends Fickle with Mutable {
   // Ruleset reference.
   //======================================================================
   
-  private class _RulesetReference(val name: String) extends RulesetReference {
+  /**
+   * Make a ruleset reference.
+   * 
+   * @param name		The name of the ruleset.
+   */
+  def apply(name: String): RulesetRef = new _RulesetRef(name)
+  
+  /**
+   * Make a ruleset reference.
+   * 
+   * @param name		The name of the ruleset.
+   */
+  def makeRulesetRef(name: String): RulesetRef = new _RulesetRef(name)
+  
+  /**
+   * Implementation of ruleset references.
+   * 
+   * @param name		The name of the referenced ruleset.
+   */
+  private class _RulesetRef(val name: String) extends RulesetRef {
     /** The bit for the referenced ruleset. */
     val bit = getRulesetBit(name)
     
@@ -308,7 +360,7 @@ extends Fickle with Mutable {
 	  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
 	    if (subject == this) Match(binds)
 	    else subject match {
-	      case rr:RulesetReference if (rr.name == name) => Match(binds)
+	      case rr:RulesetRef if (rr.name == name) => Match(binds)
 	      case _ => Fail("Ruleset reference does not match subject.", this, subject)
 	    }
   }
