@@ -217,6 +217,8 @@ object BOOLEAN extends NamedRootType("BOOLEAN")
 object RULETYPE extends NamedRootType("RULETYPE")
 /** A type for all operators. */
 object OPREF extends NamedRootType("OPREF")
+/** A type for all rulesets. */
+object RSREF extends NamedRootType("RSREF")
 /** A type for all strategies. */
 object STRATEGY extends NamedRootType("STRATEGY")
 /** A type for all bindings. */

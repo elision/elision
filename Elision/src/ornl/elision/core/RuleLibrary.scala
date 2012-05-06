@@ -40,6 +40,30 @@ import ornl.elision.ElisionException
 class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 
 /**
+ * A ruleset reference.
+ */
+abstract class RulesetReference extends BasicAtom with Rewriter {
+  val depth = 0
+  val deBruijnIndex = 0
+  val constantPool = None
+  val isTerm = true
+  val isConstant = true
+  val theType = RSREF
+  /** The name of the referenced ruleset. */
+  val name: String
+  
+  def toParseString = toESymbol(name) + ":RSREF"
+  
+  /**
+   * Ruleset references cannot be rewritten.
+   */
+  def rewrite(binds: Bindings) = (this, false)
+
+  override def toString =
+    "context.makeRulesetReference(" + toEString(name) + ")"
+}
+
+/**
  * Encapsulate a rule library.
  * 
  * == Purpose ==
@@ -58,7 +82,8 @@ class NoSuchRulesetException(msg: String) extends ElisionException(msg)
  * 
  * @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
  */
-class RuleLibrary(val allowUndeclared:Boolean = false) extends Fickle with Mutable {
+class RuleLibrary(val allowUndeclared:Boolean = false)
+extends Fickle with Mutable {
   
   //======================================================================
   // Controlling active rulesets.
@@ -257,6 +282,41 @@ class RuleLibrary(val allowUndeclared:Boolean = false) extends Fickle with Mutab
       case _ => false
     }
   
+  //======================================================================
+  // Ruleset reference.
+  //======================================================================
+  
+  private class _RulesetReference(val name: String) extends RulesetReference {
+    /** The bit for the referenced ruleset. */
+    val bit = getRulesetBit(name)
+    
+    /**
+     * Apply this strategy. If any rule completes then the returned flag is
+     * true. Otherwise it is false.
+     */
+	  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean) = {
+	    // Get the rules.
+	    val rules = getRules(atom, List(name))
+	    // Now try every rule until one applies.
+	    for (rule <- rules) {
+	      val (newatom, applied) = rule.tryRewrite(atom)
+	      if (applied) return (newatom, applied)
+	    }
+	    return (atom, false)
+	  }
+    
+	  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
+	    if (subject == this) Match(binds)
+	    else subject match {
+	      case rr:RulesetReference if (rr.name == name) => Match(binds)
+	      case _ => Fail("Ruleset reference does not match subject.", this, subject)
+	    }
+  }
+  
+  //======================================================================
+  // Rule management.
+  //======================================================================
+  
   /**
    * Map each kind of atom to a list of rules for rewriting that atom.  The
    * rules are ordered, and each has an associated bit set that tells which
@@ -343,7 +403,11 @@ class RuleLibrary(val allowUndeclared:Boolean = false) extends Fickle with Mutab
     for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
       yield rule
   }
-      
+  
+  //======================================================================
+  // Strings.
+  //======================================================================
+
   /**
    * Generate a newline-separated list of rules that can be parsed using the
    * atom parser to reconstruct the set of rules in this context.
