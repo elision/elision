@@ -151,9 +151,17 @@ object Apply {
     else {
 	    op match {
 		    case app:Applicable =>
-		      // The lhs is applicable; invoke its apply method.  This will return
-		      // some atom, and that atom is the overall result.
-		      app.doApply(arg, bypass)
+		      try {
+			      // The lhs is applicable; invoke its apply method.  This will
+			      // return some atom, and that atom is the overall result.
+			      app.doApply(arg, bypass)
+		      } catch {
+		        case ex:java.lang.StackOverflowError =>
+              // Trapped unbounded recursion.
+			        throw new LambdaUnboundedRecursionException(
+			            "Application results in unbounded recursion: (" +
+			            op.toParseString + ").(" + arg.toParseString + ")")
+		      }
 		    case rew:Rewriter =>
 		      // The lhs is a rewriter; invoke its rewrite method.  This will return
 		      // a pair.  We need to convert the pair to a binding.

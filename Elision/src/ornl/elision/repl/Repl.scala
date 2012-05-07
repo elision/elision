@@ -238,6 +238,52 @@ object Repl {
   }
   
   /**
+   * Save the current context in response to an exception or other
+   * unrecoverable error.
+   * 
+   * @param msg		A human-readable message.
+   * @param th		An optional throwable.
+   */
+  private def _coredump(msg: String, th: Option[Throwable] = None) {
+    val cfile = new FileWriter("elision.core")
+    if (cfile != null) {
+      val binds = <binds>{_context.binds.toParseString}</binds>
+      val ops = <operator-library>{_context.operatorLibrary.toParseString}</operator-library>
+      val rules = <rule-library>{_context.ruleLibrary.toParseString}</rule-library>
+      val err = th match {
+        case None => <error/>
+        case Some(ex) =>
+          <error message={ex.getMessage}>{
+            ex.getStackTrace map { item =>
+              <item>{item}</item>
+            }
+          }</error>
+      }
+      val date = (new java.util.Date).toString
+      val hist = <history>{
+        val buf = new StringBuffer()
+        val it = _hist.entries
+        while (it.hasNext) buf.append(it.next).append('\n')
+        buf.toString
+      }</history>
+      val all = <elision-core when={date} msg={msg}>
+      		{err}
+      		{binds}
+      		{ops}
+      		{rules}
+      		{hist}
+      		</elision-core>
+  		scala.xml.XML.write(cfile,all,"utf-8",true,null)
+      //cfile.write(new scala.xml.PrettyPrinter(80, 2).format(all))
+      cfile.flush()
+      cfile.close()
+      emitln("Wrote core dump to elision.core.")
+    } else {
+      warn("Unable to save core dump.")
+    }
+  } 
+  
+  /**
    * Display the banner.
    */
   private def banner() {
@@ -272,7 +318,7 @@ object Repl {
    * and named `.elision`.
    * 
    * ==Commands==
-   * The REPL supports several special commands.  These are processed by the
+   * The REPL supports several special commands.  These are procesed by the
    * `execute` method, and are described in its documentation.
    */
   def run() {
@@ -433,6 +479,18 @@ object Repl {
       case ex:Exception =>
         error("(" + ex.getClass + ") " + ex.getMessage())
         if (_stacktrace) ex.printStackTrace()
+      case oom: java.lang.OutOfMemoryError =>
+        System.gc()
+        error("Memory exhausted.  Trying to recover...")
+        val rt = Runtime.getRuntime()
+        val mem = rt.totalMemory()
+        val free = rt.freeMemory()
+        val perc = free.toDouble / mem.toDouble * 100
+        emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+      case th:Throwable =>
+        error("(" + th.getClass + ") " + th.getMessage())
+        if (_stacktrace) th.printStackTrace()
+        _coredump("Internal error.", Some(th))
     }
   }
   
@@ -644,11 +702,12 @@ object Repl {
               var go = true
               while (go) {
                 val line = cfile.readLine
-                if (line != null) buf.append(line) else go = false
+                if (line != null) buf.append(line).append('\n') else go = false
               }
               _quiet = true
               _bindatoms = false
               execute(buf.toString)
+              println(buf)
               cfile.close()
             } else {
               error("Unable to open file.")
@@ -949,6 +1008,12 @@ object Repl {
             println("D")
             Apply(op, args, true)
         }})
+        
+    execute("def({operator #name=fail #params=%()})")
+    _context.operatorLibrary.register("fail",
+        (op: Operator, args: AtomSeq, _) =>
+          throw new VerifyError("no memory")
+        )
         
     // The operator are defined.
     _opsDefined = true
