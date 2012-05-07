@@ -98,6 +98,12 @@ class LineState {
   /** Most recent return value from process method. */
   private var _state = false
   
+  /** Count adjacent quotation marks for a verbatim block. */
+  private var _adjacent = 0
+  
+  /** Are we in a verbatim block. */
+  private var _verb = false
+  
   /**
    * Reset this state object.
    */
@@ -108,6 +114,8 @@ class LineState {
     _inString = false
     _inSymbol = false
     _inEscape = false
+    _adjacent = 0
+    _verb = false
   }
   
   /**
@@ -119,46 +127,60 @@ class LineState {
   def process(line: String): Boolean = {
     // Process each character in the line.
     for (ch <- line) {
-      // We deal with strings and symbols first.  We are only even in an
-      // escape iff we are in either a symbol or a string.
-    	if (_inEscape) _inEscape = false	// A single character ends the escape.
-    	else if (_inString) ch match {
-    	  case '\\' => _inEscape = true	// Start of an escape.
-    	  case '"' => _inString = false	// End of the string.
-    	  case _ =>
-    	} else if (_inSymbol) ch match {
-    	  case '\\' => _inEscape = true	// Start of an escape.
-    	  case '`' => _inSymbol = false	// End of symbol.
-    	  case _ => 
-    	} else ch match {
-    	  // We are not in a string or symbol, so we match parens and such now,
-    	  // and look for the start of strings or symbols.
-    	  case '(' => _parenDepth += 1
-    	  case ')' =>
-    	    _parenDepth -= 1
-    	    if (_parenDepth < 0) {
-    	      return true
-    	    }
-    	  case '{' => _braceDepth += 1
-    	  case '}' =>
-    	    _braceDepth -= 1
-    	    if (_braceDepth < 0) {
-    	      return true
-    	    }
-    	  case '[' => _bracketDepth += 1
-    	  case ']' =>
-    	    _bracketDepth -= 1
-    	    if (_bracketDepth < 0) {
-    	      return true
-    	    }
-    	  case '"' => _inString = true
-    	  case '`' => _inSymbol = true
-    	  case _ =>
-    	}
+      // Watch for triple quotation marks to toggle verbatim mode.
+      if (!_inEscape && ch == '"') {
+        _adjacent += 1
+        if (_adjacent == 3) {
+          // Toggle verbatim mode.
+          _verb = !_verb
+          _adjacent = 0
+        }
+      } else {
+        _adjacent = 0      
+	      // If we are in verbatim mode, then we just accumulate characters and
+	      // wait for the verbatim block to be over.
+	      if (_verb) {}
+	      // We deal with strings and symbols.  We are only in an escape if we are
+	      // in either a symbol or a string.
+	      else if (_inEscape) _inEscape = false	// A single character ends the escape.
+	    	else if (_inString) ch match {
+	    	  case '\\' => _inEscape = true	// Start of an escape.
+	    	  case '"' => _inString = false	// End of the string.
+	    	  case _ =>
+	    	} else if (_inSymbol) ch match {
+	    	  case '\\' => _inEscape = true	// Start of an escape.
+	    	  case '`' => _inSymbol = false	// End of symbol.
+	    	  case _ => 
+	    	} else ch match {
+	    	  // We are not in a string or symbol, so we match parens and such now,
+	    	  // and look for the start of strings or symbols.
+	    	  case '(' => _parenDepth += 1
+	    	  case ')' =>
+	    	    _parenDepth -= 1
+	    	    if (_parenDepth < 0) {
+	    	      return true
+	    	    }
+	    	  case '{' => _braceDepth += 1
+	    	  case '}' =>
+	    	    _braceDepth -= 1
+	    	    if (_braceDepth < 0) {
+	    	      return true
+	    	    }
+	    	  case '[' => _bracketDepth += 1
+	    	  case ']' =>
+	    	    _bracketDepth -= 1
+	    	    if (_bracketDepth < 0) {
+	    	      return true
+	    	    }
+	    	  case '"' => _inString = true
+	    	  case '`' => _inSymbol = true
+	    	  case _ =>
+	    	}
+      }
     }
     // Check for completeness.
-    _state = !(_inString || _inSymbol || _parenDepth > 0 || _braceDepth > 0 ||
-        _bracketDepth > 0)
+    _state = !(_verb || _inString || _inSymbol ||
+        _parenDepth > 0 || _braceDepth > 0 || _bracketDepth > 0)
     return _state
   }
 }
