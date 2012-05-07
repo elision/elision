@@ -901,27 +901,34 @@ extends Parser {
       ESymbol ~~>
       	((sym: NakedSymbolNode) =>
       	  SymbolLiteralNode(None, sym.str)) |
+      EVerb ~ ": " ~ FirstAtom ~~>
+      	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
+      EVerb ~~>
+      	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str)) |
       EString ~ ": " ~ FirstAtom ~~>
       	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
       	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
   }.label("a literal expression")
+  
+  /** Parse a verbatim block. */
+  def EVerb = rule {
+    "\"\"\"".suppressNode ~
+    zeroOrMore(&(!"\"\"\"") ~ PANY) ~> (x => x) ~
+    "\"\"\" ".suppressNode
+  }.label("a verbatim block")
 
   /** Parse a double-quoted string. */
   def EString = rule {
-    val str = new StringBuilder()
-    "\"" ~ zeroOrMore(Character(str)) ~~> (x => construct(x)) ~ "\" "
+    "\"" ~ zeroOrMore(Character) ~~> (x => construct(x)) ~ "\" "
   }.label("a string")
 
   /**
    * Parse a character in a string.  The character is added to the end of the
    * string passed in (if any) and the composite string is returned.  Escapes
    * are interpreted here.
-   * 
-   * @param str		The string to get the new character.  May be unspecified.
-   * @return	The new string.
    */
-  def Character(str: StringBuilder) = rule {
+  def Character = rule {
     (EscapedCharacter | NormalCharacter) ~> (x => x)
   }.label("a single character")
 
