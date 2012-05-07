@@ -5,3 +5,5 @@ Elision/latest
 Elision/doc/elision-backups
 Elision/bin
 Elision/.settings
+Elision/**/elision-src.jar
+Elision/**/elision.jar
