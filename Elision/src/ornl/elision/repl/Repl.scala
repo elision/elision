@@ -385,7 +385,10 @@ object Repl {
       	
       	// Watch for blank lines that terminate the parse.
       	if (segment == "") blanks += 1
-      	else line += segment.trim() + " "
+      	
+      	// Capture newlines.
+      	if (line != "") line += "\n"
+      	line += segment
       	
       	// Process the line to determine if the input is complete.
       	ls.process(segment)
