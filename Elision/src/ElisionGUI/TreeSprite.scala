@@ -577,7 +577,7 @@ object TreeSprite {
 	 * @return			The completed TreeSprite constructed from rwRoot
 	 */
 	
-	def buildRWTree(rwRoot : sjp.elision.core.RWTreeNode) : TreeSprite = {
+	def buildRWTree(rwRoot : ornl.elision.core.RWTreeNode) : TreeSprite = {
 		val root = new NodeSprite(rwRoot.term)
 		root.properties = rwRoot.properties
 		
@@ -596,7 +596,7 @@ object TreeSprite {
 	 * @param parent	rwRoot's immediate parent.
 	 */
 	 
-	private def buildRWTreeRec(rwNode : sjp.elision.core.RWTreeNode, parent : NodeSprite) : Unit = {
+	private def buildRWTreeRec(rwNode : ornl.elision.core.RWTreeNode, parent : NodeSprite) : Unit = {
 		val node = new NodeSprite(rwNode.term, parent)
 		node.properties = rwNode.properties
 		parent.addChild(node)

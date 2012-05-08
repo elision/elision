@@ -54,9 +54,9 @@ class ConsolePanel extends ScrollPane {
 class ElisionREPLThread extends Thread {
 	
 	override def run : Unit = {
-		sjp.elision.repl.ReplActor.guiMode = true
-		sjp.elision.repl.ReplActor.guiActor = GUIActor
-		sjp.elision.repl.Repl.run
+		ornl.elision.repl.ReplActor.guiMode = true
+		ornl.elision.repl.ReplActor.guiActor = GUIActor
+		ornl.elision.repl.Repl.run
 	}
 
 }
@@ -241,7 +241,7 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 	
 	def sendToInputStream : Unit = {
 		import java.lang.System
-		import sjp.elision.repl.Repl
+		import ornl.elision.repl.Repl
 		
 		try {
 			// get rid of the '\n' produced by pressing enter.
@@ -264,7 +264,7 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			
 			// send the input String to the Repl's actor
 			println()
-			sjp.elision.repl.ReplActor ! inputString
+			ornl.elision.repl.ReplActor ! inputString
 			
 		//	java.lang.System.in.read(inputString.getBytes,0,inputString.length)
 		

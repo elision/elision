@@ -7,7 +7,6 @@ import sys.process._
 import java.io._
 import java.awt.Graphics2D
 
-// import sjp.elision.repl._
 import sage2D._
 
 
@@ -492,7 +491,7 @@ object GUIActor extends Actor {
 	def act() = {
 		loop {
 			react {
-				case root : sjp.elision.core.RWTreeNode => {
+				case root : ornl.elision.core.RWTreeNode => {
 					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
 					
 					mainGUI.treeVisPanel.isLoading = true
@@ -523,7 +522,7 @@ object GUIActor extends Actor {
 					// now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
 					println("Reading REPL input from file: " + selFile.getPath)
 					println()
-					sjp.elision.repl.ReplActor ! str
+					ornl.elision.repl.ReplActor ! str
 				}
 				case "quit" => 
 					System.exit(0)
