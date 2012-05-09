@@ -141,12 +141,18 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
   for (i <- 0 until atoms.length)
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
-    
+  
+  import SymbolicOperator.LIST
   /**
-   * The type of all sequences is the type universe.  There is probably a
-   * better answer for this, but for now this will have to do.
+   * The type of a sequence is derived from looking at the types of the
+   * elements of the sequence.  If the elements all have the same type,
+   * then the result is that type.  If the elements have different types,
+   * then the type is ANY.
    */
-  val theType = TypeUniverse
+  lazy val theType = {
+      val aType = atoms(0).theType
+      if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
+    }
   val isConstant = atoms.forall(_.isConstant)
   val isTerm = atoms.forall(_.isTerm)
   val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))

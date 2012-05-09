@@ -399,6 +399,8 @@ object SymbolicOperator {
   val MAP = OperatorRef(SymbolicOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain)))
   /** The well-known cross product operator. */
   val xx = OperatorRef(SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y)))
+  /** The well-known list operator. */
+  val LIST = OperatorRef(SymbolicOperator("LIST", ANY, AtomSeq(NoProps, 'type)))
   
   /**
    * Compute an operator type.

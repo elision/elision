@@ -183,7 +183,8 @@ class OperatorLibrary(
  	import OperatorLibrary._
  	
  	// Add the well-known operators.
- 	import SymbolicOperator.{MAP, xx}
+ 	import SymbolicOperator.{MAP, xx, LIST}
  	_nameToOperator += (MAP.name -> MAP)
  	_nameToOperator += (xx.name -> xx)
+ 	_nameToOperator += (LIST.name -> LIST)
 }
