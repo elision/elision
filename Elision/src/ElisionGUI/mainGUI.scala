@@ -286,7 +286,7 @@ class TreeVisPanel extends GamePanel {
 	var mouseWorldPosition : java.awt.geom.Point2D = new java.awt.geom.Point2D.Double(0,0)
 	
 	/** The sprite representing the visualization of the rewrite tree */
-	var treeSprite = TreeSprite.buildTouhouTree
+	var treeSprite = TreeSprite.buildWelcomeTree //TreeSprite.buildTouhouTree
 	treeSprite.selectNode(treeSprite.root,2) 
 	
 	/** The current decompression depth for the visualization trees */
