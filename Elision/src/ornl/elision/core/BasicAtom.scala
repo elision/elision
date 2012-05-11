@@ -71,10 +71,11 @@ trait Rewriter {
    * the right-hand side passed as the atom.
    * 
    * @param atom	The atom to rewrite.
+   * @param hint	An optional hint to pass along during matching.
    * @return	A pair consisting of a potentially new atom and a flag indicating
    * 					success or failure.
    */
-  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean)
+  def doRewrite(atom: BasicAtom, hint: Option[Any] = None): (BasicAtom, Boolean)
 }
 
 /**
@@ -95,7 +96,7 @@ trait Applicable {
    * `true` then no native handler should be invoked.  By default the flag
    * is `false`.
    * 
-   * @param rhs		The atom to apply this to.
+   * @param rhs			The atom to apply this to.
    * @param bypass	Whether to bypass native handlers.
    * @return	A potentially new atom.
    */

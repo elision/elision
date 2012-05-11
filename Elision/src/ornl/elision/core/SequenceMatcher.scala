@@ -62,10 +62,17 @@ object SequenceMatcher {
    * @return	The result of the match.
    */
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
-      binds: Bindings = Bindings()): Outcome =
-        if (patterns.length != subjects.length)
-          Fail("Sequences are not the same length.")
-        else _tryMatch(patterns, subjects, binds, 0)
+      binds: Bindings = Bindings()): Outcome = {
+    if (BasicAtom.traceMatching) {
+    	println("Sequence Matcher called: ")
+	    println("    Patterns: " + patterns.mkParseString("",",",""))
+    	println("    Subjects: " + subjects.mkParseString("",",",""))
+    	println("    Bindings: " + binds.toParseString)
+    }
+    if (patterns.length != subjects.length)
+      Fail("Sequences are not the same length.")
+    else _tryMatch(patterns, subjects, binds, 0)
+  }
         
   /**
    * Rewrite a sequence of atoms by applying the given bindings to each.
@@ -98,13 +105,6 @@ object SequenceMatcher {
    */
   private def _tryMatch(patterns: OmitSeq[BasicAtom],
       subjects: OmitSeq[BasicAtom], binds: Bindings, position: Int): Outcome = {
-    if (position == 0 && BasicAtom.traceMatching) {
-    	println("Sequence Matcher called: " +
-    	    patterns.mkParseString("",",","") + " -> " +
-    	    subjects.mkParseString("",",","") + " / " +
-    	    binds.toParseString)
-    }
-    
     // Watch for the basis case.  If the patterns list is empty, we are done
     // and return a successful match.
     if (patterns.isEmpty) return Match(binds)

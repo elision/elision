@@ -101,7 +101,8 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
    * @param binds			Bindings to honor.
    * @return	Some bindings if the match was successful, and `None` if not.
    */
-  private def _doMatching(subject: BasicAtom, binds: Bindings = Bindings()) = {
+  private def _doMatching(subject: BasicAtom,
+      binds: Bindings = Bindings()): Option[Bindings] = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
       for (guard <- guards) {
@@ -113,17 +114,17 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
     
     // Try to match the given atom against the pattern.
     pattern.tryMatch(subject, binds) match {
-      case fail:Fail => None
+      case fail:Fail => return None
       case Match(newbinds) =>
         // We got a match.  Check the guards.
-        if (checkGuards(newbinds)) Some(newbinds) else None
+        if (checkGuards(newbinds)) Some(newbinds) else return None
       case Many(iter) =>
         // We might have many matches.  We search through them until we find
         // one that satisfies the guards, or until we run out of candidates.
         for (newbinds <- iter) {
-          if (checkGuards(newbinds)) Some(newbinds)
+          if (checkGuards(newbinds)) return Some(newbinds)
         }
-        None
+        return None
     }
   }
 

@@ -269,10 +269,15 @@ class AlgProp(
 
   /**
    * Apply this to the given atom.  If the provided atom is an atom sequence,
-   * then this will overwrite (replace) the properties of the atom sequence.
+   * then this will override the properties of the atom sequence.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = rhs match {
-    case as: AtomSeq => AtomSeq(this, as.atoms)
+    /* A Note to Maintainers
+     * Remember that the "and" has the properties of the second override those
+     * of the first.
+     */
+    case ap: AlgProp => (ap and this)
+    case as: AtomSeq => AtomSeq(as.props and this, as.atoms)
     case _ => SimpleApply(this, rhs)
   }
   
@@ -421,6 +426,43 @@ class AlgProp(
       absorber == ap.absorber &&
       identity == ap.identity
     case _ => false
+  }
+
+  /**
+   * Generate a descriptive string.
+   * 
+   * @return	The string.
+   */
+  def toHumaneString = {
+    var list = List[String]()
+    associative match {
+	    case Some(Literal.TRUE) => list :+= "associative"
+	    case Some(Literal.FALSE) => list :+= "not associative"
+	    case Some(atom) => list :+= "associative=[" + atom.toParseString + "]"
+	    case _ =>
+	  }
+    commutative match {
+	    case Some(Literal.TRUE) => list :+= "commutative"
+	    case Some(Literal.FALSE) => list :+= "not commutative"
+	    case Some(atom) => list :+= "commutative=[" + atom.toParseString + "]"
+	    case _ =>
+	  }
+    idempotent match {
+	    case Some(Literal.TRUE) => list :+= "idempotent"
+	    case Some(Literal.FALSE) => list :+= "not idempotent"
+	    case Some(atom) => list :+= "idempotent=[" + atom.toParseString + "]"
+	    case _ =>
+	  }
+    absorber match {
+	    case None =>
+	    case Some(atom) => list :+= "absorber=[" + atom.toParseString + "]"
+	  }
+    identity match {
+	    case None =>
+	    case Some(atom) => list :+= "identity=[" + atom.toParseString + "]"
+	  }
+    if (list.length == 0) "no properties"
+    else list.mkString(" and ")
   }
 
   /**
