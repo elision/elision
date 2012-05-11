@@ -6963,7 +6963,7 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
-status collapsed
+status open
 
 \begin_layout Subsection*
 Scala
@@ -6976,19 +6976,41 @@ To create a definition of a symbolic operator, use
 \begin_layout Itemize
 
 \family typewriter
-core.SymbolicOperatorDefinition(proto,props)
+core.TypedSymbolicOperator(name, type, parameters, description, detail)
 \end_layout
 
 \begin_layout Plain Layout
 where 
 \family typewriter
-proto
+name
 \family default
- is the operator prototype and 
+ is the operator's name (a string), 
 \family typewriter
-props
+type
 \family default
- is the operator properties.
+ is the type of the fully-applied operator (an atom), 
+\family typewriter
+parameters
+\family default
+ specifies both the operator's properties and the parameters and their types
+ (it is an atom sequence), 
+\family typewriter
+description
+\family default
+ is the short one-line description of the operator, and 
+\family typewriter
+detail
+\family default
+ is the longer description of the operator and its use.
+ The last two (
+\family typewriter
+description
+\family default
+ and 
+\family typewriter
+detail
+\family default
+) are optional.
  The following code creates the two examples given previously (the 
 \family typewriter
 or
@@ -7009,23 +7031,35 @@ import ornl.elision.core._
 \end_layout
 
 \begin_layout LyX-Code
-// Make the Boolean inclusive or operator definition.
+// Make the Boolean inclusive or operator.
 \end_layout
 
 \begin_layout LyX-Code
-val orProto = Proto("or", BOOLEAN, ("P",BOOLEAN), ("Q",BOOLEAN))
+val orOp = TypedSymbolicOperator("or", BOOLEAN,
 \end_layout
 
 \begin_layout LyX-Code
-val orProps = Associative and Commutative and Idempotent and
+  AtomSeq(Associative(true) and Commutative(true) and Idempotent(true)
 \end_layout
 
 \begin_layout LyX-Code
-                    Absorber(false) and Identity(true)
+          and Absorber(true) and Identity(false),
 \end_layout
 
 \begin_layout LyX-Code
-val orOp = SymbolicOperatorDefinition(orProto, orProps)
+          Variable(BOOLEAN,"P"), Variable(BOOLEAN,"Q")),
+\end_layout
+
+\begin_layout LyX-Code
+  "Compute the Boolean inclusive OR.",
+\end_layout
+
+\begin_layout LyX-Code
+  """|This operator computes the Boolean inclusive OR of its arguments.
+\end_layout
+
+\begin_layout LyX-Code
+     |All arguments must be Boolean values.""".stripMargin)
 \end_layout
 
 \begin_layout LyX-Code
@@ -7037,81 +7071,23 @@ val orOp = SymbolicOperatorDefinition(orProto, orProps)
 \end_layout
 
 \begin_layout LyX-Code
-val addProto = Proto("add", INTEGER, ("x",INTEGER), ("y",INTEGER))
+val addOp = TypedSymbolicOperator("add", INTEGER,
 \end_layout
 
 \begin_layout LyX-Code
-val addProps = Associative and Commutative and Identity(0)
+  AtomSeq(Associative(true) and Commutative(true) and Idempotent(false)
 \end_layout
 
 \begin_layout LyX-Code
-val addOp = SymbolicOperatorDefinition(addProto, addProps)
-\end_layout
-
-\begin_layout Plain Layout
-To create a definition of an immediate operator, use 
-\family typewriter
-core.ImmediateOperatorDefinition(proto, body)
-\family default
-, where 
-\family typewriter
-proto
-\family default
- is the operator prototype and 
-\family typewriter
-body
-\family default
- is the immediate operator body.
- The following code creates the 
-\family typewriter
-typeof
-\family default
- example given previously.
- This will use some constructors not previously discussed, and uses the
- fact that Scala symbols are interpreted as variables of type 
-\family typewriter
-ANY
-\family default
-, so 
-\family typewriter
-'U
-\family default
- is shorthand for 
-\family typewriter
-Variable(ANY,"U")
-\family default
-.
+          and Identity(0), Variable(INTEGER,"x"), Variable(INTEGER,"y")),
 \end_layout
 
 \begin_layout LyX-Code
-import ornl.elision.core._
+  "Compute the integer sum of the arguments.",
 \end_layout
 
 \begin_layout LyX-Code
-
-\end_layout
-
-\begin_layout LyX-Code
-// Make the typeof operator definition.
-\end_layout
-
-\begin_layout LyX-Code
-val typeofProto = Proto("typeof", 'U, ("x", Variable('U, "T")))
-\end_layout
-
-\begin_layout LyX-Code
-val typeofOp = ImmediateOperatorDefinition(typeofProto, 'T)
-\end_layout
-
-\begin_layout Plain Layout
-Operator definitions 
-\emph on
-are
-\emph default
- atoms, so they could be matched and rewritten.
- In practice, this is not currently supported, primarily due to the fact
- that their components (the prototype and properties objects) are not atoms.
- This may change in a future version of Elision.
+  """|Compute the integer sum of the arguments.""".stripMargin)
 \end_layout
 
 \begin_layout Plain Layout
