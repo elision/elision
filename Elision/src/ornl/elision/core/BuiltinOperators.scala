@@ -35,6 +35,12 @@ package ornl.elision.core
  */
 object BuiltinOperators {
 
+  /**
+   * Text to be executed by the system.  We store this in a `CDATA` block not
+   * just for fun, but so that the content is preserved.  A verbatim block
+   * would not work, since Elision uses the same verbatim block format as
+   * Scala.  So... add text to execute inside the `CDATA` element.
+   */
   val text =
 <execute>
 <![CDATA[
