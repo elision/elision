@@ -84,12 +84,15 @@ import scala.collection.immutable.HashMap
  * == Use ==
  * See the companion object for methods to create bindings, or for the
  * singleton object representing empty bindings.  Since bindings are
- * immutable, it is wasteful to repeatedly create empty bindings!
+ * immutable(ish), it is wasteful to repeatedly create empty bindings!
+ * 
+ * Yes, bindings are actually slightly mutable.  There is a matching cache
+ * accessible via `set`.  Beware!
  * 
  * @param self	The backing map.
  */
 class Bindings(val self: HashMap[String, BasicAtom])
-extends HashMap[String, BasicAtom] {
+extends HashMap[String, BasicAtom] with Mutable {
   override def size = self.size
   override def foreach[U](f: ((String, BasicAtom)) =>  U): Unit =
     self.foreach(f)
@@ -106,8 +109,9 @@ extends HashMap[String, BasicAtom] {
   
   /**
    * Cache a list of patterns and subjects here.  This is useful during the
-   * associative and commutative matching cycle.  Once they are set, they
-   * cannot be modified (subsequent attempts are ignored).
+   * associative and commutative matching cycle.  These are accessed via
+   * the `patterns` and `subjects` methods, and once accessed are
+   * immediately forgotten!
    * 
    * @param patterns	The pattern sequence.
    * @param subjects	The subject sequence.
@@ -122,20 +126,32 @@ extends HashMap[String, BasicAtom] {
   }
   
   /**
-   * Get the cached patterns, if any.
+   * Get the cached patterns, if any.  These are immediately forgotten once
+   * retrieved!
    * 
    * @return	The cached patterns.
    */
-  def patterns: Option[OmitSeq[BasicAtom]] =
-    if (_patcache == null) None else Some(_patcache)
+  def patterns: Option[OmitSeq[BasicAtom]] = {
+    val pc = _patcache
+    if (pc == null) None else {
+      _patcache = null
+      Some(pc)
+    }
+  }
   
   /**
-   * Get the cached subjects, if any.
+   * Get the cached subjects, if any.  These are immeidately forgotten once
+   * retrieved!
    * 
    * @return	The cached subjects.
    */
-  def subjects: Option[OmitSeq[BasicAtom]] =
-    if (_subcache == null) None else Some(_subcache)
+  def subjects: Option[OmitSeq[BasicAtom]] = {
+    val sc = _subcache
+    if (sc == null) None else {
+      _subcache = null
+      Some(sc)
+    }
+  }
 } 
 
 /**

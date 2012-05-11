@@ -82,12 +82,13 @@ object CMatcher {
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings): Outcome = {
     // Check the length.
-    if (plist.atoms.length != slist.atoms.length)
+    if (plist.length != slist.length)
       return Fail("Lists are different sizes, so no match is possible.",
           plist, slist)
           
-    // If there are no patterns, there is nothing to do.
-    if (plist.atoms.length == 0) return Match(binds)
+    // If there are no patterns, there is nothing to do (since there are also
+    // no subjects).
+    if (plist.length == 0) return Match(binds)
       
     // Step one is to perform constant elimination.  For each constant
     // pattern, find and remove the same constant pattern from the subjects.

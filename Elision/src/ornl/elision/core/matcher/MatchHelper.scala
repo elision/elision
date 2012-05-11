@@ -93,8 +93,10 @@ object MatchHelper {
           subjects = subjects.omit(sindex)
       }
     } // Omit constants from the lists.
-    println("Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
-    println("                    Subjects: " + subjects.mkParseString("", ",", ""))
+    if (BasicAtom.traceMatching) {
+	    println("Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
+	    println("                    Subjects: " + subjects.mkParseString("", ",", ""))
+    }
     (patterns, subjects, None)
   }
 }

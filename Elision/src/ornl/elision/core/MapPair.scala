@@ -109,20 +109,17 @@ with Rewriter {
   /**
    * Apply this map pair to the given atom, yielding a potentially new atom.
    * The first match with the left-hand side is used to rewrite the right.
-   * 
-   * @param atom	The atom to rewrite.
-   * @return	A pair consisting of a potentially new atom and a flag indicating
-   * 					success or failure.
    */
-  def doRewrite(atom: BasicAtom) = left.tryMatch(atom) match {
-    case file:Fail => (atom, false)
-    case Match(binds) =>
-      val res = right.rewrite(binds)
-      (res._1, true)
-    case Many(iter) =>
-      val res = right.rewrite(iter.next)
-      (res._1, true)
-  }
+  def doRewrite(atom: BasicAtom, hint: Option[Any]) =
+    left.tryMatch(atom, Bindings(), hint) match {
+	    case file:Fail => (atom, false)
+	    case Match(binds) =>
+	      val res = right.rewrite(binds)
+	      (res._1, true)
+	    case Many(iter) =>
+	      val res = right.rewrite(iter.next)
+	      (res._1, true)
+	  }
 
   def toParseString = "(" + left.toParseString + " -> " +
   		right.toParseString + ")"

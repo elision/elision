@@ -179,11 +179,100 @@ class OperatorLibrary(
  	  ref
  	}
  	
+ 	/**
+ 	 * Get a list of known operators, a short prototype, and their short
+ 	 * description.  Operators whose name starts with an underscore are
+ 	 * skipped.
+ 	 * 
+ 	 * @param app		The destination of the text.
+ 	 * @param width	Width of the field.
+ 	 */
+ 	def help(app: Appendable, width: Int = 80) = {
+ 	  // Iterate over the operators and compute the longest description.
+ 	  val dlength =
+ 	    _nameToOperator.values.foldLeft(0)(_ max _.operator.description.length)
+ 	    
+ 	  // Okay, now subtract that from the right margin.
+ 	  // If this is negative, we are SOL.  Just let the lines wrap.
+ 	  val dstart = (width - dlength - 1) max 2
+ 	  
+ 	  // Sort the operator names.
+ 	  val keyorder =
+ 	    _nameToOperator.
+ 	    keys.
+ 	    toList.
+ 	    sortWith(_.toLowerCase < _.toLowerCase).
+ 	    filter(!_.startsWith("_"))
+ 	  
+ 	  // Okay, now write details for each operator.
+ 	  keyorder.foreach {
+ 	    key =>
+ 	      val op = _nameToOperator(key).operator
+ 	      app.append(' ').append(op.name).append(' ')
+ 	      val pos = op.name.length + 2
+ 	      if (pos >= dstart) {
+ 	        app.append("\n  ")
+ 	        app.append("."*(dstart-2))
+ 	      } else {
+ 	        app.append("."*(dstart-pos))
+ 	      }
+ 	      app.append(' ').append(op.description).append('\n')
+ 	  }
+ 	  
+ 	  // Done.  The appendable is the value.
+ 	  app
+ 	}
+ 	
+ 	/**
+ 	 * Write out help for an operator, specified by operator reference.
+ 	 * 
+ 	 * @param app		Appendable to get output.
+ 	 * @param opref	The operator reference.
+ 	 * @return	The appendable.
+ 	 */
+ 	def help(app: Appendable, opref: OperatorRef): Appendable =
+ 	  help(app, opref.operator)
+ 	
+ 	/**
+ 	 * Write out help for an operator.
+ 	 * 
+ 	 * @param app		Appendable to get output.
+ 	 * @param opref	The operator.
+ 	 * @return	The appendable.
+ 	 */
+ 	def help(app: Appendable, op: Operator) = {
+ 	  // Write operator name and short description.
+ 	  app.append("Operator: " + op.name).append('\n')
+ 	  app.append(op.description).append("\n\n")
+ 	  // Construct the prototype.
+ 	  app.append("Prototype:\n")
+ 	  op match {
+ 	    case so:SymbolicOperator =>
+		 	  app.append("  ").append(toESymbol(op.name))
+		 	  app.append(so.params.mkParseString("(", ", ", ")")).append('\n')
+		 	  app.append("  ").append(so.params.props.toHumaneString).append('\n')
+ 	    case co:CaseOperator =>
+      	app.append("  ").append(toESymbol(op.name))
+      	app.append(" . (case)\n\nCases:\n")
+ 	      for (cse <- co.cases) {
+ 	        app.append("  ").append(cse.toParseString).append('\n')
+ 	      } // Write cases.
+ 	  }
+ 	  app.append('\n')
+ 	  
+ 	  // Add the details.
+ 	  app.append(op.detail).append('\n')
+ 	  
+ 	  // The appendable is the value.
+ 	  app
+ 	}
+ 	
  	// Get the well-known operators.
  	import OperatorLibrary._
  	
  	// Add the well-known operators.
- 	import SymbolicOperator.{MAP, xx}
+ 	import SymbolicOperator.{MAP, xx, LIST}
  	_nameToOperator += (MAP.name -> MAP)
  	_nameToOperator += (xx.name -> xx)
+ 	_nameToOperator += (LIST.name -> LIST)
 }

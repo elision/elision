@@ -47,7 +47,6 @@ import ornl.elision.parse.AtomParser
  * This is the current punch list for Elision.  This list gets picked up by
  * [[http://eclipse.org Eclipse]].
  * 
- *  - TODO: Documentation cleanup.
  *  - TODO: Alternative parser.
  *  - TODO: Implicit corecions.
  *  - TODO: REPL refactoring.
@@ -146,9 +145,15 @@ package object core {
       ch =>
         if (ch != '_' && !ch.isLetterOrDigit) {
           bad = true
-          if (ch == '`') buf ++= "\\"
-        }
-        buf ++= ch.toString
+          ch match {
+            case '`' => buf ++= """\`"""
+		        case '\n' => buf ++= """\n"""
+		        case '\t' => buf ++= """\t"""
+		        case '\r' => buf ++= """\r"""
+		        case '\\' => buf ++= """\\"""
+		        case _ => buf ++= ch.toString
+          }
+        } else buf ++= ch.toString
     }
     if (bad) "`" + buf.toString + "`" else buf.toString
   }
@@ -177,7 +182,7 @@ package object core {
         case '\n' => buf ++= """\n"""
         case '\t' => buf ++= """\t"""
         case '\r' => buf ++= """\r"""
-        case '\\' => buf ++= """\"""
+        case '\\' => buf ++= """\\"""
         case _ => buf ++= ch.toString
       }
     }
