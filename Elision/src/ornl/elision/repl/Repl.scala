@@ -418,6 +418,7 @@ object Repl {
       
       // Run the line.
       execute(line)
+      //println(scala.tools.jline.TerminalFactory.create().getWidth())
       
       // If we are reporting timing, do that now.
       if (_timing) {
@@ -570,7 +571,11 @@ object Repl {
   private def defineOps {
     // Bootstrap.  To get started, we need a way to define operators and put
     // them in the operator library.  So, first, define that operator.
-    val defOper = TypedSymbolicOperator("def", NONE, AtomSeq(NoProps, 'op))
+    val defOper = TypedSymbolicOperator("def", NONE, AtomSeq(NoProps, 'op),
+        "Add the named operator to the context.",
+        """|This will add the operator op to the current context.  This makes
+           |the operator available by name, or through an OPREF.
+        """.stripMargin)
     _context.operatorLibrary.add(defOper)
     _context.operatorLibrary.register("def",
         (_, list:AtomSeq, _) => list match {
@@ -580,17 +585,16 @@ object Repl {
             emitln("Defined operator " + toESymbol(op.name) + ".")
             _no_show
           case Args(op) =>
-            error("Atom is not an operator: " + op.toParseString)
+            error("Atom is not a named operator: " + op.toParseString)
             _no_show
           case _ =>
             _no_show
         })
-    
-    // Type of.
-    execute("def({ operator #name=typeof #cases %($x:$T)->$T })")
+        
+    // Go get the buildin operators and define them.
+    execute(BuiltinOperators.text.text)
     
     // Dereference operator.
-    execute("def({ operator #name=getop #params=%($x:OPREF) })")
     _context.operatorLibrary.register("getop",
         (_, list:AtomSeq, _) => list match {
           case Args(opref:OperatorRef) =>
@@ -600,7 +604,6 @@ object Repl {
         })
     
     // Bind.
-    execute("def({ operator #name=bind #params=%($v,$a) })")
     _context.operatorLibrary.register("bind",
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
@@ -612,7 +615,6 @@ object Repl {
         })
 
     // Equal.
-    execute("def({ operator #name=equal #params=%C($x,$y) #type=BOOLEAN })")
     _context.operatorLibrary.register("equal",
         (_, list:AtomSeq, _) => list match {
           case Args(x:BasicAtom, y:BasicAtom) =>
@@ -622,7 +624,6 @@ object Repl {
         })
         
     // Unbind.
-    execute("def({ operator #name=unbind #params=%($v) })")
     _context.operatorLibrary.register("unbind",
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable) =>
@@ -634,11 +635,10 @@ object Repl {
         })
         
     // Showbinds.
-    execute("def({ operator #name=showbinds #params=%() })")
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomSeq, _) => list match {
           case Args() => {
-            println(_binds.map {
+            println(_binds.filterKeys(!_.startsWith("_")).map {
               pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
             }.mkString("{ bind\n", ",\n", "\n}"))
             _no_show
@@ -647,7 +647,6 @@ object Repl {
         })
         
     // Timing.
-    execute("def({ operator #name=timing #params=%() })")
     _context.operatorLibrary.register("timing",
         (_, list:AtomSeq, _) => list match {
           case Args() => {
@@ -659,7 +658,6 @@ object Repl {
         })
         
     // Context.
-    execute("def({ operator #name=context #params=%() })")
     _context.operatorLibrary.register("context",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -669,7 +667,6 @@ object Repl {
         })
         
     // Stacktrace.
-    execute("def({ operator #name=stacktrace #params=%() })")
     _context.operatorLibrary.register("stacktrace",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -681,7 +678,6 @@ object Repl {
         })
         
     // Evaluate fast.
-    execute("def({ operator #name=eval #params=%($atom) })")
     _context.operatorLibrary.register("eval",
         (_, list:AtomSeq, _) => list match {
           case Args(x) =>
@@ -693,7 +689,6 @@ object Repl {
         })
         
     // Read.
-    execute("def({ operator #name=read #params=%($filename: STRING) })")
     _context.operatorLibrary.register("read",
         (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
@@ -722,7 +717,6 @@ object Repl {
         })
         
     // Write.
-    execute("def({ operator #name=write #params=%($filename: STRING) })")
     _context.operatorLibrary.register("write",
         (_, list:AtomSeq, _) => list match {
           case Args(StringLiteral(_, filename)) =>
@@ -739,46 +733,34 @@ object Repl {
         })
         
     // Help.
-    execute("def({ operator #name=help #params=%() })")
-    _context.operatorLibrary.register("help",
+    _context.operatorLibrary.register("_help_op",
+        (_, list:AtomSeq, _) => list match {
+          case Args(or: OperatorRef) =>
+            // Give some help.
+            emitln(_context.operatorLibrary.help(new StringBuffer(), or).toString)
+            _no_show
+            
+          case _ =>
+            _no_show
+        })
+    _context.operatorLibrary.register("_help_all",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
           	// Give some help.
+            val width = scala.tools.jline.TerminalFactory.create().getWidth()
+            println("Elision Help\n")
+            emitln(_context.operatorLibrary.help(new StringBuffer(), width).toString)
 		        println("""
-	        			|Elision Help
-        				|
-		            | bind(v,a) .................. Bind variable v to atom a.
-		            | context() .................. Display contents of the current context.
-		            | declare(r1,r2,...) ......... Declare rulesets r1, r2, ...
-		            | disable(r) ................. Disable ruleset r.
-		            | enable(r) .................. Enable ruleset r.
-	        			| help() ..................... Show this help text.
-		            | history() .................. Show the history so far.
-		            | quiet() .................... Toggle suppressing most output.
-		            | rewrite() .................. Toggle automatic rewriting.
-		            | setdebruijn(f) ............. If f is true, enable De Bruijn indices.
-		            | setdescend(f) .............. If f is true, rewrite top down.
-		            | setlimit(l) ................ Set the rewrite limit to l successes.
-		            | setroundtrip(f) ............ If f is true, enable round trip parsing.
-		            | showbinds() ................ Display the current set of bindings.
-		            | showprior() ................ Toggle showing the unrewritten term.
-		            | showrules(a) ............... Show the list of rules that apply to atom a.
-		            | showscala() ................ Toggle showing the Scala term.
-		            | stacktrace() ............... Toggle printing stack traces on error.
-		            | tracematch() ............... Toggle match tracing.
-		            | traceparse() ............... Toggle parser tracing.
-		            | unbind(v) .................. Unbind variable v.
-		            |
 		            |Use ! followed by a number to re-execute a line from the history.
 		            |
 		            |To quit type :quit.
 		            |""".stripMargin)
 		        _no_show
+		        
           case _ => _no_show
         })
         
     // Traceparse.
-    execute("def({ operator #name=traceparse #params=%() })")
     _context.operatorLibrary.register("traceparse",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -791,7 +773,6 @@ object Repl {
         })
         
     // Tracematch.
-    execute("def({ operator #name=tracematch #params=%() })")
     _context.operatorLibrary.register("tracematch",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -804,7 +785,6 @@ object Repl {
         })
         
     // Showscala.
-    execute("def({ operator #name=showscala #params=%() })")
     _context.operatorLibrary.register("showscala",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -816,7 +796,6 @@ object Repl {
         })
         
     // Showprior.
-    execute("def({ operator #name=showprior #params=%() })")
     _context.operatorLibrary.register("showprior",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -828,7 +807,6 @@ object Repl {
         })
         
     // History.
-    execute("def({ operator #name=history #params=%() })")
     _context.operatorLibrary.register("history",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -841,7 +819,6 @@ object Repl {
         })
         
     // Quiet.
-    execute("def({ operator #name=quiet #params=%() })")
     _context.operatorLibrary.register("quiet",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -853,7 +830,6 @@ object Repl {
         })
         
     // Declare a ruleset.
-    execute("def({ operator #name=declare #params=%ACI($r1: SYMBOL, $r2: SYMBOL) #type=SYMBOL })")
     _context.operatorLibrary.register("declare",
         (_, list:AtomSeq, _) => {
         	list foreach { _ match {
@@ -867,7 +843,6 @@ object Repl {
       	})
         
     // Enable a ruleset.
-    execute("def({ operator #name=enable #params=%($x: SYMBOL) })")
     _context.operatorLibrary.register("enable",
         (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -878,7 +853,6 @@ object Repl {
         })
         
     // Disable a ruleset.
-    execute("def({ operator #name=disable #params=%($x: SYMBOL) })")
     _context.operatorLibrary.register("disable",
         (_, list:AtomSeq, _) => list match {
           case Args(SymbolLiteral(_, sym)) =>
@@ -889,7 +863,6 @@ object Repl {
         })
         
     // Set the limit on automatic rewrites.
-    execute("def({ operator #name=setlimit #params=%($limit: INTEGER) })")
     _context.operatorLibrary.register("setlimit",
         (_, list:AtomSeq, _) => list match {
           case Args(IntegerLiteral(_, count)) =>
@@ -901,7 +874,6 @@ object Repl {
         })
         
     // Set whether to use De Bruijn indices.
-    execute("def({ operator #name=setdebruijn #params=%($enable: BOOLEAN) })")
     _context.operatorLibrary.register("setdebruijn",
         (_, list:AtomSeq, _) => list match {
           case Args(BooleanLiteral(_, flag)) =>
@@ -913,7 +885,6 @@ object Repl {
         })
         
     // Set whether to descend into children.
-    execute("def({ operator #name=setdescend #params=%($enable: BOOLEAN) })")
     _context.operatorLibrary.register("setdescend",
         (_, list:AtomSeq, _) => list match {
           case Args(BooleanLiteral(_, flag)) =>
@@ -925,7 +896,6 @@ object Repl {
         })
         
     // Set whether to do round-trip parsing.
-    execute("def({ operator #name=setroundtrip #params=%($enable: BOOLEAN) })")
     _context.operatorLibrary.register("setroundtrip",
         (_, list:AtomSeq, _) => list match {
           case Args(BooleanLiteral(_, flag)) =>
@@ -937,7 +907,6 @@ object Repl {
         })
         
     // Enable or disable the rewriter.
-    execute("def({ operator #name=rewrite #params=%() })")
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomSeq, _) => list match {
           case Args() =>
@@ -950,7 +919,6 @@ object Repl {
         })
         
     // See what rules are in scope.
-    execute("def({ operator #name=showrules #params=%($atom) })")
     _context.operatorLibrary.register("showrules",
         (_, list:AtomSeq, _) => list match {
           case Args(atom) =>
@@ -963,7 +931,6 @@ object Repl {
         })
         
     // Define mod as a Symbolic operator.
-    execute("def({ operator #name=mod #params=%($b: INTEGER, $d: INTEGER) #type=INTEGER })")
     _context.operatorLibrary.register("mod",
         (op: Operator, args: AtomSeq, _) => args.atoms match {
           case Args(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
@@ -971,7 +938,6 @@ object Repl {
         })
         
     // Define neg as a Symbolic operator.
-    execute("def({ operator #name=neg #params=%($x: INTEGER) #type=INTEGER })")
     _context.operatorLibrary.register("neg",
         (op: Operator, args: AtomSeq, _) => args match {
           case Args(IntegerLiteral(_, x)) => -x
@@ -979,7 +945,6 @@ object Repl {
         })
         
     // Define add as a Symbolic operator.
-    execute("def({ operator #name=add #params=%AC!ID[0]($x: INTEGER, $y: INTEGER) #type=INTEGER })")
 		_context.operatorLibrary.register("add",
       (op: Operator, args: AtomSeq, _) => {
 			  // Accumulate the integer literals found.
@@ -1000,7 +965,6 @@ object Repl {
       })
       
     // Is bindable.
-    execute("def({ operator #name=is_bindable #params=%($x) #type=BOOLEAN })")
     _context.operatorLibrary.register("is_bindable",
         (op: Operator, args: AtomSeq, _) => {println("F")
           args match {
@@ -1011,8 +975,8 @@ object Repl {
             println("D")
             Apply(op, args, true)
         }})
-        
-    execute("def({operator #name=fail #params=%()})")
+
+    // Force a core dump.
     _context.operatorLibrary.register("fail",
         (op: Operator, args: AtomSeq, _) =>
           throw new VerifyError("no memory")
@@ -1043,9 +1007,9 @@ object Repl {
 		    if (_rewrite) newatom = _context.ruleLibrary.rewrite(newatom)._1
 		    if (_bindatoms) {
 			    // Get the next bind variable name.
-			    _binds += ("repl"+_bindNumber -> newatom)
+			    _binds += ("_repl"+_bindNumber -> newatom)
 			    // Now write out the new atom.
-			    show(newatom, Some("repl" + _bindNumber))
+			    show(newatom, Some("_repl" + _bindNumber))
 			    _bindNumber += 1
 		    } else {
 		      show(newatom, None)

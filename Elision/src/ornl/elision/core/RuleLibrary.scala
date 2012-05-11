@@ -209,7 +209,7 @@ extends Fickle with Mutable {
     val rules = getRules(atom)
     // Now try every rule until one applies.
     for (rule <- rules) {
-      val (newatom, applied) = rule.tryRewrite(atom)
+      val (newatom, applied) = rule.doRewrite(atom)
       if (applied) return (newatom, applied)
     }
     return (atom, false)
@@ -354,12 +354,12 @@ extends Fickle with Mutable {
      * Apply this strategy. If any rule completes then the returned flag is
      * true. Otherwise it is false.
      */
-	  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean) = {
+	  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
 	    // Get the rules.
 	    val rules = getRules(atom, List(name))
 	    // Now try every rule until one applies.
 	    for (rule <- rules) {
-	      val (newatom, applied) = rule.tryRewrite(atom)
+	      val (newatom, applied) = rule.doRewrite(atom, hint)
 	      if (applied) return (newatom, applied)
 	    }
 	    return (atom, false)

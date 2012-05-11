@@ -66,7 +66,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     }
   }
   
-  def doRewrite(atom: BasicAtom): (BasicAtom, Boolean) = {
+  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
     // If this is not concrete, do not execute.
     if (!_conc) return (SimpleApply(this, atom), false)
     else {
@@ -74,7 +74,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	    val rules = context.ruleLibrary.getRules(atom, _namelist)
 	    // Now try every rule until one applies.
 	    for (rule <- rules) {
-	      val (newatom, applied) = rule.tryRewrite(atom)
+	      val (newatom, applied) = rule.doRewrite(atom, hint)
 	      if (applied) return (newatom, applied)
 	    }
 	    return (atom, false)
@@ -150,7 +150,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     map(_.value.name).
     toSet
 	
-	def doRewrite(atom: BasicAtom) = atom match {
+	def doRewrite(atom: BasicAtom, hint: Option[Any]) = atom match {
 	  // We only process two kinds of atoms here: atom lists and operator
 	  // applications.  Figure out what we have.
 	  case AtomSeq(props, atoms) =>
@@ -369,11 +369,12 @@ class RewriteRule private (
    * 
    * @param subject	The subject to test.
    * @param binds		Bindings to honor.
+   * @param hint		An optional hint to pass along during matching.
    * @return	A pair consisting of an atom and a boolean.  The boolean is
    * 					true if the rewrite yielded a new atom, and is false otherwise.
    */
-  def tryRewrite(subject: BasicAtom, binds: Bindings = Bindings()):
-  (BasicAtom, Boolean) = {
+  private def _tryRewrite(subject: BasicAtom, binds: Bindings = Bindings(),
+      hint: Option[Any] = None): (BasicAtom, Boolean) = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
       for (guard <- guards) {
@@ -388,7 +389,7 @@ class RewriteRule private (
     def doRuleRewrite(candidate: Bindings) = (rewrite.rewrite(candidate)._1, true)
     
     // First we try to match the given atom against the pattern.
-    pattern.tryMatch(subject, binds) match {
+    pattern.tryMatch(subject, binds, hint) match {
       case fail:Fail => return (subject, false)
       case Match(newbinds) =>
         // We got a match.  Check the guards.
@@ -412,12 +413,12 @@ class RewriteRule private (
   	guards.toString + ", " +
   	rulesets.map(toEString(_)) + ")"
   	
-  def doRewrite(atom: BasicAtom) = doRewrite(atom, Bindings())
+  def doRewrite(atom: BasicAtom, hint: Option[Any]) =
+    doRewrite(atom, Bindings(), hint)
   
-  def doRewrite(atom: BasicAtom, binds: Bindings) = {
+  def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
-    val result = tryRewrite(atom)
-    (result._1, result._2)
+    _tryRewrite(atom, binds, hint)
   }
 }

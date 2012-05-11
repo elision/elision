@@ -63,9 +63,12 @@ class ArgumentListException(msg: String) extends ElisionException(msg)
  * @param name				The operator name.
  * @param typ					The type of the fully-applied operator.
  * @param definition	A definition for the operator.
+ * @param description	An optional short description for the operator.
+ * @param detail			Optional detailed help for the operator.
  */
 abstract class Operator(sfh: SpecialFormHolder,
-    val name: String, val typ: BasicAtom, definition: AtomSeq)
+    val name: String, val typ: BasicAtom, definition: AtomSeq,
+    val description: String, val detail: String)
     extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   def apply(atoms: BasicAtom*): BasicAtom
 }
@@ -85,7 +88,8 @@ object Operator {
    */
   def apply(sfh: SpecialFormHolder): Operator = {
     val bh = sfh.requireBindings
-    bh.check(Map("name"->true, "cases"->false, "params"->false, "type"->false))
+    bh.check(Map("name"->true, "cases"->false, "params"->false, "type"->false,
+        "description"->false, "detail"->false))
     if (bh.either("cases", "params") == "cases") {
       CaseOperator(sfh)
     } else {
@@ -135,6 +139,8 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
   def doApply(atom: BasicAtom, bypass: Boolean) = operator.doApply(atom, bypass)
   
   def toParseString = toESymbol(operator.name) + ":OPREF"
+  
+  override def toString = "OperatorRef(" + operator.toString + ")"
   
   /**
    * Operator references cannot be rewritten.  This is actually why they exist!
@@ -202,26 +208,34 @@ object CaseOperator {
    */
   def apply(sfh: SpecialFormHolder): CaseOperator = {
     val bh = sfh.requireBindings
-    bh.check(Map("name"->true, "cases"->true, "type"->false))
+    bh.check(Map("name"->true, "cases"->true, "type"->false,
+        "description"->false, "detail"->false))
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val cases = bh.fetchAs[AtomSeq]("cases")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
-    return new CaseOperator(sfh, name, typ, cases)
+    val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
+    val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
+    return new CaseOperator(sfh, name, typ, cases, description, detail)
   }
   
   /**
    * Make a case operator from the components.
    * 
-   * @param name			Operator name.
-   * @param typ				The operator type (may be `ANY`).
-   * @param cases			The cases, as a sequence of atoms.
+   * @param name					Operator name.
+   * @param typ						The operator type (may be `ANY`).
+   * @param cases					The cases, as a sequence of atoms.
+	 * @param description		An optional short description for the operator.
+	 * @param detail				Optional detailed help for the operator.
    * @return	The new case operator.
    */
-  def apply(name: String, typ: BasicAtom, cases: AtomSeq): CaseOperator = {
+  def apply(name: String, typ: BasicAtom, cases: AtomSeq,
+      description: String, detail: String): CaseOperator = {
     val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name"->nameS) + ("cases"->cases) + ("type"->typ)
+    val binds = Bindings() + ("name"->nameS) + ("cases"->cases) +
+    		("type"->typ) + ("description"->Literal(description)) +
+    		("detail"->Literal(detail))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new CaseOperator(sfh, name, typ, cases)
+    return new CaseOperator(sfh, name, typ, cases, description, detail)
   }
   
   /**
@@ -249,14 +263,17 @@ object CaseOperator {
  * If the end of the list is reached and no value is determined, then an
  * error is generated (an `ArgumentListException`).
  * 
- * @param sfh				Special form data.
- * @param name			The operator name.
- * @param typ				The operator type.
- * @param cases			The definition.
+ * @param sfh						Special form data.
+ * @param name					The operator name.
+ * @param typ						The operator type.
+ * @param cases					The definition.
+ * @param description		An optional short description for the operator.
+ * @param detail				Optional detailed help for the operator.
  */
 class CaseOperator private (sfh: SpecialFormHolder,
-    name: String, typ: BasicAtom, val cases: AtomSeq)
-		extends Operator(sfh, name, typ, cases) {
+    name: String, typ: BasicAtom, val cases: AtomSeq,
+    description: String, detail: String)
+		extends Operator(sfh, name, typ, cases, description, detail) {
   /** The type of the operator is the provided type. */
   override val theType = typ
   
@@ -277,7 +294,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
     var result: Option[BasicAtom] = None
     val done = cases.exists { _ match {
       case rew: Rewriter =>
-        val pair = rew.doRewrite(args)
+        val pair = rew.doRewrite(args, Some(this))
         result = Some(pair._1)
         pair._2
       case app: Applicable =>
@@ -314,26 +331,34 @@ object TypedSymbolicOperator {
    */
   def apply(sfh: SpecialFormHolder): TypedSymbolicOperator = {
     val bh = sfh.requireBindings
-    bh.check(Map("name"->true, "params"->true, "type"->false))
+    bh.check(Map("name"->true, "params"->true, "type"->false,
+        "description"->false, "detail"->false))
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val params = bh.fetchAs[AtomSeq]("params")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
-    return new TypedSymbolicOperator(sfh, name, typ, params)
+    val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
+    val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
+    return new TypedSymbolicOperator(sfh, name, typ, params, description, detail)
   }
   
   /**
    * Make a typed symbolic operator from the provided parts.
    * 
-   * @param name			The operator name.
-   * @param typ				The type of the fully-applied operator.
-   * @param params		The operator parameters.
+   * @param name					The operator name.
+   * @param typ						The type of the fully-applied operator.
+   * @param params				The operator parameters.
+	 * @param description		An optional short description for the operator.
+	 * @param detail				Optional detailed help for the operator.
    * @return	The typed symbolic operator.
    */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq): TypedSymbolicOperator = {
+  def apply(name: String, typ: BasicAtom, params: AtomSeq,
+      description: String, detail: String): TypedSymbolicOperator = {
     val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name"->nameS) + ("params"->params) + ("type"->typ)
+    val binds = Bindings() + ("name"->nameS) + ("params"->params) +
+    		("type"->typ) + ("description"->Literal(description)) +
+    		("detail"->Literal(detail))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new TypedSymbolicOperator(sfh, name, typ, params)
+    return new TypedSymbolicOperator(sfh, name, typ, params, description, detail)
   }
   
   /**
@@ -359,8 +384,9 @@ object TypedSymbolicOperator {
  * @param params		The operator parameters.
  */
 class TypedSymbolicOperator private (sfh: SpecialFormHolder,
-    name: String, typ: BasicAtom, params: AtomSeq)
-		extends SymbolicOperator(sfh, name, typ, params) {
+    name: String, typ: BasicAtom, params: AtomSeq,
+    description: String, detail: String)
+		extends SymbolicOperator(sfh, name, typ, params, description, detail) {
 	/**
    * The type of an operator is a mapping from the operator domain to the
    * operator codomain.
@@ -375,16 +401,21 @@ object SymbolicOperator {
   /**
    * Make a symbolic operator from the provided parts.
    * 
-   * @param name			The operator name.
-   * @param typ				The type of the fully-applied operator.
-   * @param params		The operator parameters.
+   * @param name					The operator name.
+   * @param typ						The type of the fully-applied operator.
+   * @param params				The operator parameters.
+	 * @param description		An optional short description for the operator.
+	 * @param detail				Optional detailed help for the operator.
    * @return	The typed symbolic operator.
    */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq): SymbolicOperator = {
+  def apply(name: String, typ: BasicAtom, params: AtomSeq,
+      description: String, detail: String): SymbolicOperator = {
     val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name"->nameS) + ("params"->params) + ("type"->typ)
+    val binds = Bindings() + ("name"->nameS) + ("params"->params) +
+    		("type"->typ) + ("description"->Literal(description)) +
+    		("detail"->Literal(detail))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new SymbolicOperator(sfh, name, typ, params)
+    return new SymbolicOperator(sfh, name, typ, params, description, detail)
   }
   
   /**
@@ -396,11 +427,29 @@ object SymbolicOperator {
   def unapply(so: SymbolicOperator) = Some((so.name, so.theType, so.params))
 
   /** The well-known MAP operator. */
-  val MAP = OperatorRef(SymbolicOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain)))
+  val MAP = OperatorRef(
+      SymbolicOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain),
+          "Mapping constructor.",
+          """|This operator is used to construct types for operators.  It
+             |indicates a mapping from one type (the domain) to another type
+             |(the codomain).
+          """.stripMargin))
   /** The well-known cross product operator. */
-  val xx = OperatorRef(SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y)))
+  val xx = OperatorRef(
+      SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y),
+          "Cross product.",
+          """|This operator is used to construct types for operators.  It
+             |indicates the cross product of two atoms (typically types).
+             |These originate from the types of the parameters of an operator.
+          """.stripMargin))
   /** The well-known list operator. */
-  val LIST = OperatorRef(SymbolicOperator("LIST", ANY, AtomSeq(NoProps, 'type)))
+  val LIST = OperatorRef(
+      SymbolicOperator("LIST", ANY, AtomSeq(NoProps, 'type),
+          "List type constructor.",
+          """|This operator is used to indicate the type of a list.  It
+             |takes a single argument that is the type of the atoms in
+             |the list.  For heterogeneous lists this will be ANY.
+          """.stripMargin))
   
   /**
    * Compute an operator type.
@@ -431,9 +480,13 @@ object SymbolicOperator {
  * @param params		The operator parameters.
  */
 protected class SymbolicOperator protected (sfh: SpecialFormHolder,
-    name: String, typ: BasicAtom, val params: AtomSeq)
-		extends Operator(sfh, name, typ, params) {
+    name: String, typ: BasicAtom, val params: AtomSeq,
+    description: String, detail: String)
+		extends Operator(sfh, name, typ, params, description, detail) {
 	override val theType: BasicAtom = ANY
+	
+	// Check the properties.
+	_check()
   
   /** The native handler, if one is declared. */
   protected[core]
@@ -450,6 +503,91 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     val seq = AtomSeq(NoProps, args:_*)
     doApply(seq, false)
   }
+	
+	/**
+	 * Check the parameters against the properties.  If any problems are detected,
+	 * then an exception is thrown (`ArgumentListException`). 
+	 */
+	def _check() {
+	  def paramTypeCheck = {
+	    val aType = params(0).theType
+	    params.forall(_.theType == aType)
+	  }
+	  if (params.props.isA(false)) {
+	    // There must be exactly two parameters.
+	    if (params.length != 2) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is marked as associative, but does not have exactly two " +
+	          "parameters, as required: " + params.toParseString)
+	    }
+	    // All parameter types must be the same.
+	    if (!paramTypeCheck) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is marked as associative, but all parameters do not hae the " +
+	          "same type, as required: " + params.toParseString)
+	    }
+	    // The fully-applied type must be the same as the parameter type.
+	    if (params(0).theType != typ) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is marked as associative, but the parameter type (" +
+	          params(0).theType.toParseString +
+	          ") is not the same as the fully-applied type (" +
+	          typ.toParseString + ").")
+	    }
+	  } else {
+	    // The operator is not associative, so it must not have an identity,
+	    // absorber, or be idempotent.
+	    if (params.props.isI(false)) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is marked as idempotent, but it not marked as associative, as" +
+	          " required.")
+	    }
+	    if (params.props.identity.isDefined) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is declared to have an identity, but it not marked as " +
+	          "associative, as required.")
+	    }
+	    if (params.props.absorber.isDefined) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is declared to have an absorber, but it not marked as " +
+	          "associative, as required.")
+	    }
+	  }
+	  if (params.props.isC(false)) {
+	    // There must be at least two parameters.
+	    if (params.length < 2) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is marked as commutative, but does not have at least two " +
+	          "parameters, as required: " + params.toParseString)
+	    }
+	    // All parameter types must be the same.
+	    if (!paramTypeCheck) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " is marked as commutative, but all parameters do not hae the " +
+	          "same type, as required: " + params.toParseString)
+	    }
+	  }
+	  // Identities must be the same type as the parameters.
+	  if (params.props.identity.isDefined) {
+	    if (params.props.identity.get.theType != params(0).theType) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " has an identity whose type (" +
+	          params.props.identity.get.theType.toParseString +
+	          ") is not the same as the parameter type (" +
+	          params(0).theType.toParseString + ").")
+	    }
+	  }
+	  // Absorbers must be the same type as the parameters.
+	  if (params.props.absorber.isDefined) {
+	    if (params.props.absorber.get.theType != params(0).theType) {
+	      throw new ArgumentListException("The operator " + toESymbol(name) +
+	          " has an absorber whose type (" +
+	          params.props.absorber.get.theType.toParseString +
+	          ") is not the same as the parameter type (" +
+	          params(0).theType.toParseString + ").")
+	    }
+	  }
+	}
   
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
     rhs match {
@@ -530,7 +668,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		      case Fail(reason, index) =>
 			      throw new ArgumentListException("Incorrect argument for operator " +
 			          toESymbol(name) + " at position " + index + ": " +
-			          args(0).toParseString)
+			          args(index).toParseString)
 		      case Match(binds) =>
 		        // The argument list matches.
 		        return handleApply(binds)

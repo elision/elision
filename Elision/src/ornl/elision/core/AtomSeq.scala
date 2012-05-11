@@ -132,7 +132,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   /**
    * The atoms in this sequence.
    */
-  val atoms = AtomSeq.process(props, if (idempotent) xatoms.distinct else xatoms)
+  val atoms = AtomSeq.process(props, xatoms)
 
   /**
    * This is a mapping from constants in the sequence to the (zero-based)
@@ -143,15 +143,18 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
   
   import SymbolicOperator.LIST
+  
   /**
    * The type of a sequence is derived from looking at the types of the
    * elements of the sequence.  If the elements all have the same type,
    * then the result is that type.  If the elements have different types,
-   * then the type is ANY.
+   * or the sequence is empty, then the type is ANY.
    */
   lazy val theType = {
-      val aType = atoms(0).theType
-      if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
+      if (atoms.length == 0) LIST(ANY) else {
+		    val aType = atoms(0).theType
+		    if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
+      }
     }
   val isConstant = atoms.forall(_.isConstant)
   val isTerm = atoms.forall(_.isTerm)
@@ -308,31 +311,36 @@ object AtomSeq {
    */
   private def process(props: AlgProp,
       atoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
-    if (props.isA(false)) {
-      // The list is associative.  Flatten any included lists.
+    // If the list is associative, has an identity, or has an absorber, we
+    // process it.  Idempotency is handled at the very end.
+    val assoc = props.isA(false)
+    val ident = props.identity.isDefined
+    val absor = props.absorber.isDefined
+    if (assoc || ident || absor) {
       var newseq = OmitSeq[BasicAtom]()
       for (atom <- atoms) {
-        if (props.absorber.isDefined && props.absorber.get == atom) {
-          newseq = OmitSeq[BasicAtom]()
-          newseq :+= atom
+        if (absor && props.absorber.get == atom) {
+          // Found the absorber.  Nothing else to do.
+          newseq = OmitSeq[BasicAtom]() :+ atom
           return newseq
         }
-      	if (props.identity.isEmpty || props.identity.get != atom) {
-	  		  atom match {
-				    case AtomSeq(oprops, args) if props == oprops =>
-				      // Add the arguments directly to this list.  We can assume it has
-				      // already been processed, so no deeper checking is needed.
-				      newseq ++= args
-				    case _ =>
-				    	// Add this item to the list.
-				      newseq :+= atom
-				  }
-      	}
-      } // Flatten lists.
-      newseq
+        if (!ident || props.identity.get != atom) {
+          if (assoc) atom match {
+            case AtomSeq(oprops, args) if props == oprops =>
+              // Add the arguments directly to this list.  We can assume this
+              // list has already been processed, so no deeper checking is
+              // needed.
+              newseq ++= args
+            case _ =>
+              // Add this atom to the list.
+              newseq :+= atom
+          }
+        }
+      } // Loop over atoms.
+      if (props.isI(false)) newseq.distinct else newseq
     } else {
-      // The list is not associative.  Construct and return the list.
-      atoms
+      // The list is fine as it is.
+      if (props.isI(false)) atoms.distinct else atoms
     }
   }
 }
