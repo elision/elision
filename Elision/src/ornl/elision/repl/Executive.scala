@@ -30,10 +30,12 @@
 package ornl.elision.repl
 
 /**
- * Provide information about the current version of Elision.  This information
- * is obtained from the `configuration.xml` file expected to be in the root
- * of the current classpath (thus in the jar file).  It has the following
- * format.
+ * Provide information about the current version of Elision.
+ * 
+ * == Configuration ==
+ * This information is obtained from the `configuration.xml` file
+ * expected to be in the root of the current class path (thus in
+ * the jar file).  It has the following format.
  * 
  * {{{
  * <configuration
@@ -47,10 +49,33 @@ package ornl.elision.repl
  * </configuration>
  * }}}
  * 
+ * == Use ==
+ * This object loads its data at construction time.  This is typically when
+ * you first reference a field.
+ * 
  * The `loaded` field reveals if the file was successfully loaded.  If not, the
  * other fields contain default (and useless) information.  Missing fields
  * result in a value of the empty string for that field.  Extra fields not
  * specified above are ignored, but may be used in the future.
+ * 
+ * Both the configuration and its DTD (`elision_configuration.dtd`) are
+ * expected to be found in the root of the class path.
+ * 
+ * == DTD ==
+ * The following is the DTD for the configuration file.
+ * 
+ * {{{
+ * <!ELEMENT configuration (version,ANY*)>
+ * <!ATTLIST configuration name CDATA #REQUIRED>
+ * <!ATTLIST configuration maintainer CDATA #REQUIRED>
+ * <!ATTLIST configuration web CDATA #REQUIRED>
+ * <!ELEMENT version (ANY*)>
+ * <!ATTLIST version major CDATA #REQUIRED>
+ * <!ATTLIST version minor CDATA #REQUIRED>
+ * <!ATTLIST version build CDATA #REQUIRED>
+ * <!ATTLIST version trivial CDATA "0">
+ * <!ATTLIST version status (alpha|beta|rc|final) "alpha">
+ * }}}
  */
 object Version {
   /** Name of the program. */
@@ -97,12 +122,42 @@ object Version {
 /**
  * Provide facilities for reading and interpreting Elision atoms.
  * 
+ * == Purpose ==
  * This provides a generic framework for building interactive and batch
  * processing systems, and maintains a [[ornl.elision.core.Context]]
  * instance.
  * 
- * To use this, extend it and implement the abstract methods.
+ * == Use ==
+ * The executive maintains an instance of [[ornl.elision.core.Context]] to
+ * store rules, operators, and bindings.
+ * 
+ * There are a few important methods available.
+ *   * `interpret` takes text and attempts to parse the text to obtain atoms.
+ *   * `append` expects to get text, and keeps track of whether there are open
+ *     parentheses, braces, brackets, or verbatim blocks.  You can continue to
+ *     append text; once the system detects that the input is "complete" (in
+ *     that all parentheses, braces, brackets, and verbatim blocks are closed)
+ *     it passes the complete text to `interpret`.
+ *     
+ * == Callbacks ==
+ * Override the `execute` method.  This method is passed each atom as it is
+ * found by `interpret`.  The default implementation does nothing.
  */
 class Executive {
-
+  import ornl.elision.core._
+  
+  /** The context used by this executive. */
+	val context = new Context()
+  
+  /**
+   * Override this method to receive every atom as it is obtained by the
+   * interpret method.  The default imlementation does nothing.
+   * 
+   * @param atom	An atom.
+   */
+  def execute(atom: BasicAtom) {}
+  
+  def append(text: String) = {
+    
+  }
 }
