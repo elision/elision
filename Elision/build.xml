@@ -124,7 +124,7 @@ bin, lib, and other folders.</echo>
 		<property name="build.classpath" refid="build.classpath"/>
 		<taskdef resource="scala/tools/ant/antlib.xml"
 			classpath="${build.classpath}"/>
-		<xmlproperty file="${build.base}/config.xml"
+		<xmlproperty file="${build.base}/etc/config.xml"
 			collapseattributes="yes"/>
 		<echo level="info">Build information from config.xml:</echo>
 		<echo level="info">  Name ........ ${configuration.name}</echo>
@@ -174,9 +174,9 @@ bin, lib, and other folders.</echo>
 			unchecked	="on">
 			<src path="${build.src}"/>
 		</scalac>
-		<copy file="${build.base}/elision_configuration.dtd"
+		<copy file="${build.base}/etc/elision_configuration.dtd"
 			todir="${build.bin}" overwrite="yes"/>
-		<copy file="${build.base}/config.xml"
+		<copy file="${build.base}/etc/config.xml"
 			tofile="${build.bin}/configuration.xml" overwrite="yes">
 			<filterset>
 				<filter token="DSTAMP" value="${DSTAMP}"/>
@@ -271,7 +271,7 @@ bin, lib, and other folders.</echo>
 		<tar destfile="${build.base}/elision-${DSTAMP}.tgz" compression="gzip">
 			<tarfileset dir="${build.base}"
 				prefix="elision-${DSTAMP}"
-				includes="src/**,lib/**,doc/**,build.xml,README.txt,*.sh,*.dtd,*.xml"/>
+				includes="src/**,lib/**,doc/**,etc/**,build.xml,README.txt,*.sh"/>
 		</tar>
 	</target>
 

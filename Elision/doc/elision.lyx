@@ -8082,6 +8082,16 @@ Contexts
 \end_layout
 
 \begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Error-Handling"
+
+\end_inset
+
+Error Handling
+\end_layout
+
+\begin_layout Chapter
 \start_of_appendix
 BasicAtom
 \end_layout

@@ -291,7 +291,7 @@ http://stacyprowell.com/wiki/doku.php?id=elision
  This page contains a frequently updated version, along with documentation
  links and a link to Elision's github page at 
 \begin_inset Flex URL
-status open
+status collapsed
 
 \begin_layout Plain Layout
 
@@ -307,7 +307,7 @@ https://github.com/sprowell/elision
 Elision contains Parboiled, a parser expression grammar (PEG) library.
  See 
 \begin_inset Flex URL
-status open
+status collapsed
 
 \begin_layout Plain Layout
 
@@ -320,7 +320,7 @@ https://github.com/sirthias/parboiled/wiki
  The Elision REPL uses JLine, a Java library for handling console input.
  See 
 \begin_inset Flex URL
-status open
+status collapsed
 
 \begin_layout Plain Layout
 
@@ -1367,7 +1367,7 @@ e> { operator
 
 \begin_layout Plain Layout
 
-$repl0 = {: operator:SYMBOL { binds name -> set:SYMBOL
+$_repl0 = {: operator:SYMBOL { binds name -> set:SYMBOL
 \end_layout
 
 \begin_layout Plain Layout
@@ -1392,7 +1392,7 @@ e> "
 
 \begin_layout Plain Layout
 
-$repl1 = " Fred "
+$_repl1 = " Fred "
 \end_layout
 
 \end_inset
@@ -1476,7 +1476,7 @@ add(21,17,$x)
 
 \begin_layout Plain Layout
 
-$repl14 = add($x, 38)
+$_repl14 = add($x, 38)
 \end_layout
 
 \begin_layout Plain Layout
@@ -1501,7 +1501,7 @@ add(21,17,$x)
 
 \begin_layout Plain Layout
 
-$repl15 = 40
+$_repl15 = 40
 \end_layout
 
 \begin_layout Plain Layout
@@ -1747,7 +1747,7 @@ e> $x
 
 \begin_layout Plain Layout
 
-$repl16 = 7
+$_repl16 = 7
 \end_layout
 
 \begin_layout Plain Layout
@@ -1757,7 +1757,7 @@ e> $y
 
 \begin_layout Plain Layout
 
-$repl17 = 
+$_repl17 = 
 \backslash
 $`:1`.%($`:1`, $`:1`)
 \end_layout
@@ -1769,7 +1769,7 @@ e> $y.$x
 
 \begin_layout Plain Layout
 
-$repl18 = %(7, 7)
+$_repl18 = %(7, 7)
 \end_layout
 
 \end_inset
@@ -1827,7 +1827,7 @@ e> $y.$x
 
 \begin_layout Plain Layout
 
-$repl19 = %($x, $x)
+$_repl19 = %($x, $x)
 \end_layout
 
 \end_inset
@@ -1839,13 +1839,13 @@ $repl19 = %($x, $x)
 Every time an atom is evaluated by the REPL, the result is displayed and
  then bound to a new variable whose name starts with 
 \family typewriter
-$repl
+$_repl
 \family default
  followed by a number.
  These variables are displayed on the output.
  Try 
 \family typewriter
-$repl1
+$_repl1
 \family default
 .
  Unlike the history, which is persistent between invocations of the REPL,
@@ -1872,7 +1872,7 @@ When you type an atom at the REPL prompt the system parses the atom and
  then rewritten using any active rulesets.
  The result of this is then bound to the next 
 \family typewriter
-$repl
+$_repl
 \family default
 \emph on
 n
@@ -1926,7 +1926,7 @@ add($x, $x)
 
 \begin_layout Plain Layout
 
-$repl20 = 20
+$_repl20 = 20
 \end_layout
 
 \begin_layout Plain Layout
@@ -2046,7 +2046,7 @@ $x:$T.$T
 
 \begin_layout Plain Layout
 
-Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T", 
+Scala: $_repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T", 
 \end_layout
 
 \begin_layout Plain Layout
@@ -2072,7 +2072,7 @@ Scala: $repl28 = Lambda(Variable(Variable(NamedRootType("ANY"), "T",
 
 \begin_layout Plain Layout
 
-$repl28 = 
+$_repl28 = 
 \backslash
 $`:1`:$T.$T
 \end_layout
@@ -2157,7 +2157,7 @@ e> if (true, 6, 7)
 
 \begin_layout Plain Layout
 
-$repl19 = if(true, 6, 7)
+$_repl19 = if(true, 6, 7)
 \end_layout
 
 \begin_layout Plain Layout
@@ -2172,7 +2172,7 @@ e> if (true, 6, 7)
 
 \begin_layout Plain Layout
 
-$repl20 = 6
+$_repl20 = 6
 \end_layout
 
 \end_inset
@@ -2508,7 +2508,7 @@ SUCCESS (94a4e9fe): { bind `:1` -> add:OPTYPE, T -> MAP(xx(INTEGER, INTEGER),
 
 \begin_layout Plain Layout
 
-$repl21 = MAP(xx(INTEGER, INTEGER), INTEGER)
+$_repl21 = MAP(xx(INTEGER, INTEGER), INTEGER)
 \end_layout
 
 \end_inset
@@ -2572,7 +2572,7 @@ FAILURE
 \begin_layout Standard
 In some cases there will be additional matching reports after the 
 \family typewriter
-$repl
+$_repl
 \family default
  result is shown.
  These are due to 
@@ -2602,7 +2602,7 @@ setroundtrip(false)
  can safely be ignored.
  Look for the line beginning with 
 \family typewriter
-$repl
+$_repl
 \family default
  and ignore subsequent output.
 \end_layout
@@ -2679,7 +2679,7 @@ FAILURE (de6d60a9): Literal pattern does not match subject.
 
 \begin_layout Plain Layout
 
-$repl41 = Nothing:ANY
+$_repl41 = Nothing:ANY
 \end_layout
 
 \end_inset
@@ -2866,7 +2866,7 @@ a sequence of atoms, matched, cursor at 1:3 after "7"
 
 \begin_layout Plain Layout
 
-$repl14 = 7
+$_repl14 = 7
 \end_layout
 
 \end_inset
@@ -3629,7 +3629,7 @@ e> """
 
 \begin_layout Plain Layout
 
-$repl3 = "
+$_repl3 = "
 \backslash
 nThis is a multiline string literal.
 \backslash
@@ -5365,7 +5365,7 @@ $second.%($first,$second).(2).(1)
 
 \begin_layout Plain Layout
 
-$repl14 = %(2, 1)
+$_repl14 = %(2, 1)
 \end_layout
 
 \begin_layout Plain Layout
@@ -5379,7 +5379,7 @@ $second.%($first,$second).2).(1)
 
 \begin_layout Plain Layout
 
-$repl15 = %(1, 2)
+$_repl15 = %(1, 2)
 \end_layout
 
 \end_inset
@@ -6132,15 +6132,15 @@ core.AlgProp
  This class can be used directly, but it is typically easier to use its
  extensions: 
 \family typewriter
-Associative
+Associative(bool)
 \family default
 , 
 \family typewriter
-Commutative
+Commutative(bool)
 \family default
 , 
 \family typewriter
-Idempotent
+Idempotent(bool)
 \family default
 , 
 \family typewriter
@@ -6151,8 +6151,7 @@ Absorber(atom)
 Identity(atom)
 \family default
 .
- The first three can be negated by prefixing them with an exclamation mark,
- and the last two take an atom.
+ The first three take a Boolean value, and the last two take an atom.
  Join these with 
 \family typewriter
 and
@@ -6164,7 +6163,7 @@ and
 \end_layout
 
 \begin_layout LyX-Code
-Associative and Commutative and !Idempotent and Identity(0)
+Associative(true) and Commutative(true) and Idempotent(false) and Identity(0)
 \end_layout
 
 \begin_layout Plain Layout
@@ -6220,7 +6219,7 @@ e> %A(5,2,%A(3,4),1)
 
 \begin_layout Plain Layout
 
-$repl0 = %A(5, 2, 3, 4, 1)
+$_repl0 = %A(5, 2, 3, 4, 1)
 \end_layout
 
 \begin_layout Plain Layout
@@ -6230,7 +6229,7 @@ e> %A(5,2,%(3,4),1)
 
 \begin_layout Plain Layout
 
-$repl1 = %A(5, 2, %(3, 4), 1)
+$_repl1 = %A(5, 2, %(3, 4), 1)
 \end_layout
 
 \end_inset
@@ -6297,7 +6296,7 @@ e> %I(1,2,2,3)
 
 \begin_layout Plain Layout
 
-$repl2 = %I(1, 2, 3)
+$_repl2 = %I(1, 2, 3)
 \end_layout
 
 \end_inset
@@ -6341,7 +6340,7 @@ e> %D[0](1,0,0,3)
 
 \begin_layout Plain Layout
 
-$repl3 = %D[0](1, 3)
+$_repl3 = %D[0](1, 3)
 \end_layout
 
 \end_inset
@@ -6402,7 +6401,7 @@ e> %B[0](1,0,0,3)
 
 \begin_layout Plain Layout
 
-$repl4 = %B[0](0)
+$_repl4 = %B[0](0)
 \end_layout
 
 \end_inset
@@ -6441,7 +6440,8 @@ e> %CI(4,4,5,Red,"Joe",Blue,4,%CI(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl5 = %CI(4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, %CI(Red:SYMBOL, Blue:SYMBOL))
+$_repl5 = %CI(4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, %CI(Red:SYMBOL, Blue:SYMBOL)
+)
 \end_layout
 
 \begin_layout Plain Layout
@@ -6451,7 +6451,7 @@ e> %ACI(4,4,5,Red,"Joe",Blue,4,%ACI(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl6 = %ACI(4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL)
+$_repl6 = %ACI(4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL)
 \end_layout
 
 \end_inset
@@ -6484,7 +6484,7 @@ e> %C(4,4,5,Red,"Joe",Blue,4,%CI(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl7 = %C(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, %CI(Red:SYMBOL,
+$_repl7 = %C(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, %CI(Red:SYMBOL,
  Blue:SYMBOL))
 \end_layout
 
@@ -6495,8 +6495,8 @@ e> %AC(4,4,5,Red,"Joe",Blue,4,%AC(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl8 = %AC(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, Red:SYMBOL, Blue:SYMBOL
-)
+$_repl8 = %AC(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, Red:SYMBOL, Blue:SYMBO
+L)
 \end_layout
 
 \end_inset
@@ -6531,8 +6531,8 @@ e> %(4,4,5,Red,"Joe",Blue,4,%(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl9 = %(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, %(Red:SYMBOL, Blue:SYMBOL
-))
+$_repl9 = %(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, %(Red:SYMBOL, Blue:SYMBO
+L))
 \end_layout
 
 \begin_layout Plain Layout
@@ -6542,8 +6542,8 @@ e> %A(4,4,5,Red,"Joe",Blue,4,%A(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl10 = %A(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, Red:SYMBOL, Blue:SYMBOL
-)
+$_repl10 = %A(4, 4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL, 4, Red:SYMBOL, Blue:SYMBO
+L)
 \end_layout
 
 \begin_layout Plain Layout
@@ -6553,7 +6553,7 @@ e> %AI(4,4,5,Red,"Joe",Blue,4,%AI(Red,Blue))
 
 \begin_layout Plain Layout
 
-$repl11 = %AI(4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL)
+$_repl11 = %AI(4, 5, Red:SYMBOL, "Joe", Blue:SYMBOL)
 \end_layout
 
 \end_inset
@@ -6619,7 +6619,7 @@ e> %A.%C
 
 \begin_layout Plain Layout
 
-$repl11 = %AC
+$_repl11 = %AC
 \end_layout
 
 \begin_layout Plain Layout
@@ -6629,7 +6629,7 @@ e> %A.%!AC
 
 \begin_layout Plain Layout
 
-$repl12 = %AC
+$_repl12 = %AC
 \end_layout
 
 \begin_layout Plain Layout
@@ -6639,7 +6639,7 @@ e> %AD[0].%CD[2]
 
 \begin_layout Plain Layout
 
-$repl13 = %ACD[0]
+$_repl13 = %ACD[0]
 \end_layout
 
 \begin_layout Plain Layout
@@ -6649,7 +6649,7 @@ e> (%A.%I).%(3,%AI(3),3)
 
 \begin_layout Plain Layout
 
-$repl14 = %AI(3)
+$_repl14 = %AI(3)
 \end_layout
 
 \begin_layout Plain Layout
@@ -6659,7 +6659,7 @@ e> %A.%I(3,%I(3),3)
 
 \begin_layout Plain Layout
 
-$repl15 = %AI(3, %I(3))
+$_repl15 = %AI(3, %I(3))
 \end_layout
 
 \begin_layout Plain Layout
@@ -6669,7 +6669,7 @@ e> %A.%I(3,%AI(3),3)
 
 \begin_layout Plain Layout
 
-$repl16 = %AI(3)
+$_repl16 = %AI(3)
 \end_layout
 
 \end_inset
@@ -6783,23 +6783,23 @@ e> {operator #name=foo #params=%($x)}
 
 \begin_layout Plain Layout
 
-$repl35 = {: operator:SYMBOL { binds name -> foo:SYMBOL params -> %($x)
+$_repl35 = {: operator:SYMBOL { binds name -> foo:SYMBOL params -> %($x)
  } :}
 \end_layout
 
 \begin_layout Plain Layout
 
-e> def($repl35)
+e> def($_repl35)
 \end_layout
 
 \begin_layout Plain Layout
 
-ERROR: Atom is not a named operator: $repl35
+ERROR: Atom is not a named operator: $_repl35
 \end_layout
 
 \begin_layout Plain Layout
 
-e> def(eval($repl35))
+e> def(eval($_repl35))
 \end_layout
 
 \begin_layout Plain Layout
@@ -7728,7 +7728,7 @@ e> mset(7, fred, "James", blue, 7, blue)
 
 \begin_layout Plain Layout
 
-$repl18 = mset(7, fred:SYMBOL, "James", blue:SYMBOL, 7, blue:SYMBOL)
+$_repl18 = mset(7, fred:SYMBOL, "James", blue:SYMBOL, 7, blue:SYMBOL)
 \end_layout
 
 \end_inset
@@ -7761,7 +7761,7 @@ e> set(7, fred, "James", blue, 7, blue)
 
 \begin_layout Plain Layout
 
-$repl19 = set(7, fred:SYMBOL, "James", blue:SYMBOL)
+$_repl19 = set(7, fred:SYMBOL, "James", blue:SYMBOL)
 \end_layout
 
 \end_inset
@@ -7877,84 +7877,32 @@ Absorber elements include zero for multiplication, true for Boolean inclusive
  The type of the absorber must be the same as the parameter type.
 \end_layout
 
-\begin_layout Section
-Operator Declarations
+\begin_layout Subsection
+Construction
 \end_layout
 
 \begin_layout Standard
-One declares a symbolic operator by giving the prototype and properties
- in a complete declaration, as follows.
+Atoms are transformed when entered, based on their properties, before any
+ other processing, including a native handler, is performed.
+ Suppose we have the following definitions.
 \end_layout
 
 \begin_layout LyX-Code
-{ operator or($p: BOOLEAN, $q: BOOLEAN): BOOLEAN
+{operator #name=foo #params=%AD[0]($x,$y)}
 \end_layout
 
 \begin_layout LyX-Code
-  is associative, commutative, idempotent,
-\end_layout
-
-\begin_layout LyX-Code
-     identity false, absorber true }
-\end_layout
-
-\begin_layout Standard
-An immediate operator declaration provides a prototype and a body, but no
- properties, as the properties are implicit in the declared body.
- A simple example is the 
-\family typewriter
-typeof
-\family default
- operator that extracts and returns the type of its argument.
-\end_layout
-
-\begin_layout LyX-Code
-{ operator typeof($x:$T:$U):$U = $T }
-\end_layout
-
-\begin_layout Standard
-All these declarations are used when an operator application is 
-\emph on
-constructed
-\emph default
-, meaning when the operator is applied to an argument list.
- In the case of symbolic operators the argument list is processed based
- on the properties.
- If the operator has a closure, processing the argument list happens 
-\emph on
-prior
-\emph default
- to invoking the closure.
- If the operator has an absorber or identity, the closure might not be invoked
- at all.
-\end_layout
-
-\begin_layout Standard
-Immediate operators are best regarded as a way to specify an alternate name
- for another operator, like a macro.
-\end_layout
-
-\begin_layout LyX-Code
-{ operator `+`($x: INTEGER, $y: INTEGER): INTEGER = add($x,$y) }
-\end_layout
-
-\begin_layout Standard
-Note that there is no way to specify properties for an immediate operator
- definition, and thus these cannot take variable length argument lists.
-\end_layout
-
-\begin_layout Standard
-The following are some examples of operator construction.
+{operator #name=bar #params=%AB[true]($x,$y)}
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
-or($x,or($y,$z))
+foo($x,foo($y,$z))
 \family default
  becomes 
 \family typewriter
-or($x,$y,$z)
+foo($x,$y,$z)
 \family default
  because associative applications are 
 \begin_inset Quotes eld
@@ -7970,11 +7918,11 @@ flattened.
 \begin_layout Itemize
 
 \family typewriter
-add(5,0,2)
+foo(5,0,2)
 \family default
  becomes 
 \family typewriter
-add(5,2)
+foo(5,2)
 \family default
  because identities are discarded.
 \end_layout
@@ -7982,7 +7930,7 @@ add(5,2)
 \begin_layout Itemize
 
 \family typewriter
-or(true,false,$x)
+bar(true,false,$x)
 \family default
  becomes 
 \family typewriter
@@ -7998,7 +7946,7 @@ true
 \begin_layout Itemize
 
 \family typewriter
-add(0,0,0)
+foo(0,0,0)
 \family default
  becomes 
 \family typewriter
@@ -8006,7 +7954,7 @@ add(0,0,0)
 \family default
  because discarding identities leaves 
 \family typewriter
-add()
+foo()
 \family default
 , which is equal to the identity 
 \family typewriter
@@ -8015,16 +7963,8 @@ add()
 .
 \end_layout
 
-\begin_layout Itemize
-
-\family typewriter
-typeof(true)
-\family default
- becomes 
-\family typewriter
-BOOLEAN
-\family default
- because the immediate definition is applied at construction time.
+\begin_layout Standard
+Once this processing is complete, the system applies any native handler.
 \end_layout
 
 \begin_layout Section
@@ -8632,7 +8572,7 @@ e> %I(4,5,4,5,4,5)
 
 \begin_layout Plain Layout
 
-$repl14 = %I(4,5)
+$_repl14 = %I(4,5)
 \end_layout
 
 \end_inset
@@ -8660,7 +8600,7 @@ e> %A(%A(4,3),6)
 
 \begin_layout Plain Layout
 
-$repl15 = %A(4, 3, 6)
+$_repl15 = %A(4, 3, 6)
 \end_layout
 
 \begin_layout Plain Layout
@@ -8670,7 +8610,7 @@ e> %A(%(4,3),6)
 
 \begin_layout Plain Layout
 
-$repl16 = %A(%(4, 3), 6)
+$_repl16 = %A(%(4, 3), 6)
 \end_layout
 
 \begin_layout Plain Layout
@@ -8680,7 +8620,7 @@ e> %A(%AC(4,3),6)
 
 \begin_layout Plain Layout
 
-$repl17 = %A(%AC(4, 3), 6)
+$_repl17 = %A(%AC(4, 3), 6)
 \end_layout
 
 \begin_layout Plain Layout
@@ -8690,7 +8630,7 @@ e> %AI(%AI(4,3,6),6)
 
 \begin_layout Plain Layout
 
-$repl18 = %AI(4,3,6)
+$_repl18 = %AI(4,3,6)
 \end_layout
 
 \end_inset
@@ -8871,7 +8811,7 @@ e> fred
 
 \begin_layout Plain Layout
 
-$repl14 = fred:SYMBOL
+$_repl14 = fred:SYMBOL
 \end_layout
 
 \begin_layout Plain Layout
@@ -8923,7 +8863,7 @@ e> fred:SYMBOL.james
 
 \begin_layout Plain Layout
 
-$repl15 = fred:SYMBOL.james
+$_repl15 = fred:SYMBOL.james
 \end_layout
 
 \begin_layout Plain Layout
@@ -8933,12 +8873,12 @@ e> (fred)(5)
 
 \begin_layout Plain Layout
 
-$repl16 = fred:SYMBOL
+$_repl16 = fred:SYMBOL
 \end_layout
 
 \begin_layout Plain Layout
 
-$repl17 = 5
+$_repl17 = 5
 \end_layout
 
 \begin_layout Plain Layout
@@ -8958,7 +8898,7 @@ e> (fred:SYMBOL).5
 
 \begin_layout Plain Layout
 
-$repl18 = (fred:SYMBOL.5)
+$_repl18 = (fred:SYMBOL.5)
 \end_layout
 
 \begin_layout Plain Layout
@@ -9332,7 +9272,7 @@ e> typeof.5
 
 \begin_layout Plain Layout
 
-$repl4 = INTEGER
+$_repl4 = INTEGER
 \end_layout
 
 \end_inset
@@ -9543,6 +9483,212 @@ $`:2`
 \family default
  with De Bruijn index of two, and thus the entire lambda constructs a new
  
+\end_layout
+
+\begin_layout Chapter
+The Elision Distribution
+\end_layout
+
+\begin_layout Standard
+The Elision distribution consists of several files and folders.
+ This appendix explains what these items are, where to find them, and where
+ to put stuff if you want to contribute.
+\end_layout
+
+\begin_layout Section
+The Root Folder
+\end_layout
+
+\begin_layout Standard
+The root of the distribution is reserved for a few files.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+README.txt
+\family default
+ file that describes the distribution and how to build it and start the
+ REPL.
+ You should only modify this if you need to correct information or document
+ a new build.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+build.xml
+\family default
+ file that is used by Ant to compile the system and generate the API documentati
+on.
+ You should only modify this if you need to change how the system is built.
+ This is not needed if you are just adding new source files or third-party
+ libraries.
+\end_layout
+
+\begin_layout Standard
+There are scripts present in this folder.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+repl.sh
+\family default
+ script sets up the 
+\family typewriter
+CLASSPATH
+\family default
+ and invokes the Elision REPL.
+ This is a Bash script that is only useful on UNIX, Mac OS X, and Linux
+ machines, or on Windows machines with Cygwin.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Elision is developed on Mac OS X and Linux platforms, and only occasionally
+ tested on Windows, so YMMV.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+run.sh
+\family default
+ script sets up the 
+\family typewriter
+CLASSPATH
+\family default
+ and then starts the Scala interpreter.This is a Bash script that is only
+ useful on UNIX, Mac OS X, and Linux machines, or on Windows machines with
+ Cygwin.
+\end_layout
+
+\begin_layout Standard
+In general do not place any other items in the root folder.
+ Instead, put them in the appropriate subfolder.
+\end_layout
+
+\begin_layout Section
+The 
+\family typewriter
+etc
+\family default
+ Folder
+\end_layout
+
+\begin_layout Standard
+This folder is reserved for the following items.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+config.xml
+\family default
+ file that provides the template for the system's runtime configuration,
+ and the 
+\family typewriter
+elision_configuration.dtd
+\family default
+ that describes the format of the configuration file.
+ You should not need to modify either of these unless you are modifying
+ the 
+\family typewriter
+ornl.elision.Version
+\family default
+ object.
+\end_layout
+
+\begin_layout Itemize
+Files that provide Elision support for editors or IDE's, such as Emacs,
+ Eclipse, Sublime, and others.
+\end_layout
+
+\begin_layout Itemize
+Miscellaneous files, such as properties files for use in Eclipse, if desired.
+\end_layout
+
+\begin_layout Standard
+If you have a file or files you need to add, and have no other place to
+ put it, this is the place it belongs.
+\end_layout
+
+\begin_layout Section
+The 
+\family typewriter
+doc
+\family default
+ Folder
+\end_layout
+
+\begin_layout Standard
+This folder contains the Elision documentation, other than the 
+\family typewriter
+README.txt
+\family default
+ file.
+ Specifically, it contains the following.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+elision.lyx
+\family default
+ file.
+ This is a LyX
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+LyX is an editor that is backed by 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+LaTeX
+\end_layout
+
+\end_inset
+
+.
+ If you want to edit this document, you need LyX.
+ Fortunately it runs on almost every platform out there.
+ Visit 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://lyx.org
+\end_layout
+
+\end_inset
+
+ for more information and links to the latest version.
+\end_layout
+
+\end_inset
+
+ source file that is converted into 
+\family typewriter
+elision.pdf
+\family default
+, and contains the user and developer documentation you are reading right
+ now.
+\end_layout
+
+\begin_layout Chapter
+The Elision Coding Guide
 \end_layout
 
 \begin_layout Chapter
