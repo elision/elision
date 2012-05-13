@@ -9486,16 +9486,31 @@ $`:2`
 \end_layout
 
 \begin_layout Chapter
-The Elision Distribution
+The Elision Directory Structure
 \end_layout
 
 \begin_layout Standard
-The Elision distribution consists of several files and folders.
+The Elision repository contains several files and folders.
  This appendix explains what these items are, where to find them, and where
  to put stuff if you want to contribute.
+ The description here contains items that are 
+\emph on
+not
+\emph default
+ part of the built distribution, since many of these are not required by
+ the distribution.
+ This description also contains items that are 
+\emph on
+not
+\emph default
+ found in the repository, but are created during the build process.
 \end_layout
 
 \begin_layout Section
+In the Distribution
+\end_layout
+
+\begin_layout Subsection
 The Root Folder
 \end_layout
 
@@ -9574,7 +9589,7 @@ In general do not place any other items in the root folder.
  Instead, put them in the appropriate subfolder.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 The 
 \family typewriter
 etc
@@ -9619,7 +9634,7 @@ If you have a file or files you need to add, and have no other place to
  put it, this is the place it belongs.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 The 
 \family typewriter
 doc
@@ -9634,6 +9649,14 @@ README.txt
 \family default
  file.
  Specifically, it contains the following.
+\end_layout
+
+\begin_layout Itemize
+This file, 
+\family typewriter
+elision.pdf
+\family default
+.
 \end_layout
 
 \begin_layout Itemize
@@ -9685,6 +9708,120 @@ elision.pdf
 \family default
 , and contains the user and developer documentation you are reading right
  now.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+makedoc.sh
+\family default
+ script that will compile the API documentation without requiring you to
+ have Ant.
+ This file runs the Scaladoc command and puts the documentation in the 
+\family typewriter
+api
+\family default
+ subfolder, the same as the 
+\family typewriter
+build.xml
+\family default
+ script does.
+ This is a Bash script, and should work on UNIX and Mac OS X, Linux, and
+ possibly on Windows under Cygwin.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+index.html
+\family default
+ file used by the Elision web site.
+\end_layout
+
+\begin_layout Itemize
+If the API documentation has been built, either by running the 
+\family typewriter
+makedoc.sh
+\family default
+ script or by running the Ant build and specifying the 
+\family typewriter
+doc
+\family default
+ target, then there will be an 
+\family typewriter
+api
+\family default
+ folder containing the API documentation.
+ Point your browser to 
+\family typewriter
+doc/api/index.html
+\family default
+ to view the documentation.
+\end_layout
+
+\begin_layout Standard
+Other documentation files should be put in this folder.
+\end_layout
+
+\begin_layout Subsection
+The 
+\family typewriter
+lib
+\family default
+ Folder
+\end_layout
+
+\begin_layout Standard
+This folder contains third party code necessary to compile and run the system.
+ There is a simple rule for this folder: The build and the Bash scripts
+ will search this folder for any jar files, and will add all such files
+ found to the class path.
+\end_layout
+
+\begin_layout Standard
+If you need to use third party code in Elision, and you want to contribute
+ back to the main distribution, you must first clear the inclusion of the
+ code with the maintainers to make sure there are no licensing conflicts,
+ and then you should place the distribution in this folder.
+ This allows for consistent and rational versioning.
+ If the user were required to get and install the third party libraries,
+ they might obtain incompatible versions.
+\end_layout
+
+\begin_layout Subsection
+The 
+\family typewriter
+src
+\family default
+ Folder
+\end_layout
+
+\begin_layout Standard
+This folder contains the source code for Elision, organized into folders
+ that mirror the package hierarchy.
+ All Elision code should be placed in a package rooted under 
+\family typewriter
+ornl.elision
+\family default
+.
+ This is where you will place new source files, as well as any extra files
+ required by Scaladoc.
+\end_layout
+
+\begin_layout Section
+From the Build
+\end_layout
+
+\begin_layout Subsection
+The 
+\family typewriter
+bin
+\family default
+ Folder
+\end_layout
+
+\begin_layout Standard
+This folder is created by the build process
 \end_layout
 
 \begin_layout Chapter
