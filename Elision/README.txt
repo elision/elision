@@ -40,6 +40,7 @@ Prerequisites
 Building
 Running the REPL
 Eclipse
+Acknowledgments
 License for JLine
 License for Parboiled
 
@@ -164,6 +165,17 @@ Once you have installed the Scala IDE plugin, do the following.
 
 At this point Elision should automatically build, and you are ready to start
 working with the code.
+
+
+Acknowledgments
+===============
+Thanks to Oak Ridge National Laboratory and the Department of Energy for
+supporting this work.
+
+Thanks to Github for hosting this open source project.
+
+Thanks to Headway Software for providing licenses for structure101.  Find
+out more about this great software here: http://www.headwaysoftware.com.
 
 
 LICENSE for JLine
