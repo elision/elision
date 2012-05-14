@@ -58,6 +58,7 @@ figs-within-sections
 \paperorientation portrait
 \suppress_date false
 \use_refstyle 1
+\boxbgcolor #3ebcbc
 \index Index
 \shortcut idx
 \color #008000
@@ -6877,7 +6878,7 @@ parameter list
 \end_layout
 
 \begin_layout Standard
-To specify a symbolic operator, given these three items in the following
+To specify a symbolic operator, give these three items in the following
  form:
 \end_layout
 
@@ -6945,12 +6946,6 @@ The following are some examples of common operators.
 \end_layout
 
 \begin_layout Standard
-The properties specified for the operator are interpreted a bit differently
- from how they are interpreted for collections.
- The following section explains how they are interpreted.
-\end_layout
-
-\begin_layout Standard
 \noindent
 \begin_inset Box Shaded
 position "t"
@@ -6963,7 +6958,7 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
-status open
+status collapsed
 
 \begin_layout Subsection*
 Scala
@@ -7151,10 +7146,6 @@ context.operatorLibrary.add(orOp)
 context.operatorLibrary.add(addOp)
 \end_layout
 
-\begin_layout LyX-Code
-context.operatorLibrary.add(typeofOp)
-\end_layout
-
 \begin_layout Plain Layout
 The operator library is also where you register a closure for a symbolic
  operator.
@@ -7163,13 +7154,13 @@ The operator library is also where you register a closure for a symbolic
 \family typewriter
 core.AtomList
 \family default
-, and an optional instance of 
+, and an instance of 
 \family typewriter
 core.Bindings
 \family default
 .
  The bindings are the result of matching the operator parameters against
- the arguments, and may be indispensable in some cases.
+ the arguments, and may be useful in some cases.
  The closure must then return an atom.
  Matching, binding, and rewriting are all explained in more detail in 
 \begin_inset CommandInset ref
@@ -7179,8 +7170,24 @@ reference "chap:Matching-and-Rewriting"
 \end_inset
 
 .
- The following actually implements addition as a symbolic operator with
- a native constructor, though it uses some methods not explained just yet.
+ You register the native handler using the 
+\family typewriter
+core.OperatorLibrary.register(name, handler)
+\family default
+ instance method, where 
+\family typewriter
+name
+\family default
+ is the (string) name of the operator, and 
+\family typewriter
+handler
+\family default
+ is the closure described above.
+ The following registers a native constructor for 
+\family typewriter
+add
+\family default
+, but does use some methods not explained just yet.
 \end_layout
 
 \begin_layout LyX-Code
@@ -7188,103 +7195,75 @@ reference "chap:Matching-and-Rewriting"
 \end_layout
 
 \begin_layout LyX-Code
-val addOp = SymbolicOperatorDefinition(
+context.operatorLibrary.register("add",
 \end_layout
 
 \begin_layout LyX-Code
-  Proto("add", INTEGER, ("x", INTEGER), ("y", INTEGER)),
+  (op: Operator, args: AtomSeq, _) => {
 \end_layout
 
 \begin_layout LyX-Code
-  Associative and Commutative and Identity(0))
+    // Accumulate the integer literals found.
 \end_layout
 
 \begin_layout LyX-Code
-// Create a closure to perform the addition.
+	var lits:BigInt = 0
 \end_layout
 
 \begin_layout LyX-Code
-def doaddOp(op: Operator, args: AtomList,
+	// Accumulate other atoms found.
 \end_layout
 
 \begin_layout LyX-Code
-    binds: Bindings) = {
+	var other = IndexedSeq[BasicAtom]()
 \end_layout
 
 \begin_layout LyX-Code
-  // Accumulate the integer literals found.
+	// Traverse the list and divide the atoms.
 \end_layout
 
 \begin_layout LyX-Code
-  var lits: BigInt = 0
+	args.foreach {
 \end_layout
 
 \begin_layout LyX-Code
-  // Accumulate other atoms found.
+	  x => x match {
 \end_layout
 
 \begin_layout LyX-Code
-  var other = IndexedSeq[BasicAtom]()
+	    case IntegerLiteral(_, value) => lits += value
 \end_layout
 
 \begin_layout LyX-Code
-  // Traverse the list and divide the atoms.
+	    case _ => other :+= x
 \end_layout
 
 \begin_layout LyX-Code
-  args.atoms.foreach {
+	  }
 \end_layout
 
 \begin_layout LyX-Code
-    x => x match {
+	}
 \end_layout
 
 \begin_layout LyX-Code
-      case IntegerLiteral(_, value) => lits += value
+	// Now add the accumulated literals to the list.
 \end_layout
 
 \begin_layout LyX-Code
-      case _ => other :+= x
+	other :+= Literal(INTEGER, lits)
 \end_layout
 
 \begin_layout LyX-Code
-    }
+	// Construct and return a new operator application.
 \end_layout
 
 \begin_layout LyX-Code
-  }
+	Apply(op, AtomSeq(NoProps, other), true)
 \end_layout
 
 \begin_layout LyX-Code
-  // Now add the accumulated literals to the list.
-\end_layout
-
-\begin_layout LyX-Code
-  other :+= Literal(INTEGER, lits)
-\end_layout
-
-\begin_layout LyX-Code
-  // Construct and return the new operator application.
-\end_layout
-
-\begin_layout LyX-Code
-  Apply(op, AtomList(other), true)
-\end_layout
-
-\begin_layout LyX-Code
-}
-\end_layout
-
-\begin_layout LyX-Code
-// Register the operator and its handler.
-\end_layout
-
-\begin_layout LyX-Code
-context.operatorLibrary.add(addOp)
-\end_layout
-
-\begin_layout LyX-Code
-context.operatorLibrary.register("add", doaddOp)
+})
 \end_layout
 
 \begin_layout Plain Layout
@@ -7308,8 +7287,8 @@ First,
 \family typewriter
 core.Apply
 \family default
- understands how to use the operator prototype to process absorbers and
- identities, etc., and this processing is performed 
+ understands how to use the operator to process absorbers and identities,
+ etc., and this processing is performed 
 \emph on
 first
 \emph default
@@ -7340,7 +7319,7 @@ core.Apply
 \family typewriter
 add
 \family default
-.
+ shown above.
  This can simplify the native constructor since it does not have to worry
  about identities, etc.
  In the 
@@ -7388,6 +7367,12 @@ core.Apply
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The properties specified for the operator are interpreted a bit differently
+ from how they are interpreted for collections.
+ The following section explains how they are interpreted.
 \end_layout
 
 \begin_layout Section
@@ -7844,7 +7829,7 @@ Further,
 \end_inset
 
 .
- The type of the identity must be the same as the parameter type.
+ The type of the identity must match the parameter type.
 \end_layout
 
 \begin_layout Subsection
@@ -7874,7 +7859,7 @@ An operator
 \begin_layout Standard
 Absorber elements include zero for multiplication, true for Boolean inclusive
  or, and false for Boolean and.
- The type of the absorber must be the same as the parameter type.
+ The type of the absorber must match the parameter type.
 \end_layout
 
 \begin_layout Subsection
@@ -7888,21 +7873,21 @@ Atoms are transformed when entered, based on their properties, before any
 \end_layout
 
 \begin_layout LyX-Code
-{operator #name=foo #params=%AD[0]($x,$y)}
+{operator #name=foo #params=%AD[0]($x:INTEGER,$y:INTEGER) #type=INTEGER}
 \end_layout
 
 \begin_layout LyX-Code
-{operator #name=bar #params=%AB[true]($x,$y)}
+{operator #name=bar #params=%AB[true]($x:BOOLEAN,$y:BOOLEAN) #type=BOOLEAN}
 \end_layout
 
 \begin_layout Itemize
 
 \family typewriter
-foo($x,foo($y,$z))
+foo($x:INTEGER,foo($y:INTEGER,$z:INTEGER))
 \family default
  becomes 
 \family typewriter
-foo($x,$y,$z)
+foo($x:INTEGER,$y:INTEGER,$z:INTEGER)
 \family default
  because associative applications are 
 \begin_inset Quotes eld
@@ -7930,7 +7915,7 @@ foo(5,2)
 \begin_layout Itemize
 
 \family typewriter
-bar(true,false,$x)
+bar(true,false,$x:BOOLEAN)
 \family default
  becomes 
 \family typewriter
@@ -8120,37 +8105,57 @@ reference "sec:The-Applicative-Dot"
 \begin_layout Plain Layout
 Before an operator can be applied, you must get an instance of that operator.
  If you have installed the operator definition in an operator library, you
- can retrieve it via the 
+ can retrieve it via either the 
 \family typewriter
 get(name)
 \family default
- method of 
+ instance method of 
 \family typewriter
 core.OperatorLibrary
 \family default
-, where 
+, or via the 
+\family typewriter
+apply(name)
+\family default
+ instance method, where 
 \family typewriter
 name
 \family default
  is the operator name.
- This will return an instance of 
+ The 
 \family typewriter
-core.Operator
+get(name)
 \family default
-.
- The operator definition, and thus the prototype and properties (or body
- depending on the kind of definition), can be obtained from the operator
- instance.
- Alternately, you can use the 
+ method returns an optional 
 \family typewriter
-apply
+core.OperatorRef
 \family default
- method of 
+, returning 
 \family typewriter
-core.OperatorLibrary
+None
 \family default
- if you are sure the operator exists.
- If the operator does not exist, this method will throw an exception.
+ if the operator is not known.
+ The 
+\family typewriter
+apply(name)
+\family default
+ method will will return an instance of 
+\family typewriter
+core.OperatorRef
+\family default
+, or throw an exception if the operator is not known.
+\end_layout
+
+\begin_layout Plain Layout
+The operator itself can be obtained from the 
+\family typewriter
+core.OperatorRef
+\family default
+ instance via its 
+\family typewriter
+operator
+\family default
+ field.
  The following are two ways to obtain the 
 \family typewriter
 add
@@ -8167,7 +8172,7 @@ context.operatorLibrary.get("add") match {
 \end_layout
 
 \begin_layout LyX-Code
-  case Some(op) => // Do something with the operator op.
+  case Some(opref) => // Do something with the operator opref.operator
 \end_layout
 
 \begin_layout LyX-Code
@@ -8187,7 +8192,32 @@ context.operatorLibrary.get("add") match {
 \end_layout
 
 \begin_layout LyX-Code
-context.operatorLibrary("add")
+context.operatorLibrary("add").operator
+\end_layout
+
+\begin_layout Plain Layout
+Of course, you probably don't need (or even want) the actual operator; a
+ reference to the operator is sufficient.
+\end_layout
+
+\begin_layout Plain Layout
+Once you have the operator reference, you can apply it to arguments by just
+ listing the arguments in parentheses after the reference, thus implicitly
+ invoking the operator's (or reference's) 
+\family typewriter
+apply
+\family default
+ method.
+ You can also use the 
+\family typewriter
+core.Apply
+\family default
+ class as explained in the next section.
+ The following adds some numbers.
+\end_layout
+
+\begin_layout LyX-Code
+context.operatorLibrary("add")(2,2,9)
 \end_layout
 
 \end_inset
@@ -8219,11 +8249,7 @@ add.%(4,5,$x)
 \emph on
 applicative dot
 \emph default
- and an 
-\emph on
-atom list
-\emph default
- to apply an operator to arguments.
+ and a collection to apply an operator to arguments.
  The two forms are equivalent; they are alternative ways to represent the
  same atom.
  The first form is actually a shorthand notation for the second.
@@ -8244,26 +8270,56 @@ While operators are atoms, if you just evaluate
 \family typewriter
 add
 \family default
- Elision will interpret this as a symbol of type 
+ by itself Elision will usually interpret this as a symbol of type 
 \family typewriter
 SYMBOL
 \family default
 .
  To force Elision to look this operator up, write 
 \family typewriter
-add:OPTYPE
+add:OPREF
 \family default
 .
  The 
 \family typewriter
-OPTYPE
+OPREF
 \family default
  is not actually the type of the operator, but just a hint to force the
  Elision parser to look up the operator in the parser's context.
+ If the operator is not known, an error is reported.
+ The built in operator 
+\family typewriter
+getop
+\family default
+ can be used to get the actual operator from an operator reference.
 \end_layout
 
 \begin_layout Standard
-The actual type of an operator is a 
+The type of an operator
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+There are two exceptions.
+ The operators 
+\family typewriter
+MAP
+\family default
+ and 
+\family typewriter
+xx
+\family default
+ are used to represent the type of operators, so they get special treatment.
+ Their type is 
+\family typewriter
+ANY
+\family default
+.
+\end_layout
+
+\end_inset
+
+ is a 
 \emph on
 mapping
 \emph default
@@ -8292,7 +8348,7 @@ status open
 
 e> 
 \backslash
-$x:$T.$T.add:OPTYPE
+$x:$T.$T.getop(add:OPREF)
 \end_layout
 
 \begin_layout Plain Layout
@@ -8310,11 +8366,7 @@ The type for the
 \family typewriter
 add
 \family default
- operator is a mapping from pairs of integers to integers, and not 
-\family typewriter
-OPTYPE
-\family default
-.
+ operator is a mapping from pairs of integers to integers.
  The above expression parses correctly because the applicative dot binds
  the most weakly of all connectors; more weakly than the lambda dot, for
  instance, which binds more weakly than the type colon.
@@ -8324,7 +8376,7 @@ OPTYPE
 \begin_layout LyX-Code
 (
 \backslash
-$x:$T.$T).(add:OPTYPE)
+$x:$T.$T).(getop(add:OPREF))
 \end_layout
 
 \begin_layout Standard
@@ -8397,7 +8449,7 @@ mean.
 \family typewriter
 (
 \backslash
-$x:$T.$T).add:OPTYPE
+$x:$T.$T).getop(add:OPREF)
 \end_layout
 
 \end_inset
@@ -8426,212 +8478,6 @@ $x.$y
 </cell>
 </row>
 </lyxtabular>
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Just as an operator can stand by itself (
-\family typewriter
-add:OPTYPE
-\family default
-), so can an argument list.
- The odd notation 
-\family typewriter
-%(4,5,$x)
-\family default
- specifies an atom list whose elements are, in order, 
-\family typewriter
-4
-\family default
-, 
-\family typewriter
-5
-\family default
-, and 
-\family typewriter
-$x
-\family default
-.
- Using tools discussed later, it is possible to take an atom like 
-\family typewriter
-add(4,5,$x)
-\family default
- and divide it into the operator and the argument list.
- Because the argument list can become detached from the operator, we allow
- specifying the associativity and commutativity of the argument list independent
-ly of the operator.
- The following are some examples of lists.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%(4,5,$x)
-\family default
- is a list whose associativity, commutativity, and idempotency are unspecified.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%A(4,5,$x)
-\family default
- is an associative list whose other properties are unspecified.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%C(4,5,$x)
-\family default
- is a commutative list whose other properties are unspecified.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%I(4,5,$x)
-\family default
- is an idempotent list whose other properties are unspecified.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%AC(4,5,$x)
-\family default
- is a list that is both associative and commutative.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%A!I(4,5,$x)
-\family default
- is a list that is associative but not idempotent.
- Commutativity is unspecified.
-\end_layout
-
-\begin_layout Itemize
-
-\family typewriter
-%!A!C(4,5,$x)
-\family default
- is a list that is neither associative nor commutative, but whose idempotency
- is unspecified.
-\end_layout
-
-\begin_layout Standard
-The first case is the one we have been using, as it allows the argument
- list to 
-\begin_inset Quotes eld
-\end_inset
-
-inherit
-\begin_inset Quotes erd
-\end_inset
-
- all the properties of the operator or context in which it is applied.
- In short, if you care about a property, specify it, and use the exclamation
- point (
-\family typewriter
-!
-\family default
-) to negate a property.
- The order is 
-\emph on
-not
-\emph default
- important: 
-\family typewriter
-%I!CA(4,5,$x)
-\family default
- is perfectly fine, and case does not matter: 
-\family typewriter
-%i!Ca(4,5,$x)
-\family default
- is also fine.
-\end_layout
-
-\begin_layout Standard
-Making a list idempotent has an immediate effect: duplicates are removed.
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
-e> %I(4,5,4,5,4,5)
-\end_layout
-
-\begin_layout Plain Layout
-
-$_repl14 = %I(4,5)
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Likewise, associative lists are flattened 
-\emph on
-provided
-\emph default
- the subordinate lists have the same specified properties.
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-inline false
-status open
-
-\begin_layout Plain Layout
-
-e> %A(%A(4,3),6)
-\end_layout
-
-\begin_layout Plain Layout
-
-$_repl15 = %A(4, 3, 6)
-\end_layout
-
-\begin_layout Plain Layout
-
-e> %A(%(4,3),6)
-\end_layout
-
-\begin_layout Plain Layout
-
-$_repl16 = %A(%(4, 3), 6)
-\end_layout
-
-\begin_layout Plain Layout
-
-e> %A(%AC(4,3),6)
-\end_layout
-
-\begin_layout Plain Layout
-
-$_repl17 = %A(%AC(4, 3), 6)
-\end_layout
-
-\begin_layout Plain Layout
-
-e> %AI(%AI(4,3,6),6)
-\end_layout
-
-\begin_layout Plain Layout
-
-$_repl18 = %AI(4,3,6)
-\end_layout
 
 \end_inset
 
@@ -8668,60 +8514,7 @@ Scala
 \end_layout
 
 \begin_layout Plain Layout
-Atom lists are instances of 
-\family typewriter
-core.AtomList
-\family default
-.
- To create an atom list, collect the atoms into an instance of any 
-\family typewriter
-scala.collection.IndexedSeq
-\family default
-, such as a 
-\family typewriter
-scala.collection.immutable.Vector
-\family default
-.
- Pass this sequence, along with the optional properties, to the 
-\family typewriter
-core.AtomList
-\family default
- constructor.
- The properties are specified using the same method as for operators.
- Properties are given first in their own argument list, and the elements
- of the list are given in a second argument list.
-\end_layout
-
-\begin_layout Plain Layout
-The lists 
-\family typewriter
-%(4,5,$x)
-\family default
-, 
-\family typewriter
-%!A(4,5,$x)
-\family default
-, and 
-\family typewriter
-%!CA(4,5,$x)
-\family default
- can be constructed with the following code.
-\end_layout
-
-\begin_layout LyX-Code
-AtomList()(4, 5, 'x)
-\end_layout
-
-\begin_layout LyX-Code
-AtomList(!Associative)(4, 5, 'x)
-\end_layout
-
-\begin_layout LyX-Code
-AtomList(!Commutative and Associative)(4, 5, 'x)
-\end_layout
-
-\begin_layout Plain Layout
-To create an apply, use the 
+To create an apply using the applicative dot, use the 
 \family typewriter
 core.Apply(lhs,rhs)
 \family default
@@ -8750,11 +8543,12 @@ Apply(7,'x)
 \family typewriter
 // (
 \backslash
-$x:$T.$T).add:OPTYPE
+$x:$T.$T).getop(add:OPREF)
 \end_layout
 
 \begin_layout LyX-Code
-Apply(Lambda(Variable('T,"x"),'T), Literal(OPTYPE,'add))
+Apply(Lambda(Variable('T,"x"),'T), context.operatorLibrary("getop")(Literal(OPREF
+,'add)))
 \end_layout
 
 \begin_layout LyX-Code
@@ -8762,7 +8556,7 @@ Apply(Lambda(Variable('T,"x"),'T), Literal(OPTYPE,'add))
 \end_layout
 
 \begin_layout LyX-Code
-Apply(context.operatorLibrary("add"), AtomList()(5,6))
+Apply(context.operatorLibrary("add"), AtomSeq(NoProps, 5, 6))
 \end_layout
 
 \begin_layout LyX-Code
@@ -8794,8 +8588,8 @@ naked
 
  symbol, and is subject to special treatment.
  If the naked symbol appears on the left-hand side of an apply, the system
- will attempt to interpret it as an operator, and will look it up in the
- context.
+ will attempt to interpret it as an operator reference, and will look it
+ up in the context.
  If it is not found, it will issue an error.
 \end_layout
 
@@ -8848,7 +8642,7 @@ SYMBOL
 \family default
 .
  Enclosing the symbol in parentheses only helps with the simple operator
- application, and not the applicative dot.
+ application, but not with the applicative dot.
 \end_layout
 
 \begin_layout Standard
@@ -8863,7 +8657,7 @@ e> fred:SYMBOL.james
 
 \begin_layout Plain Layout
 
-$_repl15 = fred:SYMBOL.james
+$_repl15 = (fred:SYMBOL.james:SYMBOL)
 \end_layout
 
 \begin_layout Plain Layout
@@ -8922,10 +8716,10 @@ The last line above is included just to emphasize that types are themselves
 \end_layout
 
 \begin_layout Standard
-The opposite of this is to explicitly state that a symbol denotes an operator,
- using 
+The opposite of this is to explicitly state that a symbol is an operator
+ reference, using 
 \family typewriter
-OPTYPE
+OPREF
 \family default
 .
 \end_layout
@@ -8937,7 +8731,7 @@ status open
 
 \begin_layout Plain Layout
 
-e> (fred:OPTYPE)(5)
+e> (fred:OPREF)(5)
 \end_layout
 
 \begin_layout Plain Layout
@@ -8996,14 +8790,14 @@ Scala
 \begin_layout Plain Layout
 The special type 
 \family typewriter
-OPTYPE
+OPREF
 \family default
  is one place where the Scala API and REPL deviate.
  Consider the following code.
 \end_layout
 
 \begin_layout LyX-Code
-Apply(Literal(OPTYPE, 'fred), Literal(5)).toParseString
+Apply(Literal(OPREF, 'fred), Literal(5)).toParseString
 \end_layout
 
 \begin_layout Plain Layout
@@ -9013,7 +8807,7 @@ This yields the output
 
 
 \family typewriter
-(fred:OPTYPE.5)
+(fred:OPREF.5)
 \family default
 ,
 \begin_inset Quotes erd
@@ -9027,8 +8821,7 @@ round trip
 \begin_inset Quotes erd
 \end_inset
 
- test.
- Parsing this string results in an attempt to look up the 
+ test; parsing this string results in an attempt to look up the 
 \family typewriter
 fred
 \family default
@@ -9055,10 +8848,14 @@ fred
 \begin_layout Plain Layout
 To prevent this future versions of Elision may do away with 
 \family typewriter
-OPTYPE
+OPREF
 \family default
  at the API level, and more rigorously dispose of it during parsing, but
- for now remember that this is a piece of parser 
+ for now remember that 
+\family typewriter
+OPREF
+\family default
+ is a piece of parser 
 \begin_inset Quotes eld
 \end_inset
 
@@ -9075,30 +8872,229 @@ magic.
 \end_layout
 
 \begin_layout Section
-Case Definitions
+Case Operators
+\end_layout
+
+\begin_layout Standard
+A case operator declaration must have the following elements.
+\end_layout
+
+\begin_layout Itemize
+A 
+\emph on
+name
+\emph default
+, specified as a symbol.
+ For example, 
+\family typewriter
+sum
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+An optional 
+\emph on
+type
+\emph default
+, which is the type of the fully-applied operator.
+ If not specified, 
+\family typewriter
+ANY
+\family default
+ is used.
+\end_layout
+
+\begin_layout Itemize
+A 
+\emph on
+case list
+\emph default
+, which specifies the alternatives for the operator.
+\end_layout
+
+\begin_layout Standard
+To specify a case operator, give these three items in the following form:
+\end_layout
+
+\begin_layout LyX-Code
+{ operator #name=NAME #type=TYPE #cases CASES }
+\end_layout
+
+\begin_layout Standard
+where 
+\family typewriter
+NAME
+\family default
+ is the operator name, 
+\family typewriter
+TYPE
+\family default
+ is the type of the fully-applied operator, and 
+\family typewriter
+CASES
+\family default
+ is the comma-separated list of alternatives.
+ Again, if the 
+\family typewriter
+#type
+\family default
+ is 
+\emph on
+not
+\emph default
+ declared, it is assumed to be 
+\family typewriter
+ANY
+\family default
+.
 \end_layout
 
 \begin_layout Standard
 A case definition defines an operator by explicitly giving the interpretation
  of the operator in terms of its argument.
  When the operator symbol appears on the left of an applicative dot (even
- when implicit) then the argument is matched against a sequence of alternatives,
- in order.
- If one matches, then the rewrite is applied, yielding the final atom.
- If none apply, then the application is rejected, as it does not satisfy
- the operator definition.
+ when implicit) then each of the alternatives is considered, in order.
 \end_layout
 
 \begin_layout Standard
-The following is a general definition of 
+The alternatives can be any atom, but some atoms are special.
+\end_layout
+
+\begin_layout Itemize
+If the atom is a 
+\emph on
+rewriter
+\emph default
+ (the 
+\begin_inset Quotes eld
+\end_inset
+
+map pair
+\begin_inset Quotes erd
+\end_inset
+
+ is the most common), then the rewrite is attempted.
+ If it succeeds, then the result is the value of the operator application.
+ If it fails, then the next alternative is tried.
+\end_layout
+
+\begin_layout Itemize
+If the atom is an 
+\emph on
+applicable
+\emph default
+ (operators are the most common, but also algebraic property specifications),
+ then the applicable is placed on the left hand side of the applicative
+ dot, and the arguments on the right hand side.
+ The result is the value of the operator and no further alternatives are
+ considered.
+\end_layout
+
+\begin_layout Itemize
+Otherwise the atom is the value of the operator.
+\end_layout
+
+\begin_layout Standard
+The second and third cases are very simple, so we consider them first.
+ The following creates an alias for the 
 \family typewriter
 add
 \family default
- using cases.
+ operator.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> def({operator #name=`+` #cases add:OPREF})
+\end_layout
+
+\begin_layout Plain Layout
+
+Defined operator `+`.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> `+`(5,4,3)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl20 = 12
+\end_layout
+
+\end_inset
+
+The following creates a constant function that yields the value one no matter
+ what the arguments.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> def({operator #name=one #cases 1})
+\end_layout
+
+\begin_layout Plain Layout
+
+Defined operator one.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> one(4,5)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl0 = 1 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The first case uses a rewritable, which will be more fully explained in
+ 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Matching-and-Rewriting"
+
+\end_inset
+
+.
+ Here we consider a simple one: the 
+\emph on
+map pair
+\emph default
+.
+ A map pair consists of a pattern against which the argument list is matched,
+ a text arrow (
+\family typewriter
+->
+\family default
+), and an atom specifying the value of the operator when the pattern matches
+ the argument list.
+\end_layout
+
+\begin_layout Standard
+The following is a general definition using cases.
 \end_layout
 
 \begin_layout LyX-Code
-{operator add case
+{operator #name=sum #cases
 \end_layout
 
 \begin_layout LyX-Code
@@ -9110,35 +9106,62 @@ add
 \end_layout
 
 \begin_layout LyX-Code
-          %AC($x: INTEGER, $y: INTEGER) -> iadd($x,$y),
+          %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
 \end_layout
 
 \begin_layout LyX-Code
-          %A($x: STRING, $y: STRING) -> concat($x,$y)}
+          %A($x: STRING, $y: STRING) -> ($x.$y)}
 \end_layout
 
 \begin_layout Standard
 This definition allows adding both integers (via 
 \family typewriter
-iadd
+add
 \family default
-) and strings (via 
-\family typewriter
-concat
-\family default
-).
+) and strings (via the applicative dot).
  Note that the lists can specify properties to facilitate proper matching.
  Note also that 
 \family typewriter
-add(5,"Fred")
+sum(5,"Fred")
 \family default
- results in an error, as this is an undefined case.
+ results in an error, as this does not match any case.
+ Likewise, 
+\family typewriter
+sum()
+\family default
+ does not match any case, either.
+ Suppose we want to allow the no-argument case but to leave it as 
+\family typewriter
+sum()
+\family default
+.
+ We add an alternative with the form 
+\family typewriter
+%() -> _
+\family default
+.
+ This matches the empty argument list.
+ The value in this case is the underscore, which is a synonym for 
+\family typewriter
+ANY
+\family default
+, and is interpreted here to mean that the argument list should be left
+ as it was at the start, yielding 
+\family typewriter
+sum()
+\family default
+ as the final answer.
 \end_layout
 
 \begin_layout Standard
 Suppose we never want an undefined case; when we do not match a given case,
  we want to accept and leave the operator application unchanged, perhaps
  for symbolic manipulation.
+ We can use 
+\family typewriter
+ANY
+\family default
+ as the pattern to catch this case.
  Consider the following alternate definition of 
 \family typewriter
 add
@@ -9147,7 +9170,7 @@ add
 \end_layout
 
 \begin_layout LyX-Code
-{operator add case
+{operator #name=sum #cases
 \end_layout
 
 \begin_layout LyX-Code
@@ -9159,91 +9182,41 @@ add
 \end_layout
 
 \begin_layout LyX-Code
-          %AC($x: INTEGER, $y: INTEGER) -> iadd($x,$y),
+          %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
 \end_layout
 
 \begin_layout LyX-Code
-          %A($x: STRING, $y: STRING) -> concat($x,$y),
+          %A($x: STRING, $y: STRING) -> ($x.$y),
 \end_layout
 
 \begin_layout LyX-Code
-          $x:_ -> $_.$x}
+          _ -> _}
 \end_layout
 
 \begin_layout Standard
-That last line requires explanation.
- The pattern matches anything and binds it to 
+In the last line the lone underscore (a synonym for 
 \family typewriter
-$x
+ANY
 \family default
-.
- The rewrite uses the special variable 
-\family typewriter
-$_
-\family default
- that is explicitly defined in the context of the operator definition to
- designate the 
-\family typewriter
-add
-\family default
- operator we are constructing.
+) matches anything.
  Thus 
 \family typewriter
-add(5,"Fred")
+sum(5,"Fred")
 \family default
- falls to this case, with 
+ falls to this case and the result is 
 \family typewriter
-$x
-\family default
- bound to 
-\family typewriter
-%(5,"Fred")
-\family default
-, and the rewrite becoming 
-\family typewriter
-add:OPTYPE.%(5,"Fred")
+sum:OPTYPE.%(5,"Fred")
 \family default
 , or just 
 \family typewriter
-add(5,"Fred")
+sum(5,"Fred")
 \family default
 , where construction halts.
- We cannot refer to 
+ Note that we cannot directly refer to 
 \family typewriter
-add
+sum
 \family default
- in this context since the operator is not yet defined.
-\end_layout
-
-\begin_layout Standard
-The examples given so far all use 
-\begin_inset Quotes eld
-\end_inset
-
-map pairs,
-\begin_inset Quotes erd
-\end_inset
-
- or atoms of the form 
-\emph on
-pattern
-\emph default
- 
-\family typewriter
-->
-\family default
- 
-\emph on
-rewrite
-\emph default
-.
- In fact, any strategy can be used.
- The first strategy to report success yields the answer.
- Also, after the strategy has completed, the binding 
-\family typewriter
-$_ -> add:OPTYPE
-\family default
- is applied to enable referring to the operator in the rewrites.
+ inside the definition since the operator is not yet defined.
 \end_layout
 
 \begin_layout Standard
@@ -9252,12 +9225,23 @@ This generality allows some rather unorthodox things to occur.
 \end_layout
 
 \begin_layout LyX-Code
-{operator typeof case $x:$T -> $T}
+{operator #name=typeof #cases $x:$T -> $T}
 \end_layout
 
 \begin_layout Standard
 Now we have an operator that generates the type of anything on the right
  of an applicative dot.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+This is not perfect! The lambda trick described elsewhere is the best way
+ to obtain the type of some atom.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -9281,17 +9265,162 @@ $_repl4 = INTEGER
 \end_layout
 
 \begin_layout Standard
-It is possible to do even stranger things.
+Because case operators explicitly allow polymorphism their type cannot be
+ correctly inferred as simply as it was for symbolic operators.
+ You have two options.
+ You can figure out the correct type yourself and include it with 
+\family typewriter
+#type=
+\family default
+, or you can omit it and Elision will assign the operator the type 
+\family typewriter
+ANY
+\family default
+.
 \end_layout
 
 \begin_layout Standard
-\begin_inset listings
-inline false
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
 status open
 
-\begin_layout Plain Layout
+\begin_layout Subsection*
+Scala
+\end_layout
 
-e> {operator swap case $x -> $x.$_}
+\begin_layout Plain Layout
+To create a definition of a case operator, use
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+core.CaseOperator(name, type, cases, description, detail)
+\end_layout
+
+\begin_layout Plain Layout
+where 
+\family typewriter
+name
+\family default
+ is the operator's name (a string), 
+\family typewriter
+type
+\family default
+ is the type of the fully-applied operator (an atom), 
+\family typewriter
+cases
+\family default
+ specifies the alternatives (it is an atom sequence), 
+\family typewriter
+description
+\family default
+ is the short one-line description of the operator, and 
+\family typewriter
+detail
+\family default
+ is the longer description of the operator and its use.
+ The last two (
+\family typewriter
+description
+\family default
+ and 
+\family typewriter
+detail
+\family default
+) are optional.
+ The following code creates the examples given previously (the 
+\family typewriter
+sum
+\family default
+ operator).
+\end_layout
+
+\begin_layout LyX-Code
+import ornl.elision.core._
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+// Make the generic sum operator.
+\end_layout
+
+\begin_layout LyX-Code
+val List(x,y) = List("x","y").map(Variable(INTEGER,_))
+\end_layout
+
+\begin_layout LyX-Code
+val List(s,t) = List("s","t").map(Variable(STRING,_))
+\end_layout
+
+\begin_layout LyX-Code
+val add = context.operatorLibrary("add")
+\end_layout
+
+\begin_layout LyX-Code
+val sumOp = CaseOperator("sum", ANY,
+\end_layout
+
+\begin_layout LyX-Code
+  AtomSeq(NoProps,
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(AtomSeq(NoProps,x), x),
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(AtomSeq(NoProps,s), s),
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(AtomSeq(Associative(true) and Commutative(true), x, y), add(x,y)),
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(AtomSeq(Associative(true), s, t), Apply(s, t)),
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(ANY, ANY)),
+\end_layout
+
+\begin_layout LyX-Code
+  "Compute the generic polymorphic sum.",
+\end_layout
+
+\begin_layout LyX-Code
+  """|This operator computes the polymorphic sum of its arguments.""".stripMargin)
+\end_layout
+
+\begin_layout Plain Layout
+As with symbolic operators, the operator definition should be installed
+ in an instance of 
+\family typewriter
+core.OperatorLibrary
+\family default
+, typically found in an instance of 
+\family typewriter
+core.Context
+\family default
+.
+\end_layout
+
+\begin_layout Plain Layout
+Unlike symbolic operators, case operators should not be given native handlers.
 \end_layout
 
 \end_inset
@@ -9321,6 +9450,12 @@ name "chap:Matching-and-Rewriting"
 \end_inset
 
 Matching and Rewriting
+\end_layout
+
+\begin_layout Standard
+Elision is a term rewriter; its primary purpose is matching and rewriting.
+ This chapter provides an introduction to matching and rewriting, and to
+ the mechanics of how Elision performs these tasks.
 \end_layout
 
 \begin_layout Chapter
@@ -9508,6 +9643,19 @@ not
 
 \begin_layout Section
 In the Distribution
+\end_layout
+
+\begin_layout Standard
+The folders described in the following subsections are part of the Elision
+ distribution, created by the 
+\family typewriter
+dist
+\family default
+ target in 
+\family typewriter
+build.xml
+\family default
+.
 \end_layout
 
 \begin_layout Subsection
@@ -9812,6 +9960,11 @@ ornl.elision
 From the Build
 \end_layout
 
+\begin_layout Standard
+The folders described in the following subsections are created by the build
+ process.
+\end_layout
+
 \begin_layout Subsection
 The 
 \family typewriter
@@ -9821,11 +9974,100 @@ bin
 \end_layout
 
 \begin_layout Standard
-This folder is created by the build process
+This folder is created by the build process and contains the compiled class
+ files and other elements that should be in the class path.
+ In fact, the executable jar file is created by compressing this folder
+ and adding a manifest, as specified in the 
+\family typewriter
+build.xml
+\family default
+ file.
+ Anything that should be in the class path should be placed in this folder.
+\end_layout
+
+\begin_layout Subsection
+The 
+\family typewriter
+latest
+\family default
+ Folder
+\end_layout
+
+\begin_layout Standard
+This folder is created by the build process and contains the most recently
+ built executable 
+\family typewriter
+elision.jar
+\family default
+ file.
+ Any jar files in the third-party library folder (
+\family typewriter
+lib
+\family default
+) are included in this file.
+ This file can be executed with the 
+\family typewriter
+scala
+\family default
+ command, so 
+\family typewriter
+scala latest/elision.jar
+\family default
+ will start the REPL.
+ Nothing else should be present in this folder.
+\end_layout
+
+\begin_layout Subsection
+Date-Stamped Folder(s)
+\end_layout
+
+\begin_layout Standard
+Every time the system is built, it creates a folder whose name is the current
+ date, in 
+\family typewriter
+YYYYMMDD
+\family default
+ format.
+ This folder contains two items: the same 
+\family typewriter
+elision.jar
+\family default
+ file found in the 
+\family typewriter
+latest
+\family default
+ folder, and a jar file containing the content of the 
+\family typewriter
+src
+\family default
+ folder at the time of the build.
+ These folders can be deleted if they are not needed.
+ Nothing else should be present in these folders.
 \end_layout
 
 \begin_layout Chapter
 The Elision Coding Guide
+\end_layout
+
+\begin_layout Standard
+This chapter describes the general style of coding to use for contributions
+ to Elision.
+\end_layout
+
+\begin_layout Section
+Architectural Rules
+\end_layout
+
+\begin_layout Section
+Scaladoc
+\end_layout
+
+\begin_layout Section
+Comments
+\end_layout
+
+\begin_layout Section
+Returning
 \end_layout
 
 \begin_layout Chapter
