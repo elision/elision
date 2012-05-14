@@ -313,7 +313,10 @@ class CaseOperator private (sfh: SpecialFormHolder,
     // If the result turned out to be ANY, then just construct a simple
     // apply for this operator.
     result.get match {
-      case ANY => SimpleApply(OperatorRef(this), args)
+      case ANY => args match {
+        case as:AtomSeq => OpApply(OperatorRef(this), as, Bindings())
+        case _ => SimpleApply(OperatorRef(this), args)
+      }
       case other => other
     }
   }
@@ -509,10 +512,19 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 	 * then an exception is thrown (`ArgumentListException`). 
 	 */
 	def _check() {
+	  /**
+	   * Define a little method to require that all parameters have the same
+	   * type.
+	   * 
+	   * @return	True if all parameters have the same type, and false if not.
+	   */
 	  def paramTypeCheck = {
 	    val aType = params(0).theType
 	    params.forall(_.theType == aType)
 	  }
+	  
+	  // Check the properties and make sure everything is in accordance with
+	  // them.
 	  if (params.props.isA(false)) {
 	    // There must be exactly two parameters.
 	    if (params.length != 2) {
@@ -567,24 +579,30 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 	          "same type, as required: " + params.toParseString)
 	    }
 	  }
-	  // Identities must be the same type as the parameters.
+	  // Any identity must match the parameter type.  We just try to match
+	  // the first parameter's type.
 	  if (params.props.identity.isDefined) {
-	    if (params.props.identity.get.theType != params(0).theType) {
-	      throw new ArgumentListException("The operator " + toESymbol(name) +
-	          " has an identity whose type (" +
-	          params.props.identity.get.theType.toParseString +
-	          ") is not the same as the parameter type (" +
-	          params(0).theType.toParseString + ").")
+	    params(0).theType.tryMatch(params.props.identity.get.theType) match {
+	      case Fail(reason, index) =>
+		      throw new ArgumentListException("The operator " + toESymbol(name) +
+		          " has an identity whose type (" +
+		          params.props.identity.get.theType.toParseString +
+		          ") does not match the parameter type (" +
+		          params(0).theType.toParseString + ").")
+	      case _ =>
 	    }
 	  }
-	  // Absorbers must be the same type as the parameters.
+	  // Any absorber must match the parameter type.  We just try to match
+	  // the first parameter's type.
 	  if (params.props.absorber.isDefined) {
-	    if (params.props.absorber.get.theType != params(0).theType) {
-	      throw new ArgumentListException("The operator " + toESymbol(name) +
-	          " has an absorber whose type (" +
-	          params.props.absorber.get.theType.toParseString +
-	          ") is not the same as the parameter type (" +
-	          params(0).theType.toParseString + ").")
+	    params(0).theType.tryMatch(params.props.absorber.get.theType) match {
+	      case Fail(reason, index) =>
+		      throw new ArgumentListException("The operator " + toESymbol(name) +
+		          " has an absorber whose type (" +
+		          params.props.absorber.get.theType.toParseString +
+		          ") does not match the parameter type (" +
+		          params(0).theType.toParseString + ").")
+	      case _ =>
 	    }
 	  }
 	}
@@ -592,15 +610,56 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
     rhs match {
       case args: AtomSeq =>
+        // Things have to happen in the correct order here.  First increase
+        // the argument list by flattening associative applications.  Second
+        // we reduce by looking for identities, etc.  Third we check for an
+        // empty argument list.
+        
+        // Save the properties for fast access.
+        val props = params.props
+        val assoc = props.isA(false)
+        val commu = props.isC(false)
+        val idemp = props.isI(false)
+        val absor = props.absorber.isDefined
+        val ident = props.identity.isDefined
+        
+        // Run through the arguments and watch for the absorber, omit
+        // identities, and flatten associative lists.
+	      var newseq = OmitSeq[BasicAtom]()
+	      for (atom <- args) {
+	        // If there is an absorber and we find it, we are done.
+	        if (absor && props.absorber.get == atom) {
+	          // Found the absorber.  Nothing else to do.
+	          return props.absorber.get
+	        }
+	        // Skip the identity.
+	        if (!ident || props.identity.get != atom) {
+	          if (assoc) atom match {
+	            case OpApply(opref, args, binds) if opref.operator == this => 
+	              // Add the arguments directly to this list.  We can assume this
+	              // list has already been processed, so no deeper checking is
+	              // needed.  This flattens the associative lists.
+	              newseq ++= args
+	            case _ =>
+	              // Add this atom to the list.
+	              newseq :+= atom
+	          } else {
+	            newseq :+= atom
+	          }
+	        }
+	      } // Loop over atoms.
+        
 		    // There are special cases to handle here.  First, if the argument list
 		    // is empty, but there is an identity, return it.
-		    if (args.length == 0) {
+		    if (newseq.length == 0) {
 		      params.identity match {
 		        case Some(ident) =>
 		          // Return the identity.
 		          return ident
 		        case None =>
-		          // No identity.  Proceed with caution.
+		          // No identity.  We're done.
+		          return OpApply(OperatorRef(this), AtomSeq(params.props, newseq),
+		              Bindings())
 		      }
 		    }
 		    
@@ -613,17 +672,18 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		    // f an identity, it is probably a mathematical operator of some kind,
 		    // and we probably do want f(x)->x.  So, for now, that's the rule.
 		    // For greater control, you have to use a case operator.
-		    if (args.length == 1) {
+		    if (newseq.length == 1) {
 		      if (params.associative && params.identity.isDefined) {
 		        // Get the atom.
-		        val atom = args(0)
+		        val atom = newseq(0)
 		        // Match the type of the atom against the type of the parameters.
 		        val param = params(0)
 		        param.tryMatch(atom) match {
 		          case Fail(reason, index) =>
 		            // The argument is invalid.  Reject!
-					      throw new ArgumentListException("Incorrect argument for operator " +
-					          toESymbol(name) + " at position 0: " + atom.toParseString)
+					      throw new ArgumentListException("Incorrect argument " +
+					      		"for operator " + toESymbol(name) + " at position 0: " +
+					      		atom.toParseString + ".  " + reason())
 		          case mat: Match =>
 		            // The argument matches.
 		            return atom
@@ -640,7 +700,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		    val newparams = if (params.associative) {
 		      var newatoms: OmitSeq[BasicAtom] = EmptySeq
 		      val atom = params(0)
-		      for (index <- 0 until args.length) {
+		      for (index <- 0 until newseq.length) {
 		        var param = Variable(atom.theType, ""+index)
 		        newatoms = param +: newatoms
 		      } // Build new parameter list.
@@ -652,7 +712,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		    // Handle actual operator application.
 		    def handleApply(binds: Bindings): BasicAtom = {
 		      // Re-package the arguments with the correct properties.
-		      val newargs = AtomSeq(params.props, args.atoms)
+		      val newargs = AtomSeq(params.props, newseq)
 		      // See if we are bypassing the native handler.
 		      if (!bypass) {
 		        // Run any native handler.
@@ -664,11 +724,11 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		    
 		    // We've run out of special cases to handle.  Now just try to match the
 		    // arguments against the parameters.
-		    SequenceMatcher.tryMatch(newparams, args) match {
+		    SequenceMatcher.tryMatch(newparams, newseq) match {
 		      case Fail(reason, index) =>
 			      throw new ArgumentListException("Incorrect argument for operator " +
 			          toESymbol(name) + " at position " + index + ": " +
-			          args(index).toParseString)
+			          newseq(index).toParseString + ".  " + reason())
 		      case Match(binds) =>
 		        // The argument list matches.
 		        return handleApply(binds)

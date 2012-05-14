@@ -127,7 +127,7 @@ object Repl {
   private var _timing = false
   
   /** Should we do round-trip parsing. */
-  private var _doRoundTrip = true
+  private var _doRoundTrip = false
   
   /**
    * Whether to suppress most printing.  Errors and warnings are not suppressed,
@@ -171,6 +171,9 @@ object Repl {
       warn("Unable to save context.")
     }
   }
+  
+  /** Get the current context. */
+  def context = _context
   
   /**
    * Save the current context in response to an exception or other
@@ -503,7 +506,9 @@ object Repl {
   /**
    * Define the operators we need.
    */
-  private def defineOps {
+  def defineOps {
+    if (_opsDefined) return
+    
     // Bootstrap.  To get started, we need a way to define operators and put
     // them in the operator library.  So, first, define that operator.
     val defOper = TypedSymbolicOperator("def", NONE, AtomSeq(NoProps, 'op),
