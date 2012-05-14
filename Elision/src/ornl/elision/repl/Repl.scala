@@ -64,6 +64,12 @@ import ornl.elision.core.OperatorLibrary
  * and special operations.
  */
 object Repl {
+	//////////////////// GUI changes
+	
+	private var _disableGUIComs = true
+	
+	//////////////////// end GUI changes
+
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
   
@@ -287,6 +293,17 @@ object Repl {
 //    _bindatoms = ba
 
     // Show the prompt and read a line.
+	
+	//////////////////// GUI changes
+	
+	// activates communications with the GUI if we are using it.
+	if(ReplActor.guiMode) {
+		_disableGUIComs = false
+		ReplActor.start
+	}
+	
+	//////////////////// end GUI changes
+	
     val cr = new ConsoleReader
     val term = cr.getTerminal
     cr.flush()
@@ -310,7 +327,21 @@ object Repl {
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
         try {
-        	segment = cr.readLine(if (_quiet) p2 else p1)
+			//////////////////// GUI changes
+        	segment = 	if (ReplActor.guiMode) {  
+					print("" + (if (_quiet) p2 else p1))
+					
+					ReplActor.waitingForGuiInput = true	// make the Repl wait for GUI Input
+					while(ReplActor.waitingForGuiInput) { Thread.sleep(100)} // sleep until the REPL receives input from the GUI
+					
+					ReplActor.guiInput
+				} 
+				else {
+					cr.readLine(if (_quiet) p2 else p1)
+				} 
+			/////////////// end GUI changes
+        	
+			// segment = cr.readLine(if (_quiet) p2 else p1)
         } catch {
           case ex:IllegalArgumentException =>
             error(ex.getMessage())
@@ -345,6 +376,10 @@ object Repl {
       
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+		//////////////////// GUI changes
+		if(ReplActor.guiActor != null)  ReplActor.guiActor ! "quit"
+		//////////////////// end GUI changes
+		
         return
       }
       
@@ -392,7 +427,15 @@ object Repl {
     
     // Skip blank lines.
     if (lline == "") return
-              
+    
+	//////////////////// GUI changes
+	
+	// Create the root of our rewrite tree it contains a String of the REPL input.
+	val treeRoot = new RWTreeNode(lline)
+	treeRoot.properties = "Parse String: " + lline + "\n\n"
+	
+	//////////////////// end GUI changes
+	
     // If the line is a history reference, go and look it up now.
     if (lline.startsWith("!")) {
       // This is a history reference, so go and get it.
@@ -410,10 +453,24 @@ object Repl {
     try {
 	    val result = _parser.parseAtoms(lline)
 	    result match {
+			
+			//////////////////// GUI changes
+			
+	    	case _parser.Success(list) => {
+	    	  // Interpret each node, and stop if we encounter a failure.
+	    	  list.forall(node => {
+					RWTree.current = treeRoot
+					handle(node.interpret)
+				} )
+			}
+			
+			//////////////////// end GUI changes
+			/*
 	    	case _parser.Success(list) =>
 	    	  // Interpret each node, and stop if we encounter a failure.
-	    	  list.forall(node => handle(node.interpret))
+	    	  list.forall(node => handle(node.interpret))*/
 	      case _parser.Failure(msg) => println(msg)
+		  
 	    }
     } catch {
       case ElisionException(msg) =>
@@ -434,6 +491,15 @@ object Repl {
         if (_stacktrace) th.printStackTrace()
         _coredump("Internal error.", Some(th))
     }
+	
+	//////////////////// GUI changes
+	
+	// send the completed rewrite tree to the GUI's actor
+	
+	if(ReplActor.guiActor != null && !_disableGUIComs && lline != "")
+		ReplActor.guiActor ! treeRoot
+	
+	//////////////////// end GUI changes
   }
   
   /**
@@ -936,13 +1002,37 @@ object Repl {
     // If we come here with the special "no show" literal, we skip all of this.
     if (atom == _no_show) return true
     
+	//////////////////// GUI changes
+	
+	// obtain the parent tree node from the stack
+	val rwNode = RWTree.current
+	// add this atom as a child to the root node
+	val atomNode = rwNode.addChild(atom)
+	
+	//////////////////// end GUI changes
+	
     // Certain atoms require additional processing.
     atom match {
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)
-		    // Apply the global bindings to get the possibly-rewritten atom.
+			
+			//////////////////// GUI changes
+			
+			// Apply the global bindings to get the possibly-rewritten atom.
+			
+			RWTree.current = atomNode
 		    var (newatom,_) = atom.rewrite(_binds)
+
+			// add newatom as a child node to atomNode.
+			val rewriteNode = atomNode.addChild(newatom)
+			RWTree.current = rewriteNode
+			
+			//////////////////// end GUI changes
+			/*
+		    // Apply the global bindings to get the possibly-rewritten atom.
+		    var (newatom,_) = atom.rewrite(_binds)*/
+			
 		    // Rewrite it using the active rulesets of the context.
 		    if (_rewrite) newatom = _context.ruleLibrary.rewrite(newatom)._1
 		    if (_bindatoms) {

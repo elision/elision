@@ -252,6 +252,25 @@ object TreeSprite {
 	val defY = 40
 	
 	
+	/**
+	 *
+	 */
+	 
+	 def buildWelcomeTree : TreeSprite = {
+		val realroot = new NodeSprite("root")
+			val root0 = addChild("Welcome to the ",realroot)
+			val root = addChild("Elision Visualization Assistant (Eva)!",realroot)
+				val node1 = addChild("To create a rewrite tree visualization,", root)
+				val node2 = addChild("simply do one of the following: ",root)
+					addChild("Enter input into the ", node2)
+					addChild("onboard Elision REPL, below.", node2)
+					addChild("OR",node2)
+					addChild("Use File -> Open to open a file ",node2)
+					addChild("containing Elision input.", node2)
+		
+		new TreeSprite(0,0,realroot)
+	 }
+	
 	/** 
 	 * Factory method builds a fabricated tree structure for testing purposes. 
 	 * The Touhou Project and its characters are copyright (c) ZUN, Team Shanghai Alice.
@@ -562,7 +581,7 @@ object TreeSprite {
 	}
 	
 	/**
-	 * Used by buildTouhouTree.
+	 * Used by some of the TreeSprite factory methods.
 	 */
 	
 	private def addChild(term : String, parent : NodeSprite) : NodeSprite = {
