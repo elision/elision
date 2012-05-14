@@ -9439,7 +9439,971 @@ Special Forms
 \end_layout
 
 \begin_layout Standard
-Elision 
+Elision provides an atom called the 
+\emph on
+special form
+\emph default
+ that has some associated 
+\begin_inset Quotes eld
+\end_inset
+
+syntactic sugar
+\begin_inset Quotes erd
+\end_inset
+
+ and is widely used for many purposes.
+ This short chapter describes this form.
+\end_layout
+
+\begin_layout Section
+The Basic Special Form
+\end_layout
+
+\begin_layout Standard
+The special form is really just an ordered pair of atoms, and can be represented
+ as 
+\family typewriter
+{: atom atom :}
+\family default
+, where the two atoms can be anything.
+ Because of this structure, it is easy to match and rewrite special forms
+ (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Matching-and-Rewriting"
+
+\end_inset
+
+).
+ The first atom of a special form is called the 
+\emph on
+tag
+\emph default
+, and the second atom is called the 
+\emph on
+content
+\emph default
+.
+ The tag is subject to special interpretation when it is a symbol.
+ In this case Elision will perform a lookup and expect the content to have
+ a specific structure.
+ This representation is called the 
+\emph on
+two atom
+\emph default
+ 
+\emph on
+form
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {: 5 6 :}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl0 = {: 5 6 :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {: $x $y :}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl1 = {: $x $y :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {: fred $y :}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl2 = {: fred:SYMBOL $y :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {: operator $y :}
+\end_layout
+
+\begin_layout Plain Layout
+
+ERROR: Form operator:SYMBOL expected bindings as content, but instead found:
+ $y.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Many known special forms consist of a symbol as the tag, and bindings as
+ the content.
+ In fact, this is common enough that there is some 
+\begin_inset Quotes eld
+\end_inset
+
+syntactic sugar
+\begin_inset Quotes erd
+\end_inset
+
+ for representing this combination.
+ In fact, this alternate form, the 
+\emph on
+short form
+\emph default
+, was used to define operators in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Operators"
+
+\end_inset
+
+.
+ An opening brace is followed by a symbol tag, then zero or more atoms,
+ and then zero or more 
+\emph on
+bind pairs
+\emph default
+.
+ There are two kinds of bind pairs:
+\end_layout
+
+\begin_layout Itemize
+A hash mark (
+\family typewriter
+#
+\family default
+) followed by a symbol 
+\family typewriter
+s
+\family default
+, an equal sign, and an atom 
+\family typewriter
+a
+\family default
+.
+ This creates the binding 
+\family typewriter
+s->a
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+A hash mark (
+\family typewriter
+#
+\family default
+) followed by a symbol 
+\family typewriter
+s
+\family default
+, a space, and then a comma-separated list of atoms 
+\family typewriter
+a1,a2,
+\family default
+...
+\family typewriter
+,aN
+\family default
+.
+ This creates the binding 
+\family typewriter
+s->%(a1,a2,
+\family default
+...
+\family typewriter
+,aN)
+\family default
+.
+\end_layout
+
+\begin_layout Standard
+Any number, including zero, bind pairs may be present.
+ A list of atoms 
+\family typewriter
+a1 a2
+\family default
+ ...
+
+\family typewriter
+ aN
+\family default
+ may be present before any bind pairs.
+ If so, then the binding 
+\family typewriter
+``->a1,a2,
+\family default
+...
+\family typewriter
+,aN
+\family default
+ is created.
+\end_layout
+
+\begin_layout Standard
+This is really easiest to show with a series of examples.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {sara}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl3 = {: sara:SYMBOL { binds  } :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {sara 6}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl4 = {: sara:SYMBOL { binds ``->%(6) } :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {sara 6 7 8}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl5 = {: sara:SYMBOL { binds ``->%(6, 7, 8) } :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {sara #first="Sara" #last="Felton"}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl6 = {: sara:SYMBOL { binds last -> "Felton" first -> "Sara" } :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {sara #first="Sara" #last="Felton" #chars Zayre, Thorina}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl7 = {: sara:SYMBOL { binds last -> "Felton" chars ->
+\end_layout
+
+\begin_layout Plain Layout
+
+  %(Zayre:SYMBOL, Thorina:SYMBOL) first -> "Sara" } :}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {sara #first="Sara" #last="Felton" #chars=%(Zayre, Thorina)}
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl8 = {: sara:SYMBOL { binds last -> "Felton" chars ->
+\end_layout
+
+\begin_layout Plain Layout
+
+  %(Zayre:SYMBOL, Thorina:SYMBOL) first -> "Sara" } :}
+\end_layout
+
+\end_inset
+
+So, if you want to bind 
+\family typewriter
+key
+\family default
+ to a single 
+\family typewriter
+value
+\family default
+, you can use 
+\family typewriter
+#key=value
+\family default
+.
+ If you want to bind 
+\family typewriter
+key
+\family default
+ to a sequence of values, you can use 
+\family typewriter
+#key v1, v2, 
+\family default
+...
+ Note that a binding is always created, even when it is empty, since the
+ special form must always consist of exactly two atoms.
+\end_layout
+
+\begin_layout Standard
+The purpose of the special form is to unify many different atoms that have
+ varied structure, and provide a consistent way to represent them, to match
+ them, and to rewrite them.
+ As should be evident from the above example, the short form is usually
+ much easier to enter and shorter than the two atom form.
+ Any short form can be represented in the two atom form, but not all two
+ atom forms can be represented in the short form.
+\end_layout
+
+\begin_layout Section
+Known Special Forms
+\end_layout
+
+\begin_layout Standard
+There are several known special forms.
+ Bindings are not treated the same as other special forms, simply because
+ they are themselves used to define special forms.
+ Thus the way bindings are interpreted is a bit different, as you can see
+ from the first row of the table below.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:Known-Special-Forms"
+
+\end_inset
+
+Known Special Forms
+\end_layout
+
+\end_inset
+
+
+\begin_inset Tabular
+<lyxtabular version="3" rows="16" columns="2">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="75col%">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Tag
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Meaning, Example, and 
+\begin_inset Quotes eld
+\end_inset
+
+Two Atom
+\begin_inset Quotes erd
+\end_inset
+
+ Form
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="left" valignment="middle" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+binds
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Interpret the content as a list of bindings.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{binds x->21 y->19}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{: binds:SYMBOL %(x->21, y->19) :}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="left" valignment="middle" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+map
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Map an atom as the left-hand side of an apply to every item in a collection.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{map add:OPREF}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{: map:SYMBOL { binds `` -> %(add:OPREF) } :}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="left" valignment="middle" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+match
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Create an atom that matches other atoms against a pattern.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{match $op.$arg }
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{: match:SYMBOL { binds `` -> %(($op.$arg)) } :}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="left" valignment="middle" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+operator
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Create an operator definition.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{operator #name=foo #params=%($x,$y)}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{: operator:SYMBOL { binds name -> foo:SYMBOL params -> %($x, $y) } :}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="3" alignment="left" valignment="middle" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+rule
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Define a rewrite rule.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{rule add(neg($x),$y)->0 #rulesets MATH}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{: rule:SYMBOL { binds `` -> %((add(neg($x), $y) -> 0)) rulesets -> %(MATH:SYMBO
+L) } :}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+Creating a special form is quite easy.
+ Use 
+\family typewriter
+core.SpecialForm(tag, content)
+\family default
+, where 
+\family typewriter
+tag
+\family default
+ is the tag, and 
+\family typewriter
+content
+\family default
+ is the content.
+ Invoking this method in the companion object will check the catalog of
+ known special forms (shown in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tab:Known-Special-Forms"
+
+\end_inset
+
+).
+ The following code creates each of the atoms shown in the table.
+\end_layout
+
+\begin_layout LyX-Code
+// Create a binding.
+ There are easier ways to do this!
+\end_layout
+
+\begin_layout LyX-Code
+val binds = SpecialForm(
+\end_layout
+
+\begin_layout LyX-Code
+  Literal('binds),
+\end_layout
+
+\begin_layout LyX-Code
+  AtomSeq(NoProps,
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(Literal('x), 21),
+\end_layout
+
+\begin_layout LyX-Code
+    MapPair(Literal('y), 19)))
+\end_layout
+
+\begin_layout LyX-Code
+// Create {map add:OPREF}.
+\end_layout
+
+\begin_layout LyX-Code
+val map = SpecialForm(
+\end_layout
+
+\begin_layout LyX-Code
+  Literal('map),
+\end_layout
+
+\begin_layout LyX-Code
+  Bindings(""->AtomSeq(NoProps, Literal(OPREF,"add"))))
+\end_layout
+
+\begin_layout LyX-Code
+// Create {match $op.$arg}.
+\end_layout
+
+\begin_layout LyX-Code
+val mat = SpecialForm(
+\end_layout
+
+\begin_layout LyX-Code
+  Literal('match),
+\end_layout
+
+\begin_layout LyX-Code
+  Bindings(""->AtomSeq(NoProps, Apply('op,'arg))))
+\end_layout
+
+\begin_layout LyX-Code
+// Create {operator #name=foo #params=%($x,$y)}.
+\end_layout
+
+\begin_layout LyX-Code
+val foo = SpecialForm(
+\end_layout
+
+\begin_layout LyX-Code
+  Literal('operator),
+\end_layout
+
+\begin_layout LyX-Code
+  Bindings("name"->Literal('foo), "params"->AtomSeq(NoProps, 'x, 'y)))
+\end_layout
+
+\begin_layout LyX-Code
+// Create {rule add(neg($x),$y)->0 #rulesets MATH}.
+\end_layout
+
+\begin_layout LyX-Code
+val List(add, neg) = List("add","neg").map(context.operatorLibrary(_))
+\end_layout
+
+\begin_layout LyX-Code
+val rule = SpecialForm(
+\end_layout
+
+\begin_layout LyX-Code
+  Literal('rule),
+\end_layout
+
+\begin_layout LyX-Code
+  Bindings(""->AtomSeq(NoProps, MapPair(add(neg('x),'y), 0)),
+\end_layout
+
+\begin_layout LyX-Code
+           "rulesets"->AtomSeq(NoProps, Literal('MATH))))
+\end_layout
+
+\begin_layout Plain Layout
+These examples show direct use of the 
+\family typewriter
+core.SpecialForm
+\family default
+ object.
+ Of course, each of the above has its own simpler, dedicated method of creating
+ an instance.
+ For example, the simpler method of creating 
+\family typewriter
+core.Bindings
+\family default
+ instances is shown several times above.
+ The following create the same special form instances.
+\end_layout
+
+\begin_layout LyX-Code
+// Create a binding.
+\end_layout
+
+\begin_layout LyX-Code
+val binds = Bindings("x"->21, "y"->19)
+\end_layout
+
+\begin_layout LyX-Code
+// Create {map add:OPREF}.
+\end_layout
+
+\begin_layout LyX-Code
+val map = MapStrategy(Literal(OPREF, 'add), AtomSeq(), AtomSeq())
+\end_layout
+
+\begin_layout LyX-Code
+// Create {match $op.$arg}.
+\end_layout
+
+\begin_layout LyX-Code
+val mat = MatchAtom(Apply('op, 'arg))
+\end_layout
+
+\begin_layout LyX-Code
+// Create {operator #name=foo #params=%($x,$y)}.
+\end_layout
+
+\begin_layout LyX-Code
+val foo = TypedSymbolicOperator("foo", ANY, AtomSeq(NoProps, 'x, 'y), "",
+ "")
+\end_layout
+
+\begin_layout LyX-Code
+// Create {rule add(neg($x),$y)->0 #rulesets MATH}.
+\end_layout
+
+\begin_layout LyX-Code
+val List(add, neg) = List("add","neg").map(context.operatorLibrary(_))
+\end_layout
+
+\begin_layout LyX-Code
+val rule = RewriteRule(add(neg('x),'y), 0, Seq(), Set("MATH"))
+\end_layout
+
+\begin_layout Plain Layout
+There is yet one more way to create a special form.
+ You can create and populate an instance of 
+\family typewriter
+core.SpecialFormHolder
+\family default
+.
+ This is how the parser functions; it detects a special form, populates
+ an instance of this object, and then passes it to an apply method that
+ creates the appropriate special form.
+ Since its primary use is to support parsers, it is not discussed here.
+ Note that every special form instance, no matter how created, holds an
+ instance of this class.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter
