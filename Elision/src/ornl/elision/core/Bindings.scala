@@ -173,9 +173,18 @@ object Bindings {
   def apply(map: HashMap[String,BasicAtom]) = new Bindings(map)
   
   /**
-   * Get an empty bindings object.  This helps enforce the "don't create
-   * bindings objects unnecessarily" rule, and just returns the
-   * `EmptyBinds`.
+   * Create a bindings from the provided pairs.
+   * 
+   * @param pairs	The pairs to include in the bindings.
    */
-  def apply() = EmptyBinds
+  def apply(pairs: (String,BasicAtom)*) =
+    if (pairs.length == 0) EmptyBinds
+    else new Bindings(HashMap(pairs:_*))
+  
+//  /**
+//   * Get an empty bindings object.  This helps enforce the "don't create
+//   * bindings objects unnecessarily" rule, and just returns the
+//   * `EmptyBinds`.
+//   */
+//  def apply() = EmptyBinds
 }
