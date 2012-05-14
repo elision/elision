@@ -32,6 +32,7 @@ import java.awt.geom.AffineTransform
 import java.awt.Graphics2D
 import java.awt.Color
 import java.awt.geom.Rectangle2D
+import collection.mutable.ListBuffer
 
 /** 
  * An abstract class used to represent some sort of renderable object.
@@ -78,6 +79,12 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 	/** controls whether this Sprite should be rendered. */
 	var isVisible : Boolean = true
 	
+	/** 
+	 * A list of other Sprites that this Sprite might collide with in this iteration.
+	 * This is primarily manipulated by some sort of data structure for efficiently
+	 * handling Sprite collisions such as a QuadTree.
+	 */
+	var collisionList : ListBuffer[Sprite] = null
 	
 	/**	
 	 * Marks this Sprite as destroyed. Override this method if you need to perform additional 
