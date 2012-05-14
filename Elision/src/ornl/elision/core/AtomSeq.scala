@@ -272,6 +272,12 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
  */
 object AtomSeq {
   
+  /** An empty atom sequence with no properties. */
+  val EmptySeq = new AtomSeq(NoProps, IndexedSeq[BasicAtom]())
+  
+  /** Get an empty atom sequence with no properties. */
+  def apply() = EmptySeq
+  
   /**
    * Match an atom sequence's parts.
    * 
