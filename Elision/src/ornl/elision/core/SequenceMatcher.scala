@@ -73,16 +73,8 @@ object SequenceMatcher {
       Fail("Sequences are not the same length.")
     else _tryMatch(patterns, subjects, binds, 0)
   }
-        
-  /**
-   * Rewrite a sequence of atoms by applying the given bindings to each.
-   * 
-   * @param subjects	The atoms to rewrite.
-   * @param binds			The bindings to apply.
-   * @return	A pair consisting of the rewritten sequence of atoms and a flag
-   * 					that is true if any rewrites succeeded.
-   */
-  def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
+   /*
+   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
     var changed = false
     def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
       if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
@@ -92,6 +84,36 @@ object SequenceMatcher {
       }
     (doit(subjects), changed)
   }
+   */
+	//////////////////// GUI changes
+  /**
+   * Rewrite a sequence of atoms by applying the given bindings to each.
+   * 
+   * @param subjects	The atoms to rewrite.
+   * @param binds			The bindings to apply.
+   * @return	A pair consisting of the rewritten sequence of atoms and a flag
+   * 					that is true if any rewrites succeeded.
+   */
+  def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("object SequenceMatcher rewrite: ")
+	val seqNode = rwNode.addChild("sequence: ")
+	
+    var changed = false
+    def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
+      if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
+		val headNode = seqNode.addChild(atoms.head)
+		RWTree.current = headNode
+        
+		val (newatom, change) = atoms.head.rewrite(binds)
+		headNode.addChild(newatom)
+		
+        changed |= change
+        newatom +: doit(atoms.tail)
+      }
+    (doit(subjects), changed)
+  }
+  //////////////////// end GUI changes
 
   /**
    * Match two sequences of atoms, in order.

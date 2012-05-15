@@ -98,28 +98,55 @@ with Rewriter {
     case _ =>
       Fail("Subject of match is not a pair.", this, subject)
   }
-
+	
+	//////////////////// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("MapPair rewrite: ")
+	
+	RWTree.current = rwNode.addChild("left: ").addChild(left)
     val newleft = left.rewrite(binds)
+	
+	RWTree.current = rwNode.addChild("right: ").addChild(right)
     val newright = right.rewrite(binds)
-    if (newleft._2 || newright._2) (MapPair(newleft._1, newright._2), true)
+	
+    if (newleft._2 || newright._2) {
+		RWTree.current = rwNode
+		val newMP = MapPair(newleft._1, newright._2)
+		rwNode.addChild(newMP)
+		(newMP, true)
+	}
     else (this, false)
   }
-
+  //////////////////// end GUI changes
+	
+	//////////////////// GUI changes
   /**
    * Apply this map pair to the given atom, yielding a potentially new atom.
    * The first match with the left-hand side is used to rewrite the right.
    */
-  def doRewrite(atom: BasicAtom, hint: Option[Any]) =
-    left.tryMatch(atom, Bindings(), hint) match {
-	    case file:Fail => (atom, false)
-	    case Match(binds) =>
-	      val res = right.rewrite(binds)
-	      (res._1, true)
-	    case Many(iter) =>
-	      val res = right.rewrite(iter.next)
-	      (res._1, true)
+  def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
+		// get the node representing this atom that is being rewritten
+		val rwNode = RWTree.current.addChild("MapPair doRewrite: ").addChild(atom)
+		val leftNode = rwNode.addChild("left: ").addChild(left)
+		val rightNode = rwNode.addChild("right: ").addChild(right)
+		RWTree.current = leftNode
+		
+		left.tryMatch(atom, Bindings(), hint) match {
+			case file:Fail => (atom, false)
+			case Match(binds) =>
+				RWTree.current = rightNode
+				val res = right.rewrite(binds)
+				rwNode.addChild("new right: ").addChild(res._1)
+				(res._1, true)
+			case Many(iter) =>
+				RWTree.current = rightNode
+				val res = right.rewrite(iter.next)
+				rwNode.addChild("new right: ").addChild(res._1)
+				(res._1, true)
+		  }
 	  }
+	  //////////////////// end GUI changes
 
   def toParseString = "(" + left.toParseString + " -> " +
   		right.toParseString + ")"

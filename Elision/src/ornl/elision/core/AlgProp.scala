@@ -266,20 +266,33 @@ class AlgProp(
     case Some(atom) => atom
     case _ => default
   }
-
+	
+	//////////////////// GUI changes
   /**
    * Apply this to the given atom.  If the provided atom is an atom sequence,
    * then this will override the properties of the atom sequence.
    */
-  def doApply(rhs: BasicAtom, bypass: Boolean) = rhs match {
-    /* A Note to Maintainers
-     * Remember that the "and" has the properties of the second override those
-     * of the first.
-     */
-    case ap: AlgProp => (ap and this)
-    case as: AtomSeq => AtomSeq(as.props and this, as.atoms)
-    case _ => SimpleApply(this, rhs)
+  def doApply(rhs: BasicAtom, bypass: Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("AlgProp doApply: ")
+	
+	rhs match {
+		/* A Note to Maintainers
+		 * Remember that the "and" has the properties of the second override those
+		 * of the first.
+		 */
+		case ap: AlgProp => (ap and this)
+		case as: AtomSeq => 
+			val newAS = AtomSeq(as.props and this, as.atoms)
+			rwNode.addChild(newAS)
+			newAS
+		case _ => 
+			val newSA = SimpleApply(this, rhs)
+			rwNode.addChild(newSA)
+			newSA
+	}
   }
+	//////////////////// end GUI changes
   
   /**
    * Rewrite an optional atom.
@@ -288,14 +301,44 @@ class AlgProp(
    * @param binds	The bindings.
    * @return	The rewritten optional atom.
    */
-  private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = opt match {
+ /* private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = opt match {
     case None => (None, false)
     case Some(atom) => {
       val newatom = atom.rewrite(binds)
       (Some(newatom._1), newatom._2)
     }
+  }*/
+  
+  //////////////////// GUI changes
+  
+  /**
+   * Rewrite an optional atom.
+   * 
+   * @param opt		The optional atom.
+   * @param binds	The bindings.
+   * @return	The rewritten optional atom.
+   */
+  
+  private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current
+	
+	opt match {
+		case None => 
+			rwNode.addChild("n/a")
+			(None, false)
+		case Some(atom) => {
+			val atomNode = rwNode.addChild(atom)
+			RWTree.current = atomNode
+			
+		  val newatom = atom.rewrite(binds)
+		  (Some(newatom._1), newatom._2)
+		}
+	}
   }
   
+  //////////////////// end GUI changes
+  /*
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
     val assoc = _rewrite(associative, binds)
     val commu = _rewrite(commutative, binds)
@@ -306,6 +349,36 @@ class AlgProp(
       (AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
     else (this, false)
   }
+  */
+  //////////////////// GUI changes
+  
+  def rewrite(binds: Bindings): (AlgProp, Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("AlgProp rewrite: ")
+	
+	RWTree.current = rwNode.addChild("associative: ")
+    val assoc = _rewrite(associative, binds)
+	
+	RWTree.current = rwNode.addChild("commutative: ")
+    val commu = _rewrite(commutative, binds)
+	
+	RWTree.current = rwNode.addChild("idempotent: ")
+	val idemp = _rewrite(idempotent, binds)
+	
+	RWTree.current = rwNode.addChild("absorber: ")
+	val absor = _rewrite(absorber, binds)
+	
+	RWTree.current = rwNode.addChild("identity: ")
+	val ident = _rewrite(identity, binds)
+	
+    if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
+		val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
+		rwNode.addChild(newAlgProp)
+		(newAlgProp, true)
+	} else (this, false)
+  }
+  
+  //////////////////// end GUI changes
   
   /**
    * Match two optional atoms against one another.  A match is really only
