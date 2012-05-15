@@ -277,13 +277,31 @@ extends BasicAtom {
       }
     case _ => Fail("Special forms match only special forms.", this, subject)
   }
-
+	
+	//////////////////// GUI changes
   def rewrite(binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("SpecialForm rewrite: ")
+	val tagNode = rwNode.addChild("Tag: ").addChild(tag)
+	val contentNode = rwNode.addChild("Content: ").addChild(content)
+	
+	RWTree.current = tagNode
     val newtag = tag.rewrite(binds)
+	tagNode.addChild(newtag._1)
+	
+	RWTree.current = contentNode
     val newcontent = content.rewrite(binds)
-    if (newtag._2 || newcontent._2) (SpecialForm(newtag._1, newcontent._1), true)
+	contentNode.addChild(newcontent._1)
+	
+    if (newtag._2 || newcontent._2) {
+		RWTree.current = rwNode
+		val newSF = SpecialForm(newtag._1, newcontent._1)
+		rwNode.addChild(newSF)
+		(newSF, true)
+	}
     else (this, false)
   }
+	//////////////////// end GUI changes
   
   override def toString = "SpecialForm(" + tag + ", " + content + ")"
 

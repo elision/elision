@@ -53,6 +53,9 @@ class RWTreeNode(val term : String) {
 	/** String used to display the properties of the atom this node represents. */
 	var properties : String = term
 	
+	/** A Node can be used to represent a comment instead of a type of BasicAtom. This helps to self-document the tree. */
+	var isComment = true
+	
 	/** 
 	 * Auxillary constructor accepting a BasicAtom. 
 	 * It also sets properties to the field values of the BasicAtom.
@@ -75,6 +78,8 @@ class RWTreeNode(val term : String) {
 		properties += "Is constant: " + atom.isConstant + "\n"
 		properties += "Is term: " + atom.isTerm + "\n"
 		
+		isComment = false
+		
 		try {
 			properties += "constant pool: \n"
 			for(i <- atom.constantPool.get) properties += "\t" + i + "\n"
@@ -91,7 +96,24 @@ class RWTreeNode(val term : String) {
 	 */
 	
 	def addChild(node : RWTreeNode) : RWTreeNode = {
-			if(this.term != node.term) {
+			if(true || this.term != node.term) {
+			children += node
+			node
+		}
+		else
+			this
+	}
+	
+	/**
+	 * Attempts to add a node that is just a String label and doesn't actually contain an atom. 
+	 * This mainly used for the rewrite tree to self-document itself.
+	 * @param		label is the String the child node will have. 
+	 * @return		a new label node if successful. Otherwise returns this. 
+	 */
+	
+	def addChild(label : String) : RWTreeNode = {
+			if(true || this.term != label) {
+			val node = new RWTreeNode(label)
 			children += node
 			node
 		}

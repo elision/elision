@@ -164,16 +164,27 @@ extends BasicAtom with Applicable {
 	  case _ => Fail("Lambdas only match other lambdas.", this, subject)
 	}
 
+	//////////////////// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("Lambda rewrite: ")
+	val bodyNode = rwNode.addChild(body)
+	RWTree.current = bodyNode
+	
     // We test for a special case here.  If the bindings specify that we
     // should rewrite our own bound De Bruijn index, we explicitly ignore
     // it.
     val newbinds = binds - lvar.name
     body.rewrite(newbinds) match {
-	    case (newatom, changed) if changed => (Lambda(lvar, newatom), true)
+	    case (newatom, changed) if changed => 
+			RWTree.current = rwNode
+			val newLambda = Lambda(lvar, newatom)
+			rwNode.addChild(newLambda)
+			(newLambda, true)
 	    case _ => (this, false)
 	  }
   }
+  //////////////////// end GUI changes
   
   def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
   
@@ -188,7 +199,14 @@ extends BasicAtom with Applicable {
     case _ => false
   }
   
+  //////////////////// GUI changes
   def doApply(atom: BasicAtom, bypass: Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("Lambda doApply: ")
+	val bodyNode = rwNode.addChild("body").addChild(body)
+	val atomNode = rwNode.addChild("match atom :?").addChild(atom)
+	RWTree.current = bodyNode
+	
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
     // overflow here, and bail out.
@@ -202,18 +220,25 @@ extends BasicAtom with Applicable {
 	            "Lambda variable does not match body: " + fail.theReason)
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
-		      body.rewrite(binds)._1
+		      val newbody = body.rewrite(binds)._1
+			  rwNode.addChild(newbody)
+			  newbody
 	      case Many(iter) =>
-	        body.rewrite(iter.next)._1
+	        val newbody = body.rewrite(iter.next)._1
+			rwNode.addChild(newbody)
+			newbody
 	    }
     } catch {
       case ex:java.lang.StackOverflowError =>
         // Trapped unbounded recursion.
-        throw new LambdaUnboundedRecursionException(
-            "Lambda application results in unbounded recursion: (" +
-            this.toParseString + ").(" + atom.toParseString + ")")
+		val errorString = "Lambda application results in unbounded recursion: (" +
+            this.toParseString + ").(" + atom.toParseString + ")"
+		rwNode.addChild(errorString)
+        throw new LambdaUnboundedRecursionException(errorString)
     }
   }
+  //////////////////// end GUI changes
+  
 }
 
 /**
@@ -236,6 +261,8 @@ object Lambda {
    */
   def unapply(lambda: Lambda) = Some(lambda.lvar, lambda.body)
   
+  
+  //////////////////// GUI changes
   /**
    * Make a lambda from the provided parameter and body.
    *
@@ -243,6 +270,11 @@ object Lambda {
    * @param body	The lambda body.
    */
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("object Lamda apply: ")
+	val lvarNode = rwNode.addChild("parameter: ").addChild(lvar)
+	val bodyNode = rwNode.addChild("body: ").addChild(body)
+	
     // Make and return the new lambda.
     if (useDeBruijnIndices) {
       // Decide what De Bruijn index to use for this lambda.  We will use one
@@ -262,17 +294,21 @@ object Lambda {
       }
 	    
 	    // Now make a new De Bruijn variable for the index.
+		RWTree.current = lvarNode
 	    val newvar = (
         if (lvar.isTerm)
         	new DBIV(lvar.theType, dBI, lvar.guard, lvar.labels)
         else
         	new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
       )
-	    
+		lvarNode.addChild(newvar)
+		
 	    // Bind the old variable to the new one and rewrite the body.
 	    var binds = Bindings()
 	    binds += (lvar.name -> newvar)
+		RWTree.current = bodyNode
 	    val (newbody, notfixed) = body.rewrite(binds)
+		bodyNode.addChild(newbody)
 	    
 	    // Compute the new lambda.
 	    if (notfixed)	new Lambda(newvar, newbody, false)
@@ -280,4 +316,5 @@ object Lambda {
     }
     else new Lambda(lvar, body, false)
   }
+  //////////////////// end GUI changes
 }

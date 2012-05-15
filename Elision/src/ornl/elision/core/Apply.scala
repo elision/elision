@@ -70,12 +70,33 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
     case Apply(oop, oarg) => oop == op && oarg == arg
     case _ => false
   }
-  
+  /*
   def rewrite(binds: Bindings) = {
     val (nop, nof) = op.rewrite(binds)
     val (narg, naf) = arg.rewrite(binds)
     if (nof || naf) (Apply(nop, narg), true) else (this, false)
   }
+  */
+  //////////////////// GUI changes
+  
+  def rewrite(binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("Apply rewrite: ")
+
+	RWTree.current = rwNode.addChild("Operator: ").addChild(op)
+    val (nop, nof) = op.rewrite(binds)
+	
+	RWTree.current = rwNode.addChild("Argument: ").addChild(arg)
+    val (narg, naf) = arg.rewrite(binds)
+	
+    if (nof || naf) {
+		val newApply = Apply(nop, narg)
+		rwNode.addChild(newApply)
+		(newApply, true) 
+	} else (this, false)
+  }
+  
+  //////////////////// end GUI changes
   
   /**
    * By default applications match iff their parts match.  The trick here is
@@ -149,6 +170,14 @@ object Apply {
     // Do not try to compute if metaterms are present.
     if (!arg.isTerm) SimpleApply(op, arg)
     else {
+		//////////////////// GUI changes
+		// get the node representing this atom that is being rewritten
+		val rwNode = RWTree.current.addChild("object Apply apply: ")
+		val opNode = rwNode.addChild("Operator: ").addChild(op)
+		val argNode = rwNode.addChild("Argument: ").addChild(arg)
+		RWTree.current = opNode
+		//////////////////// end GUI changes
+		
 	    op match {
 		    case app:Applicable =>
 		      try {
@@ -209,13 +238,23 @@ case class OpApply protected[core] (override val op: OperatorRef,
   
   def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
   
+  //////////////////// GUI changes
   override def rewrite(binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current
+	
     // Rewrite the argument, but not the operator.  In reality, operators
     // should protect their arguments using De Bruijn indices, but that's
     // not implemented just yet.
     val pair = arg.rewrite(binds)
-    if (pair._2) (Apply(op, pair._1), true) else (this, false)
+    if (pair._2) {
+		RWTree.current = rwNode
+		val newApply = Apply(op, pair._1)
+		rwNode.addChild(newApply)
+		(newApply, true) 
+	} else (this, false)
   }
+  //////////////////// end GUI changes
 }
 
 /**

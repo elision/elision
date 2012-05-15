@@ -227,16 +227,31 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
           this, subject)
     }
   }
-
+	
+	//////////////////// GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("AtomSeq rewrite")
+	
     // Rewrite the properties.
+	val propsNode = rwNode.addChild("Properties: ").addChild(props)
+	RWTree.current = propsNode
     val (newprop, pchanged) = props.rewrite(binds)
+	
     // We must rewrite every child atom, and collect them into a new sequence.
+	RWTree.current = rwNode.addChild("Atoms: ")
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
+	
     // If anything changed, make a new sequence.
-    if (pchanged || schanged) (new AtomSeq(newprop, newseq), true)
+    if (pchanged || schanged) {
+		RWTree.current = rwNode
+		val newAS = new AtomSeq(newprop, newseq)
+		rwNode.addChild(newAS)
+		(newAS, true)
+	}
     else (this, false)
   }
+  //////////////////// end GUI changes
 
   def toParseString = atoms.mkParseString(props.toParseString + "(" , ", ", ")")
 
