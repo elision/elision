@@ -57,6 +57,11 @@ class Camera(var x : Double = 0, var y : Double = 0, var pWidth : Double, var pH
 	/** The current y-position of the camera's focal center in screen coordinates. By default, this is set to the center of the parent panel. */
 	var cy : Double = pHeight/2
 	
+	var xLeftEdge : Double = 0.0
+	var xRightEdge : Double = pWidth
+	var yTopEdge : Double = 0.0
+	var yBottomEdge : Double = pHeight
+	
 	private var transform : AffineTransform = new AffineTransform
 	private var inverse : AffineTransform = new AffineTransform
 	
@@ -90,6 +95,15 @@ class Camera(var x : Double = 0, var y : Double = 0, var pWidth : Double, var pH
 		transform.translate(0-x, 0-y)
 		
 		inverse = transform.createInverse
+		
+		// compute the world coordinates of the parent panel's edges
+		val upperLeft = inverse.transform(new Point2D.Double(0,0),null)
+		val lowerRight = inverse.transform(new Point2D.Double(pWidth,pHeight),null)
+		
+		xLeftEdge = upperLeft.getX
+		xRightEdge = lowerRight.getX
+		yTopEdge = upperLeft.getY
+		yBottomEdge = lowerRight.getY
 	}
 	
 	/**

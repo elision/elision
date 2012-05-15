@@ -253,7 +253,8 @@ object TreeSprite {
 	
 	
 	/**
-	 *
+	 * Factory method builds a fabricated tree structure with a friendly 
+	 * welcome message and some basic instructions.
 	 */
 	 
 	 def buildWelcomeTree : TreeSprite = {
@@ -270,12 +271,13 @@ object TreeSprite {
 		
 		new TreeSprite(0,0,realroot)
 	 }
+	 
 	
 	/** 
 	 * Factory method builds a fabricated tree structure for testing purposes. 
 	 * The Touhou Project and its characters are copyright (c) ZUN, Team Shanghai Alice.
 	 */
-	
+	/*
 	def buildTouhouTree : TreeSprite = {
 		val root = new NodeSprite("Touhou Characters")
 		var parent : NodeSprite = root
@@ -565,12 +567,7 @@ object TreeSprite {
 				parent = ts.pop
 			parent = ts.pop
 			
-			/*
-			ts.push(parent)
-			parent = addChild("A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name...A very long term name... ",parent)
-				addChild("A small term",parent)
-			parent = ts.pop
-			*/
+			
 		
 		parent = ts.pop
 		
@@ -579,6 +576,7 @@ object TreeSprite {
 		
 		new TreeSprite(0,0,root)
 	}
+	*/
 	
 	/**
 	 * Used by some of the TreeSprite factory methods.
@@ -619,6 +617,8 @@ object TreeSprite {
 		val node = new NodeSprite(rwNode.term, parent)
 		node.properties = rwNode.properties
 		parent.addChild(node)
+		
+		node.isComment = rwNode.isComment
 		
 		for(child <- rwNode.children) {
 			buildRWTreeRec(child, node)
@@ -691,6 +691,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** The node's properties describing the Elision atom it represents */
 	var properties : String = ""
 	
+	/** flag indicates that this node is just a documentation string and doesn't actually represent an atom */
+	var isComment = true
+	
 	//////////////////// Rendering methods
 	
 	
@@ -713,6 +716,8 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 			if(!children.isEmpty) {
 				if(this.isSelected)
 					NodeSprite.selectedBoxColor
+				else if(this.isComment)
+					NodeSprite.comBoxColor
 				else
 					NodeSprite.boxColor
 			} 
@@ -723,20 +728,26 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 					NodeSprite.leafBoxColor
 			}
 		))
-			
-		g.fill(box)
+		
+		val startPt = g.getTransform.transform(new geom.Point2D.Double(0,box.y), null)
+		val endPt = g.getTransform.transform(new geom.Point2D.Double(box.width,box.y+box.height), null)
+		val isOnScreen = (startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0 && startPt.getY <= NodeSprite.camera.pHeight && endPt.getY >= 0)
+		
+		if(isOnScreen) g.fill(box)
 		
 		if(this.isSelected)
 			g.setColor(alphaColor(NodeSprite.selectedBorderColor))
-		else
+		else if(this.isComment)
+			g.setColor(alphaColor(NodeSprite.comBorderColor))
+		else 
 			g.setColor(alphaColor(NodeSprite.borderColor))
 
-		g.draw(box)
+		if(isOnScreen) g.draw(box)
 		
 		// draw the label
 		
 		g.setColor(alphaColor(NodeSprite.textColor))
-		g.drawString(term, 3, NodeSprite.font.getSize/2)
+		if(isOnScreen && NodeSprite.camera.zoom > 0.2) g.drawString(term, 3, NodeSprite.font.getSize/2)
 		
 		// restore the graphics context's font
 		
@@ -803,7 +814,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		val origTrans = g.getTransform
 		
 		// use the unselected border color as the color for the edges
-		g.setColor(alphaColor(NodeSprite.borderColor))
+		g.setColor(alphaColor(NodeSprite.comBorderColor))
 		
 		// iterate over the children and obtain their relative positions to determine how to draw the edges.
 		for(i <- 0 to children.size - 1) {
@@ -815,12 +826,16 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 			val endY = childPos.getY
 			val ctrlX = math.max(endX/2,endX - 50)
 			
-			// create the cubic curve shape for the edge.
-			val edge = new CubicCurve2D.Double(0, 0, ctrlX, 0, ctrlX, endY, endX, endY)
-			
-			// scale the current graphics transform according to how compressed/decompressed this node's children are. Then draw the edge.
+			// scale the current graphics transform according to how compressed/decompressed this node's children are.
 			g.scale(child.expansion,child.expansion)
-			if(child.expansion > 0.01) g.draw(edge)
+			val startPt = g.getTransform.transform(new geom.Point2D.Double(0,0), null)
+			val endPt = g.getTransform.transform(new geom.Point2D.Double(endX,0), null)
+			
+			if(startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0) {
+				// create the cubic curve shape for the edge. //  Then draw the edge.
+				val edge = new CubicCurve2D.Double(0, 0, ctrlX, 0, ctrlX, endY, endX, endY)
+				if(child.expansion > 0.01) g.draw(edge)
+			}
 			
 			// restore the original transform for the next edge drawing.
 			g.setTransform(origTrans)
@@ -910,14 +925,27 @@ object NodeSprite {
 	val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
 	
 	val textColor = new Color(0x000000)
-	val boxColor = new Color(0xddddff)
-	val borderColor = new Color(0x5555aa)
+	
+	// comment color: Twilight lavender
+	val comBoxColor = new Color(0xddddff)
+	val comBorderColor = new Color(0x5555aa)
+	
+	// rewritten atom colors: Dash blue
+	val boxColor = new Color(0xd7e9ff)
+	val borderColor = new Color(0x77a9dd)
+	
+	// selected colors : Flutter yellow
 	val selectedBoxColor = new Color(0xffffcc)
 	val selectedBorderColor = new Color(0xaaaa55) 
-	val leafBoxColor = new Color(0xffffff)
+	
+	// leaf colors: Rare grey
+	val leafBoxColor = new Color(0xf8f8ff)
+//	val leafBorderColor = new Color(0x8888aa)
 	val selectedLeafBoxColor = new Color(0xffffee)
 	
 	val maxTermLength = 50
+	
+	var camera : Camera = null
 }
 
 

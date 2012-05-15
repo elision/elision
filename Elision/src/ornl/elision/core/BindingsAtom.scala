@@ -134,17 +134,32 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
       }
     case _ => Fail("Bindings can only match other bindings.", this, subject)
   }
-
+	
+	//////////////////// GUI changes
+	
   def rewrite(binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("BindingsAtom")
+	
     var changed = false
     var newmap = Bindings()
-    for ((key, value) <- mybinds) {
+    for ((key, value) <- mybinds) {	
+		val valNode = rwNode.addChild("key->value pair: ").addChild(key + " ->").addChild(value)
+		RWTree.current = valNode
       val (newvalue, valuechanged) = value.rewrite(binds)
+	  valNode.addChild(newvalue)
       changed |= valuechanged
       newmap += (key -> newvalue)
     } // Rewrite all bindings.
-    if (changed) (BindingsAtom(newmap), true) else (this, false)
+    if (changed) {
+		RWTree.current = rwNode
+		val newBA = BindingsAtom(newmap)
+		rwNode.addChild(newBA)
+		(newBA, true) 
+	} else (this, false)
   }
+  
+  //////////////////// end GUI changes
 
   /**
    * The parseable representation of a bindings atom is roughly equivalent to
@@ -171,21 +186,40 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
     case _ => false
   }
   
-  def doApply(atom: BasicAtom, bypass: Boolean) =
-    // Check the argument to see if it is a single symbol.
-    atom match {
-      case SymbolLiteral(SYMBOL, sym) =>
-        // Try to extract the symbol from the binding.  If it is not there,
-        // then the answer is NONE.
-        mybinds.get(sym.name) match {
-          case Some(oatom) => oatom
-          case _ => NONE
-        }
-      case _ =>
-	      // Try to rewrite the argument using the bindings and whatever we get
-	      // back is the result.
-	      atom.rewrite(mybinds)._1
-    }
+  //////////////////// GUI changes
+  
+  def doApply(atom: BasicAtom, bypass: Boolean) = {
+		// get the node representing this atom that is being rewritten
+		val rwNode = RWTree.current.addChild("BindingsAtom doApply: ")
+		val atomNode = rwNode.addChild(atom)
+		
+		RWTree.current = atomNode
+		// Check the argument to see if it is a single symbol.
+		atom match {
+		  case SymbolLiteral(SYMBOL, sym) =>
+			// Try to extract the symbol from the binding.  If it is not there,
+			// then the answer is NONE.
+			mybinds.get(sym.name) match {
+			  case Some(oatom) => 
+				atomNode.addChild(oatom)
+				rwNode.addChild(oatom)
+				oatom
+			  case _ => 
+				atomNode.addChild(NONE)
+				rwNode.addChild(NONE)
+				NONE
+			}
+		  case _ =>
+			  // Try to rewrite the argument using the bindings and whatever we get
+			  // back is the result.
+			  val newatom = atom.rewrite(mybinds)._1
+			  atomNode.addChild(newatom)
+			  rwNode.addChild(newatom)
+			  newatom
+		}
+	}
+	
+	//////////////////// end GUI changes
 }
 
 /**

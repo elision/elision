@@ -66,7 +66,11 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     }
   }
   
+  /*
   def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current
+	
     // If this is not concrete, do not execute.
     if (!_conc) return (SimpleApply(this, atom), false)
     else {
@@ -80,6 +84,41 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	    return (atom, false)
     }
   }
+  */
+  //////////////////// GUI changes
+  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("RulesetStrategy doRewrite: ")
+	val atomNode = rwNode.addChild(atom)
+	
+    // If this is not concrete, do not execute.
+    if (!_conc) {
+		val newSA = SimpleApply(this, atom)
+		rwNode.addChild(newSA)
+		return (newSA, false)
+	}
+    else {
+	    // Get the rules.
+		val rulesNode = rwNode.addChild("rules: ")
+		RWTree.current = rulesNode
+	    val rules = context.ruleLibrary.getRules(atom, _namelist)
+	    // Now try every rule until one applies.
+	    for (rule <- rules) {
+			val ruleNode = rulesNode.addChild(rule)
+			RWTree.current = ruleNode
+			val (newatom, applied) = rule.doRewrite(atom, hint)
+			ruleNode.addChild(newatom)
+			
+			if (applied) {
+				atomNode.addChild(newatom)
+				return (newatom, applied)
+			}
+	    }
+	    return (atom, false)
+    }
+  }
+  //////////////////// end GUI changes
+  
 }
 
 /**
@@ -149,7 +188,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     asInstanceOf[IndexedSeq[SymbolLiteral]].
     map(_.value.name).
     toSet
-	
+	/*
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = atom match {
 	  // We only process two kinds of atoms here: atom lists and operator
 	  // applications.  Figure out what we have.
@@ -164,6 +203,38 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	    // Do nothing in this case.
 	    (atom, false)
 	}
+	*/
+	//////////////////// GUI changes
+	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
+		// get the node representing this atom that is being rewritten
+		val rwNode = RWTree.current.addChild("MapStrategy doRewrite: ")
+		val atomNode = rwNode.addChild(atom)
+		RWTree.current = atomNode
+	
+		atom match {
+		  // We only process two kinds of atoms here: atom lists and operator
+		  // applications.  Figure out what we have.
+		  case AtomSeq(props, atoms) =>
+			// All we can do is apply the lhs to each atom in the list.
+			val newAS = AtomSeq(props, atoms.map(Apply(lhs,_)))
+			atomNode.addChild(newAS)
+			(newAS, true)
+		  case Apply(op, seq: AtomSeq) => op match {
+			case so: SymbolicOperator => 
+				val newApply = _apply(so, seq)
+				atomNode.addChild(newApply._1)
+				newApply
+			case _ => 
+				val newApply = Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_))))
+				atomNode.addChild(newApply)
+				(newApply, true)
+		  }
+		  case _ =>
+			// Do nothing in this case.
+			(atom, false)
+		}
+	}
+	//////////////////// end GUI changes
   
   private def _apply(op: SymbolicOperator, args: AtomSeq): (BasicAtom, Boolean) = {
     val plen = op.params.length
@@ -416,9 +487,24 @@ class RewriteRule private (
   def doRewrite(atom: BasicAtom, hint: Option[Any]) =
     doRewrite(atom, Bindings(), hint)
   
+  /*
   def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
     _tryRewrite(atom, binds, hint)
   }
+  */
+  //////////////////// GUI changes
+  def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
+    // Try to apply the rewrite rule.  Whatever we get back is the result.
+    //println("Rewriting with rule.")
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("RewriteRule doRewrite")
+	val atomNode = rwNode.addChild(atom)
+	RWTree.current = atomNode
+    val rwResult = _tryRewrite(atom, binds, hint)
+	atomNode.addChild(rwResult._1)
+	rwResult
+  }
+  //////////////////// end GUI changes
 }

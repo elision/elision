@@ -275,6 +275,7 @@ class TreeVisPanel extends GamePanel {
 	
 	/** The panel's camera for panning around and zooming in the visualization */
 	val camera = new Camera(0,0,640,480)
+	NodeSprite.camera = camera
 	
 	/** The mouse input interface for the panel */
 	val mouseIn = new MouseInput(this)
@@ -338,6 +339,12 @@ class TreeVisPanel extends GamePanel {
 		
 		//testPaint(g)
 		treeSprite.render(g)
+		
+		// draw the panel's border (used for testing clipping techniques)
+		/*
+		g.setColor(new Color(0xffaaaa))
+		g.drawRect(camera.xLeftEdge.toInt, camera.yTopEdge.toInt, camera.xRightEdge.toInt - camera.xLeftEdge.toInt, camera.yBottomEdge.toInt - camera.yTopEdge.toInt)
+		*/
 		
 		// restore the original transform
 		g.setTransform(origTrans)
@@ -430,7 +437,8 @@ class TreeVisPanel extends GamePanel {
 			camera.zoomAtScreen(0.8, mouseIn.position)
 		
 		// update the camera's transform based on its new state.
-		
+		camera.pWidth = this.size.width
+		camera.pHeight = this.size.height
 		camera.updateTransform
 		
 		// update the mouse's current world coordinates

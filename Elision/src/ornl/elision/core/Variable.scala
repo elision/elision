@@ -138,7 +138,9 @@ class Variable(typ: BasicAtom, val name: String,
       // variable of the same name and type, and having chaos ensue.
       Fail("Variable is not bindable.", this, subject)
 
-  def rewrite(binds: Bindings) = {
+	  
+	/*
+	def rewrite(binds: Bindings) = {
     // If this variable is bound in the provided bindings, replace it with the
     // bound value.
     binds.get(name) match {
@@ -153,6 +155,36 @@ class Variable(typ: BasicAtom, val name: String,
         }
     }
   }
+  */
+	  //////////////////// GUI changes
+  def rewrite(binds: Bindings) = {
+	// get the node representing this atom that is being rewritten
+	val rwNode = RWTree.current.addChild("Variable rewrite: ")
+	val typeNode = rwNode.addChild(theType)
+	
+    // If this variable is bound in the provided bindings, replace it with the
+    // bound value.
+    binds.get(name) match {
+      case Some(atom) =>
+        rwNode.addChild(atom)
+		(atom, true)
+      case None =>
+		RWTree.current = typeNode
+        // While the atom is not bound, its type might have to be rewritten.
+        theType.rewrite(binds) match {
+          case (newtype, changed) =>
+			typeNode.addChild(newtype)
+            if (changed) { 
+				RWTree.current = rwNode
+				val newVar = Variable(newtype, name)
+				rwNode.addChild(newVar)
+				(newVar, true) 
+			} else (this, false)
+          case _ => (this, false)
+        }
+    }
+  }
+  //////////////////// end GUI changes
 
   def toParseString = prefix + toESymbol(name) +
   		(if (guard != Literal.TRUE) "{" + guard.toParseString + "}" else "") +
