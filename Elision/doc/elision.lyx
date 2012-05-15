@@ -5,6 +5,7 @@
 \textclass amsbook
 \begin_preamble
 %%\usepackage{minted}
+\usepackage{tipa}
 \definecolor{shadecolor}{rgb}{0.8,0.8,1}
 \sloppypar
 %\usepackage{nameref}
@@ -91,6 +92,52 @@ Elision User Guide
 
 \begin_layout Dedicatory
 Version @VERSION@ Build @BUILD@
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+\shape italic
+\size larger
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+makebox[0pt][r]{nominatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Linguistically, an 
+\emph on
+elision
+\emph default
+ (
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+i'liZH
+\backslash
+textipa{@}n
+\end_layout
+
+\end_inset
+
+) is the omission of sounds from an utterance to create a result that is
+ (typically) easier to pronounce.
+ Contractions are examples of elisions.
+ Elision can also refer to omissions in books and films.
+ Finally, it may mean the process of joining or merging together abstract
+ ideas.
 \end_layout
 
 \begin_layout Standard
@@ -2749,7 +2796,12 @@ a sequence of atoms/ZeroOrMore/AtomSeqPush1Action1, matched, cursor at 1:1
 \begin_layout Plain Layout
 
 ..(1)../ZeroOrMore/ZeroOrMore/Sequence/an atom/LApply/a simple atom/whitespace
- or comments/FirstOf/OneOrMore/[ 
+ or
+\end_layout
+
+\begin_layout Plain Layout
+
+comments/FirstOf/OneOrMore/[ 
 \backslash
 n
 \backslash
@@ -3700,7 +3752,11 @@ scala> "I'm a string":BasicAtom
 \begin_layout Plain Layout
 
 res0: ornl.elision.core.BasicAtom = StringLiteral(NamedRootType("STRING"),
- "I'm a string") 
+\end_layout
+
+\begin_layout Plain Layout
+
+"I'm a string") 
 \end_layout
 
 \end_inset
@@ -6821,7 +6877,12 @@ WARNING: Redefining operator foo.
 \begin_layout Plain Layout
 
 WARNING: Prior definition: {: operator:SYMBOL { binds name -> foo:SYMBOL
- params -> %($x) } :}
+ params -> %($x)
+\end_layout
+
+\begin_layout Plain Layout
+
+} :}
 \end_layout
 
 \begin_layout Plain Layout
@@ -7883,11 +7944,11 @@ Atoms are transformed when entered, based on their properties, before any
 \begin_layout Itemize
 
 \family typewriter
-foo($x:INTEGER,foo($y:INTEGER,$z:INTEGER))
+foo($x:INTEGER, foo($y:INTEGER, $z:INTEGER))
 \family default
  becomes 
 \family typewriter
-foo($x:INTEGER,$y:INTEGER,$z:INTEGER)
+foo($x:INTEGER, $y:INTEGER, $z:INTEGER)
 \family default
  because associative applications are 
 \begin_inset Quotes eld
@@ -7915,7 +7976,7 @@ foo(5,2)
 \begin_layout Itemize
 
 \family typewriter
-bar(true,false,$x:BOOLEAN)
+bar(true,false, $x:BOOLEAN)
 \family default
  becomes 
 \family typewriter
@@ -8547,8 +8608,11 @@ $x:$T.$T).getop(add:OPREF)
 \end_layout
 
 \begin_layout LyX-Code
-Apply(Lambda(Variable('T,"x"),'T), context.operatorLibrary("getop")(Literal(OPREF
-,'add)))
+Apply(Lambda(Variable('T,"x"),'T),
+\end_layout
+
+\begin_layout LyX-Code
+  context.operatorLibrary("getop")(Literal(OPREF,'add)))
 \end_layout
 
 \begin_layout LyX-Code
@@ -9232,11 +9296,11 @@ This generality allows some rather unorthodox things to occur.
 Now we have an operator that generates the type of anything on the right
  of an applicative dot.
 \begin_inset Foot
-status collapsed
+status open
 
 \begin_layout Plain Layout
 This is not perfect! The lambda trick described elsewhere is the best way
- to obtain the type of some atom.
+ to obtain the type of an atom.
 \end_layout
 
 \end_inset
@@ -9387,7 +9451,11 @@ val sumOp = CaseOperator("sum", ANY,
 \end_layout
 
 \begin_layout LyX-Code
-    MapPair(AtomSeq(Associative(true) and Commutative(true), x, y), add(x,y)),
+    MapPair(AtomSeq(Associative(true) and Commutative(true), x, y),
+\end_layout
+
+\begin_layout LyX-Code
+      add(x,y)),
 \end_layout
 
 \begin_layout LyX-Code
@@ -9403,7 +9471,7 @@ val sumOp = CaseOperator("sum", ANY,
 \end_layout
 
 \begin_layout LyX-Code
-  """|This operator computes the polymorphic sum of its arguments.""".stripMargin)
+  "This operator computes the polymorphic sum of its arguments.")
 \end_layout
 
 \begin_layout Plain Layout
