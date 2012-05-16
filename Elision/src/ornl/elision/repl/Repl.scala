@@ -353,7 +353,7 @@ object Repl {
       	segment = segment.trim()
       	
       	// Watch for blank lines that terminate the parse.
-      	if (segment == "") blanks += 1
+      	if (segment == "") blanks += 1 else blanks = 0
       	
       	// Capture newlines.
       	if (line != "") line += "\n"

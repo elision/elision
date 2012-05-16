@@ -903,7 +903,7 @@ extends Parser {
   /** Parse an operator definition. */
   def AlternativeOperatorDefinition = rule {
     "{! " ~ OperatorPrototypeNode ~
-    optional("is " ~ OperatorPropertiesNode) ~
+    optional("is " ~ (OperatorPropertiesNode | ParsedAlgProp)) ~
     zeroOrMore(BindBlock | ListBlock) ~
     "} " ~~> { (proto, props, blocks) =>
       val newparams = props match {
