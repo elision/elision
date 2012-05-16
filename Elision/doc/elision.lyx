@@ -6734,6 +6734,116 @@ $_repl16 = %AI(3)
 
 \end_layout
 
+\begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Long-Property-Specifications"
+
+\end_inset
+
+Long Property Specifications
+\end_layout
+
+\begin_layout Standard
+A properties specification like 
+\family typewriter
+%AC!ID[0]
+\family default
+ is terse almost to the point of being unreadable.
+ If a properties specification contains no variables or other complex terms,
+ it can be written in an alternate form, replacing the letters with the
+ entire property name, and negation with 
+\family typewriter
+not
+\family default
+.
+ The above specification can be written in the following form.
+\end_layout
+
+\begin_layout LyX-Code
+% associative, commutative, not idempotent, identity 0
+\end_layout
+
+\begin_layout Standard
+The commas are required, and spaces are allowed.
+ This form is much more readable, but also much longer.
+ Note that absorbers are specified via the 
+\family typewriter
+absorber
+\family default
+ keyword, followed by the absorber atom.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> %associative.%commutative
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl1 = %AC
+\end_layout
+
+\begin_layout Plain Layout
+
+e> %associative.% not associative, commutative
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl2 = %AC
+\end_layout
+
+\begin_layout Plain Layout
+
+e> (%associative, identity 0).%commutative, identity 2
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl3 = %ACD[0]
+\end_layout
+
+\begin_layout Plain Layout
+
+e> (%associative.%idempotent).%(3,%associative,idempotent(3),3)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl4 = %AI(3)
+\end_layout
+
+\begin_layout Plain Layout
+
+e> %associative.%idempotent(3,%idempotent(3),3)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl5 = %AI(3, %I(3))
+\end_layout
+
+\begin_layout Plain Layout
+
+e> %associative.%idempotent(3,%idempotent, associative(3),3)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl6 = %AI(3)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Chapter
 \begin_inset CommandInset label
 LatexCommand label
@@ -6896,6 +7006,12 @@ Defined operator foo.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Symbolic-Operators"
+
+\end_inset
+
 Symbolic Operators
 \end_layout
 
@@ -7433,10 +7549,129 @@ core.Apply
 \begin_layout Standard
 The properties specified for the operator are interpreted a bit differently
  from how they are interpreted for collections.
- The following section explains how they are interpreted.
+ 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Operator-Properties"
+
+\end_inset
+
+ explains how they are interpreted.
+\end_layout
+
+\begin_layout Standard
+Symbolic operators can be defined using a much more terse syntax.
+ In this form the prototype is written directly, and the name, parameters,
+ and type are pulled from it.
+ For instance, the prototype 
+\family typewriter
+imul($x:INTEGER, $y:INTEGER):INTEGER
+\family default
+ specifies the name, parameters and their types, and the type of the fully-appli
+ed operator.
+ Note that it does 
+\emph on
+not
+\emph default
+ specify the properties of the operator.
+ Those are optionally specified by following the prototype with 
+\family typewriter
+is
+\family default
+ and then the algebraic properties specification.
+ Use 
+\family typewriter
+{!
+\family default
+...
+\family typewriter
+}
+\family default
+ to enclose the entire operator definition.
+ The three operators given previously can be written as follows using this
+ new syntax.
+\end_layout
+
+\begin_layout LyX-Code
+{! iadd($x:INTEGER, $y:INTEGER):INTEGER is %AC!ID[0] }
+\end_layout
+
+\begin_layout LyX-Code
+{! imul($x:INTEGER, $y:INTEGER):INTEGER is %AC!ID[1]B[0] }
+\end_layout
+
+\begin_layout LyX-Code
+{! and($P:BOOLEAN, $Q:BOOLEAN):BOOLEAN is %ACID[true]B[false] }
+\end_layout
+
+\begin_layout Standard
+If you use long property specifications (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Long-Property-Specifications"
+
+\end_inset
+
+) then you can drop the leading 
+\family typewriter
+%
+\family default
+.
+\end_layout
+
+\begin_layout LyX-Code
+{! iadd($x:INTEGER, $y:INTEGER):INTEGER is
+\end_layout
+
+\begin_layout LyX-Code
+   associative, commutative, not idempotent, identity 0}
+\end_layout
+
+\begin_layout LyX-Code
+{! imul($x:INTEGER, $y:INTEGER):INTEGER is
+\end_layout
+
+\begin_layout LyX-Code
+   associative, commutative, not idempotent,
+\end_layout
+
+\begin_layout LyX-Code
+   identity 1, absorber 0}
+\end_layout
+
+\begin_layout LyX-Code
+{! and($P:BOOLEAN, $Q:BOOLEAN):BOOLEAN is
+\end_layout
+
+\begin_layout LyX-Code
+   associative, commutative, idempotent,
+\end_layout
+
+\begin_layout LyX-Code
+   identity true, absorber false}
+\end_layout
+
+\begin_layout Standard
+This is much more readable, but also much longer.
+\end_layout
+
+\begin_layout Standard
+After specifying the prototype the description and details may be specified
+ as usual.
+ In fact, the type can be specified in the usual manner (with 
+\family typewriter
+#type
+\family default
+), if desired.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Operator-Properties"
+
+\end_inset
+
 Operator Properties
 \end_layout
 
@@ -9296,7 +9531,7 @@ This generality allows some rather unorthodox things to occur.
 Now we have an operator that generates the type of anything on the right
  of an applicative dot.
 \begin_inset Foot
-status open
+status collapsed
 
 \begin_layout Plain Layout
 This is not perfect! The lambda trick described elsewhere is the best way
@@ -9475,7 +9710,15 @@ val sumOp = CaseOperator("sum", ANY,
 \end_layout
 
 \begin_layout Plain Layout
-As with symbolic operators, the operator definition should be installed
+The last two strings provide documentation, as described in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Documenting-Operators"
+
+\end_inset
+
+.
+ As with symbolic operators, the operator definition should be installed
  in an instance of 
 \family typewriter
 core.OperatorLibrary
@@ -9489,6 +9732,210 @@ core.Context
 
 \begin_layout Plain Layout
 Unlike symbolic operators, case operators should not be given native handlers.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Documenting-Operators"
+
+\end_inset
+
+Documenting Operators
+\end_layout
+
+\begin_layout Standard
+Operators may include two additional elements.
+ A short one-line description of the operator can be given via 
+\family typewriter
+#description
+\family default
+, while a longer description of the operator can be given via 
+\family typewriter
+#detail
+\family default
+.
+ If these are included, they will be used by Elision's help system.
+ The general style is to describe the operator in abstract terms in its
+ 
+\family typewriter
+#description
+\family default
+ and not mention parameters by name.
+ Then in the 
+\family typewriter
+#detail
+\family default
+ the parameters may be mentioned directly.
+\end_layout
+
+\begin_layout LyX-Code
+{operator #name=sum #cases
+\end_layout
+
+\begin_layout LyX-Code
+          %($x: INTEGER) -> $x,
+\end_layout
+
+\begin_layout LyX-Code
+          %($x: STRING) -> $x,
+\end_layout
+
+\begin_layout LyX-Code
+          %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
+\end_layout
+
+\begin_layout LyX-Code
+          %A($x: STRING, $y: STRING) -> ($x.$y),
+\end_layout
+
+\begin_layout LyX-Code
+          _ -> _
+\end_layout
+
+\begin_layout LyX-Code
+#description="Compute the generic polymorphic sum."
+\end_layout
+
+\begin_layout LyX-Code
+#detail="This operator computes the polymorphic sum of its arguments."
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> def({operator #name=sum #cases
+\end_layout
+
+\begin_layout Plain Layout
+
+ >           %($x: INTEGER) -> $x,
+\end_layout
+
+\begin_layout Plain Layout
+
+ >           %($x: STRING) -> $x,
+\end_layout
+
+\begin_layout Plain Layout
+
+ >           %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
+\end_layout
+
+\begin_layout Plain Layout
+
+ >           %A($x: STRING, $y: STRING) -> ($x.$y),
+\end_layout
+
+\begin_layout Plain Layout
+
+ >           _ -> _
+\end_layout
+
+\begin_layout Plain Layout
+
+ > #description="Compute the generic polymorphic sum."
+\end_layout
+
+\begin_layout Plain Layout
+
+ > #detail="This operator computes the polymorphic sum of its arguments."
+\end_layout
+
+\begin_layout Plain Layout
+
+ > })
+\end_layout
+
+\begin_layout Plain Layout
+
+Defined operator sum.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> help(sum:OPREF)
+\end_layout
+
+\begin_layout Plain Layout
+
+Operator: sum
+\end_layout
+
+\begin_layout Plain Layout
+
+Compute the generic polymorphic sum.
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Prototype:
+\end_layout
+
+\begin_layout Plain Layout
+
+  sum .
+ (case)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Cases:
+\end_layout
+
+\begin_layout Plain Layout
+
+  (%($x:INTEGER) -> $x)
+\end_layout
+
+\begin_layout Plain Layout
+
+  (%($x:STRING) -> $x)
+\end_layout
+
+\begin_layout Plain Layout
+
+  (%AC($x:INTEGER, $y:INTEGER) -> add($x, $y))
+\end_layout
+
+\begin_layout Plain Layout
+
+  (%A($x:STRING, $y:STRING) -> ($x.$y))
+\end_layout
+
+\begin_layout Plain Layout
+
+  (ANY -> ANY)
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+This operator computes the polymorphic sum of its arguments.
 \end_layout
 
 \end_inset
@@ -9850,6 +10297,15 @@ There are several known special forms.
  they are themselves used to define special forms.
  Thus the way bindings are interpreted is a bit different, as you can see
  from the first row of the table below.
+ Note the additional syntactic sugar for specifying operators.
+ This is described in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Symbolic-Operators"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
@@ -9875,7 +10331,7 @@ Known Special Forms
 
 
 \begin_inset Tabular
-<lyxtabular version="3" rows="16" columns="2">
+<lyxtabular version="3" rows="17" columns="2">
 <features tabularvalignment="middle">
 <column alignment="left" valignment="top" width="0">
 <column alignment="left" valignment="top" width="75col%">
@@ -10128,6 +10584,28 @@ Create an operator definition.
 </cell>
 </row>
 <row>
+<cell multirow="4" alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+{!foo($x,$y)}
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
 <cell multirow="4" alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
 \begin_inset Text
 
@@ -10165,7 +10643,8 @@ Create an operator definition.
 \begin_layout Plain Layout
 
 \family typewriter
-{: operator:SYMBOL { binds name -> foo:SYMBOL params -> %($x, $y) } :}
+{: operator:SYMBOL { binds name -> foo:SYMBOL params -> %($x, $y) type ->
+ ANY } :}
 \end_layout
 
 \end_inset
@@ -11580,6 +12059,15 @@ caret TYPE}
 \backslash
 defnt{special-form} 
 \backslash
+nt{alternate-operator-def}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
 term{
 \backslash
 {:} 
@@ -11619,6 +12107,63 @@ zeroOrMore{
 nt{sf-bound-atom}|
 \backslash
 nt{sf-bound-list}} 
+\backslash
+term{
+\backslash
+}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{alternate-operator-def} 
+\backslash
+term{
+\backslash
+{!}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+nt{SYMBOL} 
+\backslash
+term{(} 
+\backslash
+nt{atom-sequence} 
+\backslash
+term{)}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+optional{:
+\backslash
+nt{first-atom}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+zeroOrMore{
+\backslash
+nt{sf-bound-atom} | 
+\backslash
+nt{sf-bound-list}}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
 \backslash
 term{
 \backslash
@@ -11759,6 +12304,32 @@ term{)}
 \backslash
 defnt{alg-prop} 
 \backslash
+nt{alg-prop-short}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+term{
+\backslash
+%}
+\backslash
+nt{alg-prop-long}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{alg-prop-short} 
+\backslash
 term{
 \backslash
 %}
@@ -11872,6 +12443,78 @@ term{[}
 nt{atom}
 \backslash
 term{]}}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+defnt{alg-prop-long} 
+\backslash
+zeroOrMore{
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+term{absorber} 
+\backslash
+nt{atom}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+term{identity} 
+\backslash
+nt{atom}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+optional{
+\backslash
+term{not}} 
+\backslash
+term{associative}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+optional{
+\backslash
+term{not}} 
+\backslash
+term{commutative}
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\backslash
+ordef
+\backslash
+optional{
+\backslash
+term{not}} 
+\backslash
+term{idempotent}}
 \end_layout
 
 \begin_layout Plain Layout

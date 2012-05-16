@@ -148,7 +148,7 @@ of each one (if given).  Operators whose name begins with an underscore
 are suppressed in this list."""
 })
 
-def({ operator #name=help #cases %()->_help_all(), %($r:OPREF)->_help_op($r)
+def({ operator #name=help #cases %($r:OPREF)->_help_op($r), _help_all:OPREF
       #description="Get general help or help on an operator."
       #detail=
 """With no argument, list all operators.  If provided with an operator

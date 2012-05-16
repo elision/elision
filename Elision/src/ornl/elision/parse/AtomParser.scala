@@ -58,6 +58,10 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  */
 object AtomParser {
   
+  //----------------------------------------------------------------------
+  // Build character literals.
+  //----------------------------------------------------------------------
+  
   /**
    * Accumulate a character into a string.  The character may actually be an
    * escape sequence that will be interpreted here.
@@ -143,7 +147,20 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
-	// Ruleset reference.
+	// Operator reference nodes.
+	//----------------------------------------------------------------------
+	
+	/**
+	 * A node representing a "naked" operator.
+	 * @param str	The operator name.
+	 * @param lib	The operator library that will get the operator.
+	 */
+	case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
+	  def interpret = lib(str)
+	}
+	
+	//----------------------------------------------------------------------
+	// Ruleset reference nodes.
 	//----------------------------------------------------------------------
 
 	/**
@@ -156,7 +173,7 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
-	// Operator application.
+	// Operator application nodes.
 	//----------------------------------------------------------------------
 	
 	/**
@@ -179,15 +196,10 @@ object AtomParser {
 	  }
 	}
 	
-	/**
-	 * A node representing a "naked" operator.
-	 * @param str	The operator name.
-	 * @param lib	The operator library that will get the operator.
-	 */
-	case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
-	  def interpret = lib(str)
-	}
-	
+  //----------------------------------------------------------------------
+	// Lambda nodes.
+  //----------------------------------------------------------------------
+
 	/**
 	 * A node representing a lambda.
 	 * @param lvar	The lambda variable.
@@ -196,6 +208,10 @@ object AtomParser {
 	case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
 	  def interpret = Lambda(lvar.interpret, body.interpret)
 	}
+	
+  //----------------------------------------------------------------------
+	// Atom collection nodes.
+  //----------------------------------------------------------------------
 	
 	/**
 	 * An abstract syntax tree node holding a simple list of atoms.
@@ -212,8 +228,22 @@ object AtomParser {
 	    AtomSeq(props.interpret, list.toIndexedSeq[AstNode] map (_.interpret))
 	}
 	
+  //----------------------------------------------------------------------
+	// Boolean literal nodes.
+  //----------------------------------------------------------------------
+	
+	/** A true node for fast access. */
+	case object TrueNode extends AstNode {
+	  def interpret = Literal.TRUE
+	}
+	
+	/** A false node for fast access. */
+	case object FalseNode extends AstNode {
+	  def interpret = Literal.FALSE
+	}
+	
 	//----------------------------------------------------------------------
-	// Algebraic properties.
+	// Algebraic properties nodes.
 	//----------------------------------------------------------------------
 	
 	/** A property node. */
@@ -228,16 +258,6 @@ object AtomParser {
 	case class AbsorberNode(atom:AstNode) extends PropertyNode
 	/** Identity property. */
 	case class IdentityNode(atom:AstNode) extends PropertyNode
-	
-	/** A true node for fast access. */
-	case object TrueNode extends AstNode {
-	  def interpret = Literal.TRUE
-	}
-	
-	/** A false node for fast access. */
-	case object FalseNode extends AstNode {
-	  def interpret = Literal.FALSE
-	}
 	
 	/**
 	 * A data structure holding operator properties as they are discovered during
@@ -315,7 +335,7 @@ object AtomParser {
 	}
 	
 	//----------------------------------------------------------------------
-	// Map pair and case nodes.
+	// Map pair nodes.
 	//----------------------------------------------------------------------
 	
 	/**
@@ -350,6 +370,11 @@ object AtomParser {
 	 */
 	case class SymbolNode(typ: AstNode, name: String) extends AstNode {
 	  def interpret = Literal(typ.interpret, name)
+	}
+	
+	/** A node representing ANY. */
+	object AnyNode extends AstNode {
+	  def interpret = EANY
 	}
 	
 	//----------------------------------------------------------------------
@@ -680,6 +705,10 @@ object AtomParser {
 class AtomParser(val context: Context, val trace: Boolean = false)
 extends Parser {
   import AtomParser._
+	
+	//----------------------------------------------------------------------
+	// Parse result.
+	//----------------------------------------------------------------------
   
   /** A parse result. */
   abstract sealed class Presult
@@ -697,6 +726,10 @@ extends Parser {
    * @param err	The reason for the parsing failure.
    */
   case class Failure(err: String) extends Presult
+	
+	//----------------------------------------------------------------------
+	// Perform parsing.
+	//----------------------------------------------------------------------
   
   /**
    * Entry point to parse all atoms from the given string.
@@ -716,7 +749,7 @@ extends Parser {
     }
   }
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse and build atoms.
   //----------------------------------------------------------------------
   // The basic approach is the following.
@@ -733,7 +766,7 @@ extends Parser {
   // For each "thing" processed, we create an instance of a subclass of
   // AstNode and return it.  This has an interpret method that reads the
   // AST to generate the concrete parsed "thing," whatever it should be.
-  //======================================================================
+  //----------------------------------------------------------------------
   
   /**
    * Parse all the atoms that can be found in the input.
@@ -810,34 +843,41 @@ extends Parser {
       "^TYPE " ~> (x => TypeUniverseNode()))
   }.label("a simple atom")
   
-  //======================================================================
+  //----------------------------------------------------------------------
   // Invoke an external parser.
-  //======================================================================
+  //----------------------------------------------------------------------
   
+  /**
+   * Parse an external parser reference.
+   */
   def ExternalParse = rule {
     "[" ~ oneOrMore(ESymbol, ",") ~ "[" ~
     zeroOrMore(&(!"]]") ~ PANY) ~
     "]]" ~~> (AtomSeqNode(AlgPropNode(List()), _))
   }
   
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse the generalized "special form."
-  //======================================================================
+  //----------------------------------------------------------------------
   
+  /** Parse a special form node. */
   def ParsedSpecialForm = rule {
-    ParsedGeneralForm | ParsedSpecialBindForm
+    AlternativeOperatorDefinition | ParsedGeneralForm | ParsedSpecialBindForm
   }.label("a special form")
   
+  /** Parse the general "two atom" form of the special form. */
   def ParsedGeneralForm = rule {
     "{: " ~ Atom ~ Atom ~ ":} " ~~> (SpecialFormNode(_,_))
   }
   
+  /** Parse the specialized short form of a special form. */
   def ParsedSpecialBindForm = rule {
     "{ " ~ ESymbol ~ (
         zeroOrMore(Atom) ~~> (
             first =>
               if (first.length == 0) None
-              else Some(NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(),first))) ~
+              else Some(NakedSymbolNode("") ->
+              	AtomSeqNode(AlgPropNode(),first))) ~
         zeroOrMore(BindBlock | ListBlock)
     ) ~~> ((x,y) => x match {
       case None => BindingsNode(y)
@@ -845,22 +885,78 @@ extends Parser {
     }) ~ "} " ~~> (SpecialFormNode(_,_))
   }
   
+  /** Parse a list block from a special form. */
   def ListBlock = rule {
-    "#" ~ ESymbol ~ zeroOrMore(Atom, ", ") ~~> (_ -> AtomSeqNode(AlgPropNode(), _))
+    "#" ~ ESymbol ~ zeroOrMore(Atom, ", ") ~~>
+    	(_ -> AtomSeqNode(AlgPropNode(), _))
   }.label("a # list block")
   
+  /** Parse a simple bind from a special form. */
   def BindBlock = rule {
     "#" ~ ESymbol ~ "= " ~ Atom ~~> (_ -> _)
   }.label("a # binding")
   
-  //======================================================================
+  //----------------------------------------------------------------------
+  // Parse a the syntactic sugar version of an operator prototype.
+  //----------------------------------------------------------------------
+  
+  /** Parse an operator definition. */
+  def AlternativeOperatorDefinition = rule {
+    "{! " ~ OperatorPrototypeNode ~
+    optional("is " ~ (OperatorPropertiesNode | ParsedAlgProp)) ~
+    zeroOrMore(BindBlock | ListBlock) ~
+    "} " ~~> { (proto, props, blocks) =>
+      val newparams = props match {
+        case None => AtomSeqNode(AlgPropNode(), proto._2)
+        case Some(ap) => AtomSeqNode(ap, proto._2)
+      }
+      val binds = BindingsNode(List(
+          NakedSymbolNode("name")->proto._1,
+          NakedSymbolNode("params")->newparams,
+          NakedSymbolNode("type")->proto._3) ++ blocks)
+      SpecialFormNode(NakedSymbolNode("operator"), binds)
+    }
+  }
+  
+  /** Parse an operator prototype. */
+  def OperatorPrototypeNode = rule {
+    ESymbol ~ "( " ~ zeroOrMore(Atom, ", ") ~ ") " ~
+    	optional(": " ~ FirstAtom) ~~> {
+    	  (name, params, typ) => typ match {
+    	    case None => (name, params, AnyNode)
+    	    case Some(typeNode) => (name, params, typeNode.asInstanceOf[AstNode])
+    	  }
+    	}
+  }.label("an operator prototype")
+  
+  /** Parse an operator properties block. */
+  def OperatorPropertiesNode = rule {
+    oneOrMore(
+        ignoreCase("absorber") ~ WS ~ Atom ~~> ((x) => AbsorberNode(x)) |
+        ignoreCase("identity") ~ WS ~ Atom ~~> ((x) => IdentityNode(x)) |
+        ignoreCase("not") ~ WS ~ (
+	        ignoreCase("associative") ~>
+	        	((x) => AssociativeNode(FalseNode)) |
+	        ignoreCase("commutative") ~>
+	        	((x) => CommutativeNode(FalseNode)) |
+	        ignoreCase("idempotent") ~>
+	        	((x) => IdempotentNode(FalseNode))
+        ) |
+        ignoreCase("associative") ~>
+        	((x) => AssociativeNode(TrueNode)) |
+        ignoreCase("commutative") ~>
+        	((x) => CommutativeNode(TrueNode)) |
+        ignoreCase("idempotent") ~>
+        	((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~~>
+    (AlgPropNode(_))
+  }.label("operator properties")
+  
+  //----------------------------------------------------------------------
   // Parse a simple operator application.  The other form of application
   // (the more general kind) is parsed in Atom.
-  //======================================================================
+  //----------------------------------------------------------------------
 
-  /**
-   * Parse the "usual" operator application form.
-   */
+  /** Parse the "usual" operator application form. */
   def ParsedApply = rule {
     // Parse an operator application.  This just applies an operator to
     // some other atom.  The operator name is given as a symbol, and the
@@ -875,21 +971,19 @@ extends Parser {
         ApplicationNode(context, op, arg))
   }.label("an operator application")
   
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse a lambda.
-  //======================================================================
+  //----------------------------------------------------------------------
 
-  /**
-   * Parse a lambda expression.
-   */
+  /** Parse a lambda expression. */
   def ParsedLambda = rule {
     "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> (
         (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
   }.label("a lambda expression")
   
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse trivial literals.
-  //======================================================================
+  //----------------------------------------------------------------------
 
   /**
    * Parse a literal symbol or a literal string.
@@ -956,12 +1050,13 @@ extends Parser {
   /** Parse a "normal" non-escaped character that is part of a symbol. */
   def SymNorm = rule { noneOf("""`\""") }.label("a character")
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse property lists.
-  //======================================================================
+  //----------------------------------------------------------------------
   
   /** Parse an algebraic properties specification. */
   def ParsedAlgProp = rule {
+    "% " ~ OperatorPropertiesNode |
     "%" ~ zeroOrMore(
         ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~> ((x) => AbsorberNode(x)) |
         ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~> ((x) => IdentityNode(x)) |
@@ -977,9 +1072,9 @@ extends Parser {
     (AlgPropNode(_))
   }.label("an algebraic properties specification.")
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse lists of atoms.
-  //======================================================================
+  //----------------------------------------------------------------------
 
   /**
    * Parse a "typed" list.  That is, a list whose properties are specified.
@@ -997,9 +1092,9 @@ extends Parser {
     zeroOrMore(Atom, ", ") ~~> (AtomSeqNode(AlgPropNode(), _))
   }.label("a comma-separated list of atoms")
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse a map pair.
-  //======================================================================
+  //----------------------------------------------------------------------
   
   /**
    * Parse a map pair.
@@ -1008,9 +1103,9 @@ extends Parser {
     FirstAtom ~ "-> " ~ Atom ~~> (MapPairNode(_,_))
   }
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse variables.
-  //======================================================================
+  //----------------------------------------------------------------------
   
   /**
    * Parse a variable.
@@ -1048,9 +1143,9 @@ extends Parser {
             list.map(_.str).toSet))
   }.label("a variable name")
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse whitespace.
-  //======================================================================
+  //----------------------------------------------------------------------
 
   /** Parse ignorable whitespace. */
   def WS: Rule0 = rule { SuppressNode
@@ -1062,9 +1157,9 @@ extends Parser {
         )
   }.label("whitespace or comments")
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Parse a number.
-  //======================================================================
+  //----------------------------------------------------------------------
 
   /**
    * Parse a number.  The number can be an integer or a float, and can be
@@ -1182,9 +1277,9 @@ extends Parser {
   /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }.label("a binary digit")
 
-  //======================================================================
+  //----------------------------------------------------------------------
   // Other methods affecting the parse.
-  //======================================================================
+  //----------------------------------------------------------------------
   
   /**
    * Eliminate trailing whitespace.  This trick is found on the Parboiled web
