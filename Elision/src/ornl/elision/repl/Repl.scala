@@ -274,7 +274,7 @@ object Repl {
     val ba = _bindatoms
     _quiet = true
     _bindatoms = false
-    if (!_opsDefined) defineOps
+    defineOps
     _quiet = qt
     _bindatoms = ba
     
@@ -353,7 +353,7 @@ object Repl {
       	segment = segment.trim()
       	
       	// Watch for blank lines that terminate the parse.
-      	if (segment == "") blanks += 1
+      	if (segment == "") blanks += 1 else blanks = 0
       	
       	// Capture newlines.
       	if (line != "") line += "\n"
