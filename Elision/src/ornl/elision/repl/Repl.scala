@@ -274,7 +274,7 @@ object Repl {
     val ba = _bindatoms
     _quiet = true
     _bindatoms = false
-    if (!_opsDefined) defineOps
+    defineOps
     _quiet = qt
     _bindatoms = ba
     

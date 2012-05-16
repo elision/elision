@@ -648,6 +648,19 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 	          }
 	        }
 	      } // Loop over atoms.
+		    
+		    // Handle actual operator application.
+		    def handleApply(binds: Bindings): BasicAtom = {
+		      // Re-package the arguments with the correct properties.
+		      val newargs = AtomSeq(params.props, newseq)
+		      // See if we are bypassing the native handler.
+		      if (!bypass) {
+		        // Run any native handler.
+		        if (handler.isDefined) return handler.get(this, newargs, binds)
+		      }
+		      // No native handler.
+		      return OpApply(OperatorRef(this), newargs, binds)
+		    }
         
 		    // There are special cases to handle here.  First, if the argument list
 		    // is empty, but there is an identity, return it.
@@ -658,8 +671,9 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		          return ident
 		        case None =>
 		          // No identity.  We're done.
-		          return OpApply(OperatorRef(this), AtomSeq(params.props, newseq),
-		              Bindings())
+		          return handleApply(Bindings())
+//		          return OpApply(OperatorRef(this), AtomSeq(params.props, newseq),
+//		              Bindings())
 		      }
 		    }
 		    
@@ -707,19 +721,6 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		      newatoms
 		    } else {
 		      params.atoms
-		    }
-		    
-		    // Handle actual operator application.
-		    def handleApply(binds: Bindings): BasicAtom = {
-		      // Re-package the arguments with the correct properties.
-		      val newargs = AtomSeq(params.props, newseq)
-		      // See if we are bypassing the native handler.
-		      if (!bypass) {
-		        // Run any native handler.
-		        if (handler.isDefined) return handler.get(this, newargs, binds)
-		      }
-		      // No native handler.
-		      return OpApply(OperatorRef(this), newargs, binds)
 		    }
 		    
 		    // We've run out of special cases to handle.  Now just try to match the
