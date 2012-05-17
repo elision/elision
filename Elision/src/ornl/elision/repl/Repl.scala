@@ -459,7 +459,7 @@ object Repl {
 	    	case _parser.Success(list) => {
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {
-					RWTree.current = treeRoot
+					RWTree.current = treeRoot.addChild("line node")
 					handle(node.interpret)
 				} )
 			}

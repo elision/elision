@@ -309,8 +309,8 @@ object AtomParser {
 			val propsInt = props.interpret
 			
 			val listNode = interpretNode.addChild("atoms: ")
+			RWTree.current = listNode
 			val ASList = list.toIndexedSeq[AstNode] map ( astAtom => {
-					RWTree.current = listNode
 					val astAtomInt = astAtom.interpret
 					astAtomInt
 				}
@@ -407,7 +407,11 @@ object AtomParser {
 	  override def toString = interpret.toString
 	  
 	  private def _interpret(atom: Option[AstNode]) = atom match {
-	    case None => None
+	    case None => 
+			// get the node representing this atom that is being rewritten
+			val rwNode = RWTree.current
+			rwNode.addChild("n/a")
+			None
 	    case Some(real) => Some(real.interpret)
 	  }
 	  
@@ -421,12 +425,18 @@ object AtomParser {
 			val interpretNode = rwNode.addChild("AlgPropNode.interpret")
 			RWTree.current = interpretNode
 			
+			RWTree.current = interpretNode.addChild("associative: ")
 			val assocInt = _interpret(isAssociative)
+			RWTree.current = interpretNode.addChild("commutative: ")
 			val commuInt = _interpret(isCommutative)
+			RWTree.current = interpretNode.addChild("idempotent: ")
 			val idempInt = _interpret(isIdempotent)
+			RWTree.current = interpretNode.addChild("absorber: ")
 			val absorInt = _interpret(withAbsorber)
+			RWTree.current = interpretNode.addChild("identity: ")
 			val identInt = _interpret(withIdentity)
 			
+			RWTree.current = interpretNode
 			val result = AlgProp(assocInt, commuInt, idempInt, absorInt, identInt)
 			
 			interpretNode.addChild(result)
@@ -467,11 +477,13 @@ object AtomParser {
 			
 	    var binds = Bindings()
 	    for ((str,node) <- map) {
+			val bindNode = interpretNode.addChild(str + " -> ")
+			RWTree.current = bindNode
 			val nodeInt = node.interpret
-			interpretNode.addChild(str + " -> ").addChild(nodeInt)
 			binds += (str.str -> nodeInt)
 	    }
 		
+		RWTree.current = interpretNode
 	    val result = BindingsAtom(binds)
 		
 		interpretNode.addChild(result)
@@ -496,13 +508,16 @@ object AtomParser {
 			val rwNode = RWTree.current
 			val interpretNode = rwNode.addChild("MapPairNode.interpret")
 			RWTree.current = interpretNode
-			
+
+			val leftNode = interpretNode.addChild("left: ")
+			RWTree.current = leftNode
 			val leftInt = left.interpret
+			
+			val rightNode = interpretNode.addChild("right: ")
+			RWTree.current = rightNode
 			val rightInt = right.interpret
 			
-			interpretNode.addChild("left: ").addChild(leftInt)
-			interpretNode.addChild("right: ").addChild(rightInt)
-			
+			RWTree.current = interpretNode
 			val result = MapPair(leftInt, rightInt)
 			
 			interpretNode.addChild(result)
@@ -595,23 +610,22 @@ object AtomParser {
 		val rwNode = RWTree.current
 		val interpretNode = rwNode.addChild("VariableNode.interpret")
 		RWTree.current = interpretNode
-				
+		
+		val typeInt = typ.interpret
+		
 		grd match {
 			case None => 
-				val typeInt = typ.interpret
-				interpretNode.addChild(typeInt)
-				
 				val result = Variable(typeInt, name, Literal.TRUE, labels)
 				
 				interpretNode.addChild(result)
 				RWTree.current = rwNode
 				result
 			case Some(guard) => 
-				val typeInt = typ.interpret
-				interpretNode.addChild(typeInt)
+				val guardNode = interpretNode.addChild("guard: ")
+				RWTree.current = guardNode
 				val guardInt = guard.interpret
-				interpretNode.addChild("guard: ").addChild(guardInt)
 				
+				RWTree.current = interpretNode
 				val result = Variable(typeInt, name, guardInt, labels)
 				
 				interpretNode.addChild(result)
@@ -650,23 +664,22 @@ object AtomParser {
 		val interpretNode = rwNode.addChild("MetaVariableNode.interpret")
 		RWTree.current = interpretNode
 		
+		val vxtypeInt = vx.typ.interpret
+		
 		grd match {
 			case None =>
-				val vxtypeInt = vx.typ.interpret
-				interpretNode.addChild(vxtypeInt)
-				
 				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE, labels)
 			  
 				interpretNode.addChild(result)
 				RWTree.current = rwNode
 				result
 			case Some(guard) =>
-				val typeInt = vx.typ.interpret
-				interpretNode.addChild(typeInt)
+				val guardNode = interpretNode.addChild("guard: ")
+				RWTree.current = guardNode
 				val guardInt = guard.interpret
-				interpretNode.addChild("guard: ").addChild(guardInt)
 				
-				val result = MetaVariable(typeInt, vx.name, guard.interpret, labels)
+				RWTree.current = interpretNode
+				val result = MetaVariable(vxtypeInt, vx.name, guard.interpret, labels)
 			  
 				interpretNode.addChild(result)
 				RWTree.current = rwNode
@@ -692,12 +705,16 @@ object AtomParser {
 			val interpretNode = rwNode.addChild("SpecialFormNode.interpret")
 			RWTree.current = interpretNode
 			
+			val tagNode = interpretNode.addChild("tag: ")
+			RWTree.current = tagNode
 			val tagInt = tag.interpret
-			interpretNode.addChild("tag: ").addChild(tagInt)
-			val contentInt = content.interpret
-			interpretNode.addChild("content: ").addChild(contentInt)
 			
-			val result = SpecialForm(tag.interpret, content.interpret)
+			val contentNode = interpretNode.addChild("content: ")
+			RWTree.current = contentNode
+			val contentInt = content.interpret
+			
+			RWTree.current = interpretNode
+			val result = SpecialForm(tagInt, contentInt)
 			
 			interpretNode.addChild(result)
 			RWTree.current = rwNode
@@ -785,7 +802,6 @@ object AtomParser {
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
-			interpretNode.addChild(typeInt)
 			
 			val result = Literal(typeInt, str)
 			
@@ -872,7 +888,6 @@ object AtomParser {
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
-			interpretNode.addChild(typeInt)
 			
 			val result = Literal(typeInt, asInt)
 			
@@ -903,7 +918,6 @@ object AtomParser {
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
-			interpretNode.addChild(typeInt)
 			
 			val result = Literal(typeInt, asInt)
 			
@@ -1022,7 +1036,6 @@ object AtomParser {
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
-			interpretNode.addChild(typeInt)
 			
 			val result = Literal(typeInt, norm._1.asInt.toInt, norm._2.asInt.toInt, radix)
 			

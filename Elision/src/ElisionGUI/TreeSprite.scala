@@ -16,6 +16,8 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	/** The node currently selected in the tree */
 	var selectedNode : NodeSprite = null
 	
+	private var excessHeight = 0
+	
 	/** Begins recursive rendering of the tree beginning at the root. */
 	override def draw(g : Graphics2D) : Unit = {
 		root.render(g)
@@ -177,12 +179,14 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			node.numLeaves += math.max(1,childsLeaves)
 		}
 		
-	//	node.offsetY = node.numLeaves*TreeSprite.defY/2
+		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5) + 0.5).toInt 
 		
-		if(numDecompChildren == 0)
-			0
+	/*	if(numDecompChildren == 0)
+			node.numLeaves = math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5)) //node.excessHeight/(NodeSprite.font.getSize+5) // 0
 		else
-			node.numLeaves
+			math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5)) // node.numLeaves
+		*/
+		node.numLeaves
 	}
 	
 	
@@ -193,10 +197,12 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param node		The node for whose children we are currently computing the y-offsets for.
 	 */
 	
-	def computeYOffsets(node : NodeSprite) : Unit = {
+	def computeYOffsets(node : NodeSprite) : (Double, Double) = {
 		// The number of leaves of previous sibling nodes will be used to determine what node's current child
 		// node's y-offset should be. The first child has no siblings before it. Therefore initialize this to 0.
 		var lastSibsLeaves = 0
+		
+		var firstChild = true
 		
 		// the root node has no y-offset. Just set its world coordinates to that of the tree.
 		
@@ -210,8 +216,8 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 		// compute the y coordinates of the area bounding node's subtree. This will be used by the detectMouseOver method 
 		// for efficient mouse collision detection with the tree's nodes.
 		
-		node.subTreeUpperY = node.worldY - (nodeLeaves*TreeSprite.defY + node.box.height)/2
-		node.subTreeLowerY = node.worldY + (nodeLeaves*TreeSprite.defY + node.box.height)/2
+		node.subTreeUpperY = node.worldY + node.box.y // node.worldY - (nodeLeaves*TreeSprite.defY + node.box.height)/2 //
+		node.subTreeLowerY = node.worldY + node.box.y + node.box.height // node.worldY + (nodeLeaves*TreeSprite.defY + node.box.height)/2 //
 		
 		// iterate over all of this node's decompressed children and compute their y-offsets.
 		
@@ -233,8 +239,11 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			
 			// recursively compute the child's children's y-offsets.
 			
-			computeYOffsets(child)
+			val (subUpper, subLower) = computeYOffsets(child)
+			node.subTreeUpperY = math.min(node.subTreeUpperY, subUpper)
+			node.subTreeLowerY = math.max(node.subTreeLowerY, subLower)
 		}
+		(node.subTreeUpperY, node.subTreeLowerY)
 	}
 	
 	
@@ -660,6 +669,8 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** The lower y-boundary of this node's subtree in world coordinates. Used for efficient mouse collisions with the tree's nodes. */
 	var subTreeLowerY : Double = 0
 	
+	var childrenExcessHeight = 0
+	
 	/** This node's x-position in world coordinates */
 	var worldX = 0.0
 	
@@ -676,14 +687,23 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	var expansion : Double = 0.1 // used for a smooth decompression animation
 	
 	// if the term string is very long, abridge it.
-	if(term.length > NodeSprite.maxTermLength)
-		term = term.take(NodeSprite.maxTermLength) + " ... (abridged)"
+//	if(term.length > NodeSprite.maxTermLength)
+//		term = term.take(NodeSprite.maxTermLength) + " ... (abridged)"
+	
+	// if the term is very long, separate it into multiple lines.
+	val termLines = new ArrayBuffer[String]
+	while(term.length > NodeSprite.maxTermLength) {
+		val (str1, str2) = term.splitAt(NodeSprite.maxTermLength)
+		termLines += str1
+		term = str2
+	}
+	termLines += term
 	
 	/** The node's width */
-	private val boxWidth = term.length * NodeSprite.font.getSize * 0.66 + 5
+	private val boxWidth = termLines(0).length * NodeSprite.font.getSize * 0.66 + 5
 	
 	/** The node's height */
-	private val boxHeight = NodeSprite.font.getSize + 5
+	private val boxHeight = (NodeSprite.font.getSize+5)*termLines.size // NodeSprite.font.getSize + 5
 	
 	/** The node's renderable box shape. */
 	val box = new RoundRectangle2D.Double(0, 0-boxHeight/2, boxWidth, boxHeight, 5, 5)
@@ -747,7 +767,10 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		// draw the label
 		
 		g.setColor(alphaColor(NodeSprite.textColor))
-		if(isOnScreen && NodeSprite.camera.zoom > 0.2) g.drawString(term, 3, NodeSprite.font.getSize/2)
+		if(isOnScreen && NodeSprite.camera.zoom > 0.2) { 
+			for(i <- 0 until termLines.size) 
+				g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+		}
 		
 		// restore the graphics context's font
 		
@@ -905,6 +928,10 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	}
 	
 	
+	def excessHeight : Int = {
+		boxHeight - (NodeSprite.font.getSize+5)
+	}
+	
 	////////////	collision methods
 	
 	/**
@@ -912,7 +939,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 */
 	
 	override def getCollisionBox : Rectangle2D = {
-		new Rectangle2D.Double(worldX + box.x, worldY + box.y, box.width, box.height)
+		new Rectangle2D.Double(worldX + box.x, worldY + box.y, boxWidth, boxHeight)
 	}
 	
 	
@@ -933,6 +960,10 @@ object NodeSprite {
 	// rewritten atom colors: Dash blue
 	val boxColor = new Color(0xd7e9ff)
 	val borderColor = new Color(0x77a9dd)
+	
+	// verbatim atom colors: Pie Pink
+	val verbColor = new Color(0xfab3d1)
+	val berbBorderColor = new Color(0xf7438c)
 	
 	// selected colors : Flutter yellow
 	val selectedBoxColor = new Color(0xffffcc)
