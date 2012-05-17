@@ -179,6 +179,10 @@ class LineState {
       // Save this character as the prior character.
       _prior = ch
     }
+    // If we are in a single-line comment at this point, we terminate it.
+    if (_inComment && _slComment) {
+      _inComment = false
+    }
     // Check for completeness.
     _state = !(_verb || _inString || _inSymbol || _inComment ||
         _parenDepth > 0 || _braceDepth > 0 || _bracketDepth > 0)
