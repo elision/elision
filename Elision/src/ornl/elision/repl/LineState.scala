@@ -66,6 +66,15 @@ class LineState {
   /** Whether we are in an escape. */
   private var _inEscape = false
   
+  /** Whether we are in a comment. */
+  private var _inComment = false
+  
+  /** Whether this is a single line comment. */
+  private var _slComment = false
+  
+  /** The previous character. */
+  private var _prior:Char = '\0'
+  
   /** Most recent return value from process method. */
   private var _state = false
   
@@ -85,6 +94,8 @@ class LineState {
     _inString = false
     _inSymbol = false
     _inEscape = false
+    _inComment = false
+    _prior = '\0'
     _adjacent = 0
     _verb = false
   }
@@ -98,8 +109,18 @@ class LineState {
   def process(line: String): Boolean = {
     // Process each character in the line.
     for (ch <- line) {
+      // If we are in a comment, watch for the end of the comment.
+      if (_inComment) {
+        if (_slComment && ch == '\n') {
+          // This is the end of the comment.
+          _inComment = false
+        } else if (!_slComment && ch == '/' && _prior == '*') {
+          // This is the end of the comment.
+          _inComment = false
+        }
+      }
       // Watch for triple quotation marks to toggle verbatim mode.
-      if (!_inEscape && ch == '"') {
+      else if (!_inEscape && ch == '"') {
         _adjacent += 1
         if (_adjacent == 3) {
           // Toggle verbatim mode.
@@ -124,7 +145,14 @@ class LineState {
 	    	  case _ => 
 	    	} else ch match {
 	    	  // We are not in a string or symbol, so we match parens and such now,
-	    	  // and look for the start of strings or symbols.
+	    	  // and look for the start of strings or symbols.  This is also where
+	    	  // we watch for the start of a comment.
+	    	  case '/' if _prior == '/' =>
+	    	    _inComment = true
+	    	    _slComment = true
+	    	  case '*' if _prior == '/' =>
+	    	    _inComment = true
+	    	    _slComment = false
 	    	  case '(' => _parenDepth += 1
 	    	  case ')' =>
 	    	    _parenDepth -= 1
@@ -148,9 +176,11 @@ class LineState {
 	    	  case _ =>
 	    	}
       }
+      // Save this character as the prior character.
+      _prior = ch
     }
     // Check for completeness.
-    _state = !(_verb || _inString || _inSymbol ||
+    _state = !(_verb || _inString || _inSymbol || _inComment ||
         _parenDepth > 0 || _braceDepth > 0 || _bracketDepth > 0)
     return _state
   }
