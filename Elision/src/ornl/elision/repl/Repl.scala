@@ -432,7 +432,6 @@ object Repl {
 	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
 	val treeRoot = new RWTreeNode(lline)
-	treeRoot.properties = "Parse String: " + lline + "\n\n"
 	
 	//////////////////// end GUI changes
 	

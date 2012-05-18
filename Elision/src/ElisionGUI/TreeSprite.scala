@@ -16,8 +16,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	/** The node currently selected in the tree */
 	var selectedNode : NodeSprite = null
 	
-	private var excessHeight = 0
-	
 	/** Begins recursive rendering of the tree beginning at the root. */
 	override def draw(g : Graphics2D) : Unit = {
 		root.render(g)
@@ -286,6 +284,7 @@ object TreeSprite {
 	 * Factory method builds a fabricated tree structure for testing purposes. 
 	 * The Touhou Project and its characters are copyright (c) ZUN, Team Shanghai Alice.
 	 */
+	
 	/*
 	def buildTouhouTree : TreeSprite = {
 		val root = new NodeSprite("Touhou Characters")
@@ -628,6 +627,7 @@ object TreeSprite {
 		parent.addChild(node)
 		
 		node.isComment = rwNode.isComment
+		node.isStringAtom = rwNode.isStringAtom
 		
 		for(child <- rwNode.children) {
 			buildRWTreeRec(child, node)
@@ -669,8 +669,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** The lower y-boundary of this node's subtree in world coordinates. Used for efficient mouse collisions with the tree's nodes. */
 	var subTreeLowerY : Double = 0
 	
-	var childrenExcessHeight = 0
-	
 	/** This node's x-position in world coordinates */
 	var worldX = 0.0
 	
@@ -686,18 +684,17 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** A parametric variable used to implement a smooth compression/decompression animation for the nodes. */
 	var expansion : Double = 0.1 // used for a smooth decompression animation
 	
-	// if the term string is very long, abridge it.
-//	if(term.length > NodeSprite.maxTermLength)
-//		term = term.take(NodeSprite.maxTermLength) + " ... (abridged)"
 	
 	// if the term is very long, separate it into multiple lines.
+	private var edibleTerm = "" + term
+	
 	val termLines = new ArrayBuffer[String]
-	while(term.length > NodeSprite.maxTermLength) {
-		val (str1, str2) = term.splitAt(NodeSprite.maxTermLength)
+	while(edibleTerm.length > NodeSprite.maxTermLength) {
+		val (str1, str2) = edibleTerm.splitAt(NodeSprite.maxTermLength)
 		termLines += str1
-		term = str2
+		edibleTerm = str2
 	}
-	termLines += term
+	termLines += edibleTerm
 	
 	/** The node's width */
 	private val boxWidth = termLines(0).length * NodeSprite.font.getSize * 0.66 + 5
@@ -713,6 +710,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
 	/** flag indicates that this node is just a documentation string and doesn't actually represent an atom */
 	var isComment = true
+	
+	/** flag indicates that this node represents a StringLiteral atom. */
+	var isStringAtom = false
 	
 	//////////////////// Rendering methods
 	
@@ -738,6 +738,8 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 					NodeSprite.selectedBoxColor
 				else if(this.isComment)
 					NodeSprite.comBoxColor
+				else if(this.isStringAtom)
+					NodeSprite.verbBoxColor
 				else
 					NodeSprite.boxColor
 			} 
@@ -756,11 +758,13 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		if(isOnScreen) g.fill(box)
 		
 		if(this.isSelected)
-			g.setColor(alphaColor(NodeSprite.selectedBorderColor))
+			g.setColor(NodeSprite.selectedBorderColor)
 		else if(this.isComment)
-			g.setColor(alphaColor(NodeSprite.comBorderColor))
+			g.setColor(NodeSprite.comBorderColor)
+		else if(this.isStringAtom)
+			g.setColor(NodeSprite.verbBorderColor)
 		else 
-			g.setColor(alphaColor(NodeSprite.borderColor))
+			g.setColor(NodeSprite.borderColor)
 
 		if(isOnScreen) g.draw(box)
 		
@@ -961,17 +965,16 @@ object NodeSprite {
 	val boxColor = new Color(0xd7e9ff)
 	val borderColor = new Color(0x77a9dd)
 	
-	// verbatim atom colors: Pie Pink
-	val verbColor = new Color(0xfab3d1)
-	val berbBorderColor = new Color(0xf7438c)
+	// verbatim atom colors: Apple orange
+	val verbBoxColor = new Color(0xffeecc)
+	val verbBorderColor = new Color(0xddaa77)
 	
 	// selected colors : Flutter yellow
 	val selectedBoxColor = new Color(0xffffcc)
 	val selectedBorderColor = new Color(0xaaaa55) 
 	
 	// leaf colors: Rare grey
-	val leafBoxColor = new Color(0xf8f8ff)
-//	val leafBorderColor = new Color(0x8888aa)
+	val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
 	val selectedLeafBoxColor = new Color(0xffffee)
 	
 	val maxTermLength = 50

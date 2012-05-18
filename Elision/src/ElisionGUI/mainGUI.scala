@@ -396,7 +396,9 @@ class TreeVisPanel extends GamePanel {
 			val clickedNodeScreenPos = camera.worldToScreenCoords(clickedNode.getWorldPosition)
 			camera.moveCenter(clickedNodeScreenPos)
 			treeSprite.selectNode(clickedNode, decompDepth)
+			
 			mainGUI.propsPanel.textArea.text = clickedNode.properties
+			mainGUI.propsPanel.parseArea.text = clickedNode.term
 			
 			camera.x = clickedNode.worldX
 			camera.y = clickedNode.worldY
@@ -464,12 +466,33 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	
-	val label = new Label("Atom properties: ")
+	val label = new Label("Atom parse String: ")
 	label.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
 	contents += label
 	
+	/** The TextArea that displays the currently selected node's parse string */
+	val parseArea = new TextArea("",5,50) {
+		wordWrap = true
+		lineWrap = true
+		editable = false
+		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
+		focusable = false
+	}
+	
+	/** The scrolling pane that contains parseArea */
+	val parsePanel = new ScrollPane {
+		contents = parseArea
+		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+	}
+	contents += parsePanel
+	
+	val label2 = new Label("Atom properties: ")
+	label2.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
+	contents += label2
+	
 	/** The TextArea that displays the currently selected node's properties */
-	val textArea = new TextArea("",20,50) {
+	val textArea = new TextArea("",15,50) {
 		wordWrap = true
 		lineWrap = true
 		editable = false
