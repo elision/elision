@@ -39,65 +39,65 @@ package ElisionGUI
 import util.matching._
 
 object EliRegexes {
-	val multilineComment = Regex("""(/\*(\n|.)+?\*/)""",
+	val multilineComment = new Regex("""(/\*(\n|.)+?\*/)""",
 		"all")
-	val singlelineComment = Regex("""(//.*\n)""",
+	val singlelineComment = new Regex("""(//.*\n)""",
 		"all")
-	val verbatim = Regex("""((\"\"\"(\n|.)*?\"\"\"))""",				
+	val verbatim = new Regex("""((\"\"\"(\n|.)*?\"\"\"))""",				
 		"all")
-	val stringLit = Regex("""(\"(\n|.)*?\")""",							
-		"all")
-	
-	val lambdaBackTick = Regex("""((\\\$\$?)(`(\n|\\`|.)*?`))""",		
-		"all")
-	val lambdaNormal = Regex("""((\\\$\$?)([_a-zA-Z][_a-zA-Z0-9]*))""",	
+	val stringLit = new Regex("""(\"(\n|.)*?\")""",							
 		"all")
 	
-	val varBackTick = Regex("""((\$\$?)(`(\n|\\`|.)*?`))""",			
+	val lambdaBackTick = new Regex("""((\\\$\$?)(`(\n|\\`|.)*?`))""",		
 		"all")
-	val varNormal = Regex("""((\$\$?)([_a-zA-Z][_a-zA-Z0-9]*))""",		
-		"all")
-	
-	val termSFBackTick = Regex("""((##?)(`(\n|\\`|.)*?`))""",			
-		"all")
-	val termSFNormal = Regex("""((##?)([_a-zA-Z][_a-zA-Z0-9]*))""",		
+	val lambdaNormal = new Regex("""((\\\$\$?)([_a-zA-Z][_a-zA-Z0-9]*))""",	
 		"all")
 	
-	val typeRoot = Regex("""(ANY|BINDING|BOOLEAN|FLOAT|INTEGER|OPTYPE|STRATEGY|STRING|SYMBOL|NONE|\\^TYPE)""",
+	val varBackTick = new Regex("""((\$\$?)(`(\n|\\`|.)*?`))""",			
+		"all")
+	val varNormal = new Regex("""((\$\$?)([_a-zA-Z][_a-zA-Z0-9]*))""",		
+		"all")
+	
+	val termSFBackTick = new Regex("""((##?)(`(\n|\\`|.)*?`))""",			
+		"all")
+	val termSFNormal = new Regex("""((##?)([_a-zA-Z][_a-zA-Z0-9]*))""",		
+		"all")
+	
+	val typeRoot = new Regex("""(ANY|BINDING|BOOLEAN|FLOAT|INTEGER|OPTYPE|STRATEGY|STRING|SYMBOL|NONE|\\^TYPE)""",
 		"all")
 		
-	val boolConstants = Regex("""(true|false|Nothing)""",
+	val boolConstants = new Regex("""(true|false|Nothing)""",
 		"all")
-	val keywords = Regex("""(operator|is|case|->|@|=)""",
+	val keywords = new Regex("""(operator|is|case|->|@|=)""",
 		"all")
-	val algProps = Regex("""(associative|commutative|idempotent|identity|absorber|not)""",
+	val algProps = new Regex("""(associative|commutative|idempotent|identity|absorber|not)""",
 		"all")
 	
-	val specialForm = Regex("""((\{)(:)((\n|.)*?)(:)(\}))""",
+	val specialForm = new Regex("""((\{)(:)((\n|.)*?)(:)(\}))""",
 		"all","startCurly","startColon","body","endColon","endCurly")
-	val opDefShortcut = Regex("""((\{)(!)((\n|.)*?)(\}))""",
+	val opDefShortcut = new Regex("""((\{)(!)((\n|.)*?)(\}))""",
 		"all","startCurly","startBang","body","endCurly")
-	val sequence = Regex("""((%)(([!]?[ACIBD](\[.+?\\])?)*))""",
+	val sequence = new Regex("""((%)(([!]?[ACIBD](\[.+?\\])?)*))""",
 		"all","startMod","algProps")
 	
-	val brackets = Regex("""((\{|\(|\[|\}|\)|\]))""",
+	val brackets = new Regex("""((\{|\(|\[|\}|\)|\]))""",
 		"all")
 	
-	val typeBackTick = Regex("""(: *`(\n|\\`|.)*?`)""",
+	val typeBackTick = new Regex("""(: *`(\n|\\`|.)*?`)""",
 		"all")
-	val typeNormal = Regex("""(: *[_a-zA-Z][_a-zA-Z0-9]*)""",
-		"all")
-	
-	val symbolBackTicks = Regex("""(`(\n|\\`|.)*?`)""",					
-		"all")
-	val symbolNormal = Regex("""([_a-zA-Z][_a-zA-Z0-9]*)""",			
+	val typeNormal = new Regex("""(: *[_a-zA-Z][_a-zA-Z0-9]*)""",
 		"all")
 	
-	val numHex = Regex("""(-?0(x|X)[0-9a-fA-F]*([0-9a-fA-F]+[.])?[0-9a-fA-F]+p?)""",
+	val symbolBackTicks = new Regex("""(`(\n|\\`|.)*?`)""",					
 		"all")
-	val numBin = Regex("""(-?0(b|B)[0-1]*([0-1]+[.])?[0-1]+(e|p)?)""",
+	val symbolNormal = new Regex("""([_a-zA-Z][_a-zA-Z0-9]*)""",			
 		"all")
-	val numDec = Regex("""(-?[0-9]*([0-9]+[.])?[0-9]+(e|p)?)""",
+	
+	val numHex = new Regex("""(-?0(x|X)[0-9a-fA-F]*([0-9a-fA-F]+[.])?[0-9a-fA-F]+p?)""",
+		"all")
+	val numBin = new Regex("""(-?0(b|B)[0-1]*([0-1]+[.])?[0-1]+(e|p)?)""",
+		"all")
+	val numDec = new Regex("""(-?[0-9]*([0-9]+[.])?[0-9]+(e|p)?)""",
 		"all")
 }
 

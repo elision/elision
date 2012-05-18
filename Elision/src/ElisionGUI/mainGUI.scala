@@ -496,60 +496,6 @@ class TreeVisPanel extends GamePanel {
 
 
 
-/** Used to display the properties of the currently selected node. */
-
-class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
-	background = mainGUI.bgColor
-	val inset = 3
-	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-	
-	val label = new Label("Atom parse String: ")
-	label.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
-	contents += label
-	
-	/** The TextArea that displays the currently selected node's parse string */
-	val parseArea = new TextArea("",5,50) {
-		wordWrap = true
-		lineWrap = true
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-		focusable = false
-	}
-	
-	/** The scrolling pane that contains parseArea */
-	val parsePanel = new ScrollPane {
-		contents = parseArea
-		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
-	}
-	contents += parsePanel
-	
-	val label2 = new Label("Atom properties: ")
-	label2.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
-	contents += label2
-	
-	/** The TextArea that displays the currently selected node's properties */
-	val textArea = new TextArea("",15,50) {
-		wordWrap = true
-		lineWrap = true
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-		focusable = false
-	}
-	
-	/** The scrolling pane that contains textArea */
-	val taPanel = new ScrollPane {
-		contents = textArea
-		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
-	}
-	contents += taPanel
-}
-
-
-
-
-
 
 import scala.actors.Actor
 
