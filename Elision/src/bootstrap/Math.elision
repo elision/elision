@@ -34,12 +34,36 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package bootstrap
-import ornl.elision.core._
 
-/**
- * @author ysp
- *
- */
-object IntegerMath {
-}
+//======================================================================
+// General operators.
+//======================================================================
+
+def({! equal($x,$y): BOOLEAN is %C
+      #description="Report whether two atoms are equal."
+      #detail=
+"""Test whether the two atoms $x and $y are considered equal by the
+system."""
+})
+
+//======================================================================
+// Integer math.
+//======================================================================
+
+def({! mod($b: INTEGER, $d: INTEGER): INTEGER
+      #description="Compute the remainder from division."
+      #detail=
+"""Compute $b mod $d, returning the remainder when $b is divided by $d."""
+})
+
+def({! neg($x: INTEGER): INTEGER
+      #description="Negate an integer."
+      #detail=
+"""Compute the negation of the integer $x; that is, compute 0 - $x."""
+})
+
+def({! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
+      #description="Compute the integer sum of the arguments."
+      #detail=
+"""Compute the sum of the integer arguments."""
+})

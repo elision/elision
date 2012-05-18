@@ -95,9 +95,6 @@ object Repl {
   _hist.setIgnoreDuplicates(false)
   _hist.setMaxSize(10000)
   
-  /** The current set of bindings. */
-  private var _binds = Bindings()
-  
   /** Direct access to the context's operator library. */
   private val _library = new OperatorLibrary(allowRedefinition = true)
   
@@ -614,7 +611,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
           	// Bind the variable in this context.
-            _binds += (from.name -> to)
+            context.bind(from.name, to)
             emitln("Bound " + from.toParseString)
             _no_show
           case _ => _no_show
@@ -634,7 +631,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable) =>
           	// Unbind the variable in this context.
-            _binds -= from.name
+            context.unbind(from.name)
             emitln("Unbound " + from.toParseString)
             _no_show
           case _ => _no_show
@@ -644,7 +641,7 @@ object Repl {
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomSeq, _) => list match {
           case Args() => {
-            println(_binds.filterKeys(!_.startsWith("_")).map {
+            println(context.binds.filterKeys(!_.startsWith("_")).map {
               pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
             }.mkString("{ bind\n", ",\n", "\n}"))
             _no_show
@@ -689,7 +686,7 @@ object Repl {
           case Args(x) =>
             // Immediately rewrite this with the context bindings, and return
             // the result.
-            x.rewrite(_binds)._1
+            x.rewrite(context.binds)._1
           case _ =>
             NONE
         })
@@ -1022,7 +1019,7 @@ object Repl {
 			// Apply the global bindings to get the possibly-rewritten atom.
 			
 			RWTree.current = atomNode
-		    var (newatom,_) = atom.rewrite(_binds)
+		    var (newatom,_) = atom.rewrite(context.binds)
 
 			// add newatom as a child node to atomNode.
 			val rewriteNode = atomNode.addChild(newatom)
@@ -1037,7 +1034,7 @@ object Repl {
 		    if (_rewrite) newatom = _context.ruleLibrary.rewrite(newatom)._1
 		    if (_bindatoms) {
 			    // Get the next bind variable name.
-			    _binds += ("_repl"+_bindNumber -> newatom)
+			    context.bind("_repl"+_bindNumber, newatom)
 			    // Now write out the new atom.
 			    show(newatom, Some("_repl" + _bindNumber))
 			    _bindNumber += 1
