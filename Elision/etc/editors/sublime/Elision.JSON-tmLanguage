@@ -1,0 +1,177 @@
+{ "name": "Elision",
+  "scopeName": "source.elis",
+  "fileTypes": ["elision"],
+  "patterns": [
+    {
+      "begin" : "\"\"\"",
+      "end" : "\"\"\"",
+      "name" : "comment.elis",
+      "comment" : "verbatim blocks"
+    },
+
+    {
+      "begin" : "\"",
+      "end" : "[^\\\\]\"",
+      "name" : "string.quoted.elis",
+      "comment" : "String literal"
+    },
+
+    {
+      "begin" : "\\\\\\$\\$?`",
+      "end" : "[^\\\\]`",
+      "name" : "string.unquoted.elis",
+      "comment" : "Lambda parameter w/ backtick symbol"
+    },
+
+    {
+      "match" : "\\\\\\$\\$?[_a-zA-Z][_a-zA-Z0-9]*",
+      "name" : "string.unquoted.elis",
+      "comment" : "Lambda parameter w/ standard symbol"
+    },
+
+    {
+      "begin" : "\\$\\$?`",
+      "end" : "[^\\\\]`",
+      "name" : "variable.elis",
+      "comment" : "backtick enclosed variables"
+    },
+
+    {
+      "match" : "\\$\\$?[_a-zA-Z][_a-zA-Z0-9]*",
+      "name" : "variable.elis",
+      "comment" : "standard variables"
+    },
+
+    {
+      "begin" : "##?`",
+      "end" : "[^\\\\]`",
+      "name" : "variable.elis",
+      "comment" : "backtick enclosed sf-bound"
+    },
+
+    {
+      "match" : "##?[_a-zA-Z][_a-zA-Z0-9]*",
+      "name" : "variable.elis",
+      "comment" : "standard sf-bound"
+    },
+
+    {
+      "match" : "ANY|BINDING|BOOLEAN|FLOAT|INTEGER|OPTYPE|STRATEGY|STRING|SYMBOL|NONE|\\^TYPE",
+      "name" : "storage.type.elis",
+      "comment" : "root types"
+    },
+
+    {
+      "match" : "(true|false|Nothing)",
+      "name" : "constant.numeric.elis",
+      "comment" : "Boolean constants"
+    },
+
+    {
+      "match" : "operator|is|case|->|@|=",
+      "name" : "keyword.elis",
+      "comment" : "keywords"
+    },
+
+    {
+      "match" : "associative|commutative|idempotent|identity|absorber|not",
+      "name" : "support.class.elis",
+      "comment" : "Operator properties"
+    },
+
+    {
+      "begin" : "(\\{)(:)",
+      "beginCaptures" : {
+          "1" : {"name" : "string.unquoted.elis"},
+          "2" : {"name" : "keyword.elis"}
+      },
+      "patterns" : [
+        { "include" : "$self"},
+        { "match" : ".",
+          "name" : "variable.elis"
+        }
+        
+      ],
+      "end" : "(:)(\\})",
+      "endCaptures" : {
+        "1" : {"name" : "keyword.elis"},
+        "2" : {"name" : "string.unquoted.elis"}
+      },
+      "comment" : "special forms"
+    },
+
+    {
+      "begin" : "(\\{)(!)",
+      "beginCaptures" : {
+          "1" : {"name" : "string.unquoted.elis"},
+          "2" : {"name" : "keyword.elis"}
+      },
+      "patterns" : [
+        { "include" : "$self"},
+        { "match" : ".",
+          "name" : "variable.elis"
+        }
+        
+      ],
+      "end" : "(:\\})",
+      "endCaptures" : {
+        "1" : {"name" : "string.unquoted.elis"}
+      },
+      "comment" : "operator definition shortcut"
+    },
+
+    {
+      "match" : "(%)(([!]?[ACIBD](\\[.+?\\])?)*)",
+      "captures" : {
+        "1" : {"name" : "keyword.elis"},
+        "2" : {"name" : "support.class.elis"}
+      },
+      "comment" : "lists"
+    },
+
+    {
+      "match" : "(\\{|\\(|\\[|\\}|\\)|\\])",
+      "name" : "string.unquoted.elis",
+      "comment" : "code bracket blocks and parameter blocks"
+    },
+
+
+    {
+      "begin" : ": *`",
+      "end" : "[^\\\\]`",
+      "name" : "storage.type.elis",
+      "comment" : "backtick enclosed types"
+    },
+
+    {
+      "match" : ": *[_a-zA-Z][_a-zA-Z0-9]*",
+      "name" : "storage.type.elis",
+      "comment" : "symbol types"
+    },
+
+    {
+      "match" : "[A-Za-z]+[A-Za-z0-9_]*",
+      "name" : "variable.other.elis",
+      "comment" : "variable names"
+    },
+
+    {
+      "match" : "-?0(x|X)[0-9a-fA-F]*([0-9a-fA-F]+[.])?[0-9a-fA-F]+p?",
+      "name" : "constant.numeric.elis",
+      "comment" : "hex number literal"
+    },
+
+    {
+      "match" : "-?0(b|B)[0-1]*([0-1]+[.])?[0-1]+(e|p)?",
+      "name" : "constant.numeric.elis",
+      "comment" : "decimal number literal"
+    },
+
+    {
+      "match" : "-?[0-9]*([0-9]+[.])?[0-9]+(e|p)?",
+      "name" : "constant.numeric.elis",
+      "comment" : "decimal number literal"
+    }
+  ],
+  "uuid": "aa15f5a6-9a2f-4a5a-bd49-160c3bf3bab6"
+}
