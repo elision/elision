@@ -738,8 +738,8 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 					NodeSprite.selectedBoxColor
 				else if(this.isComment)
 					NodeSprite.comBoxColor
-				else if(this.isStringAtom)
-					NodeSprite.verbBoxColor
+			//	else if(this.isStringAtom)
+			//		NodeSprite.verbBoxColor
 				else
 					NodeSprite.boxColor
 			} 
@@ -761,8 +761,8 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 			g.setColor(NodeSprite.selectedBorderColor)
 		else if(this.isComment)
 			g.setColor(NodeSprite.comBorderColor)
-		else if(this.isStringAtom)
-			g.setColor(NodeSprite.verbBorderColor)
+	//	else if(this.isStringAtom)
+	//		g.setColor(NodeSprite.verbBorderColor)
 		else 
 			g.setColor(NodeSprite.borderColor)
 
