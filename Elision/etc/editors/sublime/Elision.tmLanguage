@@ -5,6 +5,7 @@
 	<key>fileTypes</key>
 	<array>
 		<string>elision</string>
+		<string>eli</string>
 	</array>
 	<key>name</key>
 	<string>Elision</string>

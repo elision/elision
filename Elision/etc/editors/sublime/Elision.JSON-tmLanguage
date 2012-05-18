@@ -1,6 +1,6 @@
 { "name": "Elision",
   "scopeName": "source.elis",
-  "fileTypes": ["elision"],
+  "fileTypes": ["elision","eli"],
   "patterns": [
     {
       "begin" : "/\\*",
