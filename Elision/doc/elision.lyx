@@ -7137,6 +7137,32 @@ Operators must be defined in the current context to be used by name.
 def
 \family default
  operator.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Don't like this? Use the 
+\begin_inset Quotes eld
+\end_inset
+
+autodefine
+\begin_inset Quotes erd
+\end_inset
+
+ function of the REPL.
+ Enable it with 
+\family typewriter
+autodef(true)
+\family default
+ and disable it with 
+\family typewriter
+autodef(false)
+\family default
+.
+\end_layout
+
+\end_inset
+
  If you are trying to define an operator specified by a bound variable,
  you must use the built-in 
 \family typewriter
@@ -8393,11 +8419,11 @@ Atoms are transformed when entered, based on their properties, before any
 \end_layout
 
 \begin_layout LyX-Code
-{operator #name=foo #params=%AD[0]($x:INTEGER,$y:INTEGER) #type=INTEGER}
+def({operator #name=foo #params=%AD[0]($x:INTEGER,$y:INTEGER) #type=INTEGER})
 \end_layout
 
 \begin_layout LyX-Code
-{operator #name=bar #params=%AB[true]($x:BOOLEAN,$y:BOOLEAN) #type=BOOLEAN}
+def({operator #name=bar #params=%AB[true]($x:BOOLEAN,$y:BOOLEAN) #type=BOOLEAN})
 \end_layout
 
 \begin_layout Itemize
@@ -9395,6 +9421,12 @@ magic.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Case-Operators"
+
+\end_inset
+
 Case Operators
 \end_layout
 
@@ -9610,6 +9642,8 @@ map pair
 \family default
 ), and an atom specifying the value of the operator when the pattern matches
  the argument list.
+ It is advisable to use metavariables on the right-hand side, and we will
+ do that by convention.
 \end_layout
 
 \begin_layout Standard
@@ -9621,19 +9655,19 @@ The following is a general definition using cases.
 \end_layout
 
 \begin_layout LyX-Code
-          %($x: INTEGER) -> $x,
+          %($x: INTEGER) -> $$x,
 \end_layout
 
 \begin_layout LyX-Code
-          %($x: STRING) -> $x,
+          %($x: STRING) -> $$x,
 \end_layout
 
 \begin_layout LyX-Code
-          %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
+          %AC($x: INTEGER, $y: INTEGER) -> add($$x,$$y),
 \end_layout
 
 \begin_layout LyX-Code
-          %A($x: STRING, $y: STRING) -> ($x.$y)}
+          %A($x: STRING, $y: STRING) -> ($$x.$$y)}
 \end_layout
 
 \begin_layout Standard
@@ -9697,19 +9731,19 @@ add
 \end_layout
 
 \begin_layout LyX-Code
-          %($x: INTEGER) -> $x,
+          %($x: INTEGER) -> $$x,
 \end_layout
 
 \begin_layout LyX-Code
-          %($x: STRING) -> $x,
+          %($x: STRING) -> $$x,
 \end_layout
 
 \begin_layout LyX-Code
-          %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
+          %AC($x: INTEGER, $y: INTEGER) -> add($$x,$$y),
 \end_layout
 
 \begin_layout LyX-Code
-          %A($x: STRING, $y: STRING) -> ($x.$y),
+          %A($x: STRING, $y: STRING) -> ($$x.$$y),
 \end_layout
 
 \begin_layout LyX-Code
@@ -9748,7 +9782,7 @@ This generality allows some rather unorthodox things to occur.
 \end_layout
 
 \begin_layout LyX-Code
-{operator #name=typeof #cases $x:$T -> $T}
+{operator #name=typeof #cases $x:$T -> $$T}
 \end_layout
 
 \begin_layout Standard
@@ -9788,9 +9822,268 @@ $_repl4 = INTEGER
 \end_layout
 
 \begin_layout Standard
+In Elision, 
+\family typewriter
+help
+\family default
+ is implemented as a case operator.
+ The definition is potentially instructive.
+ The 
+\family typewriter
+help
+\family default
+ operator takes either no arguments (the 
+\begin_inset Quotes eld
+\end_inset
+
+all
+\begin_inset Quotes erd
+\end_inset
+
+ case) or a single operator reference.
+ We can write this as follows.
+\end_layout
+
+\begin_layout LyX-Code
+def({operator #name=help #cases
+\end_layout
+
+\begin_layout LyX-Code
+  %($op: OPREF) -> _help_op($$op),
+\end_layout
+
+\begin_layout LyX-Code
+  _help_all: OPREF
+\end_layout
+
+\begin_layout LyX-Code
+})
+\end_layout
+
+\begin_layout Standard
+Here 
+\family typewriter
+_help_op
+\family default
+ and 
+\family typewriter
+_help_all
+\family default
+ are operators that provide native handlers.
+ The first case deals with entering an operator reference.
+ The second case is an operator reference, which is an 
+\emph on
+applicable
+\emph default
+, so Elision applies 
+\family typewriter
+_help_all
+\family default
+ to the argument list, whatever it is.
+ This results in some non-intuitive error messages.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> help(5)
+\end_layout
+
+\begin_layout Plain Layout
+
+ERROR: Incorrect argument for operator _help_all at position 0: 5.
+\end_layout
+
+\begin_layout Plain Layout
+
+Sequences are not the same length.
+\end_layout
+
+\end_inset
+
+To the end user this mentions a completely different operator, and complains
+ about the length of the argument sequence.
+\end_layout
+
+\begin_layout Standard
+Suppose instead we wanted to still perform the argument check (so we get
+ a better error message).
+ We can try to write it as follows.
+\end_layout
+
+\begin_layout LyX-Code
+def({operator #name=help #cases
+\end_layout
+
+\begin_layout LyX-Code
+  %($op: OPREF) -> _help_op($$op),
+\end_layout
+
+\begin_layout LyX-Code
+  %() -> _help_all()
+\end_layout
+
+\begin_layout LyX-Code
+})
+\end_layout
+
+\begin_layout Standard
+This looks good, and the error messages are better, but now 
+\family typewriter
+help()
+\family default
+ doesn't work!
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> help(5)
+\end_layout
+
+\begin_layout Plain Layout
+
+ERROR: Applied the operator help to an incorrect argument list: %(5)
+\end_layout
+
+\begin_layout Plain Layout
+
+e> help()
+\end_layout
+
+\begin_layout Plain Layout
+
+e> 
+\end_layout
+
+\end_inset
+
+We got 
+\emph on
+no
+\emph default
+ output.
+ This is because the output of 
+\family typewriter
+_help_all()
+\family default
+ is generated as a side-effect at construction time
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Why is it done this way? Why not generate a string value? Then this definition
+ would work, right? Well, not really.
+ The string would be static, and we want to see help for new operators defined
+ 
+\emph on
+after
+\emph default
+ we have defined 
+\family typewriter
+help
+\family default
+.
+\end_layout
+
+\end_inset
+
+ (when the native handler is invoked).
+ Thus 
+\family typewriter
+_help_all()
+\family default
+ has already been evaluated in the above.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+So, what 
+\emph on
+was
+\emph default
+ the result of evaluating 
+\family typewriter
+_help_all()
+\family default
+, and why wasn't it printed? The result was the symbol 
+\family typewriter
+_no_show
+\family default
+, which is treated specially by the REPL.
+ Whenever the result of evaluating an atom is 
+\family typewriter
+_no_show
+\family default
+ all output is suppressed.
+ This does not work from the prompt.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+What we really want is to somehow delay applying the operator to the argument
+ list.
+ This could be done with metavariables, but we want to use the empty argument
+ list here, so it isn't obvious how to do that.
+ The answer is that, after Elision applies one of the cases and gets a result,
+ the result is then rewritten to replace any instances of the variable 
+\family typewriter
+$_
+\family default
+ with the entire argument list.
+ This means we can do the following.
+ (Note that we use the metavariable 
+\family typewriter
+$$_
+\family default
+ by convention here.)
+\end_layout
+
+\begin_layout LyX-Code
+def({operator #name=help #cases
+\end_layout
+
+\begin_layout LyX-Code
+  %($op: OPREF) -> _help_op($$op),
+\end_layout
+
+\begin_layout LyX-Code
+  %() -> _help_all.$$_
+\end_layout
+
+\begin_layout LyX-Code
+})
+\end_layout
+
+\begin_layout Standard
+This will work as expected.
+ Note that this also means it is inadvisable to use the variable 
+\family typewriter
+$$_
+\family default
+ elsewhere.
+\end_layout
+
+\begin_layout Standard
 Because case operators explicitly allow polymorphism their type cannot be
  correctly inferred as simply as it was for symbolic operators.
- You have two options.
+ For instance, what is the correct type for the 
+\family typewriter
+help
+\family default
+ operator? For the fully-applied type, you have two options.
  You can figure out the correct type yourself and include it with 
 \family typewriter
 #type=
@@ -9890,6 +10183,14 @@ val List(s,t) = List("s","t").map(Variable(STRING,_))
 \end_layout
 
 \begin_layout LyX-Code
+val List(mx,my) = List("x","y").map(MetaVariable(INTEGER,_))
+\end_layout
+
+\begin_layout LyX-Code
+val List(ms,mt) = List("s","t").map(MetaVariable(STRING,_))
+\end_layout
+
+\begin_layout LyX-Code
 val add = context.operatorLibrary("add")
 \end_layout
 
@@ -9902,11 +10203,11 @@ val sumOp = CaseOperator("sum", ANY,
 \end_layout
 
 \begin_layout LyX-Code
-    MapPair(AtomSeq(NoProps,x), x),
+    MapPair(AtomSeq(NoProps,x), mx),
 \end_layout
 
 \begin_layout LyX-Code
-    MapPair(AtomSeq(NoProps,s), s),
+    MapPair(AtomSeq(NoProps,s), ms),
 \end_layout
 
 \begin_layout LyX-Code
@@ -9914,11 +10215,11 @@ val sumOp = CaseOperator("sum", ANY,
 \end_layout
 
 \begin_layout LyX-Code
-      add(x,y)),
+      add(mx,my)),
 \end_layout
 
 \begin_layout LyX-Code
-    MapPair(AtomSeq(Associative(true), s, t), Apply(s, t)),
+    MapPair(AtomSeq(Associative(true), s, t), Apply(ms, mt)),
 \end_layout
 
 \begin_layout LyX-Code
@@ -12497,7 +12798,7 @@ theflag
 \family typewriter
 theflag
 \family default
- is true iff the pattern matched.
+ is true iff the pattern match succeeded.
 \end_layout
 
 \begin_layout Standard
@@ -12516,7 +12817,7 @@ e> (add($x,neg($x),$y)->$y).add($a,neg($a),19)
 
 \begin_layout Plain Layout
 
-$_repl14 = { binds flag -> true atom -> 19 }
+$_repl12 = { binds flag -> true atom -> 19 }
 \end_layout
 
 \begin_layout Plain Layout
@@ -12526,7 +12827,17 @@ e> (add($x,neg($x),$y)->$y).add($a,neg($a))
 
 \begin_layout Plain Layout
 
-$_repl15 = { binds flag -> false atom -> add($a, neg($a)) }
+$_repl13 = { binds flag -> false atom -> add($a, neg($a)) }
+\end_layout
+
+\begin_layout Plain Layout
+
+e> (add($x,neg($x),$y)->$y).add($a,neg($a)).$atom
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl14 = add($a, neg($a))
 \end_layout
 
 \end_inset
@@ -12537,7 +12848,173 @@ In the first case the match succeeds.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Variable-Guards"
+
+\end_inset
+
 Variable Guards
+\end_layout
+
+\begin_layout Standard
+Variables can be matched based on type information.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {match $x:INTEGER}."Korra"
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl0 = NONE
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {match $x:INTEGER}.5
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl1 = { binds x -> 5 }
+\end_layout
+
+\end_inset
+
+This is often sufficient, but sometimes we would like to have greater control
+ over the matching process.
+ For example, we might like to only match a non-zero integer.
+ We can do this with a 
+\emph on
+variable
+\emph default
+ 
+\emph on
+guard
+\emph default
+.
+ This is an atom that is attached to a variable using braces.
+ The atom is rewritten with the proposed variable binding, and if it evaluates
+ to 
+\family typewriter
+true
+\family default
+, the binding succeeds.
+ Otherwise the entire match is rejected.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {match $x{not(equal($$x,0))}:INTEGER}.5
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl2 = { binds x -> 5 }
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {match $x{not(equal($$x,0))}:INTEGER}.0
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl3 = NONE
+\end_layout
+
+\end_inset
+
+Using metavariables in the guards prevents trouble, and we adopt it as a
+ convention.
+ If we did not use it, 
+\family typewriter
+equal($x,0)
+\family default
+ would immediately evaluate to 
+\family typewriter
+false
+\family default
+, which would be negated to 
+\family typewriter
+true
+\family default
+, making the guard 
+\family typewriter
+{true}
+\family default
+.
+ This would always succeed, which is not what we want at all.
+\end_layout
+
+\begin_layout Standard
+We can use this to gain some control when there are many possible matches.
+ Consider the following.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> def({! foo($x,$y) is %AC})
+\end_layout
+
+\begin_layout Plain Layout
+
+Defined operator foo.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {match foo($x:INTEGER, $y)}.foo("Jim",5,"Tim",0)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl2 = { binds x -> 5 y -> %AC("Jim", "Tim", 0) }
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {match foo($x{equal($$x,0)}:INTEGER, $y)}.foo("Jim",5,"Tim",0)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl3 = { binds x -> 0 y -> %AC("Jim", 5, "Tim") }
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Variable guards are sufficient in most cases, but there are still cases
+ in which you want a guard that involves several variables.
+ How to do this will be discussed in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Rules-and-Strategies"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Chapter
@@ -12548,6 +13025,21 @@ name "chap:Rules-and-Strategies"
 \end_inset
 
 Rules and Strategies
+\end_layout
+
+\begin_layout Standard
+Basic matching and rewriting were introduced in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Matching-and-Rewriting"
+
+\end_inset
+
+.
+ This chapter will explain how to manage rewriting on a much larger scale,
+ creating more general rewrite rules, managing them with rulesets, and controlli
+ng the process through the use of strategies and the build-in strategy combinato
+rs.
 \end_layout
 
 \begin_layout Section
@@ -12584,9 +13076,121 @@ name "chap:Contexts"
 Contexts
 \end_layout
 
+\begin_layout Standard
+Rewrite rules, operator definitions, and bindings need to be made persistent
+ during a session.
+ This means we need some form of mutable data store to hold these.
+ That general storage is called the 
+\emph on
+context
+\emph default
+, and is explored in more detail in this chapter.
+\end_layout
+
 \begin_layout Chapter
 \start_of_appendix
 BasicAtom
+\end_layout
+
+\begin_layout Chapter
+Native Handlers
+\end_layout
+
+\begin_layout Standard
+This appendix describes how to create native handlers for symbolic operators.
+ Native handlers cannot be created for case operators, as they don't really
+ make sense.
+ If you want a native handler for a case operator, create a symbolic operator,
+ provide it with a native handler, and include it as a case.
+ The 
+\family typewriter
+help
+\family default
+ operator described in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Case-Operators"
+
+\end_inset
+
+ is such an example.
+\end_layout
+
+\begin_layout Standard
+Consider the operator 
+\family typewriter
+mod($b,$d)
+\family default
+ that computes the remainder when 
+\family typewriter
+$b
+\family default
+ is divided by 
+\family typewriter
+$d
+\family default
+.
+ For example, 
+\family typewriter
+mod(5,2)
+\family default
+ is 
+\family typewriter
+1
+\family default
+, while 
+\family typewriter
+mod(4,2)
+\family default
+ is 
+\family typewriter
+0
+\family default
+.
+ First we give the definition of the operator, without native handler.
+\end_layout
+
+\begin_layout LyX-Code
+{! mod($b: INTEGER, $d: INTEGER): INTEGER}
+\end_layout
+
+\begin_layout Standard
+The definition specifies two parameters: 
+\family typewriter
+$b
+\family default
+ and 
+\family typewriter
+$d
+\family default
+, both integers.
+\end_layout
+
+\begin_layout Standard
+A native 
+\emph on
+handler
+\emph default
+ consists of a Scala closure.
+ It's argument is a triple of the form (
+\emph on
+operator
+\emph default
+, 
+\emph on
+arguments
+\emph default
+, 
+\emph on
+bindings
+\emph default
+), where 
+\emph on
+operator
+\emph default
+ is the operator to apply, as an 
+\family typewriter
+SymbolicOperator
 \end_layout
 
 \begin_layout Chapter
@@ -13166,6 +13770,19 @@ Architectural Rules
 
 \begin_layout Section
 Scaladoc
+\end_layout
+
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
+Rule Document every public and protected method and field using Scaladoc.
+\end_layout
+
+\begin_layout Labeling
+\labelwidthstring 00.00.0000
+Rule Documentation may be omitted when a method or field overrides or implements
+ a method from a parent class.
+ In some cases you may wish to replace the textual documentation, but may
+ omit the documentation of parameters and the return value.
 \end_layout
 
 \begin_layout Section
