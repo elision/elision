@@ -10077,6 +10077,48 @@ $$_
 \end_layout
 
 \begin_layout Standard
+Case operators are fairly powerful, and can help avoid the need for native
+ operators in many cases.
+ For instance the Boolean 
+\family typewriter
+not
+\family default
+ can be implemented as follows.
+\end_layout
+
+\begin_layout LyX-Code
+def({operator #name=not #cases
+\end_layout
+
+\begin_layout LyX-Code
+  true -> false,
+\end_layout
+
+\begin_layout LyX-Code
+  false -> true,
+\end_layout
+
+\begin_layout LyX-Code
+  $x:BOOLEAN -> _,
+\end_layout
+
+\begin_layout LyX-Code
+  %(true) -> false,
+\end_layout
+
+\begin_layout LyX-Code
+  %(false) -> true,
+\end_layout
+
+\begin_layout LyX-Code
+  %($x:BOOLEAN) -> _
+\end_layout
+
+\begin_layout LyX-Code
+})
+\end_layout
+
+\begin_layout Standard
 Because case operators explicitly allow polymorphism their type cannot be
  correctly inferred as simply as it was for symbolic operators.
  For instance, what is the correct type for the 
