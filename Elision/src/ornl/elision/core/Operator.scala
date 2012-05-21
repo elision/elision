@@ -65,12 +65,18 @@ class ArgumentListException(msg: String) extends ElisionException(msg)
  * @param definition	A definition for the operator.
  * @param description	An optional short description for the operator.
  * @param detail			Optional detailed help for the operator.
+ * @param evenMeta		Apply this operator even to meta-terms.  This is false
+ * 										by default, and you should probably leave it alone.
  */
 abstract class Operator(sfh: SpecialFormHolder,
     val name: String, val typ: BasicAtom, definition: AtomSeq,
-    val description: String, val detail: String)
+    val description: String, val detail: String,
+    override val evenMeta: Boolean = false)
     extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   def apply(atoms: BasicAtom*): BasicAtom
+  override def tryMatchWithoutTypes(subject: BasicAtom, binds:
+      Bindings, hints: Option[Any]) =
+    super.tryMatchWithoutTypes(subject, binds, Some(OperatorRef(this)))
 }
 
 /**
@@ -89,7 +95,7 @@ object Operator {
   def apply(sfh: SpecialFormHolder): Operator = {
     val bh = sfh.requireBindings
     bh.check(Map("name"->true, "cases"->false, "params"->false, "type"->false,
-        "description"->false, "detail"->false))
+        "description"->false, "detail"->false, "evenmeta"->false))
     if (bh.either("cases", "params") == "cases") {
       CaseOperator(sfh)
     } else {
@@ -215,7 +221,8 @@ object CaseOperator {
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
-    return new CaseOperator(sfh, name, typ, cases, description, detail)
+    val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
+    return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
   
   /**
@@ -226,16 +233,20 @@ object CaseOperator {
    * @param cases					The cases, as a sequence of atoms.
 	 * @param description		An optional short description for the operator.
 	 * @param detail				Optional detailed help for the operator.
+	 * @param evenMeta			Apply this operator even when the arguments contain
+	 * 											meta-terms.  This is not advisable, and you should
+	 * 											probably leave this with the default value of false.
    * @return	The new case operator.
    */
   def apply(name: String, typ: BasicAtom, cases: AtomSeq,
-      description: String, detail: String): CaseOperator = {
+      description: String, detail: String,
+      evenMeta: Boolean = false): CaseOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name"->nameS) + ("cases"->cases) +
     		("type"->typ) + ("description"->Literal(description)) +
     		("detail"->Literal(detail))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new CaseOperator(sfh, name, typ, cases, description, detail)
+    return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
   
   /**
@@ -269,11 +280,14 @@ object CaseOperator {
  * @param cases					The definition.
  * @param description		An optional short description for the operator.
  * @param detail				Optional detailed help for the operator.
+ * @param evenMeta			Apply this operator even when the arguments contain
+ * 											meta-terms.  This is not advisable, and you should
+ * 											probably leave this with the default value of false.
  */
 class CaseOperator private (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val cases: AtomSeq,
-    description: String, detail: String)
-		extends Operator(sfh, name, typ, cases, description, detail) {
+    description: String, detail: String, evenMeta: Boolean)
+		extends Operator(sfh, name, typ, cases, description, detail, evenMeta) {
   /** The type of the operator is the provided type. */
   override val theType = typ
   
@@ -341,7 +355,9 @@ object TypedSymbolicOperator {
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
-    return new TypedSymbolicOperator(sfh, name, typ, params, description, detail)
+    val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
+    return new TypedSymbolicOperator(sfh, name, typ, params,
+        description, detail, evenMeta)
   }
   
   /**
@@ -352,16 +368,21 @@ object TypedSymbolicOperator {
    * @param params				The operator parameters.
 	 * @param description		An optional short description for the operator.
 	 * @param detail				Optional detailed help for the operator.
+	 * @param evenMeta			Apply this operator even when the arguments contain
+	 * 											meta-terms.  This is not advisable, and you should
+	 * 											probably leave this with the default value of false.
    * @return	The typed symbolic operator.
    */
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
-      description: String, detail: String): TypedSymbolicOperator = {
+      description: String, detail: String,
+      evenMeta: Boolean = false): TypedSymbolicOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name"->nameS) + ("params"->params) +
     		("type"->typ) + ("description"->Literal(description)) +
-    		("detail"->Literal(detail))
+    		("detail"->Literal(detail)) + ("evenmeta"->Literal(evenMeta))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new TypedSymbolicOperator(sfh, name, typ, params, description, detail)
+    return new TypedSymbolicOperator(sfh, name, typ, params,
+        description, detail, evenMeta)
   }
   
   /**
@@ -385,11 +406,15 @@ object TypedSymbolicOperator {
  * @param name			The operator name.
  * @param typ				The type of the fully-applied operator.
  * @param params		The operator parameters.
+ * @param evenMeta			Apply this operator even when the arguments contain
+ * 											meta-terms.  This is not advisable, and you should
+ * 											probably leave this with the default value of false.
  */
 class TypedSymbolicOperator private (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, params: AtomSeq,
-    description: String, detail: String)
-		extends SymbolicOperator(sfh, name, typ, params, description, detail) {
+    description: String, detail: String, evenMeta: Boolean)
+		extends SymbolicOperator(sfh, name, typ, params,
+		    description, detail, evenMeta) {
 	/**
    * The type of an operator is a mapping from the operator domain to the
    * operator codomain.
@@ -409,16 +434,21 @@ object SymbolicOperator {
    * @param params				The operator parameters.
 	 * @param description		An optional short description for the operator.
 	 * @param detail				Optional detailed help for the operator.
+	 * @param evenMeta			Apply this operator even when the arguments contain
+	 * 											meta-terms.  This is not advisable, and you should
+	 * 											probably leave this with the default value of false.
    * @return	The typed symbolic operator.
    */
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
-      description: String, detail: String): SymbolicOperator = {
+      description: String, detail: String,
+      evenMeta: Boolean = false): SymbolicOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name"->nameS) + ("params"->params) +
     		("type"->typ) + ("description"->Literal(description)) +
-    		("detail"->Literal(detail))
+    		("detail"->Literal(detail) + "evenmeta"->Literal(evenMeta))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new SymbolicOperator(sfh, name, typ, params, description, detail)
+    return new SymbolicOperator(sfh, name, typ, params, description,
+        detail, evenMeta)
   }
   
   /**
@@ -481,11 +511,14 @@ object SymbolicOperator {
  * @param name			The operator name.
  * @param typ				The type of the fully-applied operator.
  * @param params		The operator parameters.
+ * @param evenMeta			Apply this operator even when the arguments contain
+ * 											meta-terms.  This is not advisable, and you should
+ * 											probably leave this with the default value of false.
  */
 protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val params: AtomSeq,
-    description: String, detail: String)
-		extends Operator(sfh, name, typ, params, description, detail) {
+    description: String, detail: String, evenMeta: Boolean)
+		extends Operator(sfh, name, typ, params, description, detail, evenMeta) {
 	override val theType: BasicAtom = ANY
 	
 	// Check the properties.

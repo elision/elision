@@ -158,7 +158,7 @@ class Executive {
   
   /**
    * Override this method to receive every atom as it is obtained by the
-   * interpret method.  The default imlementation does nothing.
+   * interpret method.  The default implementation does nothing.
    * 
    * @param atom	An atom.
    */

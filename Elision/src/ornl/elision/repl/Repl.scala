@@ -95,9 +95,6 @@ object Repl {
   _hist.setIgnoreDuplicates(false)
   _hist.setMaxSize(10000)
   
-  /** The current set of bindings. */
-  private var _binds = Bindings()
-  
   /** Direct access to the context's operator library. */
   private val _library = new OperatorLibrary(allowRedefinition = true)
   
@@ -145,6 +142,9 @@ object Repl {
    * Whether or not rewriting is enabled.
    */
   private var _rewrite = true
+  
+  /** Whether we automatically define operators we encounter. */
+  private var _autodefine = false
   
   /** Write a message, unless quiet is enabled. */
   private def emitln(msg: String) { if (!_quiet) println(msg) }
@@ -581,7 +581,7 @@ object Repl {
         "Add the named operator to the context.",
         """|This will add the operator op to the current context.  This makes
            |the operator available by name, or through an OPREF.
-        """.stripMargin)
+        """.stripMargin, true)
     _context.operatorLibrary.add(defOper)
     _context.operatorLibrary.register("def",
         (_, list:AtomSeq, _) => list match {
@@ -614,7 +614,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable, to:BasicAtom) =>
           	// Bind the variable in this context.
-            _binds += (from.name -> to)
+            context.bind(from.name, to)
             emitln("Bound " + from.toParseString)
             _no_show
           case _ => _no_show
@@ -634,7 +634,7 @@ object Repl {
         (_, list:AtomSeq, _) => list match {
           case Args(from:Variable) =>
           	// Unbind the variable in this context.
-            _binds -= from.name
+            context.unbind(from.name)
             emitln("Unbound " + from.toParseString)
             _no_show
           case _ => _no_show
@@ -644,7 +644,7 @@ object Repl {
     _context.operatorLibrary.register("showbinds",
         (_, list:AtomSeq, _) => list match {
           case Args() => {
-            println(_binds.filterKeys(!_.startsWith("_")).map {
+            println(context.binds.filterKeys(!_.startsWith("_")).map {
               pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
             }.mkString("{ bind\n", ",\n", "\n}"))
             _no_show
@@ -689,7 +689,7 @@ object Repl {
           case Args(x) =>
             // Immediately rewrite this with the context bindings, and return
             // the result.
-            x.rewrite(_binds)._1
+            x.rewrite(context.binds)._1
           case _ =>
             NONE
         })
@@ -912,6 +912,18 @@ object Repl {
           case _ => _no_show
         })
         
+    // Set whether to automatically define operators.
+    _context.operatorLibrary.register("setautodefine",
+        (_, list:AtomSeq, _) => list match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to automatically define operators.
+            _autodefine = flag
+            emitln("Automatic declaration of operators is " +
+                (if (flag) "ON." else "OFF."))
+            _no_show
+          case _ => _no_show
+        })
+        
     // Enable or disable the rewriter.
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomSeq, _) => list match {
@@ -975,10 +987,8 @@ object Repl {
         (op: Operator, args: AtomSeq, _) => {println("F")
           args match {
           case Args(term) =>
-            println("E")
             if (term.isBindable) Literal.TRUE else Literal.FALSE
           case _ =>
-            println("D")
             Apply(op, args, true)
         }})
 
@@ -1013,6 +1023,11 @@ object Repl {
 	
     // Certain atoms require additional processing.
     atom match {
+      case op: Operator if _autodefine =>
+        _context.operatorLibrary.add(op)
+        emitln("Defined operator " + toESymbol(op.name) + ".")
+        return true
+
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)
@@ -1022,7 +1037,7 @@ object Repl {
 			// Apply the global bindings to get the possibly-rewritten atom.
 			
 			RWTree.current = atomNode
-		    var (newatom,_) = atom.rewrite(_binds)
+		    var (newatom,_) = atom.rewrite(context.binds)
 
 			// add newatom as a child node to atomNode.
 			val rewriteNode = atomNode.addChild(newatom)
@@ -1037,7 +1052,7 @@ object Repl {
 		    if (_rewrite) newatom = _context.ruleLibrary.rewrite(newatom)._1
 		    if (_bindatoms) {
 			    // Get the next bind variable name.
-			    _binds += ("_repl"+_bindNumber -> newatom)
+			    context.bind("_repl"+_bindNumber, newatom)
 			    // Now write out the new atom.
 			    show(newatom, Some("_repl" + _bindNumber))
 			    _bindNumber += 1
