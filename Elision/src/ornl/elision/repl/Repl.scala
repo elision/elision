@@ -143,6 +143,11 @@ object Repl {
    */
   private var _rewrite = true
   
+  /** Whether we automatically define operators we encounter. */
+  private var _autodefine = false
+  
+  private var _included = Set[String]()
+  
   /** Write a message, unless quiet is enabled. */
   private def emitln(msg: String) { if (!_quiet) println(msg) }
   
@@ -578,7 +583,7 @@ object Repl {
         "Add the named operator to the context.",
         """|This will add the operator op to the current context.  This makes
            |the operator available by name, or through an OPREF.
-        """.stripMargin)
+        """.stripMargin, true)
     _context.operatorLibrary.add(defOper)
     _context.operatorLibrary.register("def",
         (_, list:AtomSeq, _) => list match {
@@ -715,6 +720,37 @@ object Repl {
             }
             _quiet = qt
             _bindatoms = ba
+            _no_show
+          case _ => _no_show
+        })
+        
+    // Include.
+    _context.operatorLibrary.register("read_once",
+        (_, list:AtomSeq, _) => list match {
+          case Args(StringLiteral(_, filename)) =>
+            if (!_included.contains(filename)) {
+              _included += filename
+	            val qt = _quiet
+	            val ba = _bindatoms
+	            val cfile = new BufferedReader(new FileReader(filename))
+	            if (cfile != null) {
+	              var buf = new StringBuilder
+	              var go = true
+	              while (go) {
+	                val line = cfile.readLine
+	                if (line != null) buf.append(line).append('\n') else go = false
+	              }
+	              _quiet = true
+	              _bindatoms = false
+	              execute(buf.toString)
+	              println(buf)
+	              cfile.close()
+	            } else {
+	              error("Unable to open file.")
+	            }
+	            _quiet = qt
+	            _bindatoms = ba
+            }
             _no_show
           case _ => _no_show
         })
@@ -909,6 +945,18 @@ object Repl {
           case _ => _no_show
         })
         
+    // Set whether to automatically define operators.
+    _context.operatorLibrary.register("setautodefine",
+        (_, list:AtomSeq, _) => list match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to automatically define operators.
+            _autodefine = flag
+            emitln("Automatic declaration of operators is " +
+                (if (flag) "ON." else "OFF."))
+            _no_show
+          case _ => _no_show
+        })
+        
     // Enable or disable the rewriter.
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomSeq, _) => list match {
@@ -972,10 +1020,8 @@ object Repl {
         (op: Operator, args: AtomSeq, _) => {println("F")
           args match {
           case Args(term) =>
-            println("E")
             if (term.isBindable) Literal.TRUE else Literal.FALSE
           case _ =>
-            println("D")
             Apply(op, args, true)
         }})
 
@@ -1010,6 +1056,11 @@ object Repl {
 	
     // Certain atoms require additional processing.
     atom match {
+      case op: Operator if _autodefine =>
+        _context.operatorLibrary.add(op)
+        emitln("Defined operator " + toESymbol(op.name) + ".")
+        return true
+
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)

@@ -135,6 +135,15 @@ in effect (so most output is suppressed).  No numbered repl bindings
 are generated from this action."""
 })
 
+def({ operator #name=read_once #params=%($filename: STRING)
+      #description="Include the content of the specified file."
+      #detail=
+"""Include the file specified by $filename, executing each line of the
+file as though it were typed at the REPL prompt while quiet mode was
+in effect (so most output is suppressed).  No numbered repl bindings
+are generated from this action.  Each file is read at most once."""
+})
+
 def({ operator #name=write #params=%($filename: STRING)
       #description="Write the content of the current context to a file."
       #detail=
@@ -255,6 +264,13 @@ def({ operator #name=setdescend #params=%($enable: BOOLEAN)
       #detail=
 """Specify whether to descend into children during rewriting.  If true then 
 try to rewrite children of atoms."""
+})
+
+def({! setautodefine($flag: BOOLEAN)
+      #description="Set whether to automatically declare operators."
+      #detail=
+"""If $flag is true, then subsequent operators encountered are automatically
+added to the context.  If false, this is disabled."""
 })
 
 def({ operator #name=setroundtrip #params=%($enable: BOOLEAN)

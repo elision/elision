@@ -67,3 +67,72 @@ def({! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
       #detail=
 """Compute the sum of the integer arguments."""
 })
+
+//======================================================================
+// Boolean math.
+//======================================================================
+
+def({operator #name=not #type=BOOLEAN #cases
+  %(true) -> %(false),
+  %(false) -> %(true),
+  %($x: BOOLEAN) -> _,
+  true -> false,
+  false -> true,
+  $x: BOOLEAN -> _
+  #description="Boolean negation."
+  #detail=
+"""Negate a provided Boolean value."""
+})
+
+def({operator #name=implies #type=BOOLEAN #cases
+  %($P: BOOLEAN, true) -> true,
+  %(false, $Q: BOOLEAN) -> true,
+  %(true, false) -> false,
+  %($P: BOOLEAN, $Q: BOOLEAN) -> _
+  #description="Boolean implication."
+  #detail=
+"""The result is true if either the premise $P is false, or the consequent
+$Q is true."""
+})
+
+def({operator #name=iff #type=BOOLEAN #cases
+  %(true, true) -> true,
+  %(false, $Q: BOOLEAN) -> false,
+  %($P: BOOLEAN, false) -> false,
+  %($P: BOOLEAN, $Q: BOOLEAN) -> _
+  #description="Boolean if and only if."
+  #detail="""The result is true if both the premise $P and the consequent
+$Q are both true."""
+})
+
+def({operator #name=if #cases
+  %(true, $then @lazy, $else @lazy) -> $$then,
+  %(false, $then @lazy, $else @lazy) -> $$else,
+  %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
+  #description="Simple if-then(-else)."
+  #detail="""If the first argument is true, return the second.  If the first
+argument is false, return the third."""
+})
+
+def({! and($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true]
+  #description="Boolean conjunction."
+  #detail="""True if all arguments are true, and false if any is false."""
+})
+
+def({! or($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[true]D[false]
+  #description="Boolean disjunction."
+  #detail="""True if any argument is true, and false if all are false."""
+})
+
+def({ operator #name=xor #type=BOOLEAN #cases
+  %(true) -> true,
+  %(false) -> false,
+  %(true, false) -> true,
+  %(false, true) -> true,
+  %(true, true) -> false,
+  %(false, false) -> false,
+  %ACD[false](true, $Q: BOOLEAN) -> not($$Q),
+  %ACD[false]($P: BOOLEAN, $Q: BOOLEAN) -> _
+  #description="Boolean exclusive or."
+  #detail="""True if exactly one argument is true, and false otherwise."""
+})

@@ -35,7 +35,7 @@ import scala.actors.Actor._
 /**
  * Provide communication with a console.
  */
-class Console extends Actor {
+class Console /*extends Actor*/ {
   
   /** Whether to suppress most output. */
   private var _quiet = false

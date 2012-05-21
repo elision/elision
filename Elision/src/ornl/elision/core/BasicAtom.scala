@@ -260,6 +260,16 @@ abstract class BasicAtom {
   val depth: Int
   
   /**
+   * Whether this atom should be applied, even on meta-terms.  Do not mess
+   * with this; unless you are modifying the Elision language you want to
+   * leave this alone.  Only exceptional operators that must operate
+   * handlers to terms that will contain meta-terms need to change this.
+   * For nearly every operator the default handling of meta-terms is
+   * appropriate.
+   */
+  val evenMeta = false
+  
+  /**
    * Attempt to match this atom, as a pattern, against the subject atom,
    * observing the bindings, if any.  The type is checked prior to trying
    * any matching.

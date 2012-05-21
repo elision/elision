@@ -43,16 +43,6 @@ import ornl.elision.parse.AtomParser
 /**
  * The core classes and definitions that make up the Elision runtime.
  * 
- * == Punch List ==
- * This is the current punch list for Elision.  This list gets picked up by
- * [[http://eclipse.org Eclipse]].
- * 
- *  - TODO: Alternative parser.
- *  - TODO: Implicit corecions.
- *  - TODO: REPL refactoring.
- *  - TODO: New native form: [tag, arg, arg...[text]].
- *  - TODO: Infix. DEFER.
- * 
  * == Design Goals ==
  *  - Every atom that can be programmatically created can be written using
  *    the toParseString, and the result can be parsed by AtomParser.

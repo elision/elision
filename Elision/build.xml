@@ -208,7 +208,7 @@ bin, lib, and other folders.</echo>
 		<mkdir dir="${build.doc}/api"/>
 		<scaladoc
 			destdir		="${build.doc}/api"
-			classpathref="build.classpath"
+			classpathref	="build.classpath"
 			deprecation	="on"
 			unchecked	="on"
 			doctitle	="${configuration.name} API Version ${configuration.version.major}.${configuration.version.minor} Build ${DSTAMP}${TSTAMP}">
