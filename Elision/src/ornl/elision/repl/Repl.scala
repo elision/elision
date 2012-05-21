@@ -143,6 +143,9 @@ object Repl {
    */
   private var _rewrite = true
   
+  /** Whether we automatically define operators we encounter. */
+  private var _autodefine = false
+  
   /** Write a message, unless quiet is enabled. */
   private def emitln(msg: String) { if (!_quiet) println(msg) }
   
@@ -909,6 +912,18 @@ object Repl {
           case _ => _no_show
         })
         
+    // Set whether to automatically define operators.
+    _context.operatorLibrary.register("setautodefine",
+        (_, list:AtomSeq, _) => list match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to automatically define operators.
+            _autodefine = flag
+            emitln("Automatic declaration of operators is " +
+                (if (flag) "ON." else "OFF."))
+            _no_show
+          case _ => _no_show
+        })
+        
     // Enable or disable the rewriter.
     _context.operatorLibrary.register("rewrite",
         (_, list:AtomSeq, _) => list match {
@@ -972,10 +987,8 @@ object Repl {
         (op: Operator, args: AtomSeq, _) => {println("F")
           args match {
           case Args(term) =>
-            println("E")
             if (term.isBindable) Literal.TRUE else Literal.FALSE
           case _ =>
-            println("D")
             Apply(op, args, true)
         }})
 
@@ -1010,6 +1023,11 @@ object Repl {
 	
     // Certain atoms require additional processing.
     atom match {
+      case op: Operator if _autodefine =>
+        _context.operatorLibrary.add(op)
+        emitln("Defined operator " + toESymbol(op.name) + ".")
+        return true
+
       case _ =>
         // Maybe show the atom before we rewrite.
         if (_showPrior) show(atom)

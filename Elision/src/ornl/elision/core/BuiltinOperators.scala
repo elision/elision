@@ -257,6 +257,13 @@ def({ operator #name=setdescend #params=%($enable: BOOLEAN)
 try to rewrite children of atoms."""
 })
 
+def({! setautodefine($flag: BOOLEAN)
+      #description="Set whether to automatically declare operators."
+      #detail=
+"""If $flag is true, then subsequent operators encountered are automatically
+added to the context.  If false, this is disabled."""
+})
+
 def({ operator #name=setroundtrip #params=%($enable: BOOLEAN)
       #description="Set whether to perform round-trip testing."
       #detail=
