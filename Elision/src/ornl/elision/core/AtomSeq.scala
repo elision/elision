@@ -159,6 +159,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     val operator = hints match {
       case Some(value) => value match {
         case oper: Operator => Some(oper)
+        case oper: OperatorRef => Some(oper.operator)
         case _ => None
       }
       case _ => None

@@ -48,6 +48,19 @@ package sjp
  *  - [[ornl.elision.parse]] contains the Elision parser(s).
  *  - [[ornl.elision.repl]] contains the Elision REPL(s) and related classes.
  *  - [[ornl.elision.test]] contains tests to verify Elision functionality.
+ *  
+ * == Punch List ==
+ * This is the current punch list for Elision.  This list gets picked up by
+ * [[http://eclipse.org Eclipse]].
+ * 
+ *  - TODO Alternative parser. Logan.
+ *  - TODO Implicit corecions. Mark.
+ *  - TODO REPL refactoring. Stacy.
+ *  - TODO Infix. DEFER.
+ *  - TODO Need {def} form to define operators. Stacy.
+ *  - TODO Pick up built in operators from .elision files. Stacy.
+ *  - TODO Pick up native handlers from operator definitions. Stacy.
+ * 
  */
 package object elision {
 	// No content at the present time.
