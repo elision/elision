@@ -7579,7 +7579,7 @@ The operator library is also where you register a closure for a symbolic
  The closure must take a triple, consisting of the operator, the argument
  list as an instance of 
 \family typewriter
-core.AtomList
+core.AtomSeq
 \family default
 , and an instance of 
 \family typewriter
@@ -8499,6 +8499,12 @@ Once this processing is complete, the system applies any native handler.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Operator-Applications"
+
+\end_inset
+
 Operator Applications
 \end_layout
 
@@ -10077,7 +10083,7 @@ $$_
 \end_layout
 
 \begin_layout Standard
-Case operators are fairly powerful, and can help avoid the need for native
+Case operators are quite powerful, and can help avoid the need for native
  operators in many cases.
  For instance the Boolean 
 \family typewriter
@@ -10087,7 +10093,7 @@ not
 \end_layout
 
 \begin_layout LyX-Code
-def({operator #name=not #cases
+def({operator #name=not #type=BOOLEAN #cases
 \end_layout
 
 \begin_layout LyX-Code
@@ -10116,6 +10122,11 @@ def({operator #name=not #cases
 
 \begin_layout LyX-Code
 })
+\end_layout
+
+\begin_layout Standard
+This works, performs correct type checking, and is more general because
+ it is also directly applicable to Boolean values.
 \end_layout
 
 \begin_layout Standard
@@ -13159,6 +13170,20 @@ reference "sec:Case-Operators"
 \end_layout
 
 \begin_layout Standard
+A short description of creating native handlers is given in the Scala block
+ of 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Operator-Applications"
+
+\end_inset
+
+.
+ This is suitable for creating them programmatically, but Elision provides
+ support for providing the definition more directly.
+\end_layout
+
+\begin_layout Standard
 Consider the operator 
 \family typewriter
 mod($b,$d)
@@ -13230,9 +13255,36 @@ bindings
 \emph on
 operator
 \emph default
- is the operator to apply, as an 
+ is the operator to apply, as an instance of 
 \family typewriter
-SymbolicOperator
+core.SymbolicOperator
+\family default
+, the 
+\emph on
+arguments
+\emph default
+ are given as an instance of 
+\family typewriter
+core.AtomSeq
+\family default
+, and the 
+\emph on
+bindings
+\emph default
+ are an instance of 
+\family typewriter
+core.Bindings
+\family default
+ that result from matching the argument list to the parameters.
+ In addition the closure has access to some specialized fields and methods.
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+context
+\family default
+ provides access to the context in which the operator is defined.
 \end_layout
 
 \begin_layout Chapter
