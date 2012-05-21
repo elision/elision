@@ -135,6 +135,15 @@ in effect (so most output is suppressed).  No numbered repl bindings
 are generated from this action."""
 })
 
+def({ operator #name=read_once #params=%($filename: STRING)
+      #description="Include the content of the specified file."
+      #detail=
+"""Include the file specified by $filename, executing each line of the
+file as though it were typed at the REPL prompt while quiet mode was
+in effect (so most output is suppressed).  No numbered repl bindings
+are generated from this action.  Each file is read at most once."""
+})
+
 def({ operator #name=write #params=%($filename: STRING)
       #description="Write the content of the current context to a file."
       #detail=
