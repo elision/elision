@@ -5,11 +5,30 @@
 	<key>fileTypes</key>
 	<array>
 		<string>elision</string>
+		<string>eli</string>
 	</array>
 	<key>name</key>
 	<string>Elision</string>
 	<key>patterns</key>
 	<array>
+		<dict>
+			<key>begin</key>
+			<string>/\*</string>
+			<key>comment</key>
+			<string>multi-line comment blocks</string>
+			<key>end</key>
+			<string>\*/</string>
+			<key>name</key>
+			<string>comment.elis</string>
+		</dict>
+		<dict>
+			<key>comment</key>
+			<string>single-line comment blocks</string>
+			<key>match</key>
+			<string>//.*\n</string>
+			<key>name</key>
+			<string>comment.elis</string>
+		</dict>
 		<dict>
 			<key>begin</key>
 			<string>"""</string>
@@ -18,7 +37,7 @@
 			<key>end</key>
 			<string>"""</string>
 			<key>name</key>
-			<string>comment.elis</string>
+			<string>string.elis</string>
 		</dict>
 		<dict>
 			<key>begin</key>
