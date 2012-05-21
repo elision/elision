@@ -1,11 +1,24 @@
 { "name": "Elision",
   "scopeName": "source.elis",
-  "fileTypes": ["elision"],
+  "fileTypes": ["elision","eli"],
   "patterns": [
+    {
+      "begin" : "/\\*",
+      "end" : "\\*/",
+      "name" : "comment.elis",
+      "comment" : "multi-line comment blocks"
+    },
+
+    {
+      "match" : "//.*\\n",
+      "name" : "comment.elis",
+      "comment" : "single-line comment blocks"
+    },
+
     {
       "begin" : "\"\"\"",
       "end" : "\"\"\"",
-      "name" : "comment.elis",
+      "name" : "string.elis",
       "comment" : "verbatim blocks"
     },
 
