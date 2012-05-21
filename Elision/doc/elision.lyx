@@ -10995,6 +10995,394 @@ BasicAtom
 \end_layout
 
 \begin_layout Chapter
+Reading Elision Files
+\end_layout
+
+\begin_layout Standard
+Elision provides several mechanisms to read files.
+\end_layout
+
+\begin_layout Itemize
+The REPL.
+ You can pipe input to the REPL, or you can use the 
+\family typewriter
+read
+\family default
+ and 
+\family typewriter
+read_once
+\family default
+ commands at the prompt.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+read(filename: String)
+\family default
+ method of 
+\family typewriter
+parse.Processor
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+elc
+\family default
+ (Elision compiler) command that reads input, and then generates the Scala
+ code to re-create the resulting context.
+\end_layout
+
+\begin_layout Section
+Processor
+\end_layout
+
+\begin_layout Standard
+If you want to process Elision files you should begin with 
+\family typewriter
+parse.Processor
+\family default
+.
+ This class provides a context, along with several methods to read data.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Methods to Read Atoms
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Method
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Use
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+read(filename: String)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read the content of the specified file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+read(stream: Source)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read the content of the provided stream.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+execute(text: String)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read from the provided string.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+Internally, all text is ultimately processed by the 
+\family typewriter
+execute(String)
+\family default
+ method.
+ The flow of this method is as follows.
+\end_layout
+
+\begin_layout Enumerate
+Parse the text, obtaining a sequence of 
+\family typewriter
+parse.AtomParser.AstNode
+\family default
+ instances.
+\end_layout
+
+\begin_layout Enumerate
+For each node, do the following for each registered instance of 
+\family typewriter
+parse.Processor.Handler
+\family default
+, in the order registered.
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Pass the current node to the 
+\family typewriter
+handleNode(node: AtomParser.AstNode)
+\family default
+ method.
+ This method must return an 
+\family typewriter
+Option[AtomParser.AstNode]
+\family default
+.
+ If the returned value is 
+\family typewriter
+None
+\family default
+, then the node is discarded.
+ If the returned value is 
+\family typewriter
+Some(node)
+\family default
+, then the returned node becomes the current node.
+ A simple default implementation of 
+\family typewriter
+handleNode
+\family default
+ is:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+def handleNode(node: AtomParser.AstNode) = Some(node)
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Pass the node to all listening actors via 
+\family typewriter
+actor ! node
+\family default
+.
+\end_layout
+
+\begin_layout Enumerate
+Convert the node into an atom by invoking the node's 
+\family typewriter
+interpret
+\family default
+ method.
+\end_layout
+
+\begin_layout Enumerate
+Pass any current atom to the 
+\family typewriter
+handleAtom(atom: BasicAtom)
+\family default
+ method.
+ This method is responsible for performing any specialized processing of
+ the atom 
+\emph on
+post-construction
+\emph default
+ (as the atom was already constructed during execution of the 
+\family typewriter
+interpret
+\family default
+ method in 
+\family typewriter
+handleAtom
+\family default
+), and should return an optional atom.
+ If 
+\family typewriter
+None
+\family default
+ is returned then the atom is discarded and the system proceeds to the next
+ node.
+ If the return value is 
+\family typewriter
+Some(atom)
+\family default
+, then the returned atom becomes the current atom.
+ A simple default implementation of 
+\family typewriter
+handleAtom
+\family default
+ is:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+def handleAtom(atom: BasicAtom) = Some(atom)
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Pass the atom to all listening actors via 
+\family typewriter
+actor ! atom
+\family default
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Other events can be passed to actors.
+ Whenever a new file is provided for processing, a 
+\family typewriter
+FileStart
+\family default
+ object is sent to the actors.
+ When processing of the file is complete, a 
+\family typewriter
+FileEnd
+\family default
+ is sent.
+ When a new stream is provided for processing, a 
+\family typewriter
+StreamStart
+\family default
+ is sent to all actors.
+ When a stream is exhausted, a 
+\family typewriter
+StreamEnd
+\family default
+ is sent to all actors.
+ The flow of messages thus looks as follows, if a valid filename is provided
+ to the 
+\family typewriter
+read
+\family default
+ method.
+\end_layout
+
+\begin_layout LyX-Code
+FileStart
+\end_layout
+
+\begin_layout LyX-Code
+StreamStart
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+StreamEnd
+\end_layout
+
+\begin_layout LyX-Code
+FileEnd
+\end_layout
+
+\begin_layout Chapter
 \begin_inset CommandInset label
 LatexCommand label
 name "chap:De-Bruijn-Indices"
@@ -11888,6 +12276,62 @@ textbackslash}
 
 \end_inset
 
+.
+\end_layout
+
+\begin_layout Standard
+Though not explicitly in the grammar, comments are allowed in two forms.
+ Single line comments starting with
+\family typewriter
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{//}
+\end_layout
+
+\end_inset
+
+
+\family default
+ and ending with a newline, and multi-line comments starting with
+\family typewriter
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{/*}
+\end_layout
+
+\end_inset
+
+
+\family default
+ and ending with 
+\family typewriter
+
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{*/}
+\end_layout
+
+\end_inset
+
+
+\family default
 .
 \end_layout
 
