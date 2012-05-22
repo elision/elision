@@ -13187,6 +13187,18 @@ elc
  code to re-create the resulting context.
 \end_layout
 
+\begin_layout Standard
+These methods all work essentially the same way: input is consumed from
+ some source, parsed into a sequence of atoms, and each atom is then handled
+ in some appropriate manner.
+ All this work is generalized by the 
+\family typewriter
+parse.Processor
+\family default
+ class.
+ The following sections discuss how to use these to create additional facilities.
+\end_layout
+
 \begin_layout Section
 Processor
 \end_layout
@@ -13531,6 +13543,14 @@ StreamEnd
 
 \begin_layout LyX-Code
 FileEnd
+\end_layout
+
+\begin_layout Section
+Operators
+\end_layout
+
+\begin_layout Standard
+The 
 \end_layout
 
 \begin_layout Chapter

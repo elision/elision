@@ -233,7 +233,7 @@ object Repl {
    * Display the banner.
    */
   private def banner() {
-    import Version._
+    import ornl.elision.parse.Version._
     emitln("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
@@ -458,7 +458,7 @@ object Repl {
 			
 			//////////////////// GUI changes
 			
-	    	case _parser.Success(list) => {
+	    	case AtomParser.Success(list) => {
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {
 					RWTree.current = treeRoot
@@ -471,7 +471,7 @@ object Repl {
 	    	case _parser.Success(list) =>
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => handle(node.interpret))*/
-	      case _parser.Failure(msg) => println(msg)
+	      case AtomParser.Failure(msg) => println(msg)
 		  
 	    }
     } catch {
@@ -547,7 +547,7 @@ object Repl {
     
     // Check the result.
     result match {
-      case _parser.Success(list) =>
+      case AtomParser.Success(list) =>
         // If there is more than one atom, then we have a failure.
         if (list.length == 0)
           error("Round-trip parse failure for atom " +
@@ -565,7 +565,7 @@ object Repl {
           println("  original: " + atom.toParseString)
           println("  result:   " + newatom.toParseString)
         }
-      case _parser.Failure(msg) =>
+      case AtomParser.Failure(msg) =>
         error("Round-trip parse failure for atom " + atom.toString +
             ".\nParse failed: " + msg)
     }

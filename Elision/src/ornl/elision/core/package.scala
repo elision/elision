@@ -95,8 +95,8 @@ package object core {
     val ap = new AtomParser(context, trace)
     try {
       ap.parseAtoms(str) match {
-        case ap.Failure(_) => None
-        case ap.Success(atoms) => Some(atoms)
+        case AtomParser.Failure(_) => None
+        case AtomParser.Success(atoms) => Some(atoms)
       }
     } catch {
       case th: ParsingException => println(th.getMessage)

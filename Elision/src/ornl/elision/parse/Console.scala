@@ -27,25 +27,66 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.repl
+package ornl.elision.parse
 
 import scala.actors.Actor
 import scala.actors.Actor._
 
 /**
- * Provide communication with a console.
+ * Provide communication with a console.  By default this uses the standard
+ * output.  To modify this, override the `send` method.
  */
-class Console /*extends Actor*/ {
+trait Console {
   
   /** Whether to suppress most output. */
   private var _quiet = false
   
-  /** Write a message, unless quiet is enabled. */
-  def emitln(msg: String) { if (!_quiet) println(msg) }
+  /** The end of line character.  TODO This should be set dynamically. */
+  private final val _ENDL = "\n"
   
-  /** Emit an error message, with the ERROR prefix. */
-  def error(msg: String) { println("ERROR: " + msg) }
+  /**
+   * Specify whether to be quiet.
+   * 
+   * @param suppress	If true, suppress most output.
+   */
+  def quiet_=(suppress: Boolean) {
+    _quiet = suppress
+  }
   
-  /** Emit a warning message, with the WARNING prefix. */
-  def warn(msg: String) { println("WARNING: " + msg) }
+  /**
+   * Send the given text to the appropriate destination.  If you want to change
+   * where output goes, override this method.
+   * 
+   * @param text	The text to send.
+   */
+  def send(text: String) { print(text) }
+  
+  /**
+   * Send the given text to the appropriate destination, followed by the end
+   * of line.  This method uses `send`, so you should not need to override it.
+   * 
+   * @param text	The text to send.
+   */
+  def sendln(text: String) { send(text) ; send(_ENDL) }
+  
+  /**
+   * Write a message, unless quiet is enabled.
+   * 
+   * @param msg		The message.
+   */
+  def emitln(msg: String) { if (!_quiet) sendln(msg) }
+  
+  /**
+   * Emit an error message, with the ERROR prefix.
+   * 
+   * @param msg		The message.
+   */
+  def error(msg: String) { sendln("ERROR: " + msg) }
+  
+  /**
+   * Emit a warning message, with the WARNING prefix.
+   *
+   * @param msg		The message.
+   */
+  def warn(msg: String) { sendln("WARNING: " + msg) }
 }
