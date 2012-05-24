@@ -39,6 +39,7 @@ package ornl.elision.core
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import ornl.elision.ElisionException
+import scala.tools.nsc.interpreter.Results
 
 /**
  * An incorrect argument list was supplied to an operator.
@@ -46,6 +47,13 @@ import ornl.elision.ElisionException
  * @param msg	The human-readable message describing the problem.
  */
 class ArgumentListException(msg: String) extends ElisionException(msg)
+
+/**
+ * The native handler could not be parsed.
+ * 
+ * @param msg	The human-readable message describing the problem.
+ */
+class NativeHandlerException(msg: String) extends ElisionException(msg)
 
 /**
  * Encapsulate an operator.
@@ -337,6 +345,16 @@ class CaseOperator private (sfh: SpecialFormHolder,
 }
 
 /**
+ * Package information about the application of an operator to an argument
+ * list.  This is used to pass information to a native handler.
+ * 
+ * @param op			The operator.
+ * @param args		The argument list.
+ * @param binds		Bindings of parameter to argument.
+ */
+class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings)
+
+/**
  * Construction and matching of typed symbolic operators.
  */
 object TypedSymbolicOperator {
@@ -349,13 +367,32 @@ object TypedSymbolicOperator {
   def apply(sfh: SpecialFormHolder): TypedSymbolicOperator = {
     val bh = sfh.requireBindings
     bh.check(Map("name"->true, "params"->true, "type"->false,
-        "description"->false, "detail"->false))
+        "description"->false, "detail"->false, "evenmeta"->false,
+        "handler"->false))
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val params = bh.fetchAs[AtomSeq]("params")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
+    val handler = bh.fetchAs[String]("handler", Some(""))
+    // Compile the handler, if we are given one.
+    if (handler != "") {
+	    val main = new scala.tools.nsc.interpreter.IMain()
+	    class Hold(var handler: Option[(ApplyInfo => BasicAtom)])
+	    val passback = new Hold(None)
+	    main.bind("passback", passback)
+	    val res = main.interpret("passback = (" + handler + ")")
+	    res match {
+	      case Results.Error => throw new NativeHandlerException(
+	      		"Parsing failed for native handler.  Operator " +
+	      		toESymbol(name) + " with native handler:\n" + handler)
+	      case Results.Incomplete => throw new NativeHandlerException(
+	      		"Incomplete Scala code for native handler.  Operator " +
+	      		toESymbol(name) + " with native handler:\n" + handler)
+	      case Results.Success =>
+	    }
+    }
     return new TypedSymbolicOperator(sfh, name, typ, params,
         description, detail, evenMeta)
   }
@@ -527,7 +564,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
   /** The native handler, if one is declared. */
   protected[core]
   var handler: Option[(SymbolicOperator,AtomSeq,Bindings) => BasicAtom] = None
-	
+  
   /**
    * Apply this operator to the given arguments.
    * 
