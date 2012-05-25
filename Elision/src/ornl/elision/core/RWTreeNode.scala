@@ -51,10 +51,13 @@ class RWTreeNode(val term : String) {
 	val children = new ArrayBuffer[RWTreeNode]
 	
 	/** String used to display the properties of the atom this node represents. */
-	var properties : String = term
+	var properties : String = ""
 	
 	/** A Node can be used to represent a comment instead of a type of BasicAtom. This helps to self-document the tree. */
 	var isComment = true
+	
+	/** A flag to let the GUI know that this is an atom representing a StringLiteral */
+	var isStringAtom = false
 	
 	/** 
 	 * Auxillary constructor accepting a BasicAtom. 
@@ -64,27 +67,31 @@ class RWTreeNode(val term : String) {
 	
 	def this(atom : BasicAtom) = {
 		this(atom.toParseString)
+
+		properties = "Class: " + atom.getClass + "\n\n"
+		properties += "Type: " + atom.theType + "\n\n"
+		properties += "De Bruijn index: " + atom.deBruijnIndex + "\n\n"
+		properties += "Depth: " + atom.depth + "\n\n"
 		
-		properties = "Parse String: " + term + "\n\n"
-		properties += "Class: " + atom.getClass + "\n"
-		properties += "Type: " + atom.theType + "\n"
-		properties += "De Bruijn index: " + atom.deBruijnIndex + "\n"
-		properties += "Depth: " + atom.depth + "\n"
-		
-		properties += "Is bindable: " + atom.isBindable + "\n"
-		properties += "Is false: " + atom.isFalse + "\n"
-		properties += "Is true: " + atom.isTrue + "\n"
-		properties += "Is De Bruijn index: " + atom.isDeBruijnIndex + "\n"
-		properties += "Is constant: " + atom.isConstant + "\n"
-		properties += "Is term: " + atom.isTerm + "\n"
-		
-		isComment = false
+		properties += "Is bindable: " + atom.isBindable + "\n\n"
+		properties += "Is false: " + atom.isFalse + "\n\n"
+		properties += "Is true: " + atom.isTrue + "\n\n"
+		properties += "Is De Bruijn index: " + atom.isDeBruijnIndex + "\n\n"
+		properties += "Is constant: " + atom.isConstant + "\n\n"
+		properties += "Is term: " + atom.isTerm + "\n\n"
 		
 		try {
 			properties += "constant pool: \n"
 			for(i <- atom.constantPool.get) properties += "\t" + i + "\n"
 		} catch {
 			case _ => {}
+		}
+		
+		isComment = false
+		
+		atom match {
+			case _ : StringLiteral => isStringAtom = true
+			case _ =>
 		}
 	}
 	
