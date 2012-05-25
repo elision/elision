@@ -442,7 +442,6 @@ object Repl {
 	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
 	val treeRoot = new RWTreeNode(lline)
-	treeRoot.properties = "Parse String: " + lline + "\n\n"
 	
 	//////////////////// end GUI changes
 	
@@ -469,7 +468,7 @@ object Repl {
 	    	case AtomParser.Success(list) => {
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {
-					RWTree.current = treeRoot
+					RWTree.current = treeRoot.addChild("line node")
 					handle(node.interpret)
 				} )
 			}

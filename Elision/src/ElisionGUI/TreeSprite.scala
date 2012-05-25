@@ -1,3 +1,40 @@
+/*======================================================================
+ *       _ _     _
+ *   ___| (_)___(_) ___  _ __
+ *  / _ \ | / __| |/ _ \| '_ \
+ * |  __/ | \__ \ | (_) | | | |
+ *  \___|_|_|___/_|\___/|_| |_|
+ * The Elision Term Rewriter
+ * 
+ * Copyright (c) 2012 by UT-Battelle, LLC.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * Collection of administrative costs for redistribution of the source code or
+ * binary form is allowed. However, collection of a royalty or other fee in excess
+ * of good faith amount for cost recovery for such redistribution is prohibited.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER, THE DOE, OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+======================================================================*/
+
 package ElisionGUI
 
 import java.awt._
@@ -177,12 +214,14 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			node.numLeaves += math.max(1,childsLeaves)
 		}
 		
-	//	node.offsetY = node.numLeaves*TreeSprite.defY/2
+		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5) + 0.5).toInt 
 		
-		if(numDecompChildren == 0)
-			0
+	/*	if(numDecompChildren == 0)
+			node.numLeaves = math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5)) //node.excessHeight/(NodeSprite.font.getSize+5) // 0
 		else
-			node.numLeaves
+			math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5)) // node.numLeaves
+		*/
+		node.numLeaves
 	}
 	
 	
@@ -193,10 +232,12 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param node		The node for whose children we are currently computing the y-offsets for.
 	 */
 	
-	def computeYOffsets(node : NodeSprite) : Unit = {
+	def computeYOffsets(node : NodeSprite) : (Double, Double) = {
 		// The number of leaves of previous sibling nodes will be used to determine what node's current child
 		// node's y-offset should be. The first child has no siblings before it. Therefore initialize this to 0.
 		var lastSibsLeaves = 0
+		
+		var firstChild = true
 		
 		// the root node has no y-offset. Just set its world coordinates to that of the tree.
 		
@@ -210,8 +251,8 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 		// compute the y coordinates of the area bounding node's subtree. This will be used by the detectMouseOver method 
 		// for efficient mouse collision detection with the tree's nodes.
 		
-		node.subTreeUpperY = node.worldY - (nodeLeaves*TreeSprite.defY + node.box.height)/2
-		node.subTreeLowerY = node.worldY + (nodeLeaves*TreeSprite.defY + node.box.height)/2
+		node.subTreeUpperY = node.worldY + node.box.y // node.worldY - (nodeLeaves*TreeSprite.defY + node.box.height)/2 //
+		node.subTreeLowerY = node.worldY + node.box.y + node.box.height // node.worldY + (nodeLeaves*TreeSprite.defY + node.box.height)/2 //
 		
 		// iterate over all of this node's decompressed children and compute their y-offsets.
 		
@@ -233,8 +274,11 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			
 			// recursively compute the child's children's y-offsets.
 			
-			computeYOffsets(child)
+			val (subUpper, subLower) = computeYOffsets(child)
+			node.subTreeUpperY = math.min(node.subTreeUpperY, subUpper)
+			node.subTreeLowerY = math.max(node.subTreeLowerY, subLower)
 		}
+		(node.subTreeUpperY, node.subTreeLowerY)
 	}
 	
 	
@@ -277,6 +321,7 @@ object TreeSprite {
 	 * Factory method builds a fabricated tree structure for testing purposes. 
 	 * The Touhou Project and its characters are copyright (c) ZUN, Team Shanghai Alice.
 	 */
+	
 	/*
 	def buildTouhouTree : TreeSprite = {
 		val root = new NodeSprite("Touhou Characters")
@@ -619,6 +664,7 @@ object TreeSprite {
 		parent.addChild(node)
 		
 		node.isComment = rwNode.isComment
+		node.isStringAtom = rwNode.isStringAtom
 		
 		for(child <- rwNode.children) {
 			buildRWTreeRec(child, node)
@@ -675,15 +721,23 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** A parametric variable used to implement a smooth compression/decompression animation for the nodes. */
 	var expansion : Double = 0.1 // used for a smooth decompression animation
 	
-	// if the term string is very long, abridge it.
-	if(term.length > NodeSprite.maxTermLength)
-		term = term.take(NodeSprite.maxTermLength) + " ... (abridged)"
+	
+	// if the term is very long, separate it into multiple lines.
+	private var edibleTerm = "" + term
+	
+	val termLines = new ArrayBuffer[String]
+	while(edibleTerm.length > NodeSprite.maxTermLength) {
+		val (str1, str2) = edibleTerm.splitAt(NodeSprite.maxTermLength)
+		termLines += str1
+		edibleTerm = str2
+	}
+	termLines += edibleTerm
 	
 	/** The node's width */
-	private val boxWidth = term.length * NodeSprite.font.getSize * 0.66 + 5
+	private val boxWidth = termLines(0).length * NodeSprite.font.getSize * 0.66 + 5
 	
 	/** The node's height */
-	private val boxHeight = NodeSprite.font.getSize + 5
+	private val boxHeight = (NodeSprite.font.getSize+5)*termLines.size // NodeSprite.font.getSize + 5
 	
 	/** The node's renderable box shape. */
 	val box = new RoundRectangle2D.Double(0, 0-boxHeight/2, boxWidth, boxHeight, 5, 5)
@@ -693,6 +747,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
 	/** flag indicates that this node is just a documentation string and doesn't actually represent an atom */
 	var isComment = true
+	
+	/** flag indicates that this node represents a StringLiteral atom. */
+	var isStringAtom = false
 	
 	//////////////////// Rendering methods
 	
@@ -718,6 +775,8 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 					NodeSprite.selectedBoxColor
 				else if(this.isComment)
 					NodeSprite.comBoxColor
+			//	else if(this.isStringAtom)
+			//		NodeSprite.verbBoxColor
 				else
 					NodeSprite.boxColor
 			} 
@@ -736,18 +795,23 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		if(isOnScreen) g.fill(box)
 		
 		if(this.isSelected)
-			g.setColor(alphaColor(NodeSprite.selectedBorderColor))
+			g.setColor(NodeSprite.selectedBorderColor)
 		else if(this.isComment)
-			g.setColor(alphaColor(NodeSprite.comBorderColor))
+			g.setColor(NodeSprite.comBorderColor)
+	//	else if(this.isStringAtom)
+	//		g.setColor(NodeSprite.verbBorderColor)
 		else 
-			g.setColor(alphaColor(NodeSprite.borderColor))
+			g.setColor(NodeSprite.borderColor)
 
 		if(isOnScreen) g.draw(box)
 		
 		// draw the label
 		
 		g.setColor(alphaColor(NodeSprite.textColor))
-		if(isOnScreen && NodeSprite.camera.zoom > 0.2) g.drawString(term, 3, NodeSprite.font.getSize/2)
+		if(isOnScreen && NodeSprite.camera.zoom > 0.2) { 
+			for(i <- 0 until termLines.size) 
+				g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+		}
 		
 		// restore the graphics context's font
 		
@@ -905,6 +969,10 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	}
 	
 	
+	def excessHeight : Int = {
+		boxHeight - (NodeSprite.font.getSize+5)
+	}
+	
 	////////////	collision methods
 	
 	/**
@@ -912,7 +980,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 */
 	
 	override def getCollisionBox : Rectangle2D = {
-		new Rectangle2D.Double(worldX + box.x, worldY + box.y, box.width, box.height)
+		new Rectangle2D.Double(worldX + box.x, worldY + box.y, boxWidth, boxHeight)
 	}
 	
 	
@@ -934,13 +1002,16 @@ object NodeSprite {
 	val boxColor = new Color(0xd7e9ff)
 	val borderColor = new Color(0x77a9dd)
 	
+	// verbatim atom colors: Apple orange
+	val verbBoxColor = new Color(0xffeecc)
+	val verbBorderColor = new Color(0xddaa77)
+	
 	// selected colors : Flutter yellow
 	val selectedBoxColor = new Color(0xffffcc)
 	val selectedBorderColor = new Color(0xaaaa55) 
 	
 	// leaf colors: Rare grey
-	val leafBoxColor = new Color(0xf8f8ff)
-//	val leafBorderColor = new Color(0x8888aa)
+	val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
 	val selectedLeafBoxColor = new Color(0xffffee)
 	
 	val maxTermLength = 50
