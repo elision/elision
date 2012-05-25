@@ -194,7 +194,9 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
         if (mTYPE >:> Manifest.classType(key.getClass))
           throw new SpecialFormException(
               "The value for key " + toESymbol(key) + " of form " +
-              tag.toParseString + " is of the wrong type: " + item.toParseString)
+              tag.toParseString + " is of the wrong type: " +
+              item.toParseString + ". Expected " + mTYPE.toString +
+              " but got " + Manifest.classType(key.getClass) + ".")
         else
           item.asInstanceOf[TYPE]
     }

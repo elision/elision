@@ -42,24 +42,30 @@
 def({! eval($atom)
       #description="Force fast rewrite using the current bindings."
       #detail=
-"""The context bindings are typically applied after an atom is parsed
-and constructed.  This forces any bound variables in $atom to be 
-rewritten immediately.  It is most useful when $atom is the argument
-to some other operator."""
+"""|The context bindings are typically applied after an atom is parsed and
+   |constructed.  This forces any bound variables in $atom to be rewritten
+   |immediately.  It is most useful when $atom is the argument to some other
+   |operator."""
 })
 
 def({ operator #name=typeof #cases %($x:$T)->$T
       #description="Extract and show the type of the argument."
       #detail=
-"""Given a single argument, extract the type $T of that argument $x
-and return the extracted type."""
+"""|Given a single argument, extract the type $T of that argument $x and return
+   |the extracted type."""
 })
 
 def({! getop($x: OPREF)
+      #handler="""|args match {
+                  |  case Args(opref:OperatorRef) =>
+                  |    // Get the referenced operator.
+                  |    opref.operator
+                  |  case _ => _no_show
+                  |}"""
       #description="Given an operator reference, return the operator."
       #detail=
-"""Given the operator reference $x, resolve the reference to the
-actual operator and return the operator."""
+"""|Given the operator reference $x, resolve the reference to the actual
+   |operator and return the operator."""
 })
 
 def({! setdebruijn($enable: BOOLEAN)

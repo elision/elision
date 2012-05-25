@@ -114,8 +114,7 @@ class OperatorLibrary(
  	 * 								matching the parameters against the arguments.  It must
  	 * 								return a new atom.
  	 */
- 	def register(name: String,
- 	    handler: (Operator, AtomSeq, Bindings) => BasicAtom) = {
+ 	def register(name: String, handler: ApplyData => BasicAtom) = {
  	  // Go fetch the operator.  It must be defined.
  	  _nameToOperator.get(name) match {
  	    case None =>

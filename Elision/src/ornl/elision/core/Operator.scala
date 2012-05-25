@@ -56,6 +56,35 @@ class ArgumentListException(msg: String) extends ElisionException(msg)
 class NativeHandlerException(msg: String) extends ElisionException(msg)
 
 /**
+ * A little class to use to pass data back and forth from the subordinate
+ * interpreter.
+ * 
+ * @param handler		The handler.
+ */
+class HandHolder(
+    var handler: Option[ApplyData => BasicAtom])
+
+/**
+ * Data block and special functions provided to a native handler.
+ * 
+ * @param op			The operator.
+ * @param args		The argument list.
+ * @param binds		Bindings of parameter to argument value.
+ */
+class ApplyData(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings) {
+  /** Just preserve the apply as it is. */
+  def as_is = Apply(op, args, true)
+}
+
+/**
+ * Additional constants and support methods for native handlers.
+ */
+object ApplyData {
+  /** A special literal that we never show, or save as a binding. */
+  val _no_show = Literal(Symbol(" NO SHOW "))
+}
+
+/**
  * Encapsulate an operator.
  * 
  * This is the common base class for all operator classes.
@@ -103,7 +132,8 @@ object Operator {
   def apply(sfh: SpecialFormHolder): Operator = {
     val bh = sfh.requireBindings
     bh.check(Map("name"->true, "cases"->false, "params"->false, "type"->false,
-        "description"->false, "detail"->false, "evenmeta"->false))
+        "description"->false, "detail"->false, "evenmeta"->false,
+        "handler"->false))
     if (bh.either("cases", "params") == "cases") {
       CaseOperator(sfh)
     } else {
@@ -227,7 +257,8 @@ object CaseOperator {
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val cases = bh.fetchAs[AtomSeq]("cases")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
-    val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
+    var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
+    if (description.value(0) == '|') description = description.value.stripMargin('|')
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
@@ -358,6 +389,23 @@ class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings
  * Construction and matching of typed symbolic operators.
  */
 object TypedSymbolicOperator {
+
+  private lazy val _urls =
+    java.lang.Thread.currentThread.getContextClassLoader match {
+	  case cl: java.net.URLClassLoader => cl.getURLs.toList
+	  case _ => sys.error("classloader is not a URLClassLoader")
+	}
+  private lazy val _classpath = (_urls.map(_.toString)).mkString(":")
+  private val _settings = new scala.tools.nsc.Settings(println _) {
+    override val classpath = PathSetting("-cp", "Classpath", _classpath) 
+  }
+
+  /** Make an interpreter. */
+  private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
+  
+  // Make the core package available.
+  _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
+  
   /**
    * Make a typed symbolic operator from the provided special form data.
    * 
@@ -372,29 +420,60 @@ object TypedSymbolicOperator {
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val params = bh.fetchAs[AtomSeq]("params")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
-    val description = bh.fetchAs[StringLiteral]("description", Some("No description."))
+    var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
+    if (description.value(0) == '|') description = description.value.stripMargin('|')
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
-    val handler = bh.fetchAs[String]("handler", Some(""))
+    
+    // Fetch the handler text.
+    var handlertxt = bh.fetchAs[StringLiteral]("handler", Some("")).value
+    if (handlertxt.length > 0 && handlertxt(0) == '|')
+      handlertxt = handlertxt.stripMargin('|')
+    
+    // Now make a handler object to pass into the interpreter.
+    var handler: Option[ApplyData => BasicAtom] = None
+    
     // Compile the handler, if we are given one.
-    if (handler != "") {
-	    val main = new scala.tools.nsc.interpreter.IMain()
-	    class Hold(var handler: Option[(ApplyInfo => BasicAtom)])
-	    val passback = new Hold(None)
-	    main.bind("passback", passback)
-	    val res = main.interpret("passback = (" + handler + ")")
+    if (handlertxt != "") {
+      // Create a new handler holder to get the result, and bind it in the
+      // interpreter.  It is okay to rebind.
+	    val passback = new HandHolder(None)
+	    _main.beQuietDuring(_main.bind("passback", passback))
+	    
+	    // Extract the handler text, and surround it with the appropriate
+	    // boilerplate to create an actual handler closure.
+	    val runme =
+	      "def _handler(_data: ApplyData): BasicAtom = {\n" +
+	      "import _data._\n" +
+	      "import ApplyData._\n" +
+	      handlertxt + "\n" +
+	    	"}\n" +
+	    	"passback.handler = Some(_handler _)"
+	    		 
+	    // Now interpret it.
+	    val res = _main.beQuietDuring(_main.interpret(runme))
+	    
+	    // Determine what to do based on the result.
 	    res match {
 	      case Results.Error => throw new NativeHandlerException(
 	      		"Parsing failed for native handler.  Operator " +
-	      		toESymbol(name) + " with native handler:\n" + handler)
+	      		toESymbol(name) + " with native handler:\n" + handlertxt)
 	      case Results.Incomplete => throw new NativeHandlerException(
 	      		"Incomplete Scala code for native handler.  Operator " +
-	      		toESymbol(name) + " with native handler:\n" + handler)
+	      		toESymbol(name) + " with native handler:\n" + handlertxt)
 	      case Results.Success =>
+	        if (passback.handler.isDefined) {
+	          handler = Some(passback.handler.get)
+	        }
 	    }
     }
-    return new TypedSymbolicOperator(sfh, name, typ, params,
+    
+    // Now create the operator and install the handler, which might still be
+    // None if we never got a handler.
+    val tso = new TypedSymbolicOperator(sfh, name, typ, params,
         description, detail, evenMeta)
+    tso.handler = handler
+    tso
   }
   
   /**
@@ -563,7 +642,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
   
   /** The native handler, if one is declared. */
   protected[core]
-  var handler: Option[(SymbolicOperator,AtomSeq,Bindings) => BasicAtom] = None
+  var handler: Option[ApplyData => BasicAtom] = None
   
   /**
    * Apply this operator to the given arguments.
@@ -726,7 +805,8 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		      // See if we are bypassing the native handler.
 		      if (!bypass) {
 		        // Run any native handler.
-		        if (handler.isDefined) return handler.get(this, newargs, binds)
+		        val ad = new ApplyData(this, newargs, binds)
+		        if (handler.isDefined) return handler.get(ad)
 		      }
 		      // No native handler.
 		      return OpApply(OperatorRef(this), newargs, binds)
