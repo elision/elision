@@ -40,6 +40,14 @@
 //======================================================================
 
 def({! eval($atom)
+      #handler="""|args match {
+                  |  case Args(x) =>
+                  |    // Immediately rewrite this with the context bindings,
+                  |    // and return the result.
+                  |    x.rewrite(context.binds)._1
+                  |  case _ =>
+                  |    NONE
+                  |}"""
       #description="Force fast rewrite using the current bindings."
       #detail=
 """|The context bindings are typically applied after an atom is parsed and
@@ -48,7 +56,7 @@ def({! eval($atom)
    |operator."""
 })
 
-def({ operator #name=typeof #cases %($x:$T)->$T
+def({ operator #name=typeof #cases %($x)->(\$y:$T.$T.$$x)
       #description="Extract and show the type of the argument."
       #detail=
 """|Given a single argument, extract the type $T of that argument $x and return
@@ -69,19 +77,34 @@ def({! getop($x: OPREF)
 })
 
 def({! setdebruijn($enable: BOOLEAN)
+      #handler="""|args match {
+                  |  case Args(BooleanLiteral(_, flag)) =>
+                  |    // Set whether to use De Bruijn indices.
+                  |    Lambda.useDeBruijnIndices = flag
+                  |    emitln("De Bruijn rewriting is " +
+                  |      (if (flag) "ON." else "OFF."))
+                  |    _no_show
+                  |  case _ => _no_show
+                  |}"""
       #description="Enable or disable the use of DeBruijn indices."
       #detail=
-"""Specify whether to use DeBruijn indices for lambdas.  Disabling this is
-only useful when you are debugging lambdas."""
+"""|Specify whether to use DeBruijn indices for lambdas.  Disabling this is
+   |only useful when you are debugging lambdas."""
 })
 
 def({! is_bindable($x): BOOLEAN
+      #handler="""|args match {
+                  |  case Args(term) =>
+                  |    if (term.isBindable) Literal.TRUE else Literal.FALSE
+                  |  case _ =>
+                  |    as_is
+                  |}"""
       #description="Determine whether an atom is bindable."
       #detail=
-"""If the atom $x is bindable, return true.  Otherwise, return false.  This
-is primarily useful for guards.  You will probably need to protect
-variables by making them into metavariables ($$ instead of $) to
-prevent zealous evaluation."""
+"""|If the atom $x is bindable, return true.  Otherwise, return false.  This
+   |is primarily useful for guards.  You will probably need to protect
+   |variables by making them into metavariables ($$ instead of $) to prevent
+   |zealous evaluation."""
 })
 
 //======================================================================
@@ -89,17 +112,38 @@ prevent zealous evaluation."""
 //======================================================================
 
 def({! _help_op($r: OPREF)
+      #handler="""|args match {
+                  |  case Args(or: OperatorRef) =>
+                  |    // Give some help.
+                  |    emitln(_context.operatorLibrary.help(
+                  |      new StringBuffer(), or).toString)
+                  |    _no_show
+                  |  case _ =>
+                  |    _no_show
+                  |}"""
       #description="Display detailed help for an operator."
       #detail=
 """Display help text for the operator referenced by $r."""
 })
 
 def({! _help_all()
+      #handler="""|args match {
+                  |  case Args() =>
+          	      |    // Give some help.
+                  |    val width = scala.tools.jline.TerminalFactory.create().getWidth()
+                  |    println("Elision Help\n")
+                  |    emitln(_context.operatorLibrary.help(
+                  |      new StringBuffer(), width).toString)
+		          |    println("Use ! followed by a number to re-execute a " +
+		          |      "line from the history.\n\nTo quit type :quit.\n"
+		          |    _no_show
+                  |  case _ => _no_show
+                  |}"""
       #description="Display a list of known operators."
       #detail=
-"""Display a list of known operators, along with a short description
-of each one (if given).  Operators whose name begins with an underscore
-are suppressed in this list."""
+"""|Display a list of known operators, along with a short description of each
+   |one (if given).  Operators whose name begins with an underscore are
+   |suppressed in this list."""
 })
 
 def({ operator #name=help
@@ -108,8 +152,8 @@ def({ operator #name=help
             help_all:OPREF
       #description="Get general help or help on an operator."
       #detail=
-"""With no argument, list all operators.  If provided with an operator
-reference, give detailed help on that operator."""
+"""|With no argument, list all operators.  If provided with an operator
+   |reference, give detailed help on that operator."""
 })
 
 //======================================================================
@@ -117,12 +161,38 @@ reference, give detailed help on that operator."""
 //======================================================================
 
 def({! read($filename: STRING)
+      #handler="""|args match {
+                  |  case Args(StringLiteral(_, filename)) =>
+                  |    val qt = _quiet
+                  |    val ba = _bindatoms
+                  |    val cfile = new BufferedReader(new FileReader(filename))
+                  |    if (cfile != null) {
+                  |      var buf = new StringBuilder
+                  |      var go = true
+                  |      while (go) {
+                  |        val line = cfile.readLine
+                  |        if (line != null) buf.append(line).append('\n')
+                  |        else go = false
+                  |      }
+                  |      _quiet = true
+                  |      _bindatoms = false
+                  |      execute(buf.toString)
+                  |      println(buf)
+                  |      cfile.close()
+                  |    } else {
+                  |      error("Unable to open file.")
+                  |    }
+                  |    _quiet = qt
+                  |    _bindatoms = ba
+                  |    _no_show
+                  |  case _ => _no_show
+                  |}"""
       #description="Read the content of the specified file."
       #detail=
-"""Read the file specified by $filename, executing each line of the
-file as though it were typed at the REPL prompt while quiet mode was
-in effect (so most output is suppressed).  No numbered repl bindings
-are generated from this action."""
+"""|Read the file specified by $filename, executing each line of the file as
+   |though it were typed at the REPL prompt while quiet mode was in effect
+   |(so most output is suppressed).  No numbered repl bindings are generated
+   |from this action."""
 })
 
 def({! write($filename: STRING)
@@ -138,9 +208,9 @@ def({! write($filename: STRING)
 def({! bind($v,$a)
       #description="Bind a variable to an atom."
       #detail=
-"""Bind the variable $v to the atom $a in the current context.  Variable
-bindings are applied after an atom is parsed and constructed, but before
-it is displayed by the REPL.  Variables can be arbitrarily re-bound."""
+"""|Bind the variable $v to the atom $a in the current context.  Variable
+   |bindings are applied after an atom is parsed and constructed, but before
+   |it is displayed by the REPL.  Variables can be arbitrarily re-bound."""
 })
 
 def({! unbind($v)
@@ -152,9 +222,9 @@ def({! unbind($v)
 def({! showbinds()
       #description="Show the bindings in the current context."
       #detail=
-"""Show all the bindings present in the current context, except for
-bindings to variables whose name starts with an underscore, as these
-are considered "private." """
+"""|Show all the bindings present in the current context, except for bindings
+   |to variables whose name starts with an underscore, as these are considered
+   |"private." """
 })
 
 //======================================================================
@@ -164,27 +234,27 @@ are considered "private." """
 def({! traceparse()
       #description="Toggle tracing of the parser."
       #detail=
-"""Enable or disable tracingin the parser.  This is really only useful
-if you are trying to debug the parser, and want to know in excruciating
-detail how something parses.  It may generate a *lot* of output.
-
-This is optional; if multiple parsers are present, some may not support
-tracing."""
+"""|Enable or disable tracing the parser.  This is really only useful if you
+   |are trying to debug the parser, and want to know in extreme detail how
+   |something parses.  It may generate a *lot* of output.
+   |
+   |This is optional; if multiple parsers are present, some may not support
+   |tracing."""
 })
 
 def({! tracematch()
       #description="Toggle tracing of matching attempts."
       #detail=
-"""Enable or disable tracing of match attempts.  This generates output
-from the matcher as it attempts to match atoms.  The matcher is called
-for a variety of reasons, so you may see some unexpected output here."""
+"""|Enable or disable tracing of match attempts.  This generates output from
+   |the matcher as it attempts to match atoms.  The matcher is called for a
+   |variety of reasons, so you may see some unexpected output here."""
 })
 
 def({! timing($f:BOOLEAN)
       #description="Toggle showing the evaluation time."
       #detail=
-"""Toggle showing the total elapsed "wall clock" time to evaluate an
-atom.  The result shows minutes, seconds, and milliseconds."""
+"""|Toggle showing the total elapsed "wall clock" time to evaluate an atom.
+   |The result shows minutes, seconds, and milliseconds."""
 })
 
 //======================================================================
@@ -194,34 +264,34 @@ atom.  The result shows minutes, seconds, and milliseconds."""
 def({! showscala()
       #description="Toggle showing the Scala version of parsed atoms."
       #detail=
-"""Enable or disable display of the Scala code to create each atom that
-the system displays.  The assumption is that you have imported the core
-package for Elision."""
+"""|Enable or disable display of the Scala code to create each atom that the
+   |system displays.  The assumption is that you have imported the core
+   |package for Elision."""
 })
 
 def({! showprior()
       #description=
-"Toggle showing the atom prior to applying bindings and rewriting."
+        "Toggle showing the atom prior to applying bindings and rewriting."
       #detail=
-"""When enabled, additional output is generated that shows the parsed atom
-prior to applying any bindings from the current context and prior to any
-rewriting attempts."""
+"""|When enabled, additional output is generated that shows the parsed atom
+   |prior to applying any bindings from the current context and prior to any
+   |rewriting attempts."""
 })
 
 def({! quiet()
       #description="Toggle disable most output."
       #detail=
-"""Enable or disable printing of most output.  Explicitly requested output is
-always displayed (such as operator help).  Quiet mode is indicated with the
-q> prompt."""
+"""|Enable or disable printing of most output.  Explicitly requested output is
+   |always displayed (such as operator help).  Quiet mode is indicated with the
+   |q> prompt."""
 })
 
 def({! history()
       #description="Show the current history."
       #detail=
-"""Show the current history of lines executed.  This history is numbered,
-and numbered items in the history can be recalled later.  The history
-is saved between sessions, if possible."""
+"""|Show the current history of lines executed.  This history is numbered, and
+   |numbered items in the history can be recalled later.  The history is saved
+   |between sessions, if possible."""
 })
 
 //======================================================================
@@ -231,15 +301,15 @@ is saved between sessions, if possible."""
 def({! fail()
       #description="Generate a runtime exception."
       #detail=
-"""Generate a runtime exception (a VerifyError).  This causes a core dump and
-may be useful if you are trying to debug the system."""
+"""|Generate a runtime exception (a VerifyError).  This causes a core dump and
+   |may be useful if you are trying to debug the system."""
 })
 
 def({! stacktrace()
       #description="Toggle whether or not a stack trace is shown."
       #detail=
-"""For non-Elision exceptions the exception message is shown, but the
-stack trace is typically suppressed (this is not true for runtime
-erorrs; the stack trace is always shown for these).  This will enable
-(or disable) showing the stack trace for all non-Elision exceptions."""
+"""|For non-Elision exceptions the exception message is shown, but the stack
+   |trace is typically suppressed (this is not true for runtime errors; the
+   |stack trace is always shown for these).  This will enable (or disable)
+   |showing the stack trace for all non-Elision exceptions."""
 })
