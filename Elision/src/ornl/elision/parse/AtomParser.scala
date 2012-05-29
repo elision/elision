@@ -47,7 +47,7 @@ import ornl.elision.ElisionException
 
 /**
  * A special form was incorrectly formatted.
- * 
+ *
  * @param msg	The human-readable message.
  */
 class SpecialFormException(msg: String) extends ElisionException(msg)
@@ -57,17 +57,17 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * supporting functions.
  */
 object AtomParser {
-  
+
   //----------------------------------------------------------------------
   // Build character literals.
   //----------------------------------------------------------------------
-  
+
   /**
    * Accumulate a character into a string.  The character may actually be an
    * escape sequence that will be interpreted here.
-   * 
+   *
    * See `toEString` for the reverse conversion.
-   * 
+   *
    * The following escapes are interpreted.
    * {{{
    * \"  -> double quotation mark
@@ -77,7 +77,7 @@ object AtomParser {
    * \t  -> tab
    * \r  -> carriage return
    * }}}
-   * 
+   *
    * @param front	The string to get the new character appended at the end.
    * @param last	The new character, possibly an escape to interpret.
    * @return	The new string.
@@ -95,958 +95,958 @@ object AtomParser {
       case _ => last
     })
   }
-  
+
   /**
    * Given a list of strings, each of which represents a single character
    * (possibly as an escape), concatenate them into a single string.
-   * 
+   *
    * @param chars	The list of characters.
    * @return	The composed string.
    */
   def construct(chars: List[String]) = {
-    chars.foldLeft(new StringBuilder())(append(_,_)).toString
+    chars.foldLeft(new StringBuilder())(append(_, _)).toString
   }
-	
-	//======================================================================
-	// Definitions for an abstract syntax tree for atoms.
+
+  //======================================================================
+  // Definitions for an abstract syntax tree for atoms.
   //----------------------------------------------------------------------
   // Here are all the myriad classes used to capture parts as they are 
   // parsed.  The basic idea is that each thing represented by an AstNode
   // must be interpretable as a BasicAtom, and this is the job of the
   // interpret method.
-	//======================================================================
-	
-	/**
-	 * An abstract syntax tree node resulting from parsing an atom.
-	 */
-	sealed abstract class AstNode {
-	  /**
-	   * Interpret this abstract syntax tree to generate an atom.
-	   * @return	The generated atom.
-	   */
-	  def interpret: BasicAtom
-	}
-	
-	//----------------------------------------------------------------------
-	// Type nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a simple type, which must be a root type.
-	 * @param TYPE	The type.
-	 */
-	case class SimpleTypeNode(TYPE: NamedRootType) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SimpleTypeNode.interpret")
-			RWTree.current = interpretNode
-			
-			interpretNode.addChild(TYPE)
-			
-			RWTree.current = rwNode
-			TYPE
-		}
-	}
-	
-	/**
-	 * A node representing the unique type universe.
-	 */
-	case class TypeUniverseNode() extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("TypeUniverseNode.interpret")
-			RWTree.current = interpretNode
-			
-			interpretNode.addChild(TypeUniverse)
-			
-			RWTree.current = rwNode
-			TypeUniverse
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Operator reference nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a "naked" operator.
-	 * @param str	The operator name.
-	 * @param lib	The operator library that will get the operator.
-	 */
-	case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("OperatorNode.interpret")
-			RWTree.current = interpretNode
-			
-			val result = lib(str)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Ruleset reference nodes.
-	//----------------------------------------------------------------------
+  //======================================================================
 
-	/**
-	 * A node representing a ruleset reference.
-	 * @param str	The ruleset name.
-	 * @param lib	The rule library that contains the ruleset.
-	 */
-	case class RulesetNode(str: String, lib: RuleLibrary) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("RulesetNode.interpret")
-			RWTree.current = interpretNode
-			
-			val result = lib(str)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Operator application nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing the application of an operator to an argument.
-	 * @param context	The context.
-	 * @param op			The operator.
-	 * @param arg			The argument.
-	 */
-	case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
-	extends AstNode {
-	  def interpret = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("ApplicationNode.interpret")
-		RWTree.current = interpretNode
-	  
-	    // If the operator is a naked symbol, we try to interpret it as an
-	    // operator.  Otherwise we just interpret it.
-	    val atom = op match {
-	      case NakedSymbolNode(name) => context.operatorLibrary(name)
-	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
-	      case _ => op.interpret
-	    }
-		
-		RWTree.current = interpretNode.addChild(atom)
-		
-	    val result = Apply(atom, arg.interpret)
-		
-		interpretNode.addChild(result)
-		RWTree.current = rwNode
-		result
-	  }
-	}
-	
+  /**
+   * An abstract syntax tree node resulting from parsing an atom.
+   */
+  sealed abstract class AstNode {
+    /**
+     * Interpret this abstract syntax tree to generate an atom.
+     * @return	The generated atom.
+     */
+    def interpret: BasicAtom
+  }
+
   //----------------------------------------------------------------------
-	// Lambda nodes.
+  // Type nodes.
   //----------------------------------------------------------------------
 
-	/**
-	 * A node representing a lambda.
-	 * @param lvar	The lambda variable.
-	 * @param body	The lambda body.
-	 */
-	case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("LambdaNode.interpret")
-			RWTree.current = interpretNode
+  /**
+   * A node representing a simple type, which must be a root type.
+   * @param TYPE	The type.
+   */
+  case class SimpleTypeNode(TYPE: NamedRootType) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("SimpleTypeNode.interpret")
+      RWTree.current = interpretNode
 
-			val paramNode = interpretNode.addChild("parameter: ")
-			RWTree.current = paramNode
-			val lvarInt = lvar.interpret
-			
-			val bodyNode = interpretNode.addChild("body: ")
-			RWTree.current = bodyNode
-			val bodyInt = body.interpret
-			
-			RWTree.current = interpretNode
-			val result = Lambda(lvarInt, bodyInt)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
+      interpretNode.addChild(TYPE)
+
+      RWTree.current = rwNode
+      TYPE
+    }
+  }
+
+  /**
+   * A node representing the unique type universe.
+   */
+  case class TypeUniverseNode() extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("TypeUniverseNode.interpret")
+      RWTree.current = interpretNode
+
+      interpretNode.addChild(TypeUniverse)
+
+      RWTree.current = rwNode
+      TypeUniverse
+    }
+  }
+
   //----------------------------------------------------------------------
-	// Atom collection nodes.
+  // Operator reference nodes.
   //----------------------------------------------------------------------
-	
-	/**
-	 * An abstract syntax tree node holding a simple list of atoms.
-	 * 
-	 * @param props	The properties of the list.
-	 * @param list	The actual list of atom nodes.
-	 */
-	case class AtomSeqNode(props: AlgPropNode, list: List[AstNode])
-	extends AstNode {
-	  /**
-	   * Properties of this list, if known.
-	   */
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("AtomSeqNode.interpret")
-			RWTree.current = interpretNode
-			
-			val propsNode = interpretNode.addChild("properties: ")
-			RWTree.current = propsNode
-			val propsInt = props.interpret
-			
-			val listNode = interpretNode.addChild("atoms: ")
-			RWTree.current = listNode
-			val ASList = list.toIndexedSeq[AstNode] map ( astAtom => {
-					val astAtomInt = astAtom.interpret
-					astAtomInt
-				}
-			)
-			
-			RWTree.current = interpretNode
-			val result = AtomSeq(propsInt, ASList)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
+
+  /**
+   * A node representing a "naked" operator.
+   * @param str	The operator name.
+   * @param lib	The operator library that will get the operator.
+   */
+  case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("OperatorNode.interpret")
+      RWTree.current = interpretNode
+
+      val result = lib(str)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
   //----------------------------------------------------------------------
-	// Boolean literal nodes.
+  // Ruleset reference nodes.
   //----------------------------------------------------------------------
-	
-	/** A true node for fast access. */
-	case object TrueNode extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("TrueNode.interpret")
-			RWTree.current = interpretNode
-			
-			val result = Literal.TRUE
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	/** A false node for fast access. */
-	case object FalseNode extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("FalseNode.interpret")
-			RWTree.current = interpretNode
-			
-			val result = Literal.FALSE
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Algebraic properties nodes.
-	//----------------------------------------------------------------------
-	
-	/** A property node. */
-	sealed abstract class PropertyNode
-	/** Associative property. */
-	case class AssociativeNode(atom:AstNode) extends PropertyNode
-	/** Commutative property. */
-	case class CommutativeNode(atom:AstNode) extends PropertyNode
-	/** Idempotent property. */
-	case class IdempotentNode(atom:AstNode) extends PropertyNode
-	/** Absorber property. */
-	case class AbsorberNode(atom:AstNode) extends PropertyNode
-	/** Identity property. */
-	case class IdentityNode(atom:AstNode) extends PropertyNode
-	
-	/**
-	 * A data structure holding operator properties as they are discovered during
-	 * the parse.
-	 */
-	class AlgPropNode(props: List[PropertyNode]) extends AstNode {
-	  /** An identity, if any. */
-	  var withIdentity: Option[AstNode] = None
-	  /** An absorber, if any. */
-	  var withAbsorber: Option[AstNode] = None
-	  /** True iff this operator is idempotent. */
-	  var isIdempotent: Option[AstNode] = None
-	  /** True iff this operator is commutative. */ 
-	  var isCommutative: Option[AstNode] = None
-	  /** True iff this operator is associative. */
-	  var isAssociative: Option[AstNode] = None
-	  
-	  // Process any properties we were given.
-	  for (prop <- props) prop match {
-	    case AssociativeNode(an) => isAssociative = Some(an)
-	    case CommutativeNode(cn) => isCommutative = Some(cn)
-	    case IdempotentNode(in) => isIdempotent = Some(in)
-	    case AbsorberNode(ab) => withAbsorber = Some(ab)
-	    case IdentityNode(id) => withIdentity = Some(id)
-	  }
-	  
-	  /** Print this properties object as a string. */
-	  override def toString = interpret.toString
-	  
-	  private def _interpret(atom: Option[AstNode]) = atom match {
-	    case None => 
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			rwNode.addChild("n/a")
-			None
-	    case Some(real) => Some(real.interpret)
-	  }
-	  
-	  /**
-	   * Convert this into an operator properties instance.
-	   * @return	The operator properties object.
-	   */
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("AlgPropNode.interpret")
-			RWTree.current = interpretNode
-			
-			RWTree.current = interpretNode.addChild("associative: ")
-			val assocInt = _interpret(isAssociative)
-			RWTree.current = interpretNode.addChild("commutative: ")
-			val commuInt = _interpret(isCommutative)
-			RWTree.current = interpretNode.addChild("idempotent: ")
-			val idempInt = _interpret(isIdempotent)
-			RWTree.current = interpretNode.addChild("absorber: ")
-			val absorInt = _interpret(withAbsorber)
-			RWTree.current = interpretNode.addChild("identity: ")
-			val identInt = _interpret(withIdentity)
-			
-			RWTree.current = interpretNode
-			val result = AlgProp(assocInt, commuInt, idempInt, absorInt, identInt)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		} 
-	}
 
-	/**
-	 * Represent an algebraic properties specification.
-	 */
-	object AlgPropNode {
-	  /** Make a new, empty specification. */
-	  def apply() = new AlgPropNode(List())
-	  /**
-	   * Make a new specification from the provided property nodes.
-	   * 
-	   * @param list		The property nodes.
-	   */
-	  def apply(list: List[PropertyNode]) = new AlgPropNode(list)
-	}
+  /**
+   * A node representing a ruleset reference.
+   * @param str	The ruleset name.
+   * @param lib	The rule library that contains the ruleset.
+   */
+  case class RulesetNode(str: String, lib: RuleLibrary) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("RulesetNode.interpret")
+      RWTree.current = interpretNode
 
-	//----------------------------------------------------------------------
-	// Object and binding nodes.
-	//----------------------------------------------------------------------
+      val result = lib(str)
 
-	/**
-	 * Represent a bindings atom.
-	 * 
-	 * @param map	The bindings.
-	 */
-	case class BindingsNode(map: List[(NakedSymbolNode,AstNode)]) extends AstNode {
-	  def interpret = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("BindingsNode.interpret")
-		RWTree.current = interpretNode
-			
-	    var binds = Bindings()
-	    for ((str,node) <- map) {
-			val bindNode = interpretNode.addChild(str + " -> ")
-			RWTree.current = bindNode
-			val nodeInt = node.interpret
-			binds += (str.str -> nodeInt)
-	    }
-		
-		RWTree.current = interpretNode
-	    val result = BindingsAtom(binds)
-		
-		interpretNode.addChild(result)
-		RWTree.current = rwNode
-		result
-	  }
-	}
-	
-	//----------------------------------------------------------------------
-	// Map pair nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * Represent a map pair atom.
-	 * 
-	 * @param left	The left atom.
-	 * @param right	THe right atom.
-	 */
-	case class MapPairNode(left: AstNode, right: AstNode) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("MapPairNode.interpret")
-			RWTree.current = interpretNode
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
 
-			val leftNode = interpretNode.addChild("left: ")
-			RWTree.current = leftNode
-			val leftInt = left.interpret
-			
-			val rightNode = interpretNode.addChild("right: ")
-			RWTree.current = rightNode
-			val rightInt = right.interpret
-			
-			RWTree.current = interpretNode
-			val result = MapPair(leftInt, rightInt)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Symbol nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a "naked" symbol: a symbol whose type is the type
-	 * `ANY`.
-	 * 
-	 * @param str	The symbol text.
-	 */
-	case class NakedSymbolNode(str: String) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("NakedSymbolNode.interpret")
-			RWTree.current = interpretNode
-			
-			val result = SymbolLiteral(SYMBOL, Symbol(str))
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	/**
-	 * A node representing a symbol.
-	 * 
-	 * @param typ		The type.
-	 * @param name	The symbol text.
-	 */
-	case class SymbolNode(typ: AstNode, name: String) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SymbolNode.interpret")
-			RWTree.current = interpretNode
-			
-			val typeInt = typ.interpret
-			interpretNode.addChild(typeInt)
-			
-			val result = Literal(typeInt, name)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	/** A node representing ANY. */
-	object AnyNode extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("AnyNode.interpret")
-			RWTree.current = interpretNode
-			
-			val result = EANY
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Variable nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a variable reference.
-	 * 
-	 * @param typ			The type.
-	 * @param name		The variable name.
-	 * @param guard		The variable's guard.
-	 * @param labels	Labels associated with the variable.
-	 */
-	class VariableNode(val typ: AstNode, val name: String,
-	    val grd: Option[AstNode], val labels: Set[String]) extends AstNode {
-	  def interpret: Variable = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("VariableNode.interpret")
-		RWTree.current = interpretNode
-		
-		val typeInt = typ.interpret
-		
-		grd match {
-			case None => 
-				val result = Variable(typeInt, name, Literal.TRUE, labels)
-				
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
-				result
-			case Some(guard) => 
-				val guardNode = interpretNode.addChild("guard: ")
-				RWTree.current = guardNode
-				val guardInt = guard.interpret
-				
-				RWTree.current = interpretNode
-				val result = Variable(typeInt, name, guardInt, labels)
-				
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
-				result
-		}
-	  }
-	}
-	
-	/**
-	 * Simplified creation of variable nodes.
-	 */
-	object VariableNode {
-	  /**
-	   * Make a new variable node.
-	   * 
-		 * @param typ			The type.
-		 * @param name		The variable name.
-		 * @param guard		The variable's guard.
-		 * @param labels	Labels associated with the variable.
-	   */
-	  def apply(typ: AstNode, name: String, guard: Option[AstNode],
-	    labels: Set[String]) = new VariableNode(typ, name, guard, labels)
-	}
-	
-	/**
-	 * A node representing a metavariable reference.
-	 * 
-	 * @param vx	An ordinary variable node to promote.
-	 */
-	case class MetaVariableNode(vx: VariableNode)
-	extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels) {
-	  override def interpret: MetaVariable = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("MetaVariableNode.interpret")
-		RWTree.current = interpretNode
-		
-		val vxtypeInt = vx.typ.interpret
-		
-		grd match {
-			case None =>
-				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE, labels)
-			  
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
-				result
-			case Some(guard) =>
-				val guardNode = interpretNode.addChild("guard: ")
-				RWTree.current = guardNode
-				val guardInt = guard.interpret
-				
-				RWTree.current = interpretNode
-				val result = MetaVariable(vxtypeInt, vx.name, guard.interpret, labels)
-			  
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
-				result
-		}
-	  }
-	}
-	
-	//----------------------------------------------------------------------
-	// Special form node.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a general special form.
-	 * 
-	 * @param tag			The tag identifying the special form.
-	 * @param content	The content portion of the special form.
-	 */
-	case class SpecialFormNode(tag: AstNode, content: AstNode) extends AstNode {
-	  override def interpret: BasicAtom = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SpecialFormNode.interpret")
-			RWTree.current = interpretNode
-			
-			val tagNode = interpretNode.addChild("tag: ")
-			RWTree.current = tagNode
-			val tagInt = tag.interpret
-			
-			val contentNode = interpretNode.addChild("content: ")
-			RWTree.current = contentNode
-			val contentInt = content.interpret
-			
-			RWTree.current = interpretNode
-			val result = SpecialForm(tagInt, contentInt)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Literal nodes - that is, nodes that hold literal values.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * A node representing a symbol literal.
-	 * 
-	 * @param typ		The type.
-	 * @param sym		The symbol text.
-	 */
-	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
-	  def interpret: BasicAtom = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("SymbolLiteralNode.interpret")
-		RWTree.current = interpretNode
-			
-	    // If there is no type, or the type is the type universe, then check the
-	    // symbol to see if it is a known root type.  This is also where the
-	    // symbol _ gets turned into ANY.
-	    if (typ == None || typ.get.isInstanceOf[TypeUniverseNode]) {
-	      val lookup = (if (sym == "_") "ANY" else sym)
-	      NamedRootType.get(lookup) match {
-	        case Some(nrt) => 
-				interpretNode.addChild(nrt)
-				RWTree.current = rwNode
-				return nrt
-	        case _ =>
-	      }
-	    }
-	    
-	    // There are interesting "untyped" cases.  Without type, true and false
-	    // should be made Booleans, and Nothing should have type ANY.
-	    if (typ == None) sym match {
-	      case "true" => 
-				interpretNode.addChild(Literal.TRUE)
-				RWTree.current = rwNode
-				return Literal.TRUE
-	      case "false" => 
-				interpretNode.addChild(Literal.FALSE)
-				RWTree.current = rwNode
-				return Literal.FALSE
-	      case _ => Literal(SYMBOL, Symbol(sym))
-	    } else {
-	      typ.get.interpret match {
-	        case BOOLEAN if sym == "true" => 
-				interpretNode.addChild(Literal.TRUE)
-				RWTree.current = rwNode
-				return Literal.TRUE
-	        case BOOLEAN if sym == "false" => 
-				interpretNode.addChild(Literal.FALSE)
-				RWTree.current = rwNode
-				return Literal.FALSE
-	        case t:Any => 
-				interpretNode.addChild(t)
-				
-				val result = Literal(t, Symbol(sym))
-				
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
-				return result
-	      }
-	    }
-	  }
-	}
-	
-	/**
-	 * A node representing a string literal.
-	 * 
-	 * @param typ		The type.
-	 * @param str		The string text.
-	 */
-	case class StringLiteralNode(typ: AstNode, str: String) extends AstNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("StringLiteralNode.interpret")
-			RWTree.current = interpretNode
-			
-			val typeInt = typ.interpret
-			
-			val result = Literal(typeInt, str)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	}
-	
-	//----------------------------------------------------------------------
-	// Numeric literal value nodes.
-	//----------------------------------------------------------------------
-	
-	/**
-	 * Root of all numeric abstract syntax tree nodes.
-	 */
-	abstract class NumberNode extends AstNode {
-	  /**
-	   * Make a new version of this node, with the specified type.
-	   * 
-	   * @param newtyp		The new type.
-	   * @return	A new node with the given type.
-	   */
-	  def retype(newtyp: AstNode): NumberNode
-	}
-	
-	/**
-	 * An abstract syntax tree node holding a numeric value.
-	 * 
-	 * @param sign			True if positive, false if negative.
-	 * @param integer		The integer portion of the number.
-	 * @param fraction	The fractional portion of the number, if any.
-	 * @param exponent	The exponent, if any.
-	 * @param typ				The overriding type.  Otherwise it is inferred.
-	 */
-	object NumberNode {
-	  /**
-	   * Make a new node of the appropriate form to hold a number.
-	   * 
-	   * The number is constructed as follows.
-	   * <code>[sign] [integer].[fraction] e [exponent]</code>
-	   * The radix for the result is taken from the integer portion.
-	   * 
-	   * @param sign			If false, the number is negative.  Otherwise positive.
-	   * @param integer		The integer portion of the number.
-	   * @param fraction	The fractional portion of the number.  By default, none.
-	   * @param exponent	The exponent.  By default, zero.
-	   * @param typ				The type for the number.
-	   * @return	The new number node.
-	   */
-	  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
-	      fraction: Option[UnsignedIntegerNode],
-	      exponent: Option[SignedIntegerNode],
-	      typ: Option[AstNode] = None): NumberNode = {
-	    // Make the sign concrete.
-	    val theSign = sign.getOrElse(true)
-	    // If there is neither fraction nor exponent, then this is just an integer.
-	    // Otherwise it is a float.
-	    if (fraction.isDefined || exponent.isDefined) {
-	      // This is a float.  Get the parts.
-	      val fracpart = (if (fraction.isDefined) fraction.get.digits else "")
-	      val exppart = exponent.getOrElse(SignedIntegerNode.Zero)
-	      FloatNode(theSign, integer.digits, fracpart, integer.radix, exppart)
-	    } else {
-	      SignedIntegerNode(theSign, integer.digits, integer.radix)
-	    }
-	  }
-	}
-	
-	/**
-	 * An abstract syntax tree node holding an unsigned integer.  The integer
-	 * value should be regarded as positive.
-	 * 
-	 * @param digits	The digits of the number.
-	 * @param radix		The radix.
-	 * @param typ			The type.  If not specified, INTEGER is used.
-	 */
-	case class UnsignedIntegerNode(digits: String, radix: Int,
-	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("UnsignedIntegerNode.interpret")
-			RWTree.current = interpretNode
-			
-			val typeInt = typ.interpret
-			
-			val result = Literal(typeInt, asInt)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	  
-	  /** Get the unsigned integer as a positive native integer value. */
-	  lazy val asInt = BigInt(digits, radix)
+  //----------------------------------------------------------------------
+  // Operator application nodes.
+  //----------------------------------------------------------------------
 
-	  def retype(newtyp: AstNode) = UnsignedIntegerNode(digits, radix, newtyp)
-	}
-	
-	/**
-	 * An abstract syntax tree node holding a signed integer.
-	 * @param sign		If true, positive, and if false, negative.
-	 * @param digits	The digits of the number.
-	 * @param radix		The radix.
-	 * @param typ			The type.  If not specified, INTEGER is used.
-	 */
-	case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
-	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SignedIntegerNode.interpret")
-			RWTree.current = interpretNode
-			
-			val typeInt = typ.interpret
-			
-			val result = Literal(typeInt, asInt)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	  
-	  /** Get the signed integer as a signed native integer value. */
-	  lazy val asInt = if (sign) asUInt else -asUInt
-	  /** Get the integer as a positive native integer value. */
-	  lazy val asUInt = BigInt(digits, radix)
-	  
-	  def retype(newtyp: AstNode) = SignedIntegerNode(sign, digits, radix, newtyp)
-	}
-	
-	/**
-	 * Provide other methods to construct a signed integer.
-	 */
-	object SignedIntegerNode {
-	  /** Zero. */
-	  val Zero = SignedIntegerNode(true, "0", 10)
-	  /** One. */
-	  val One = SignedIntegerNode(true, "1", 10)
-	  
-	  /**
-	   * Create a new signed integer from the given unsigned integer.  The radix
-	   * is the same as the signed integer.
-	   * 
-	   * @param sign		If true or None, positive.  If false, negative.
-	   * @param integer	The unsigned integer value.
-	   * @param typ			The type.
-	   */
-	  def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
-	      typ: AstNode): SignedIntegerNode =
-	    sign match {
-	      case Some(bool) => SignedIntegerNode(bool, integer.digits, integer.radix,
-	          typ)
-	      case None => SignedIntegerNode(true, integer.digits, integer.radix, typ)
-	    }
-	  
-	  /**
-	   * Create a new signed integer from the given unsigned integer.  The radix
-	   * is the same as the signed integer.
-	   * 
-	   * @param sign		If true or None, positive.  If false, negative.
-	   * @param integer	The unsigned integer value.
-	   */
-	  def apply(sign: Option[Boolean],
-	      integer: UnsignedIntegerNode): SignedIntegerNode =
-	    SignedIntegerNode(sign, integer, SimpleTypeNode(INTEGER))
-	}
-	
-	/**
-	 * An abstract syntax tree node holding a floating point value.
-	 * 
-	 * @param sign			True if positive, false if negative.
-	 * @param integer		The integer portion's digits.
-	 * @param fraction	The fractional portion's digits.
-	 * @param radix			The radix for the integer and fraction.
-	 * @param exp				The exponent.
-	 * @param typ				The type.  If not specified, FLOAT is used.
-	 */
-	case class FloatNode(sign: Boolean, integer: String, fraction: String,
-	    radix: Int, exp: SignedIntegerNode, typ: AstNode = SimpleTypeNode(FLOAT))
-	    extends NumberNode {
-	  // We need to modify the integer and fraction parts to create the proper
-	  // significand.  This is done as follows.  If there are n digits in the
-	  // fraction, then we need to subtract n from the exponent.  Now, to do the
-	  // math we have to convert the exponent into an actual integer, then do the
-	  // math, and then convert it back to the proper number in the correct radix.
-	  // We do all that now.
-	  
-	  /**
-	   * The normalized version of this float.  It is a pair consisting of the
-	   * significand and exponent.  Note that the two may use different radices.
-	   */
-	  lazy val norm = {
-	    // Correct the significand by adding the integer and fractional part
-	    // together.  This looks odd, but remember that they are still strings.
-	    val significand = integer + fraction
-	    // Now get the exponent, and adjust it to account for the fractional part.
-	    // Since the decimal moves right, we subtract from the original exponent.
-	    var exponent = exp.asInt
-	    exponent -= fraction.length
-	    // The sign of the exponent might change, so we recompute the sign here.
-	    // We separate the sign and the exponent, so we also need the unsigned
-	    // version of the exponent.
-	    val newsign = exponent >= 0
-	    exponent = exponent.abs
-	    // Construct the new exponent as a signed integer node.  We use the same
-	    // radix as the significand.
-	    val newexp = SignedIntegerNode(newsign,
-	        exponent.toString(exp.radix), exp.radix)
-	    // Done.  Return the significand and exponent.  Note these two might have
-	    // different radix.
-	    (SignedIntegerNode(sign, significand, radix), newexp)
-	  }
-	  
-	  /**
-	   * The simple triple representation of this float.  It consists of the
-	   * significand, the exponent, and the preferred radix (from the significand).
-	   */
-	  lazy val asTriple = (norm._1.asInt, norm._2.asInt, radix)
-	  
-	  /**
-	   * Compute the platform float representation of this number.  This is not
-	   * very likely to be useful, but might be very good for debugging.
-	   */
-	  lazy val asFloat = norm._1.asInt * BigInt(radix).pow(norm._2.asInt.toInt)
-	  
-	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("FloatNode.interpret")
-			RWTree.current = interpretNode
-			
-			val typeInt = typ.interpret
-			
-			val result = Literal(typeInt, norm._1.asInt.toInt, norm._2.asInt.toInt, radix)
-			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
-			result
-		}
-	  
-	  def retype(newtyp: AstNode) = FloatNode(sign, integer, fraction, radix, exp,
-	      newtyp)
-	}
+  /**
+   * A node representing the application of an operator to an argument.
+   * @param context	The context.
+   * @param op			The operator.
+   * @param arg			The argument.
+   */
+  case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
+    extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("ApplicationNode.interpret")
+      RWTree.current = interpretNode
+
+      // If the operator is a naked symbol, we try to interpret it as an
+      // operator.  Otherwise we just interpret it.
+      val atom = op match {
+        case NakedSymbolNode(name) => context.operatorLibrary(name)
+        case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
+        case _ => op.interpret
+      }
+
+      RWTree.current = interpretNode.addChild(atom)
+
+      val result = Apply(atom, arg.interpret)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Lambda nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * A node representing a lambda.
+   * @param lvar	The lambda variable.
+   * @param body	The lambda body.
+   */
+  case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("LambdaNode.interpret")
+      RWTree.current = interpretNode
+
+      val paramNode = interpretNode.addChild("parameter: ")
+      RWTree.current = paramNode
+      val lvarInt = lvar.interpret
+
+      val bodyNode = interpretNode.addChild("body: ")
+      RWTree.current = bodyNode
+      val bodyInt = body.interpret
+
+      RWTree.current = interpretNode
+      val result = Lambda(lvarInt, bodyInt)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Atom collection nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * An abstract syntax tree node holding a simple list of atoms.
+   *
+   * @param props	The properties of the list.
+   * @param list	The actual list of atom nodes.
+   */
+  case class AtomSeqNode(props: AlgPropNode, list: List[AstNode])
+    extends AstNode {
+    /**
+     * Properties of this list, if known.
+     */
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("AtomSeqNode.interpret")
+      RWTree.current = interpretNode
+
+      val propsNode = interpretNode.addChild("properties: ")
+      RWTree.current = propsNode
+      val propsInt = props.interpret
+
+      val listNode = interpretNode.addChild("atoms: ")
+      RWTree.current = listNode
+      val ASList = list.toIndexedSeq[AstNode] map (astAtom => {
+        val astAtomInt = astAtom.interpret
+        astAtomInt
+      })
+
+      RWTree.current = interpretNode
+      val result = AtomSeq(propsInt, ASList)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Boolean literal nodes.
+  //----------------------------------------------------------------------
+
+  /** A true node for fast access. */
+  case object TrueNode extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("TrueNode.interpret")
+      RWTree.current = interpretNode
+
+      val result = Literal.TRUE
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  /** A false node for fast access. */
+  case object FalseNode extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("FalseNode.interpret")
+      RWTree.current = interpretNode
+
+      val result = Literal.FALSE
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Algebraic properties nodes.
+  //----------------------------------------------------------------------
+
+  /** A property node. */
+  sealed abstract class PropertyNode
+  /** Associative property. */
+  case class AssociativeNode(atom: AstNode) extends PropertyNode
+  /** Commutative property. */
+  case class CommutativeNode(atom: AstNode) extends PropertyNode
+  /** Idempotent property. */
+  case class IdempotentNode(atom: AstNode) extends PropertyNode
+  /** Absorber property. */
+  case class AbsorberNode(atom: AstNode) extends PropertyNode
+  /** Identity property. */
+  case class IdentityNode(atom: AstNode) extends PropertyNode
+
+  /**
+   * A data structure holding operator properties as they are discovered during
+   * the parse.
+   */
+  class AlgPropNode(props: List[PropertyNode]) extends AstNode {
+    /** An identity, if any. */
+    var withIdentity: Option[AstNode] = None
+    /** An absorber, if any. */
+    var withAbsorber: Option[AstNode] = None
+    /** True iff this operator is idempotent. */
+    var isIdempotent: Option[AstNode] = None
+    /** True iff this operator is commutative. */
+    var isCommutative: Option[AstNode] = None
+    /** True iff this operator is associative. */
+    var isAssociative: Option[AstNode] = None
+
+    // Process any properties we were given.
+    for (prop <- props) prop match {
+      case AssociativeNode(an) => isAssociative = Some(an)
+      case CommutativeNode(cn) => isCommutative = Some(cn)
+      case IdempotentNode(in) => isIdempotent = Some(in)
+      case AbsorberNode(ab) => withAbsorber = Some(ab)
+      case IdentityNode(id) => withIdentity = Some(id)
+    }
+
+    /** Print this properties object as a string. */
+    override def toString = interpret.toString
+
+    private def _interpret(atom: Option[AstNode]) = atom match {
+      case None =>
+        // get the node representing this atom that is being rewritten
+        val rwNode = RWTree.current
+        rwNode.addChild("n/a")
+        None
+      case Some(real) => Some(real.interpret)
+    }
+
+    /**
+     * Convert this into an operator properties instance.
+     * @return	The operator properties object.
+     */
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("AlgPropNode.interpret")
+      RWTree.current = interpretNode
+
+      RWTree.current = interpretNode.addChild("associative: ")
+      val assocInt = _interpret(isAssociative)
+      RWTree.current = interpretNode.addChild("commutative: ")
+      val commuInt = _interpret(isCommutative)
+      RWTree.current = interpretNode.addChild("idempotent: ")
+      val idempInt = _interpret(isIdempotent)
+      RWTree.current = interpretNode.addChild("absorber: ")
+      val absorInt = _interpret(withAbsorber)
+      RWTree.current = interpretNode.addChild("identity: ")
+      val identInt = _interpret(withIdentity)
+
+      RWTree.current = interpretNode
+      val result = AlgProp(assocInt, commuInt, idempInt, absorInt, identInt)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  /**
+   * Represent an algebraic properties specification.
+   */
+  object AlgPropNode {
+    /** Make a new, empty specification. */
+    def apply() = new AlgPropNode(List())
+    /**
+     * Make a new specification from the provided property nodes.
+     *
+     * @param list		The property nodes.
+     */
+    def apply(list: List[PropertyNode]) = new AlgPropNode(list)
+  }
+
+  //----------------------------------------------------------------------
+  // Object and binding nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * Represent a bindings atom.
+   *
+   * @param map	The bindings.
+   */
+  case class BindingsNode(map: List[(NakedSymbolNode, AstNode)]) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("BindingsNode.interpret")
+      RWTree.current = interpretNode
+
+      var binds = Bindings()
+      for ((str, node) <- map) {
+        val bindNode = interpretNode.addChild(str + " -> ")
+        RWTree.current = bindNode
+        val nodeInt = node.interpret
+        binds += (str.str -> nodeInt)
+      }
+
+      RWTree.current = interpretNode
+      val result = BindingsAtom(binds)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Map pair nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * Represent a map pair atom.
+   *
+   * @param left	The left atom.
+   * @param right	THe right atom.
+   */
+  case class MapPairNode(left: AstNode, right: AstNode) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("MapPairNode.interpret")
+      RWTree.current = interpretNode
+
+      val leftNode = interpretNode.addChild("left: ")
+      RWTree.current = leftNode
+      val leftInt = left.interpret
+
+      val rightNode = interpretNode.addChild("right: ")
+      RWTree.current = rightNode
+      val rightInt = right.interpret
+
+      RWTree.current = interpretNode
+      val result = MapPair(leftInt, rightInt)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Symbol nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * A node representing a "naked" symbol: a symbol whose type is the type
+   * `ANY`.
+   *
+   * @param str	The symbol text.
+   */
+  case class NakedSymbolNode(str: String) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("NakedSymbolNode.interpret")
+      RWTree.current = interpretNode
+
+      val result = SymbolLiteral(SYMBOL, Symbol(str))
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  /**
+   * A node representing a symbol.
+   *
+   * @param typ		The type.
+   * @param name	The symbol text.
+   */
+  case class SymbolNode(typ: AstNode, name: String) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("SymbolNode.interpret")
+      RWTree.current = interpretNode
+
+      val typeInt = typ.interpret
+      interpretNode.addChild(typeInt)
+
+      val result = Literal(typeInt, name)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  /** A node representing ANY. */
+  object AnyNode extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("AnyNode.interpret")
+      RWTree.current = interpretNode
+
+      val result = EANY
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Variable nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * A node representing a variable reference.
+   *
+   * @param typ			The type.
+   * @param name		The variable name.
+   * @param guard		The variable's guard.
+   * @param labels	Labels associated with the variable.
+   */
+  class VariableNode(val typ: AstNode, val name: String,
+    val grd: Option[AstNode], val labels: Set[String]) extends AstNode {
+    def interpret: Variable = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("VariableNode.interpret")
+      RWTree.current = interpretNode
+
+      val typeInt = typ.interpret
+
+      grd match {
+        case None =>
+          val result = Variable(typeInt, name, Literal.TRUE, labels)
+
+          interpretNode.addChild(result)
+          RWTree.current = rwNode
+          result
+        case Some(guard) =>
+          val guardNode = interpretNode.addChild("guard: ")
+          RWTree.current = guardNode
+          val guardInt = guard.interpret
+
+          RWTree.current = interpretNode
+          val result = Variable(typeInt, name, guardInt, labels)
+
+          interpretNode.addChild(result)
+          RWTree.current = rwNode
+          result
+      }
+    }
+  }
+
+  /**
+   * Simplified creation of variable nodes.
+   */
+  object VariableNode {
+    /**
+     * Make a new variable node.
+     *
+     * @param typ			The type.
+     * @param name		The variable name.
+     * @param guard		The variable's guard.
+     * @param labels	Labels associated with the variable.
+     */
+    def apply(typ: AstNode, name: String, guard: Option[AstNode],
+      labels: Set[String]) = new VariableNode(typ, name, guard, labels)
+  }
+
+  /**
+   * A node representing a metavariable reference.
+   *
+   * @param vx	An ordinary variable node to promote.
+   */
+  case class MetaVariableNode(vx: VariableNode)
+    extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels) {
+    override def interpret: MetaVariable = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("MetaVariableNode.interpret")
+      RWTree.current = interpretNode
+
+      val vxtypeInt = vx.typ.interpret
+
+      grd match {
+        case None =>
+          val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE, labels)
+
+          interpretNode.addChild(result)
+          RWTree.current = rwNode
+          result
+        case Some(guard) =>
+          val guardNode = interpretNode.addChild("guard: ")
+          RWTree.current = guardNode
+          val guardInt = guard.interpret
+
+          RWTree.current = interpretNode
+          val result = MetaVariable(vxtypeInt, vx.name, guard.interpret, labels)
+
+          interpretNode.addChild(result)
+          RWTree.current = rwNode
+          result
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Special form node.
+  //----------------------------------------------------------------------
+
+  /**
+   * A node representing a general special form.
+   *
+   * @param tag			The tag identifying the special form.
+   * @param content	The content portion of the special form.
+   */
+  case class SpecialFormNode(tag: AstNode, content: AstNode) extends AstNode {
+    override def interpret: BasicAtom = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("SpecialFormNode.interpret")
+      RWTree.current = interpretNode
+
+      val tagNode = interpretNode.addChild("tag: ")
+      RWTree.current = tagNode
+      val tagInt = tag.interpret
+
+      val contentNode = interpretNode.addChild("content: ")
+      RWTree.current = contentNode
+      val contentInt = content.interpret
+
+      RWTree.current = interpretNode
+      val result = SpecialForm(tagInt, contentInt)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Literal nodes - that is, nodes that hold literal values.
+  //----------------------------------------------------------------------
+
+  /**
+   * A node representing a symbol literal.
+   *
+   * @param typ		The type.
+   * @param sym		The symbol text.
+   */
+  case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
+    def interpret: BasicAtom = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("SymbolLiteralNode.interpret")
+      RWTree.current = interpretNode
+
+      // If there is no type, or the type is the type universe, then check the
+      // symbol to see if it is a known root type.  This is also where the
+      // symbol _ gets turned into ANY.
+      if (typ == None || typ.get.isInstanceOf[TypeUniverseNode]) {
+        val lookup = (if (sym == "_") "ANY" else sym)
+        NamedRootType.get(lookup) match {
+          case Some(nrt) =>
+            interpretNode.addChild(nrt)
+            RWTree.current = rwNode
+            return nrt
+          case _ =>
+        }
+      }
+
+      // There are interesting "untyped" cases.  Without type, true and false
+      // should be made Booleans, and Nothing should have type ANY.
+      if (typ == None) sym match {
+        case "true" =>
+          interpretNode.addChild(Literal.TRUE)
+          RWTree.current = rwNode
+          return Literal.TRUE
+        case "false" =>
+          interpretNode.addChild(Literal.FALSE)
+          RWTree.current = rwNode
+          return Literal.FALSE
+        case _ => Literal(SYMBOL, Symbol(sym))
+      }
+      else {
+        typ.get.interpret match {
+          case BOOLEAN if sym == "true" =>
+            interpretNode.addChild(Literal.TRUE)
+            RWTree.current = rwNode
+            return Literal.TRUE
+          case BOOLEAN if sym == "false" =>
+            interpretNode.addChild(Literal.FALSE)
+            RWTree.current = rwNode
+            return Literal.FALSE
+          case t: Any =>
+            interpretNode.addChild(t)
+
+            val result = Literal(t, Symbol(sym))
+
+            interpretNode.addChild(result)
+            RWTree.current = rwNode
+            return result
+        }
+      }
+    }
+  }
+
+  /**
+   * A node representing a string literal.
+   *
+   * @param typ		The type.
+   * @param str		The string text.
+   */
+  case class StringLiteralNode(typ: AstNode, str: String) extends AstNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("StringLiteralNode.interpret")
+      RWTree.current = interpretNode
+
+      val typeInt = typ.interpret
+
+      val result = Literal(typeInt, str)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+  }
+
+  //----------------------------------------------------------------------
+  // Numeric literal value nodes.
+  //----------------------------------------------------------------------
+
+  /**
+   * Root of all numeric abstract syntax tree nodes.
+   */
+  abstract class NumberNode extends AstNode {
+    /**
+     * Make a new version of this node, with the specified type.
+     *
+     * @param newtyp		The new type.
+     * @return	A new node with the given type.
+     */
+    def retype(newtyp: AstNode): NumberNode
+  }
+
+  /**
+   * An abstract syntax tree node holding a numeric value.
+   *
+   * @param sign			True if positive, false if negative.
+   * @param integer		The integer portion of the number.
+   * @param fraction	The fractional portion of the number, if any.
+   * @param exponent	The exponent, if any.
+   * @param typ				The overriding type.  Otherwise it is inferred.
+   */
+  object NumberNode {
+    /**
+     * Make a new node of the appropriate form to hold a number.
+     *
+     * The number is constructed as follows.
+     * <code>[sign] [integer].[fraction] e [exponent]</code>
+     * The radix for the result is taken from the integer portion.
+     *
+     * @param sign			If false, the number is negative.  Otherwise positive.
+     * @param integer		The integer portion of the number.
+     * @param fraction	The fractional portion of the number.  By default, none.
+     * @param exponent	The exponent.  By default, zero.
+     * @param typ				The type for the number.
+     * @return	The new number node.
+     */
+    def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
+      fraction: Option[UnsignedIntegerNode],
+      exponent: Option[SignedIntegerNode],
+      typ: Option[AstNode] = None): NumberNode = {
+      // Make the sign concrete.
+      val theSign = sign.getOrElse(true)
+      // If there is neither fraction nor exponent, then this is just an integer.
+      // Otherwise it is a float.
+      if (fraction.isDefined || exponent.isDefined) {
+        // This is a float.  Get the parts.
+        val fracpart = (if (fraction.isDefined) fraction.get.digits else "")
+        val exppart = exponent.getOrElse(SignedIntegerNode.Zero)
+        FloatNode(theSign, integer.digits, fracpart, integer.radix, exppart)
+      } else {
+        SignedIntegerNode(theSign, integer.digits, integer.radix)
+      }
+    }
+  }
+
+  /**
+   * An abstract syntax tree node holding an unsigned integer.  The integer
+   * value should be regarded as positive.
+   *
+   * @param digits	The digits of the number.
+   * @param radix		The radix.
+   * @param typ			The type.  If not specified, INTEGER is used.
+   */
+  case class UnsignedIntegerNode(digits: String, radix: Int,
+    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("UnsignedIntegerNode.interpret")
+      RWTree.current = interpretNode
+
+      val typeInt = typ.interpret
+
+      val result = Literal(typeInt, asInt)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+
+    /** Get the unsigned integer as a positive native integer value. */
+    lazy val asInt = BigInt(digits, radix)
+
+    def retype(newtyp: AstNode) = UnsignedIntegerNode(digits, radix, newtyp)
+  }
+
+  /**
+   * An abstract syntax tree node holding a signed integer.
+   * @param sign		If true, positive, and if false, negative.
+   * @param digits	The digits of the number.
+   * @param radix		The radix.
+   * @param typ			The type.  If not specified, INTEGER is used.
+   */
+  case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
+    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("SignedIntegerNode.interpret")
+      RWTree.current = interpretNode
+
+      val typeInt = typ.interpret
+
+      val result = Literal(typeInt, asInt)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+
+    /** Get the signed integer as a signed native integer value. */
+    lazy val asInt = if (sign) asUInt else -asUInt
+    /** Get the integer as a positive native integer value. */
+    lazy val asUInt = BigInt(digits, radix)
+
+    def retype(newtyp: AstNode) = SignedIntegerNode(sign, digits, radix, newtyp)
+  }
+
+  /**
+   * Provide other methods to construct a signed integer.
+   */
+  object SignedIntegerNode {
+    /** Zero. */
+    val Zero = SignedIntegerNode(true, "0", 10)
+    /** One. */
+    val One = SignedIntegerNode(true, "1", 10)
+
+    /**
+     * Create a new signed integer from the given unsigned integer.  The radix
+     * is the same as the signed integer.
+     *
+     * @param sign		If true or None, positive.  If false, negative.
+     * @param integer	The unsigned integer value.
+     * @param typ			The type.
+     */
+    def apply(sign: Option[Boolean], integer: UnsignedIntegerNode,
+      typ: AstNode): SignedIntegerNode =
+      sign match {
+        case Some(bool) => SignedIntegerNode(bool, integer.digits, integer.radix,
+          typ)
+        case None => SignedIntegerNode(true, integer.digits, integer.radix, typ)
+      }
+
+    /**
+     * Create a new signed integer from the given unsigned integer.  The radix
+     * is the same as the signed integer.
+     *
+     * @param sign		If true or None, positive.  If false, negative.
+     * @param integer	The unsigned integer value.
+     */
+    def apply(sign: Option[Boolean],
+      integer: UnsignedIntegerNode): SignedIntegerNode =
+      SignedIntegerNode(sign, integer, SimpleTypeNode(INTEGER))
+  }
+
+  /**
+   * An abstract syntax tree node holding a floating point value.
+   *
+   * @param sign			True if positive, false if negative.
+   * @param integer		The integer portion's digits.
+   * @param fraction	The fractional portion's digits.
+   * @param radix			The radix for the integer and fraction.
+   * @param exp				The exponent.
+   * @param typ				The type.  If not specified, FLOAT is used.
+   */
+  case class FloatNode(sign: Boolean, integer: String, fraction: String,
+    radix: Int, exp: SignedIntegerNode, typ: AstNode = SimpleTypeNode(FLOAT))
+    extends NumberNode {
+    // We need to modify the integer and fraction parts to create the proper
+    // significand.  This is done as follows.  If there are n digits in the
+    // fraction, then we need to subtract n from the exponent.  Now, to do the
+    // math we have to convert the exponent into an actual integer, then do the
+    // math, and then convert it back to the proper number in the correct radix.
+    // We do all that now.
+
+    /**
+     * The normalized version of this float.  It is a pair consisting of the
+     * significand and exponent.  Note that the two may use different radices.
+     */
+    lazy val norm = {
+      // Correct the significand by adding the integer and fractional part
+      // together.  This looks odd, but remember that they are still strings.
+      val significand = integer + fraction
+      // Now get the exponent, and adjust it to account for the fractional part.
+      // Since the decimal moves right, we subtract from the original exponent.
+      var exponent = exp.asInt
+      exponent -= fraction.length
+      // The sign of the exponent might change, so we recompute the sign here.
+      // We separate the sign and the exponent, so we also need the unsigned
+      // version of the exponent.
+      val newsign = exponent >= 0
+      exponent = exponent.abs
+      // Construct the new exponent as a signed integer node.  We use the same
+      // radix as the significand.
+      val newexp = SignedIntegerNode(newsign,
+        exponent.toString(exp.radix), exp.radix)
+      // Done.  Return the significand and exponent.  Note these two might have
+      // different radix.
+      (SignedIntegerNode(sign, significand, radix), newexp)
+    }
+
+    /**
+     * The simple triple representation of this float.  It consists of the
+     * significand, the exponent, and the preferred radix (from the significand).
+     */
+    lazy val asTriple = (norm._1.asInt, norm._2.asInt, radix)
+
+    /**
+     * Compute the platform float representation of this number.  This is not
+     * very likely to be useful, but might be very good for debugging.
+     */
+    lazy val asFloat = norm._1.asInt * BigInt(radix).pow(norm._2.asInt.toInt)
+
+    def interpret = {
+      // get the node representing this atom that is being rewritten
+      val rwNode = RWTree.current
+      val interpretNode = rwNode.addChild("FloatNode.interpret")
+      RWTree.current = interpretNode
+
+      val typeInt = typ.interpret
+
+      val result = Literal(typeInt, norm._1.asInt.toInt, norm._2.asInt.toInt, radix)
+
+      interpretNode.addChild(result)
+      RWTree.current = rwNode
+      result
+    }
+
+    def retype(newtyp: AstNode) = FloatNode(sign, integer, fraction, radix, exp,
+      newtyp)
+  }
 }
 
 //======================================================================
@@ -1055,42 +1055,42 @@ object AtomParser {
 
 /**
  * A parser to parse a single atom.
- * 
+ *
  * @param context	The context for rulesets and operators.
  * @param trace 	If true, enable tracing.  Off by default.
  */
 class AtomParser(val context: Context, val trace: Boolean = false)
-extends Parser {
+  extends Parser {
   import AtomParser._
-	
-	//----------------------------------------------------------------------
-	// Parse result.
-	//----------------------------------------------------------------------
-  
+
+  //----------------------------------------------------------------------
+  // Parse result.
+  //----------------------------------------------------------------------
+
   /** A parse result. */
   abstract sealed class Presult
-  
+
   /**
    * The parse was successful.
-   * 
+   *
    * @param nodes	The nodes parsed.
    */
   case class Success(nodes: List[AstNode]) extends Presult
-  
+
   /**
    * The parse failed.
-   * 
+   *
    * @param err	The reason for the parsing failure.
    */
   case class Failure(err: String) extends Presult
-	
-	//----------------------------------------------------------------------
-	// Perform parsing.
-	//----------------------------------------------------------------------
-  
+
+  //----------------------------------------------------------------------
+  // Perform parsing.
+  //----------------------------------------------------------------------
+
   /**
    * Entry point to parse all atoms from the given string.
-   * 
+   *
    * @param line	The string to parse.
    * @return	The parsing result.
    */
@@ -1102,7 +1102,7 @@ extends Parser {
     parsingResult.result match {
       case Some(nodes) => Success(nodes)
       case None => Failure("Invalid MPL2 source:\n" +
-              ErrorUtils.printParseErrors(parsingResult))
+        ErrorUtils.printParseErrors(parsingResult))
     }
   }
 
@@ -1124,24 +1124,24 @@ extends Parser {
   // AstNode and return it.  This has an interpret method that reads the
   // AST to generate the concrete parsed "thing," whatever it should be.
   //----------------------------------------------------------------------
-  
+
   /**
    * Parse all the atoms that can be found in the input.
    */
   def AtomSeq = rule {
     zeroOrMore(Atom) ~ WS ~ EOI
   }.label("a sequence of atoms")
-  
+
   /**
    * Parse an atom.
    */
   def Atom: Rule1[AstNode] = rule {
-    FirstAtom ~ WS ~ "-> " ~ Atom ~~> (MapPairNode(_,_)) |
-    FirstAtom ~ zeroOrMore(". " ~ FirstAtom) ~~> (
+    FirstAtom ~ WS ~ "-> " ~ Atom ~~> (MapPairNode(_, _)) |
+      FirstAtom ~ zeroOrMore(". " ~ FirstAtom) ~~> (
         (firstarg: AstNode, funlist: List[AstNode]) =>
-          funlist.foldLeft(firstarg)(ApplicationNode(context,_,_)))
+          funlist.foldLeft(firstarg)(ApplicationNode(context, _, _)))
   }.label("an atom")
-  
+
   /**
    * Parse an atom, with the exception of the general operator application.
    */
@@ -1149,19 +1149,19 @@ extends Parser {
     WS ~ (
       // Handle parenthetical expressions.
       "( " ~ Atom ~ ") " |
-        
+
       // Parse a lambda.
       ParsedLambda |
-      
+
       // Parse a typical operator application.
       ParsedApply |
-      
+
       // Parse a typed list.
       ParsedTypedList |
-      
+
       // Parse a property set.
       ParsedAlgProp |
-      
+
       // Parse a variable.  The leading dollar sign is used to distinguish
       // between a symbol and a variable.  If a type is not specified for a
       // variable, it gets put in the type universe.
@@ -1170,144 +1170,144 @@ extends Parser {
       // A "naked" operator is specified by explicitly giving the operator
       // type OPREF.  Otherwise it is parsed as a symbol.
       ESymbol ~ ": " ~ "OPREF " ~~> (
-          (sym: NakedSymbolNode) =>
-            OperatorNode(sym.str, context.operatorLibrary)) |
-            
-      // A "naked" ruleset reference is specified by explicitly giving the
-      // ruleset reference type RSREF.  Otherwise we continue and parse as
-      // a symbol.
-      ESymbol ~ ": " ~ "RSREF " ~~> (
+        (sym: NakedSymbolNode) =>
+          OperatorNode(sym.str, context.operatorLibrary)) |
+
+        // A "naked" ruleset reference is specified by explicitly giving the
+        // ruleset reference type RSREF.  Otherwise we continue and parse as
+        // a symbol.
+        ESymbol ~ ": " ~ "RSREF " ~~> (
           (sym: NakedSymbolNode) =>
             RulesetNode(sym.str, context.ruleLibrary)) |
-       
-      // Parse a literal.  A literal can take many forms, but it should be
-      // possible to always detect the kind of literal during parse.  By
-      // default literals go into a simple type, but this can be overridden.
-      ParsedLiteral |
 
-      // Parse a number.  This can be any number.
-      AnyNumber ~ ": " ~ FirstAtom ~~> (
-          (num:NumberNode, typ:AstNode) => num.retype(typ)) |
-      AnyNumber |
-      
-      // Parse a special form.
-      ParsedSpecialForm |
-      
-      // Invoke an external parser to do something.
-      ExternalParse.suppressNode |
+          // Parse a literal.  A literal can take many forms, but it should be
+          // possible to always detect the kind of literal during parse.  By
+          // default literals go into a simple type, but this can be overridden.
+          ParsedLiteral |
 
-      // Parse the special type universe.
-      "^TYPE " ~> (x => TypeUniverseNode()))
+          // Parse a number.  This can be any number.
+          AnyNumber ~ ": " ~ FirstAtom ~~> (
+            (num: NumberNode, typ: AstNode) => num.retype(typ)) |
+            AnyNumber |
+
+            // Parse a special form.
+            ParsedSpecialForm |
+
+            // Invoke an external parser to do something.
+            ExternalParse.suppressNode |
+
+            // Parse the special type universe.
+            "^TYPE " ~> (x => TypeUniverseNode()))
   }.label("a simple atom")
-  
+
   //----------------------------------------------------------------------
   // Invoke an external parser.
   //----------------------------------------------------------------------
-  
+
   /**
    * Parse an external parser reference.
    */
   def ExternalParse = rule {
     "[" ~ oneOrMore(ESymbol, ",") ~ "[" ~
-    zeroOrMore(&(!"]]") ~ PANY) ~
-    "]]" ~~> (AtomSeqNode(AlgPropNode(List()), _))
+      zeroOrMore(&(!"]]") ~ PANY) ~
+      "]]" ~~> (AtomSeqNode(AlgPropNode(List()), _))
   }
-  
+
   //----------------------------------------------------------------------
   // Parse the generalized "special form."
   //----------------------------------------------------------------------
-  
+
   /** Parse a special form node. */
   def ParsedSpecialForm = rule {
     AlternativeOperatorDefinition | ParsedGeneralForm | ParsedSpecialBindForm
   }.label("a special form")
-  
+
   /** Parse the general "two atom" form of the special form. */
   def ParsedGeneralForm = rule {
-    "{: " ~ Atom ~ Atom ~ ":} " ~~> (SpecialFormNode(_,_))
+    "{: " ~ Atom ~ Atom ~ ":} " ~~> (SpecialFormNode(_, _))
   }
-  
+
   /** Parse the specialized short form of a special form. */
   def ParsedSpecialBindForm = rule {
     "{ " ~ ESymbol ~ (
-        zeroOrMore(Atom) ~~> (
-            first =>
-              if (first.length == 0) None
-              else Some(NakedSymbolNode("") ->
-              	AtomSeqNode(AlgPropNode(),first))) ~
-        zeroOrMore(BindBlock | ListBlock)
-    ) ~~> ((x,y) => x match {
-      case None => BindingsNode(y)
-      case Some(map) => BindingsNode(map::y)
-    }) ~ "} " ~~> (SpecialFormNode(_,_))
+      zeroOrMore(Atom) ~~> (
+        first =>
+          if (first.length == 0) None
+          else Some(NakedSymbolNode("") ->
+            AtomSeqNode(AlgPropNode(), first))) ~
+        zeroOrMore(BindBlock | ListBlock)) ~~> ((x, y) => x match {
+          case None => BindingsNode(y)
+          case Some(map) => BindingsNode(map :: y)
+        }) ~ "} " ~~> (SpecialFormNode(_, _))
   }
-  
+
   /** Parse a list block from a special form. */
   def ListBlock = rule {
     "#" ~ ESymbol ~ zeroOrMore(Atom, ", ") ~~>
-    	(_ -> AtomSeqNode(AlgPropNode(), _))
+      (_ -> AtomSeqNode(AlgPropNode(), _))
   }.label("a # list block")
-  
+
   /** Parse a simple bind from a special form. */
   def BindBlock = rule {
     "#" ~ ESymbol ~ "= " ~ Atom ~~> (_ -> _)
   }.label("a # binding")
-  
+
   //----------------------------------------------------------------------
   // Parse a the syntactic sugar version of an operator prototype.
   //----------------------------------------------------------------------
-  
+
   /** Parse an operator definition. */
   def AlternativeOperatorDefinition = rule {
     "{! " ~ OperatorPrototypeNode ~
-    optional("is " ~ (OperatorPropertiesNode | ParsedAlgProp)) ~
-    zeroOrMore(BindBlock | ListBlock) ~
-    "} " ~~> { (proto, props, blocks) =>
-      val newparams = props match {
-        case None => AtomSeqNode(AlgPropNode(), proto._2)
-        case Some(ap) => AtomSeqNode(ap, proto._2)
+      optional("is " ~ (OperatorPropertiesNode | ParsedAlgProp)) ~
+      zeroOrMore(BindBlock | ListBlock) ~
+      "} " ~~> { (proto, props, blocks) =>
+        val newparams = props match {
+          case None => AtomSeqNode(AlgPropNode(), proto._2)
+          case Some(ap) => AtomSeqNode(ap, proto._2)
+        }
+        val binds = BindingsNode(List(
+          NakedSymbolNode("name") -> proto._1,
+          NakedSymbolNode("params") -> newparams,
+          NakedSymbolNode("type") -> proto._3) ++ blocks)
+        SpecialFormNode(NakedSymbolNode("operator"), binds)
       }
-      val binds = BindingsNode(List(
-          NakedSymbolNode("name")->proto._1,
-          NakedSymbolNode("params")->newparams,
-          NakedSymbolNode("type")->proto._3) ++ blocks)
-      SpecialFormNode(NakedSymbolNode("operator"), binds)
-    }
   }
-  
+
   /** Parse an operator prototype. */
   def OperatorPrototypeNode = rule {
     ESymbol ~ "( " ~ zeroOrMore(Atom, ", ") ~ ") " ~
-    	optional(": " ~ FirstAtom) ~~> {
-    	  (name, params, typ) => typ match {
-    	    case None => (name, params, AnyNode)
-    	    case Some(typeNode) => (name, params, typeNode.asInstanceOf[AstNode])
-    	  }
-    	}
+      optional(": " ~ FirstAtom) ~~> {
+        (name, params, typ) =>
+          typ match {
+            case None => (name, params, AnyNode)
+            case Some(typeNode) => (name, params, typeNode.asInstanceOf[AstNode])
+          }
+      }
   }.label("an operator prototype")
-  
+
+  // TODO: Check and make sure this supports guards like the more succinct version
   /** Parse an operator properties block. */
   def OperatorPropertiesNode = rule {
     oneOrMore(
-        ignoreCase("absorber") ~ WS ~ Atom ~~> ((x) => AbsorberNode(x)) |
+      ignoreCase("absorber") ~ WS ~ Atom ~~> ((x) => AbsorberNode(x)) |
         ignoreCase("identity") ~ WS ~ Atom ~~> ((x) => IdentityNode(x)) |
         ignoreCase("not") ~ WS ~ (
-	        ignoreCase("associative") ~>
-	        	((x) => AssociativeNode(FalseNode)) |
-	        ignoreCase("commutative") ~>
-	        	((x) => CommutativeNode(FalseNode)) |
-	        ignoreCase("idempotent") ~>
-	        	((x) => IdempotentNode(FalseNode))
-        ) |
-        ignoreCase("associative") ~>
-        	((x) => AssociativeNode(TrueNode)) |
-        ignoreCase("commutative") ~>
-        	((x) => CommutativeNode(TrueNode)) |
-        ignoreCase("idempotent") ~>
-        	((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~~>
-    (AlgPropNode(_))
+          ignoreCase("associative") ~>
+          ((x) => AssociativeNode(FalseNode)) |
+          ignoreCase("commutative") ~>
+          ((x) => CommutativeNode(FalseNode)) |
+          ignoreCase("idempotent") ~>
+          ((x) => IdempotentNode(FalseNode))) |
+          ignoreCase("associative") ~>
+          ((x) => AssociativeNode(TrueNode)) |
+          ignoreCase("commutative") ~>
+          ((x) => CommutativeNode(TrueNode)) |
+          ignoreCase("idempotent") ~>
+          ((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~~>
+      (AlgPropNode(_))
   }.label("operator properties")
-  
+
   //----------------------------------------------------------------------
   // Parse a simple operator application.  The other form of application
   // (the more general kind) is parsed in Atom.
@@ -1327,7 +1327,7 @@ extends Parser {
       (op: NakedSymbolNode, arg: AtomSeqNode) =>
         ApplicationNode(context, op, arg))
   }.label("an operator application")
-  
+
   //----------------------------------------------------------------------
   // Parse a lambda.
   //----------------------------------------------------------------------
@@ -1335,9 +1335,9 @@ extends Parser {
   /** Parse a lambda expression. */
   def ParsedLambda = rule {
     "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> (
-        (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
+      (lvar: VariableNode, body: AstNode) => LambdaNode(lvar, body))
   }.label("a lambda expression")
-  
+
   //----------------------------------------------------------------------
   // Parse trivial literals.
   //----------------------------------------------------------------------
@@ -1346,27 +1346,27 @@ extends Parser {
    * Parse a literal symbol or a literal string.
    */
   def ParsedLiteral = rule {
-      ESymbol ~ ": " ~ FirstAtom ~~>
-      	((sym: NakedSymbolNode, typ: AstNode) =>
-      	  SymbolLiteralNode(Some(typ), sym.str)) |
+    ESymbol ~ ": " ~ FirstAtom ~~>
+      ((sym: NakedSymbolNode, typ: AstNode) =>
+        SymbolLiteralNode(Some(typ), sym.str)) |
       ESymbol ~~>
-      	((sym: NakedSymbolNode) =>
-      	  SymbolLiteralNode(None, sym.str)) |
+      ((sym: NakedSymbolNode) =>
+        SymbolLiteralNode(None, sym.str)) |
       EVerb ~ ": " ~ FirstAtom ~~>
-      	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
+      ((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EVerb ~~>
-      	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str)) |
+      ((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str)) |
       EString ~ ": " ~ FirstAtom ~~>
-      	((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
+      ((str: String, typ: AstNode) => StringLiteralNode(typ, str)) |
       EString ~~>
-      	((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
+      ((str: String) => StringLiteralNode(SimpleTypeNode(STRING), str))
   }.label("a literal expression")
-  
+
   /** Parse a verbatim block. */
   def EVerb = rule {
     "\"\"\"".suppressNode ~
-    zeroOrMore(&(!"\"\"\"") ~ PANY) ~> (x => x) ~
-    "\"\"\" ".suppressNode
+      zeroOrMore(&(!"\"\"\"") ~ PANY) ~> (x => x) ~
+      "\"\"\" ".suppressNode
   }.label("a verbatim block")
 
   /** Parse a double-quoted string. */
@@ -1395,38 +1395,38 @@ extends Parser {
   def ESymbol = rule {
     val str = new StringBuilder()
     "`" ~ zeroOrMore(SymChar) ~~> (x => NakedSymbolNode(construct(x))) ~ "` " |
-    group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
-      "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
+      group(("a" - "z" | "A" - "Z" | "_") ~ zeroOrMore(
+        "a" - "z" | "A" - "Z" | "0" - "9" | "_")) ~> (NakedSymbolNode(_)) ~ WS
   }.label("a symbol")
 
   /** Parse a character that is part of a symbol. */
   def SymChar = rule {
     (EscapedCharacter | SymNorm) ~> (x => x)
   }.label("a single character")
-  
+
   /** Parse a "normal" non-escaped character that is part of a symbol. */
   def SymNorm = rule { noneOf("""`\""") }.label("a character")
 
   //----------------------------------------------------------------------
   // Parse property lists.
   //----------------------------------------------------------------------
-  
+
   /** Parse an algebraic properties specification. */
   def ParsedAlgProp = rule {
     "% " ~ OperatorPropertiesNode |
-    "%" ~ zeroOrMore(
+      "%" ~ zeroOrMore(
         ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~> ((x) => AbsorberNode(x)) |
-        ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~> ((x) => IdentityNode(x)) |
-        ignoreCase("A") ~ optional("[ " ~ Atom ~ "]") ~~>
-        	((x) => AssociativeNode(x.getOrElse(TrueNode))) |
-        ignoreCase("C") ~ optional("[ " ~ Atom ~ "]") ~~>
-        	((x) => CommutativeNode(x.getOrElse(TrueNode))) |
-        ignoreCase("I") ~ optional("[ " ~ Atom ~ "]") ~~>
-        	((x) => IdempotentNode(x.getOrElse(TrueNode))) |
-        ignoreCase("!A") ~> ((x) => AssociativeNode(FalseNode)) |
-        ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
-        ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
-    (AlgPropNode(_))
+          ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~> ((x) => IdentityNode(x)) |
+          ignoreCase("A") ~ optional("[ " ~ Atom ~ "]") ~~>
+          ((x) => AssociativeNode(x.getOrElse(TrueNode))) |
+          ignoreCase("C") ~ optional("[ " ~ Atom ~ "]") ~~>
+          ((x) => CommutativeNode(x.getOrElse(TrueNode))) |
+          ignoreCase("I") ~ optional("[ " ~ Atom ~ "]") ~~>
+          ((x) => IdempotentNode(x.getOrElse(TrueNode))) |
+          ignoreCase("!A") ~> ((x) => AssociativeNode(FalseNode)) |
+          ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
+          ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
+        (AlgPropNode(_))
   }.label("an algebraic properties specification.")
 
   //----------------------------------------------------------------------
@@ -1438,9 +1438,9 @@ extends Parser {
    */
   def ParsedTypedList = rule {
     ParsedAlgProp ~ WS ~ "( " ~ ParsedAtomSeq ~ ") " ~~>
-    ((props: AlgPropNode, list: AtomSeqNode) => AtomSeqNode(props, list.list))
+      ((props: AlgPropNode, list: AtomSeqNode) => AtomSeqNode(props, list.list))
   }.label("a typed list of atoms")
-  
+
   /**
    * Parse a list of atoms, separated by commas.  No concept of associativity,
    * commutativity, etc., is inferred at this point.
@@ -1452,18 +1452,18 @@ extends Parser {
   //----------------------------------------------------------------------
   // Parse a map pair.
   //----------------------------------------------------------------------
-  
+
   /**
    * Parse a map pair.
    */
   def ParsedMapPair = rule {
-    FirstAtom ~ "-> " ~ Atom ~~> (MapPairNode(_,_))
+    FirstAtom ~ "-> " ~ Atom ~~> (MapPairNode(_, _))
   }
 
   //----------------------------------------------------------------------
   // Parse variables.
   //----------------------------------------------------------------------
-  
+
   /**
    * Parse a variable.
    */
@@ -1475,28 +1475,28 @@ extends Parser {
   def ParsedTermVariable = rule {
     "$" ~ (ParsedTypedVariable | ParsedUntypedVariable)
   }.label("a term variable")
-  
+
   /** Parse a meta variable. */
   def ParsedMetaVariable = rule {
     "$$" ~ (ParsedTypedVariable | ParsedUntypedVariable) ~~> (
-        vx => MetaVariableNode(vx))
+      vx => MetaVariableNode(vx))
   }.label("a metavariable")
-  
+
   /** Parse a typed variable or metavariable. */
   def ParsedTypedVariable = rule {
     ESymbol ~ optional("{ " ~ Atom ~ "} ") ~ ": " ~ FirstAtom ~
-    zeroOrMore("@" ~ ESymbol) ~~> (
-      (sval: NakedSymbolNode, grd: Option[AstNode], typ: AstNode,
+      zeroOrMore("@" ~ ESymbol) ~~> (
+        (sval: NakedSymbolNode, grd: Option[AstNode], typ: AstNode,
           list: List[NakedSymbolNode]) =>
-        VariableNode(typ, sval.str, grd, list.map(_.str).toSet))
+          VariableNode(typ, sval.str, grd, list.map(_.str).toSet))
   }.label("a variable name and type")
-  
+
   /** Parse an untyped variable or metavariable. */
   def ParsedUntypedVariable = rule {
     ESymbol ~ optional("{ " ~ Atom ~ "} ") ~
-    zeroOrMore("@" ~ ESymbol) ~~> (
-      (sval, grd, list) =>
-        VariableNode(SimpleTypeNode(EANY), sval.str, grd,
+      zeroOrMore("@" ~ ESymbol) ~~> (
+        (sval, grd, list) =>
+          VariableNode(SimpleTypeNode(EANY), sval.str, grd,
             list.map(_.str).toSet))
   }.label("a variable name")
 
@@ -1505,13 +1505,13 @@ extends Parser {
   //----------------------------------------------------------------------
 
   /** Parse ignorable whitespace. */
-  def WS: Rule0 = rule { SuppressNode
+  def WS: Rule0 = rule {
+    SuppressNode
     zeroOrMore(
-        // Whitesapce.
-        oneOrMore(anyOf(" \n\r\t\f")) |
+      // Whitesapce.
+      oneOrMore(anyOf(" \n\r\t\f")) |
         "/*" ~ zeroOrMore(&(!"*/") ~ PANY) ~ "*/" |
-        "//" ~ zeroOrMore(&(!anyOf("\r\n")) ~ PANY) ~ ("\r\n" | "\r" | "\n" | EOI)
-        )
+        "//" ~ zeroOrMore(&(!anyOf("\r\n")) ~ PANY) ~ ("\r\n" | "\r" | "\n" | EOI))
   }.label("whitespace or comments")
 
   //----------------------------------------------------------------------
@@ -1527,8 +1527,8 @@ extends Parser {
       HNumber |
       BNumber |
       DNumber |
-      ONumber) ~ WS ~~> (NumberNode(_:Option[Boolean],_:UnsignedIntegerNode,
-          _:Option[UnsignedIntegerNode],_:Option[SignedIntegerNode]))
+      ONumber) ~ WS ~~> (NumberNode(_: Option[Boolean], _: UnsignedIntegerNode,
+        _: Option[UnsignedIntegerNode], _: Option[SignedIntegerNode]))
   }.label("an integer or floating point number")
 
   /**
@@ -1572,7 +1572,7 @@ extends Parser {
    * linking "e" or "p" exponent indicator.
    */
   def Exponent = rule {
-      optional("+" ~ push(true) | "-" ~ push(false)) ~
+    optional("+" ~ push(true) | "-" ~ push(false)) ~
       AnyInteger ~~> (SignedIntegerNode(_, _))
   }.label("an exponent")
 
@@ -1580,11 +1580,12 @@ extends Parser {
    * Parse an integer in hexadecimal, decimal, octal, or binary.
    * @return	An unsigned integer.
    */
-  def AnyInteger = rule { (
-    HInteger |
-    BInteger |
-    DInteger |
-    OInteger ) ~ WS
+  def AnyInteger = rule {
+    (
+      HInteger |
+      BInteger |
+      DInteger |
+      OInteger) ~ WS
   }.label("an integer")
 
   /**
@@ -1609,7 +1610,7 @@ extends Parser {
    */
   def DInteger = rule {
     group(("1" - "9") ~ zeroOrMore(DDigit)) ~>
-    (UnsignedIntegerNode(_: String, 10))
+      (UnsignedIntegerNode(_: String, 10))
   }.label("a decimal integer")
 
   /**
@@ -1622,22 +1623,22 @@ extends Parser {
 
   /** Parse a decimal digit. */
   def DDigit = rule { "0" - "9" }.label("a decimal digit")
-  
+
   /** Parse an octal digit. */
   def ODigit = rule { "0" - "7" }.label("an octal digit")
-  
+
   /** Parse a hexadecimal digit. */
   def HDigit = rule {
     "0" - "9" | "a" - "f" | "A" - "F"
   }.label("a hexadecimal digit")
-  
+
   /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }.label("a binary digit")
 
   //----------------------------------------------------------------------
   // Other methods affecting the parse.
   //----------------------------------------------------------------------
-  
+
   /**
    * Eliminate trailing whitespace.  This trick is found on the Parboiled web
    * site in the examples.
@@ -1645,4 +1646,388 @@ extends Parser {
    */
   override implicit def toRule(string: String) =
     if (string.endsWith(" ")) str(string.trim) ~ WS else str(string)
+}
+
+import scala.util.parsing.combinator.JavaTokenParsers
+import scala.util.parsing.combinator.PackratParsers
+class ParseCombinators(val context: Context) extends JavaTokenParsers with PackratParsers {
+  import scala.util.matching.Regex
+  import ornl.elision.parse.AtomParser._
+  import scala.util.parsing.input.CharSequenceReader
+  import ornl.elision.core.{ ANY => EANY }
+
+  // TODO: This is a quickfix to implement c-style comments. It works well, but we cannot
+  // nest comments. From:
+  // http://stackoverflow.com/questions/5952720/ignoring-c-style-comments-in-a-scala-combinator-parser
+  protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
+
+  //======================================================================
+  // Parse application/lambda.
+  //======================================================================
+  lazy val AtomSeq: PackratParser[List[AstNode]] = (
+    rep(AtomApplication))
+
+  lazy val Atom: PackratParser[AstNode] = (
+    "(" ~> AtomApplication <~ ")" |
+
+    Lambda |
+
+    OperatorApplication |
+
+    TypedList |
+
+    AlgProp |
+
+    Variable |
+
+    // A "naked" operator is specified by explicitly giving the operator
+    // type OPREF.  Otherwise it is parsed as a symbol.
+    Esym ~ ":" ~ "OPREF" ^^ {
+      case sym ~ _ ~ _ => OperatorNode(sym, context.operatorLibrary)
+    } |
+
+    // A "naked" ruleset reference is specified by explicitly giving the
+    // ruleset reference type RSREF.  Otherwise we continue and parse as
+    // a symbol. 
+    Esym ~ ":" ~ "RSREF" ^^ {
+      case sym ~ _ ~ _ => RulesetNode(sym, context.ruleLibrary)
+    } |
+
+    // Parse a literal.  A literal can take many forms, but it should be
+    // possible to always detect the kind of literal during parse.  By
+    // default literals go into a simple type, but this can be overridden.
+    Literal |
+
+    // Parse a typed number.  This can be any number.
+    AnyNumber ~ ":" ~ Atom ^^ {
+      case num ~ _ ~ typ => num.retype(typ)
+    } |
+
+    // Parse an untyped number.  This can be any number.
+    AnyNumber |
+
+    // Parse a special form.
+    ParsedSpecialForm |
+
+    // Invoke an external parser to do something.
+    ExternalParse |
+
+    "^TYPE" ^^ {
+      case _ => TypeUniverseNode()
+    })
+
+  lazy val OperatorApplication: PackratParser[ApplicationNode] =
+    Esym ~ "(" ~ repsep(AtomApplication, ",") ~ ")" ^^ {
+      case op ~ "(" ~ arg ~ ")" => ApplicationNode(
+        context, NakedSymbolNode(op), AtomSeqNode(AlgPropNode(), arg))
+    }
+
+  lazy val AtomApplication: PackratParser[AstNode] =
+    Atom ~ "->" ~ Atom ^^ { case x ~ "->" ~ y => MapPairNode(x, y) } |
+      Atom ~ rep("." ~> Atom) ^^ {
+        case x ~ list => list.foldLeft(x)(
+          ApplicationNode(context, _, _))
+      }
+
+  // TODO: fix lambdas
+  lazy val Lambda: PackratParser[LambdaNode] =
+    "\\" ~ Variable ~ "." ~ Atom ^^ {
+      case "\\" ~ v ~ "." ~ body => LambdaNode(v, body)
+    }
+
+  //======================================================================
+  // END application/lambda.
+  //======================================================================    
+
+  //======================================================================
+  // Parse special form / external parser
+  //======================================================================
+  // TODO: Make ExternalParse work, sould really return AtomSeqNode
+  lazy val ExternalParse: PackratParser[NakedSymbolNode] =
+    "[" ~ rep1sep(Esym, ",") ~ "[" ~ ("]]" ~> Atom).? ~ "]]" ^^^ {
+      NakedSymbolNode("NOT IMPLEMENTED")
+    }
+
+  lazy val ParsedSpecialForm: PackratParser[SpecialFormNode	] =
+    AlternativeOperatorDefinition | GeneralForm | SpecialBindForm
+      
+
+  // TODO: this should differ a little from the other parser, check it for correctness
+  lazy val AlternativeOperatorDefinition: PackratParser[SpecialFormNode] =
+    "{!" ~ OperatorPrototypeNode ~ (ignoreCase("is") ~> (PropListLong | AlgProp)).? ~
+      (BindBlock | ListBlock).* ~ "}" ^^ {
+        case _ ~ proto ~ props ~ blocks ~ _ =>
+          val newparams = props match {
+            case None => AtomSeqNode(AlgPropNode(), proto._2)
+            case Some(ap) => AtomSeqNode(ap, proto._2)
+          }
+          val binds = BindingsNode(List(
+            NakedSymbolNode("name") -> proto._1,
+            NakedSymbolNode("params") -> newparams,
+            NakedSymbolNode("type") -> proto._3) ++ blocks)
+          SpecialFormNode(NakedSymbolNode("operator"), binds)
+      }
+
+  lazy val GeneralForm: PackratParser[SpecialFormNode] =
+    "{:" ~ AtomApplication ~ AtomApplication ~ ":}" ^^ {
+      case _ ~ x ~ y ~ _ => SpecialFormNode(x, y)
+    }
+
+  // TODO: Please, make it stop. What have we done.
+  lazy val SpecialBindForm: PackratParser[SpecialFormNode] =
+    "{" ~ Esym ~ (
+      ((AtomApplication).* ^^ {
+      case list =>
+        if (list.length == 0) None
+        else Some(NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(), list))
+      }) ~ 
+    (BindBlock | ListBlock).* ^^ {
+      case x ~ y => x match {
+        case None => BindingsNode(y)
+        case Some(map) => BindingsNode(map :: y)
+      }
+    }) ~ "}" ^^ {
+      case _ ~ sym ~ monster ~ _ => SpecialFormNode(NakedSymbolNode(sym), monster)
+    }
+
+  // TODO: This Tuple3 is gross, change it
+  lazy val OperatorPrototypeNode: PackratParser[Tuple3[NakedSymbolNode, List[AstNode], AstNode]] =
+    Esym ~ "(" ~ repsep(Atom, ",") ~ ")" ~ (":" ~> Atom).? ^^ {
+      case name ~ _ ~ params ~ _ ~ typ => typ match {
+        case None => (NakedSymbolNode(name), params, AnyNode)
+        case Some(typeNode) => (NakedSymbolNode(name), params, typeNode.asInstanceOf[AstNode])
+      }
+    }
+
+  lazy val ListBlock: PackratParser[(NakedSymbolNode, AtomSeqNode)] =
+    "#" ~ Esym ~ repsep(AtomApplication, ",") ^^ {
+      case _ ~ sym ~ list => (NakedSymbolNode(sym), AtomSeqNode(AlgPropNode(), list))
+    }
+
+  lazy val BindBlock: PackratParser[(NakedSymbolNode, AstNode)] =
+    "#" ~ Esym ~ "=" ~ AtomApplication ^^ {
+      case _ ~ sym ~ _ ~ appl => (NakedSymbolNode(sym) -> appl)
+    }
+  //======================================================================
+  // END special form / external parser
+  //======================================================================  
+
+  //======================================================================
+  // Parse property/typed list
+  //======================================================================    
+  lazy val TypedList: PackratParser[AtomSeqNode] = (
+    AlgProp ~ "(" ~ repsep(AtomApplication, ",") ~ ")" ^^ {
+      case props ~ _ ~ list ~ _ => AtomSeqNode(props, list)
+    })
+
+  lazy val AlgProp: PackratParser[AlgPropNode] =
+    "%" ~> PropListLong | PropListShort
+
+  lazy val PropListShort: PackratParser[AlgPropNode] =
+    (
+      ignoreCase("B") ~ "[" ~ AtomApplication ~ "]" ^^ {
+        case _ ~ _ ~ x ~ _ => AbsorberNode(x)
+      } |
+      ignoreCase("D") ~ "[" ~ AtomApplication ~ "]" ^^ {
+        case _ ~ _ ~ x ~ _ => IdentityNode(x)
+      } |
+      ignoreCase("A") ~ ("[" ~> AtomApplication <~ "]").? ^^ {
+        case _ ~ x => AssociativeNode(x.getOrElse(TrueNode))
+      } |
+      ignoreCase("C") ~ ("[" ~> AtomApplication <~ "]").? ^^ {
+        case _ ~ x => CommutativeNode(x.getOrElse(TrueNode))
+      } |
+      ignoreCase("I") ~ ("[" ~> AtomApplication <~ "]").? ^^ {
+        case _ ~ x => IdempotentNode(x.getOrElse(TrueNode))
+      } |
+      ignoreCase("!A") ^^ { case _ => AssociativeNode(FalseNode) } |
+      ignoreCase("!C") ^^ { case _ => AssociativeNode(FalseNode) } |
+      ignoreCase("!I") ^^ { case _ => AssociativeNode(FalseNode) }).* ^^ {
+        AlgPropNode(_)
+      }
+
+  // TODO: Check and make sure this supports guards like the more succinct version
+  lazy val PropListLong: PackratParser[AlgPropNode] =
+    rep1sep(
+      ignoreCase("absorber") ~> AtomApplication ^^ { AbsorberNode(_) } |
+        ignoreCase("identity") ~> AtomApplication ^^ { IdentityNode(_) } |
+        ignoreCase("not") ~> (
+          ignoreCase("associative") ^^^ { AssociativeNode(FalseNode) } |
+          ignoreCase("commutative") ^^^ { CommutativeNode(FalseNode) } |
+          ignoreCase("idempotent") ^^^ { IdempotentNode(FalseNode) }) |
+          ignoreCase("associative") ^^^ { AssociativeNode(TrueNode) } |
+          ignoreCase("commutative") ^^^ { CommutativeNode(TrueNode) } |
+          ignoreCase("idempotent") ^^^ { IdempotentNode(TrueNode) }, ",") ^^ {
+        AlgPropNode(_)
+      }
+  //======================================================================
+  // END property/typed list
+  //======================================================================
+
+  //======================================================================
+  // Parse a variable.
+  //======================================================================
+  lazy val guard: PackratParser[Option[AstNode]] =
+    opt("{" ~> AtomApplication <~ "}") ^^ {
+      case Some(appl) => Some(appl)
+      case _ => None
+    }
+
+  lazy val label: PackratParser[String] = "@" ~> Esym
+
+  lazy val VariableTyped: PackratParser[VariableNode] =
+    Esym ~ guard ~ ":" ~ Atom ~ rep(label) ^^ {
+      case sym ~ grd ~ _ ~ typ ~ list => VariableNode(
+        typ, sym, grd, list.toSet)
+    }
+
+  lazy val VariableUntyped: PackratParser[VariableNode] =
+    Esym ~ guard ~ rep(label) ^^ {
+      case sym ~ grd ~ list => VariableNode(
+        SimpleTypeNode(EANY), sym, grd, list.toSet)
+    }
+
+  lazy val VariableTerm: PackratParser[VariableNode] =
+    "$" ~> (VariableTyped | VariableUntyped)
+
+  lazy val VariableMeta: PackratParser[MetaVariableNode] =
+    "$$" ~> (VariableTyped | VariableUntyped) ^^ {
+      MetaVariableNode(_)
+    }
+
+  lazy val Variable: PackratParser[VariableNode] =
+    VariableTerm | VariableMeta
+
+  //======================================================================
+  // END a variable.
+  //======================================================================
+
+  //======================================================================
+  // Parse a literal.
+  //======================================================================
+
+  // this also does unicode
+  // TODO: Fix hard tabs, for some reason they don't work in either parser
+  lazy val strSym = """(\\[\\bfnrt`"]|[^\p{Cntrl}\\`]|\\u[a-fA-F0-9]{4})*"""
+  lazy val strNrm = """(\\[\\bfnrt`"]|[^\p{Cntrl}\\"]|\\u[a-fA-F0-9]{4})*"""
+
+  lazy val Estr: PackratParser[String] =
+    ("\"" + strNrm + "\"").r ^^ { _.toString.drop(1).dropRight(1) }
+
+  lazy val Esym: PackratParser[String] =
+    ("`" + strSym + "`").r ^^ { _.toString.drop(1).dropRight(1) } |
+      """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
+
+  lazy val Literal: PackratParser[AstNode] =
+    Esym ~ ":" ~ Atom ^^ {
+      case sym ~ _ ~ typ => SymbolLiteralNode(Some(typ), sym)
+    } |
+      Esym ^^ { SymbolLiteralNode(None, _) } |
+      Estr ~ ":" ~ Atom ^^ {
+        case str ~ _ ~ typ => StringLiteralNode(typ, str)
+      } |
+      Estr ^^ { StringLiteralNode(SimpleTypeNode(STRING), _) }
+  //======================================================================
+  // END a literal.
+  //======================================================================  
+
+  //======================================================================
+  // Parse a number.
+  //======================================================================
+
+  // Decimals ( with exponents )
+  lazy val optSign: PackratParser[Option[Boolean]] = (
+    opt("""[+-]""".r) ^^ {
+      case Some("+") => Some(true)
+      case Some("-") => Some(false)
+      case _ => None
+    })
+
+  lazy val optFrac: PackratParser[Option[UnsignedIntegerNode]] =
+    opt("." ~> AnyInteger) ^^ {
+      case Some(int) => Some(int)
+      case _ => None
+    }
+
+  lazy val optExp: PackratParser[Option[SignedIntegerNode]] = (
+    opt("""[eEpP]""".r ~> Exponent) ^^ {
+      case Some(exp) => Some(exp)
+      case _ => None
+    })
+
+  lazy val optExpHex: PackratParser[Option[SignedIntegerNode]] = (
+    opt("""[pP]""".r ~> Exponent) ^^ {
+      case Some(exp) => Some(exp)
+      case _ => None
+    })
+
+  lazy val AnyNumber: PackratParser[NumberNode] = (
+    // hex
+    optSign ~ ignoreCase("0x") ~ HInteger ~ optFrac ~ optExpHex ^^ {
+      case sign ~ _ ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    } |
+    // binary
+    optSign ~ ignoreCase("0b") ~ BInteger ~ optFrac ~ optExp ^^ {
+      case sign ~ _ ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    } |
+    // octal
+    optSign ~ ignoreCase("0") ~ OInteger ~ optFrac ~ optExp ^^ {
+      case sign ~ _ ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    } |
+    // decimal
+    optSign ~ DInteger ~ optFrac ~ optExp ^^ {
+      case sign ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    })
+
+  // Integers
+  lazy val AnyInteger: PackratParser[UnsignedIntegerNode] =
+    ignoreCase("0x") ~> HInteger |
+      ignoreCase("0b") ~> BInteger |
+      ignoreCase("0") ~> OInteger |
+      DInteger
+
+  lazy val DInteger: PackratParser[UnsignedIntegerNode] =
+    """[0-9]+""".r ^^ (UnsignedIntegerNode(_: String, 10))
+  lazy val HInteger: PackratParser[UnsignedIntegerNode] =
+    """[a-fA-F0-9]+""".r ^^ (UnsignedIntegerNode(_: String, 16))
+  lazy val BInteger: PackratParser[UnsignedIntegerNode] =
+    """[01]+""".r ^^ (UnsignedIntegerNode(_: String, 2))
+  lazy val OInteger: PackratParser[UnsignedIntegerNode] =
+    """[0-7]+""".r ^^ (UnsignedIntegerNode(_: String, 8))
+
+  // Exponent
+  lazy val Exponent: PackratParser[SignedIntegerNode] = (
+    optSign ~ AnyInteger ^^ {
+      case sign ~ int => SignedIntegerNode(sign, int)
+    })
+
+  //======================================================================
+  // END a number.
+  //======================================================================
+
+  //  def run(arg: String): ParseResult[Any] = {
+  //    parseAll(AtomSeq, new PackratReader(new CharSequenceReader(arg)))
+  //  }
+
+  def ignoreCase(str: String): Regex = ("""(?i)\Q""" + str + """\E""").r
+}
+
+object Main extends App {
+  val _parser = new ParseCombinators(new Context)
+  val t0 = System.nanoTime();
+  //  val ret = _parser.run(""" "         	" """)
+  //  Console.println(ret)
+  //    _parser.run("add(1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(900,45)))))))))))))")
+
+  val t1 = System.nanoTime();
+
+  Console.println(((t1 - t0).toDouble / 1000000000).toString())
 }
