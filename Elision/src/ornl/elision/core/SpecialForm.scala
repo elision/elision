@@ -49,10 +49,14 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * really just holds the two parts: the ''tag'' and the ''content'',
  * and provides a few methods for working with the content.
  * 
+ * These should only be built by the parser.
+ * 
  * @param tag			The tag.
  * @param content	The content.
+ * @param exec		An executor.
  */
-class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
+class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom,
+    val exec: Executor) {
   /**
    * Require that the content be a binding.  If the content is not, then
    * an exception is thrown (`SpecialFormException`).
@@ -60,7 +64,7 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
    * @return	A `BindingsHolder` instance.
    */
   def requireBindings = content match {
-    case ba:BindingsAtom => new BindingsHolder(tag, ba)
+    case ba:BindingsAtom => new BindingsHolder(tag, ba, exec)
     case _ =>
       throw new SpecialFormException(
           "Form " + tag.toParseString +
@@ -69,11 +73,20 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
   }
   
   /**
-   * Extract a special form instance from this holder.
+   * Extract a special form instance from this holder.  This directly creates
+   * a special form; it does not interpret it based on the tag.  If the latter
+   * is what you want, use the `interpret` method.
    * 
    * @return	The special form instance.
    */
-  def toSpecialForm() = new SpecialForm(tag, content)
+  def toSpecialForm() = new SpecialForm(tag, content, exec)
+  
+  /**
+   * Interpret this based on the tag, and return the resulting special form.
+   * 
+   * @return	The correct atom based on the tag.
+   */
+  def interpret = SpecialForm(tag, content, exec)
 }
 
 /**
@@ -81,8 +94,10 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
  * 
  * @param tag				The tag.
  * @param content		The content (a bindings atom).
+ * @param exec			An executor.
  */
-class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
+class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom,
+    val exec: Executor) {
   /**
    * Require that the bindings atom specify all the listed keys.  If any
    * are missing, a `SpecialFormException` is thrown.  Other keys not in
@@ -203,11 +218,20 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   }
   
   /**
-   * Extract a special form instance from this holder.
+   * Extract a special form instance from this holder.  This directly creates
+   * a special form; it does not interpret it based on the tag.  If the latter
+   * is what you want, use the `interpret` method.
    * 
    * @return	The special form instance.
    */
-  def toSpecialForm() = new SpecialForm(tag, content)
+  def toSpecialForm() = new SpecialForm(tag, content, exec)
+  
+  /**
+   * Interpret this based on the tag, and return the resulting special form.
+   * 
+   * @return	The correct atom based on the tag.
+   */
+  def interpret = SpecialForm(tag, content, exec)
 }
 
 /**
@@ -221,8 +245,10 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
  * 
  * @param tag			The tag identifying this particular form.
  * @param content	The content of the atom.
+ * @param exec		An executor.  This is required because some special forms
+ * 								need it, and the interpretation of the tag takes place here.
  */
-class SpecialForm(val tag: BasicAtom, val content: BasicAtom)
+class SpecialForm(val tag: BasicAtom, val content: BasicAtom, val exec: Executor)
 extends BasicAtom {
 
   lazy val depth = (tag.depth max content.depth) + 1
@@ -253,26 +279,25 @@ extends BasicAtom {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("SpecialForm rewrite: ")
-	val tagNode = rwNode.addChild("Tag: ").addChild(tag)
-	val contentNode = rwNode.addChild("Content: ").addChild(content)
+		// get the node representing this atom that is being rewritten
+		val rwNode = RWTree.current.addChild("SpecialForm rewrite: ")
+		val tagNode = rwNode.addChild("Tag: ").addChild(tag)
+		val contentNode = rwNode.addChild("Content: ").addChild(content)
 	
-	RWTree.current = tagNode
+		RWTree.current = tagNode
     val newtag = tag.rewrite(binds)
-	tagNode.addChild(newtag._1)
+    tagNode.addChild(newtag._1)
 	
-	RWTree.current = contentNode
+    RWTree.current = contentNode
     val newcontent = content.rewrite(binds)
-	contentNode.addChild(newcontent._1)
+    contentNode.addChild(newcontent._1)
 	
     if (newtag._2 || newcontent._2) {
-		RWTree.current = rwNode
-		val newSF = SpecialForm(newtag._1, newcontent._1)
-		rwNode.addChild(newSF)
-		(newSF, true)
-	}
-    else (this, false)
+			RWTree.current = rwNode
+			val newSF = SpecialForm(newtag._1, newcontent._1, exec)
+			rwNode.addChild(newSF)
+			(newSF, true)
+		} else (this, false)
   }
 	//////////////////// end GUI changes
   
@@ -294,10 +319,11 @@ object SpecialForm {
    * 
    * @param tag				The form tag.
    * @param content		The content.
+   * @param exec			An executor.
    * @return	The constructed special form.
    */
-  def apply(tag: BasicAtom, content: BasicAtom) = {
-    val sfh = new SpecialFormHolder(tag, content)
+  def apply(tag: BasicAtom, content: BasicAtom, exec: Executor) = {
+    val sfh = new SpecialFormHolder(tag, content, exec)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {
 	      case 'map => MapStrategy(sfh)

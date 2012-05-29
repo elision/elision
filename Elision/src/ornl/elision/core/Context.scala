@@ -39,13 +39,6 @@ package ornl.elision.core
 import ornl.elision.ElisionException
 
 /**
- * Indicate an attempt to re-define a strategy.
- * 
- * @param msg		A human readable message.
- */
-class StrategyRedefinitionException(msg: String) extends ElisionException(msg)
-
-/**
  * A context provides access to operator libraries and rules, along with
  * the global set of bindings in force at any time.
  * 

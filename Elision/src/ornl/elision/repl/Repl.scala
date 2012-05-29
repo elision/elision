@@ -588,7 +588,7 @@ object Repl {
         "Add the named operator to the context.",
         """|This will add the operator op to the current context.  This makes
            |the operator available by name, or through an OPREF.
-        """.stripMargin, true)
+        """.stripMargin, this, true)
     _context.operatorLibrary.add(defOper)
     _context.operatorLibrary.register("def",
         _data => _data.args match {
