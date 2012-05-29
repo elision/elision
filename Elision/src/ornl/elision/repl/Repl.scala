@@ -421,11 +421,9 @@ object Repl {
    * standard output.
    * 
    * ==Commands==
-   * This method supports several special commands.
+   * This method supports several special commands.  Prefix these with a colon.
    *  - `:quit`
    *    Terminate the current session.
-   *  - `help`
-   *    Print help text.
    * 
    * @param line	The line to execute.
    * @param quiet	If true, suppress printing of the atoms.  Errors are still
@@ -609,15 +607,6 @@ object Repl {
     // Go get the buildin operators and define them.
     execute(BuiltinOperators.text.text)
     
-    // Dereference operator.
-    _context.operatorLibrary.register("getop",
-        _data => _data.args match {
-          case Args(opref:OperatorRef) =>
-            // Get the referenced operator.
-            opref.operator
-          case _ => ApplyData._no_show
-        })
-    
     // Bind.
     _context.operatorLibrary.register("bind",
         _data => _data.args match {
@@ -692,17 +681,6 @@ object Repl {
           case _ => ApplyData._no_show
         })
         
-    // Evaluate fast.
-    _context.operatorLibrary.register("eval",
-        _data => _data.args match {
-          case Args(x) =>
-            // Immediately rewrite this with the context bindings, and return
-            // the result.
-            x.rewrite(context.binds)._1
-          case _ =>
-            NONE
-        })
-        
     // Read.
     _context.operatorLibrary.register("read",
         _data => _data.args match {
@@ -775,34 +753,6 @@ object Repl {
 				      error("Unable to save context.")
 				    }
             ApplyData._no_show
-          case _ => ApplyData._no_show
-        })
-        
-    // Help.
-    _context.operatorLibrary.register("_help_op",
-        _data => _data.args match {
-          case Args(or: OperatorRef) =>
-            // Give some help.
-            emitln(_context.operatorLibrary.help(new StringBuffer(), or).toString)
-            ApplyData._no_show
-            
-          case _ =>
-            ApplyData._no_show
-        })
-    _context.operatorLibrary.register("_help_all",
-        _data => _data.args match {
-          case Args() =>
-          	// Give some help.
-            val width = scala.tools.jline.TerminalFactory.create().getWidth()
-            println("Elision Help\n")
-            emitln(_context.operatorLibrary.help(new StringBuffer(), width).toString)
-		        println("""
-		            |Use ! followed by a number to re-execute a line from the history.
-		            |
-		            |To quit type :quit.
-		            |""".stripMargin)
-		        ApplyData._no_show
-		        
           case _ => ApplyData._no_show
         })
         
@@ -919,17 +869,6 @@ object Repl {
           case _ => ApplyData._no_show
         })
         
-    // Set whether to use De Bruijn indices.
-    _context.operatorLibrary.register("setdebruijn",
-        _data => _data.args match {
-          case Args(BooleanLiteral(_, flag)) =>
-            // Set whether to use De Bruijn indices.
-            Lambda.useDeBruijnIndices = flag
-            emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
-            ApplyData._no_show
-          case _ => ApplyData._no_show
-        })
-        
     // Set whether to descend into children.
     _context.operatorLibrary.register("setdescend",
         _data => _data.args match {
@@ -1021,15 +960,6 @@ object Repl {
 			  // Construct and return a new operator application.
 			  Apply(_data.op, AtomSeq(NoProps, other), true)
       })
-      
-    // Is bindable.
-    _context.operatorLibrary.register("is_bindable",
-        _data => _data.args match {
-          case Args(term) =>
-            if (term.isBindable) Literal.TRUE else Literal.FALSE
-          case _ =>
-            _data.as_is
-        })
 
     // Force a core dump.
     _context.operatorLibrary.register("fail",
