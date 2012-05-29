@@ -34,7 +34,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ElisionGUI
+package ornl.elision.gui
 
 import util.matching._
 

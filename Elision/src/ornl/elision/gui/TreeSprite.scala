@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ElisionGUI
+package ornl.elision.gui
 
 import java.awt._
 import sage2D._
