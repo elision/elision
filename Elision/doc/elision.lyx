@@ -13246,6 +13246,21 @@ Exceptions
 \end_layout
 
 \begin_layout Standard
+Elision attempts to handle exceptions rationally, and to 
+\emph on
+never
+\emph default
+ allow the system to fail completely.
+ Once Elision is up and the REPL is running, exceptions are trapped and
+ an attempt is made to dispose of them appropriately.
+ The following sections describe how Elision handles exceptions.
+\end_layout
+
+\begin_layout Section
+Elision Exceptions
+\end_layout
+
+\begin_layout Standard
 Elision uses a number of exceptions to signal conditions internally.
  These are usually serious conditions, from the point of view of the rewriter,
  but do 
@@ -13268,7 +13283,7 @@ core.ArgumentListException
 \family default
  An error was detected in the argument list for an operator.
  This is typically a type check error, or the wrong number of arguments,
- such as 
+ as with 
 \family typewriter
 add(5,"Tim")
 \family default
@@ -13281,7 +13296,7 @@ add(5,"Tim")
 core.LambdaUnboundedRecursionException
 \family default
  The stack was exhausted during evaluation of a lambda expression.
- This typically represents unbounded recursion, such as with 
+ This typically represents unbounded recursion.
 \end_layout
 
 \begin_layout Description
@@ -13290,7 +13305,7 @@ core.LambdaUnboundedRecursionException
 core.LambdaVariableMismatchException
 \family default
  The argument provided to a lambda does not match the lambda parameter.
- This is typically a type error, such as with 
+ This is typically a type error, as with 
 \family typewriter
 
 \backslash
@@ -13306,6 +13321,19 @@ core.NativeHandlerException
 \family default
  A native handler for an operator could not be parsed, or represented incomplete
  input (missing a closing parenthesis or brace, for instance).
+ For example, 
+\family typewriter
+{! foo() #handler=
+\family default
+"
+\family typewriter
+ for(atom <- args) { 
+\family default
+"
+\family typewriter
+}
+\family default
+.
 \end_layout
 
 \begin_layout Description
@@ -13314,7 +13342,11 @@ core.NativeHandlerException
 core.OperatorDefinitionException
 \family default
  An error occurred in evaluating an operator definition.
- Most likely some important part (like the name) is missing.
+ Most likely your properties and prototype do not agree, as with 
+\family typewriter
+{! foo($x:INTEGER):INTEGER is associative}
+\family default
+.
 \end_layout
 
 \begin_layout Description
@@ -13324,6 +13356,8 @@ core.OperatorRedefinitionException
 \family default
  An attempt was made to re-define an operator, but the operator library
  does not allow this.
+ Under normal circumstances (i.e., using the REPL), redefinition is allowed
+ with a warning.
 \end_layout
 
 \begin_layout Description
@@ -13332,7 +13366,20 @@ core.OperatorRedefinitionException
 core.SpecialFormException
 \family default
  A structural error was discovered interpreting a special form.
- Typically this means that the content was missing an required bind pair.
+ Typically this means that the content was missing an required bind pair,
+ as with 
+\family typewriter
+{operator #type=INTEGER}
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Java Exceptions and Throwables
+\end_layout
+
+\begin_layout Standard
+Other exceptions are handled differently by Elision.
 \end_layout
 
 \begin_layout Chapter

@@ -53,10 +53,8 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * 
  * @param tag			The tag.
  * @param content	The content.
- * @param exec		An executor.
  */
-class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom,
-    val exec: Executor) {
+class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
   /**
    * Require that the content be a binding.  If the content is not, then
    * an exception is thrown (`SpecialFormException`).
@@ -64,7 +62,7 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom,
    * @return	A `BindingsHolder` instance.
    */
   def requireBindings = content match {
-    case ba:BindingsAtom => new BindingsHolder(tag, ba, exec)
+    case ba:BindingsAtom => new BindingsHolder(tag, ba)
     case _ =>
       throw new SpecialFormException(
           "Form " + tag.toParseString +
@@ -79,14 +77,14 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom,
    * 
    * @return	The special form instance.
    */
-  def toSpecialForm() = new SpecialForm(tag, content, exec)
+  def toSpecialForm() = new SpecialForm(tag, content)
   
   /**
    * Interpret this based on the tag, and return the resulting special form.
    * 
    * @return	The correct atom based on the tag.
    */
-  def interpret = SpecialForm(tag, content, exec)
+  def interpret = SpecialForm(tag, content)
 }
 
 /**
@@ -94,10 +92,8 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom,
  * 
  * @param tag				The tag.
  * @param content		The content (a bindings atom).
- * @param exec			An executor.
  */
-class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom,
-    val exec: Executor) {
+class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   /**
    * Require that the bindings atom specify all the listed keys.  If any
    * are missing, a `SpecialFormException` is thrown.  Other keys not in
@@ -224,14 +220,14 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom,
    * 
    * @return	The special form instance.
    */
-  def toSpecialForm() = new SpecialForm(tag, content, exec)
+  def toSpecialForm() = new SpecialForm(tag, content)
   
   /**
    * Interpret this based on the tag, and return the resulting special form.
    * 
    * @return	The correct atom based on the tag.
    */
-  def interpret = SpecialForm(tag, content, exec)
+  def interpret = SpecialForm(tag, content)
 }
 
 /**
@@ -245,10 +241,8 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom,
  * 
  * @param tag			The tag identifying this particular form.
  * @param content	The content of the atom.
- * @param exec		An executor.  This is required because some special forms
- * 								need it, and the interpretation of the tag takes place here.
  */
-class SpecialForm(val tag: BasicAtom, val content: BasicAtom, val exec: Executor)
+class SpecialForm(val tag: BasicAtom, val content: BasicAtom)
 extends BasicAtom {
 
   lazy val depth = (tag.depth max content.depth) + 1
@@ -294,7 +288,7 @@ extends BasicAtom {
 	
     if (newtag._2 || newcontent._2) {
 			RWTree.current = rwNode
-			val newSF = SpecialForm(newtag._1, newcontent._1, exec)
+			val newSF = SpecialForm(newtag._1, newcontent._1)
 			rwNode.addChild(newSF)
 			(newSF, true)
 		} else (this, false)
@@ -319,11 +313,10 @@ object SpecialForm {
    * 
    * @param tag				The form tag.
    * @param content		The content.
-   * @param exec			An executor.
    * @return	The constructed special form.
    */
-  def apply(tag: BasicAtom, content: BasicAtom, exec: Executor) = {
-    val sfh = new SpecialFormHolder(tag, content, exec)
+  def apply(tag: BasicAtom, content: BasicAtom) = {
+    val sfh = new SpecialFormHolder(tag, content)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {
 	      case 'map => MapStrategy(sfh)

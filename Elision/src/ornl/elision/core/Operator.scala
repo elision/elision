@@ -70,12 +70,11 @@ class HandHolder(
  * @param op			The operator.
  * @param args		The argument list.
  * @param binds		Bindings of parameter to argument value.
- * @param exec		An executor to pass along.
  */
 class ApplyData(val op: SymbolicOperator, val args: AtomSeq,
-    val binds: Bindings, val exec: Executor) {
-  /** Provide fast access to the context from the executor. */
-  val context = exec.context
+    val binds: Bindings) {
+  ///** Provide fast access to the context from the executor. */
+  //val context = exec.context
   
   /** Just preserve the apply as it is. */
   def as_is = Apply(op, args, true)
@@ -110,14 +109,14 @@ object ApplyData {
  * 										by default, and you should probably leave it alone.
  */
 abstract class Operator(
-    content: Bindings,
+    sfh: SpecialFormHolder,
     val name: String,
     val typ: BasicAtom,
     definition: AtomSeq,
     val description: String,
     val detail: String,
     override val evenMeta: Boolean = false)
-    extends SpecialForm(Operator.tag, content) with Applicable {
+    extends SpecialForm(sfh.tag, sfh.content) with Applicable {
   def apply(atoms: BasicAtom*): BasicAtom
   override def tryMatchWithoutTypes(subject: BasicAtom, binds:
       Bindings, hints: Option[Any]) =
@@ -135,10 +134,9 @@ object Operator {
    * Construct an operator from the provided special form data.
    * 
    * @param sfh		The parsed special form data.
-   * @param exec	An executor.  This is only required for symbolic operators.
    * @return	An operator.
    */
-  def apply(sfh: SpecialFormHolder, exec: Option[Executor] = None): Operator = {
+  def apply(sfh: SpecialFormHolder): Operator = {
     val bh = sfh.requireBindings
     bh.check(Map("name"->true, "cases"->false, "params"->false, "type"->false,
         "description"->false, "detail"->false, "evenmeta"->false,
@@ -146,9 +144,7 @@ object Operator {
     if (bh.either("cases", "params") == "cases") {
       CaseOperator(sfh)
     } else {
-      TypedSymbolicOperator(sfh,
-          exec.getOrElse(throw new OperatorDefinitionException(
-              "Missing executor for symbolic operator.")))
+      TypedSymbolicOperator(sfh)
     }
   }
   
@@ -421,10 +417,9 @@ object TypedSymbolicOperator {
    * Make a typed symbolic operator from the provided special form data.
    * 
    * @param sfh		The parsed special form data.
-   * @param exec	The executor needed by certain native operators.
    * @return	The typed symbolic operator.
    */
-  def apply(sfh: SpecialFormHolder, exec: Executor): TypedSymbolicOperator = {
+  def apply(sfh: SpecialFormHolder): TypedSymbolicOperator = {
     val bh = sfh.requireBindings
     bh.check(Map("name"->true, "params"->true, "type"->false,
         "description"->false, "detail"->false, "evenmeta"->false,
@@ -483,7 +478,7 @@ object TypedSymbolicOperator {
     // Now create the operator and install the handler, which might still be
     // None if we never got a handler.
     val tso = new TypedSymbolicOperator(sfh, name, typ, params,
-        description, detail, exec, evenMeta)
+        description, detail, evenMeta)
     tso.handler = handler
     tso
   }
@@ -496,14 +491,13 @@ object TypedSymbolicOperator {
    * @param params				The operator parameters.
 	 * @param description		An optional short description for the operator.
 	 * @param detail				Optional detailed help for the operator.
-	 * @param exec					An executor to pass to navive handler.
 	 * @param evenMeta			Apply this operator even when the arguments contain
 	 * 											meta-terms.  This is not advisable, and you should
 	 * 											probably leave this with the default value of false.
    * @return	The typed symbolic operator.
    */
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
-      description: String, detail: String, exec: Executor,
+      description: String, detail: String,
       evenMeta: Boolean = false): TypedSymbolicOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name"->nameS) + ("params"->params) +
@@ -511,7 +505,7 @@ object TypedSymbolicOperator {
     		("detail"->Literal(detail)) + ("evenmeta"->Literal(evenMeta))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
     return new TypedSymbolicOperator(sfh, name, typ, params,
-        description, detail, exec, evenMeta)
+        description, detail, evenMeta)
   }
   
   /**
@@ -535,16 +529,15 @@ object TypedSymbolicOperator {
  * @param name			The operator name.
  * @param typ				The type of the fully-applied operator.
  * @param params		The operator parameters.
- * @param exec					An executor to pass to native handlers.
  * @param evenMeta			Apply this operator even when the arguments contain
  * 											meta-terms.  This is not advisable, and you should
  * 											probably leave this with the default value of false.
  */
 class TypedSymbolicOperator private (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, params: AtomSeq,
-    description: String, detail: String, exec: Executor, evenMeta: Boolean)
+    description: String, detail: String, evenMeta: Boolean)
 		extends SymbolicOperator(sfh, name, typ, params,
-		    description, detail, exec, evenMeta) {
+		    description, detail, evenMeta) {
 	/**
    * The type of an operator is a mapping from the operator domain to the
    * operator codomain.
@@ -567,11 +560,10 @@ object SymbolicOperator {
 	 * @param evenMeta			Apply this operator even when the arguments contain
 	 * 											meta-terms.  This is not advisable, and you should
 	 * 											probably leave this with the default value of false.
-	 * @param exec					An executor to pass to native handlers.
    * @return	The typed symbolic operator.
    */
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
-      description: String, detail: String, exec: Executor,
+      description: String, detail: String,
       evenMeta: Boolean = false): SymbolicOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name"->nameS) + ("params"->params) +
@@ -579,7 +571,7 @@ object SymbolicOperator {
     		("detail"->Literal(detail) + "evenmeta"->Literal(evenMeta))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
     return new SymbolicOperator(sfh, name, typ, params, description,
-        detail, exec, evenMeta)
+        detail, evenMeta)
   }
   
   /**
@@ -590,13 +582,6 @@ object SymbolicOperator {
    */
   def unapply(so: SymbolicOperator) = Some((so.name, so.theType, so.params))
   
-  /** Make a trivial executor so we can build the well-known operators. */
-  private val _trivialExec = new Executor {
-    val context = new Context()
-    def parse(text: String) = ParseFailure("This executor does not implement " +
-    		"parsing, and this message indicates an internal error.")
-  }
-
   /** The well-known MAP operator. */
   val MAP = OperatorRef(
       SymbolicOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain),
@@ -604,7 +589,7 @@ object SymbolicOperator {
           """|This operator is used to construct types for operators.  It
              |indicates a mapping from one type (the domain) to another type
              |(the codomain).
-          """.stripMargin, _trivialExec))
+          """.stripMargin))
   /** The well-known cross product operator. */
   val xx = OperatorRef(
       SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y),
@@ -612,7 +597,7 @@ object SymbolicOperator {
           """|This operator is used to construct types for operators.  It
              |indicates the cross product of two atoms (typically types).
              |These originate from the types of the parameters of an operator.
-          """.stripMargin, _trivialExec))
+          """.stripMargin))
   /** The well-known list operator. */
   val LIST = OperatorRef(
       SymbolicOperator("LIST", ANY, AtomSeq(NoProps, 'type),
@@ -620,7 +605,7 @@ object SymbolicOperator {
           """|This operator is used to indicate the type of a list.  It
              |takes a single argument that is the type of the atoms in
              |the list.  For heterogeneous lists this will be ANY.
-          """.stripMargin, _trivialExec))
+          """.stripMargin))
   
   /**
    * Compute an operator type.
@@ -652,11 +637,10 @@ object SymbolicOperator {
  * @param evenMeta			Apply this operator even when the arguments contain
  * 											meta-terms.  This is not advisable, and you should
  * 											probably leave this with the default value of false.
- * @param exec					An executor.  This is needed for native handlers.
  */
 protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     name: String, typ: BasicAtom, val params: AtomSeq,
-    description: String, detail: String, exec: Executor, evenMeta: Boolean)
+    description: String, detail: String, evenMeta: Boolean)
 		extends Operator(sfh, name, typ, params, description, detail, evenMeta) {
 	override val theType: BasicAtom = ANY
 	
@@ -828,7 +812,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 		      // See if we are bypassing the native handler.
 		      if (!bypass) {
 		        // Run any native handler.
-		        val ad = new ApplyData(this, newargs, binds, exec)
+		        val ad = new ApplyData(this, newargs, binds)
 		        if (handler.isDefined) return handler.get(ad)
 		      }
 		      // No native handler.

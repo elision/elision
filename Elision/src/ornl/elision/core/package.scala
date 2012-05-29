@@ -58,6 +58,19 @@ package object core {
   val `^TYPE` = TypeUniverse
   
   /**
+   * Maintain an executor to use.  The provided default executor always
+   * throws an exception when invoked from a native handler, so you must
+   * replace this with something rational as soon as reasonable.
+   */
+  implicit var executor: Executor = new Executor {
+    def context = new Context()
+    def parse(text: String): ParseResult = ParseFailure(
+        "This default executor cannot parse text; override this with a full" +
+        "executor implementation to properly support parsing from within" +
+        "native operators.")
+  }
+  
+  /**
    * Provide a convenient method to compute a hash code from many different
    * objects.  This is intended to be suitable for a few basic cases.
    * 
