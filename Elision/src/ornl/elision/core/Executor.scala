@@ -28,6 +28,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package ornl.elision.core
+import ornl.elision.ElisionException
+
+/**
+ * The cache contains the wrong type of item for the requested key.
+ * 
+ * @param msg		The human-readable message explaining the problem.
+ */
+class CacheException(msg: String) extends ElisionException(msg)
 
 /**
  * An executor is a class that can convert a string into a sequence of atoms.
@@ -53,6 +61,61 @@ trait Executor {
    * @param err	The reason for the parsing failure.
    */
   case class ParseFailure(err: String) extends ParseResult
+  
+  /** Cache for use by native methods. */
+  private val _cache = scala.collection.mutable.HashMap[String,Any]()
+  
+  /**
+   * Provide typed access to the content of the cache.  This is intended for
+   * use by native operators.  To avoid conflicts, name your cache entries
+   * starting with your operator name.  This causes a performance hit, so
+   * in general avoid using the cache.  Find somewhere else to shove your
+   * data!
+   * 
+   * If the key is present, but of the wrong type, an exception is thrown.
+   * This is a `CacheException`.
+   * 
+   * @param key			The key for the item to retrieve.
+   * @param default	The value to return if the specified key is not present.
+   * 								If this is returned, it is also stored, so be sure to type
+   * 								it correctly.
+   * @return	The requested value, or the default value.
+   */
+  def fetchAs[TYPE](key: String, default: TYPE)
+  (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
+    _cache.get(key) match {
+      case None =>
+        _cache(key) = default
+        default
+      case Some(item) =>
+        if (mTYPE >:> Manifest.classType(key.getClass))
+          throw new CacheException(
+              "The cache entry for key " + toESymbol(key) +
+              " is of the wrong type.  Expected " + mTYPE.toString +
+              " but got " + Manifest.classType(key.getClass) + ".")
+        else
+          item.asInstanceOf[TYPE]
+    }
+  }
+  
+  /**
+   * Stash a value in the cache for later lookup with `fetchAs`.  Read the
+   * documentation for `fetchAs` before you use the cache!
+   * 
+   * @param key		The key.
+   * @param value	The value.
+   * @return	This executor.
+   */
+  def stash[TYPE](key: String, value: TYPE)
+  (implicit mTYPE: scala.reflect.Manifest[TYPE]) = {
+    _cache(key) = value
+    this
+  }
+  
+  /**
+   * Get a console native handlers can use.
+   */
+  def console: Console
   
   /**
    * Get the context used by this executor instance.

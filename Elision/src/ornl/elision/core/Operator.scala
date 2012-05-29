@@ -70,11 +70,15 @@ class HandHolder(
  * @param op			The operator.
  * @param args		The argument list.
  * @param binds		Bindings of parameter to argument value.
+ * @param exec		An executor.
  */
 class ApplyData(val op: SymbolicOperator, val args: AtomSeq,
-    val binds: Bindings) {
-  ///** Provide fast access to the context from the executor. */
-  //val context = exec.context
+    val binds: Bindings)(implicit exec: Executor) {
+  /** Provide fast access to the context from the executor. */
+  val context = exec.context
+  
+  /** Provide fast access to the console from the executor. */
+  val console = exec.console
   
   /** Just preserve the apply as it is. */
   def as_is = Apply(op, args, true)
@@ -396,13 +400,19 @@ class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings
  * Construction and matching of typed symbolic operators.
  */
 object TypedSymbolicOperator {
+  // Get the path separator.
+  private val _prop = new scala.sys.SystemProperties
+  private val _ps = _prop("path.separator")
 
+  // Get the current class path and convert it into a proper path expression.
   private lazy val _urls =
     java.lang.Thread.currentThread.getContextClassLoader match {
 	  case cl: java.net.URLClassLoader => cl.getURLs.toList
 	  case _ => sys.error("classloader is not a URLClassLoader")
 	}
-  private lazy val _classpath = (_urls.map(_.toString)).mkString(":")
+  private lazy val _classpath = (_urls.map(_.toString)).mkString(_ps)
+  
+  // Build a settings with the correct classpath.
   private val _settings = new scala.tools.nsc.Settings(println _) {
     override val classpath = PathSetting("-cp", "Classpath", _classpath) 
   }

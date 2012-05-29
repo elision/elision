@@ -63,7 +63,8 @@ package object core {
    * replace this with something rational as soon as reasonable.
    */
   implicit var executor: Executor = new Executor {
-    def context = new Context()
+    val console = PrintConsole 
+    val context = new Context()
     def parse(text: String): ParseResult = ParseFailure(
         "This default executor cannot parse text; override this with a full" +
         "executor implementation to properly support parsing from within" +
@@ -282,8 +283,6 @@ package object core {
      * @return	The new sequence.
      */
     def apply[A](items: A*): OmitSeq[A] = new OmitSeq1[A](items.toIndexedSeq)
-    
-    var depth = 0
   }
   
   /**
@@ -298,13 +297,7 @@ package object core {
     
     // Proxy to backing sequence.
     def apply(index: Int) = {
-      OmitSeq.depth += 1
-      if (OmitSeq.depth > 20) {
-        throw new OutOfMemoryError("STOP")
-      }
-      val ret = backing(index)
-      OmitSeq.depth -= 1
-      ret
+      backing(index)
     }
     
     /**

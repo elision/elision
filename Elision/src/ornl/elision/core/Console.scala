@@ -27,10 +27,17 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.parse
+package ornl.elision.core
 
 import scala.actors.Actor
 import scala.actors.Actor._
+
+/**
+ * A simple console that uses `print` to write to the standard output.
+ */
+object PrintConsole extends Console {
+  def send(text: String) { print(text) }
+}
 
 /**
  * Provide communication with a console.  By default this uses the standard
@@ -54,12 +61,17 @@ trait Console {
   }
   
   /**
-   * Send the given text to the appropriate destination.  If you want to change
-   * where output goes, override this method.
+   * See if quiet is enabled.
+   */
+  def quiet = _quiet
+  
+  /**
+   * Send the given text to the appropriate destination.  This is the method
+   * that controls where output goes, and which must be implemented.
    * 
    * @param text	The text to send.
    */
-  def send(text: String) { print(text) }
+  def send(text: String): Unit
   
   /**
    * Send the given text to the appropriate destination, followed by the end

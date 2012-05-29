@@ -29,7 +29,7 @@
  */
 package ornl.elision.parse
 
-import ornl.elision.core.{BasicAtom, Context}
+import ornl.elision.core.{BasicAtom, Context, Executor, PrintConsole}
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 
 /**
@@ -46,7 +46,8 @@ import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
  * 
  * @param context		The context to use; if none is provided, use an empty one.
  */
-class Processor(val console: Console, val context: Context = new Context) {
+class Processor(val context: Context = new Context)
+extends Executor {
   /** Whether to trace the parser. */
   private var _trace = false
 
@@ -56,11 +57,13 @@ class Processor(val console: Console, val context: Context = new Context) {
   /** The parser to use. */
   private var _parser = new AtomParser(context, _trace)
   
+  val console = PrintConsole
+  
   /**
    * Display the banner, version, and build information on the current
-   * console using the `emitln` method.
+   * console using the `emitln` method of the console.
    */
-  private def banner() {
+  protected def banner() {
     import Version._
     val buf = new StringBuffer()
     console.emitln(
@@ -72,16 +75,34 @@ class Processor(val console: Console, val context: Context = new Context) {
 					 |
 					 |Copyright (c) 2012 by UT-Battelle, LLC.
 					 |All rights reserved.""".stripMargin)
-    //_hist.add("// New Session: " + new java.util.Date)
+    addHistoryLine("// New Session: " + new java.util.Date)
     if (loaded) {
     	console.emitln("Version " + major + "." + minor + ", build " + build)
     	console.emitln("Web " + web)
-    	//_hist.add("// Running: " + major + "." + minor +
-    	//    ", build " + build)
+    	addHistoryLine("// Running: " + major + "." + minor +
+    	    ", build " + build)
     } else {
       console.emitln("Failed to load version information.")
     }
   }
+  
+  /**
+   * Add a line to the history, if one is being maintained.  If the processor
+   * maintains a history it should override this to enable adding the given
+   * line to the history, if that is desired.  This is used by the system to
+   * add informational lines to the history.  The default implementation does
+   * nothing.
+   * 
+   * @param line	The line to add to the history.
+   */
+  def addHistoryLine(line: String) {}
+  
+  /**
+   * Get an iterator over the history.  By default this returns the empty
+   * iterator, so override this to return the appropriate iterator if your
+   * processor supports history.
+   */
+  def getHistoryIterator: Iterator[String] = Set().iterator
   
   /**
    * Read the content of the provided file.
@@ -126,6 +147,13 @@ class Processor(val console: Console, val context: Context = new Context) {
    */
   def execute(text: String) {
     _execute(_parser.parseAtoms(text))
+  }
+  
+  def parse(text: String) = {
+    _parser.parseAtoms(text) match {
+      case Failure(err) => ParseFailure(err)
+      case Success(nodes) => ParseSuccess(nodes map (_.interpret))
+    }
   }
   
   private def _execute(result: Presult) {
@@ -215,6 +243,52 @@ class Processor(val console: Console, val context: Context = new Context) {
 	def register(handler: Processor.Handler) {
 	  _queue = _queue :+ handler
 	}
+	  
+  /**
+   * Save the current context in response to an exception or other
+   * unrecoverable error.
+   * 
+   * @param msg		A human-readable message.
+   * @param th		An optional throwable.
+   */
+  private def _coredump(msg: String, th: Option[Throwable] = None) {
+    val cfile = new java.io.FileWriter("elision.core")
+    if (cfile != null) {
+      val binds = <binds>{context.binds.toParseString}</binds>
+      val ops = <operator-library>{context.operatorLibrary.toParseString}</operator-library>
+      val rules = <rule-library>{context.ruleLibrary.toParseString}</rule-library>
+      val err = th match {
+        case None => <error/>
+        case Some(ex) =>
+          <error message={ex.getMessage}>{
+            ex.getStackTrace map { item =>
+              <item>{item}</item>
+            }
+          }</error>
+      }
+      val date = (new java.util.Date).toString
+      val hist = <history>{
+        val buf = new StringBuffer()
+        val it = getHistoryIterator
+        while (it.hasNext) buf.append(it.next).append('\n')
+        buf.toString
+      }</history>
+      val all = <elision-core when={date} msg={msg}>
+      		{err}
+      		{binds}
+      		{ops}
+      		{rules}
+      		{hist}
+      		</elision-core>
+  		scala.xml.XML.write(cfile,all,"utf-8",true,null)
+      //cfile.write(new scala.xml.PrettyPrinter(80, 2).format(all))
+      cfile.flush()
+      cfile.close()
+      console.emitln("Wrote core dump to elision.core.")
+    } else {
+      console.warn("Unable to save core dump.")
+    }
+  } 
 }
 
 /**

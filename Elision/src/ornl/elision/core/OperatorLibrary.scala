@@ -70,10 +70,10 @@ class UndefinedOperatorException(msg: String) extends ElisionException(msg)
  * 
  * @param allowRedefinition	If true, allow redefinition of operators (madness)
  * 													as described above.  A warning is always generated!
- * 													This is false by default.
+ * 													This is true by default.
  */
 class OperatorLibrary(
-    val allowRedefinition: Boolean = false) extends Fickle with Mutable {
+    val allowRedefinition: Boolean = true) extends Fickle with Mutable {
 
   /**
    * The mapping from operator name to operator.  This holds the mapping as it
