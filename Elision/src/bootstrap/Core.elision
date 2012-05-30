@@ -194,9 +194,9 @@ def({! write($filename: STRING)
       #handler=
 """|args match {
    |  case Args(StringLiteral(_, filename)) =>
-   |    val cfile = new FileWriter(filename)
+   |    val cfile = new java.io.FileWriter(filename)
    |    if (cfile != null) {
-   |      cfile.write(_context.toParseString)
+   |      cfile.write(context.toParseString)
    |      cfile.flush()
    |      cfile.close()
    |    } else {
@@ -248,15 +248,10 @@ def({! unbind($v)
 
 def({! showbinds()
       #handler=
-"""|args match {
-   |  case Args() => {
-   |    println(context.binds.filterKeys(!_.startsWith("_")).map {
-   |      pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
-   |    }.mkString("{ bind\n", ",\n", "\n}"))
-   |    _no_show
-   |  }
-   |  case _ => _no_show
-   |}"""
+"""|println(context.binds.filterKeys(!_.startsWith("_")).map {
+   |  pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
+   |}.mkString("{ bind\n", ",\n", "\n}"))
+   |_no_show"""
       #description="Show the bindings in the current context."
       #detail=
 """|Show all the bindings present in the current context, except for bindings
@@ -264,17 +259,43 @@ def({! showbinds()
    |"private." """
 })
 
+def({! applybinds() #handler=
+"""|emitln("Applying stored bindings to atoms is " +
+   |  (if (exec.stash("applybinds", !exec.fetchAs[Boolean]("applybinds", true)))
+   |     "ON."
+   |   else
+   |     "OFF."))
+   |_no_show"""
+      #description="Toggle whether to apply the bindings to atoms."
+      #detail=
+"""|Enable or disable rewriting of atoms with the currently stored bindings.
+   |Use bind and unbind to add and remove bindings, and showbinds to see all
+   |bindings currently in effect (except REPL bindings)."""
+})
+
+def({! setreplbinds() #handler=
+"""|emitln("Generating REPL binds is " +
+   |  (if (exec.stash("setreplbinds", !exec.fetchAs[Boolean]("setreplbinds", true)))
+   |     "ON."
+   |   else
+   |     "OFF."))
+   |_no_show"""
+      #description="Toggle whether to automatically create $_repl binds."
+      #detail=
+"""|Enable or disable the automatic creation of $_repl bindings.  These are
+   |numbered bindings created for each atom evaluated by the REPL."""
+})
+
 //======================================================================
 // Tracing and timing.
 //======================================================================
 
 def({! traceparse() #handler=
-"""|args match {
-   |  case Args() =>
+"""|exec match {
+   |  case tp: TraceableParse =>
    |    // Toggle tracing.
-   |    _trace = !_trace
-   |    _parser = new AtomParser(_context, _trace)
-   |    emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
+   |    tp.trace = !tp.trace
+   |    emitln("Parser tracing is " + (if (tp.trace) "ON." else "OFF."))
    |    _no_show
    |  case _ => _no_show
    |}"""
@@ -288,7 +309,7 @@ def({! traceparse() #handler=
    |tracing."""
 })
 
-def({! tracematch() #tracematch=
+def({! tracematch() #handler=
 """|args match {
    |  case Args() =>
    |    // Toggle tracing.
@@ -305,7 +326,15 @@ def({! tracematch() #tracematch=
    |variety of reasons, so you may see some unexpected output here."""
 })
 
-def({! timing($f:BOOLEAN)
+def({! timing($f:BOOLEAN) #handler=
+"""|exec match {
+   |  case tm: Timeable =>
+   |    // Toggle timing.
+   |    tm.timing = !tm.timing
+   |    emitln("Timing is " + (if (tm.timing) "ON." else "OFF."))
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Toggle showing the evaluation time."
       #detail=
 """|Toggle showing the total elapsed "wall clock" time to evaluate an atom.
@@ -316,7 +345,13 @@ def({! timing($f:BOOLEAN)
 // Display.
 //======================================================================
 
-def({! showscala()
+def({! showscala() #handler=
+"""|emitln("Showing Scala source is " +
+   |  (if (exec.stash("showscala", !exec.fetchAs[Boolean]("showscala", false)))
+   |     "ON."
+   |   else
+   |     "OFF."))
+   |_no_show"""
       #description="Toggle showing the Scala version of parsed atoms."
       #detail=
 """|Enable or disable display of the Scala code to create each atom that the
@@ -324,7 +359,13 @@ def({! showscala()
    |package for Elision."""
 })
 
-def({! showprior()
+def({! showprior() #handler=
+"""|emitln("Showing atom prior to binding is " +
+   |  (if (exec.stash("showprior", !exec.fetchAs[Boolean]("showprior", false)))
+   |     "ON."
+   |   else
+   |     "OFF."))
+   |_no_show"""
       #description=
         "Toggle showing the atom prior to applying bindings and rewriting."
       #detail=
@@ -333,7 +374,10 @@ def({! showprior()
    |rewriting attempts."""
 })
 
-def({! quiet()
+def({! quiet() #handler=
+"""|exec.console.quiet = !exec.console.quiet
+   |emitln("Quiet is " + (if (exec.console.quiet) "enabled." else "disabled."))
+   |_no_show"""
       #description="Toggle disable most output."
       #detail=
 """|Enable or disable printing of most output.  Explicitly requested output is
@@ -341,7 +385,17 @@ def({! quiet()
    |q> prompt."""
 })
 
-def({! history()
+def({! history() #handler=
+"""|exec match {
+   |  case hh: HasHistory =>
+   |    // Show the history.
+   |    val it = hh.getHistoryIterator
+   |    while (it.hasNext) println(it.next)
+   |    println("Persistent history is found in: " + hh.getHistoryFilename)
+   |    _no_show
+   |  case _ =>
+   |    _no_show
+   |}"""
       #description="Show the current history."
       #detail=
 """|Show the current history of lines executed.  This history is numbered, and
@@ -353,14 +407,21 @@ def({! history()
 // Error reporting.
 //======================================================================
 
-def({! fail()
+def({! fail() #handler=
+"""|throw new VerifyError("core dump requested by user")"""
       #description="Generate a runtime exception."
       #detail=
 """|Generate a runtime exception (a VerifyError).  This causes a core dump and
    |may be useful if you are trying to debug the system."""
 })
 
-def({! stacktrace()
+def({! stacktrace() #handler=
+"""|emitln("Showing stack trace on exceptions is " +
+   |  (if (exec.stash("stacktrace", !exec.fetchAs[Boolean]("stacktrace", false)))
+   |     "ON."
+   |   else
+   |     "OFF."))
+   |_no_show"""
       #description="Toggle whether or not a stack trace is shown."
       #detail=
 """|For non-Elision exceptions the exception message is shown, but the stack

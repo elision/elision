@@ -38,6 +38,141 @@ import ornl.elision.ElisionException
 class CacheException(msg: String) extends ElisionException(msg)
 
 /**
+ * Indicate that it a history is maintained.  Limited access to the history
+ * is granted by implementing this trait.
+ */
+trait HasHistory {  
+  /**
+   * Add a line to the history, if one is being maintained.  If the processor
+   * maintains a history it should override this to enable adding the given
+   * line to the history, if that is desired.  This is used by the system to
+   * add informational lines to the history.  The default implementation does
+   * nothing.
+   * 
+   * @param line  The line to add to the history.
+   */
+  def addHistoryLine(line: String) {}
+  
+  /**
+   * Get an iterator over the history.  By default this returns the empty
+   * iterator, so override this to return the appropriate iterator if your
+   * processor supports history.
+   */
+  def getHistoryIterator: Iterator[String] = Set().iterator
+  
+  /**
+   * Get the file that holds the persistent history.  By default this returns
+   * the string `(no history file)`, so you should override this if you have
+   * a history file.
+   */
+  def getHistoryFilename: String = "(no history file)"
+}
+
+/**
+ * Indicate that it is possible to enable and disable tracing of parsing at
+ * runtime.  An executor may (or may not) implement this.
+ * 
+ * Typically enabling and disabling tracing require rebuilding the parser, so
+ * this trait is abstract.
+ */
+trait TraceableParse {
+  /**
+   * Specify whether to trace the parser.
+   * 
+   * @param enable  If true, trace the parser.  If false, do not.
+   */
+  def trace_=(enable: Boolean): Unit
+  
+  /**
+   * Determine whether tracing is enabled.
+   */
+  def trace: Boolean
+}
+
+/**
+ * Specify that it is possible to enable and disable printing the execution
+ * time of each atom that is parsed.  To use this you must implement the
+ * `reportElapsed` method that reports the elapsed time, and make sure that the
+ * `startTimer` and `stopTimer` methods are called at the appropriate places.
+ * 
+ * Do not use `reportElapsed` directly.  Implement it, and then invoke
+ * `showElapsed` at the appropriate place in your code.  The `showElapsed`
+ * method does nothing if timing is disabled, and invokes `reportElapsed` if
+ * it is.
+ * 
+ * Even when timing is disabled, the elapsed time information is still kept
+ * by `startTimer` and `stopTimer`, and can be checked by `getLastTimeMillis`,
+ * `getLastTime`, or `getLastTimeString`.
+ */
+trait Timeable {
+  /** Whether timing is enabled. */
+  private var _timing = false
+  
+  /** Most recent time at start. */
+  private var _starttime = 0L
+  
+  /** Most recent `start`..`stop` interval. */
+  private var _elapsed = 0L
+  
+  /**
+   * Specify whether to time each atom's "execution."
+   * 
+   * @param enable  If true, enable timing.  If false, do not.
+   */
+  def timing_=(enable: Boolean) {
+    _timing = enable
+  }
+  
+  /** Determine whether timing is enabled. */
+  def timing = _timing
+  
+  /** Start the timer. */
+  def startTimer { _starttime = java.lang.System.currentTimeMillis() }
+
+  /** Stop the timer. */
+  def stopTimer { _elapsed = java.lang.System.currentTimeMillis() - _starttime }
+  
+  /**
+   * Get the most recent duration.  This is set by `stopTimer` and is reported
+   * in milliseconds.
+   */
+  def getLastTimeMillis = _elapsed
+  
+  /**
+   * Get the most recent duration.  This is set by `stopTimer` and is reported
+   * as a triple of minutes, seconds, and milliseconds.
+   */
+  def getLastTime = {
+    (_elapsed / 60000, (_elapsed % 60000 / 1000), _elapsed % 1000)
+  }
+  
+  /**
+   * Get the most recent duration.  This is set by `stopTimer` and is reported
+   * as a string of the form:
+   * `MMMM:SS:mmm`
+   * Where `MMMM` is the elapsed minutes, `SS` is the elapsed seconds, and
+   * `mmm` is the elapsed milliseconds.
+   */
+  def getLastTimeString = {
+    val (min,sec,mil) = getLastTime
+    "%4d:%02d.%03d".format(min,sec,mil)
+  }
+    
+  /**
+   * If timing is enabled, generate a report on the most recent elapsed
+   * interval measured by `startTimer`..`stopTimer`.
+   */
+  def showElapsed { if (_timing) reportElapsed }
+  
+  /**
+   * The report method.  Implement this to generate a report.  Nothing
+   * is provided; use one of the `getLastTime` methods to get elapsed time
+   * data.  This is not intended for multithreaded use.
+   */
+  protected def reportElapsed: Unit
+}
+
+/**
  * An executor is a class that can convert a string into a sequence of atoms.
  * 
  * This can be done by parsing the usual Elision representation of atoms, or
@@ -104,12 +239,12 @@ trait Executor {
    * 
    * @param key		The key.
    * @param value	The value.
-   * @return	This executor.
+   * @return The stored value.
    */
   def stash[TYPE](key: String, value: TYPE)
   (implicit mTYPE: scala.reflect.Manifest[TYPE]) = {
     _cache(key) = value
-    this
+    value
   }
   
   /**

@@ -115,6 +115,8 @@ class NewRepl extends Processor {
     def next = it.next.toString
   }
   
+  override def getHistoryFilename = _filename
+  
   //======================================================================
   // Define the REPL control fields.
   //======================================================================
@@ -126,14 +128,48 @@ class NewRepl extends Processor {
   // Register handlers.
   //======================================================================
   
+  def showatom(prefix: String, atom: BasicAtom) {
+    if (fetchAs[Boolean]("showscala", false))
+      // This is explicitly requested output, show show it regardless of the
+      // quiet setting.
+      console.sendln("Scala: " + prefix + atom.toString)
+    console.emitln(prefix + atom.toParseString)
+  }
+  
   this.register {
+    // Register a basic handler that applies the context bindings to the
+    // atom.
+    new Processor.Handler {
+      override def handleAtom(atom: BasicAtom) = {
+        if (fetchAs[Boolean]("showprior", false))
+          showatom("", atom)
+        if (fetchAs[Boolean]("applybinds", true))
+          Some(atom.rewrite(context.binds)._1)
+        else
+          Some(atom)
+      }
+    }
+    
+    // Register a basic handler that discards "no show" atoms and prints
+    // the result of evaluation.  This handler will also create a REPL
+    // bind if that is enabled.
     new Processor.Handler {
       override def handleAtom(atom: BasicAtom) = {
         if (atom eq ApplyData._no_show) None
         else Some(atom)
       }
       override def result(atom: BasicAtom) = {
-        println(" == " + atom.toParseString)
+        // If we are binding atoms, bind it to a new REPL variable.
+        if (fetchAs[Boolean]("setreplbinds", true)) {
+          // Get the current binding index.
+          val index = "_repl" +
+              stash("setreplbinds.index", fetchAs[Int]("setreplbinds.index", 0)+1)
+          // Commit the binding.
+          context.bind(index, atom)
+          showatom("$"+index+" = ", atom)
+        } else {
+          showatom("", atom)
+        }
       }
     }
   }
@@ -147,7 +183,7 @@ class NewRepl extends Processor {
     banner()
 
     // Start the clock.
-    var starttime = java.lang.System.currentTimeMillis()
+    startTimer
 
     // Define the operators.
     read("src/bootstrap/Boot.elision")
@@ -159,12 +195,8 @@ class NewRepl extends Processor {
     cr.setHistory(_hist)
     
     // Report startup time.
-    var endtime = java.lang.System.currentTimeMillis()
-    val elapsed = endtime - starttime
-    val mins = elapsed / 60000
-    val secs = (elapsed % 60000) / 1000
-    val mils = elapsed % 1000
-    printf("Startup Time: %d:%02d.%03d\n", mins, secs, mils)
+    stopTimer
+    printf("Startup Time: " + getLastTimeString + "\n")
     
     // Start main loop.
     while(true) {
@@ -219,22 +251,9 @@ class NewRepl extends Processor {
       // Flush the console.  Is this necessary?
       cr.flush()
       
-      // Record the start time.
-      starttime = java.lang.System.currentTimeMillis()
-      
       // Run the line.
       execute(line)
       //println(scala.tools.jline.TerminalFactory.create().getWidth())
-      
-      // If we are reporting timing, do that now.
-      if (_timing) {
-        endtime = java.lang.System.currentTimeMillis()
-        val elapsed = endtime - starttime
-        val mins = elapsed / 60000
-        val secs = (elapsed % 60000) / 1000
-        val mils = elapsed % 1000
-        printf("elapsed: %d:%02d.%03d\n", mins, secs, mils)
-      }
     } // Forever read, eval, print.
   }
   
