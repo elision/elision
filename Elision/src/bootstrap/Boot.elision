@@ -55,8 +55,11 @@
 	        console.error("Atom is not a named operator: " + op.toParseString)
 	        ApplyData._no_show
 	      case _ =>
+	        console.error("Expected exactly one operator argument.  Got: " +
+	          args.toParseString)
 	        ApplyData._no_show
 	    })
+	ApplyData._no_show
 """}.%()
 
 // The next operator we need is read_once so we can read the rest of the
@@ -76,7 +79,7 @@ def({! read_once($filename: STRING) #handler="""
       case Args(StringLiteral(_, filename)) =>
         if (!included.contains(filename)) {
           included += filename
-          val cfile = new BufferedReader(new FileReader(filename))
+          val cfile = new java.io.BufferedReader(new java.io.FileReader(filename))
           if (cfile != null) {
             var buf = new StringBuilder
             var go = true
@@ -103,7 +106,7 @@ def({! read_once($filename: STRING) #handler="""
    |from this action."""
 })
 
-read_once("Core.elision")
-read_once("Context.elision")
-read_once("Strategies.elision")
-read_once("Math.elision")
+read_once("src/bootstrap/Core.elision")
+read_once("src/bootstrap/Context.elision")
+read_once("src/bootstrap/Strategies.elision")
+read_once("src/bootstrap/Math.elision")

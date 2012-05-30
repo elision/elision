@@ -115,7 +115,7 @@ def({! _help_op($r: OPREF)
       #handler="""|args match {
                   |  case Args(or: OperatorRef) =>
                   |    // Give some help.
-                  |    emitln(_context.operatorLibrary.help(
+                  |    emitln(context.operatorLibrary.help(
                   |      new StringBuffer(), or).toString)
                   |    _no_show
                   |  case _ =>
@@ -132,10 +132,10 @@ def({! _help_all()
           	      |    // Give some help.
                   |    val width = scala.tools.jline.TerminalFactory.create().getWidth()
                   |    println("Elision Help\n")
-                  |    emitln(_context.operatorLibrary.help(
+                  |    emitln(context.operatorLibrary.help(
                   |      new StringBuffer(), width).toString)
 		          |    println("Use ! followed by a number to re-execute a " +
-		          |      "line from the history.\n\nTo quit type :quit.\n"
+		          |      "line from the history.\n\nTo quit type :quit.\n")
 		          |    _no_show
                   |  case _ => _no_show
                   |}"""
@@ -149,7 +149,7 @@ def({! _help_all()
 def({ operator #name=help
       #cases
             %($r:OPREF)->_help_op($r), 
-            help_all:OPREF
+            _help_all:OPREF
       #description="Get general help or help on an operator."
       #detail=
 """|With no argument, list all operators.  If provided with an operator
@@ -163,9 +163,8 @@ def({ operator #name=help
 def({! read($filename: STRING)
       #handler="""|args match {
                   |  case Args(StringLiteral(_, filename)) =>
-                  |    val qt = _quiet
-                  |    val ba = _bindatoms
-                  |    val cfile = new BufferedReader(new FileReader(filename))
+                  |    val cfile = new java.io.BufferedReader(
+                  |      new java.io.FileReader(filename))
                   |    if (cfile != null) {
                   |      var buf = new StringBuilder
                   |      var go = true
@@ -174,16 +173,12 @@ def({! read($filename: STRING)
                   |        if (line != null) buf.append(line).append('\n')
                   |        else go = false
                   |      }
-                  |      _quiet = true
-                  |      _bindatoms = false
-                  |      execute(buf.toString)
+                  |      exec.parse(buf.toString)
                   |      println(buf)
                   |      cfile.close()
                   |    } else {
                   |      error("Unable to open file.")
                   |    }
-                  |    _quiet = qt
-                  |    _bindatoms = ba
                   |    _no_show
                   |  case _ => _no_show
                   |}"""

@@ -62,7 +62,7 @@ package object core {
    * throws an exception when invoked from a native handler, so you must
    * replace this with something rational as soon as reasonable.
    */
-  implicit var executor: Executor = new Executor {
+  implicit var knownExecutor: Executor = new Executor {
     val console = PrintConsole 
     val context = new Context()
     def parse(text: String): ParseResult = ParseFailure(

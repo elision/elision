@@ -41,7 +41,7 @@ dir=`dirname $0`
 
 # Find all the jar files in the lib folder and build a classpath containing
 # them and the bin folder.
-val=`for file in \`find lib -name '*.jar'\` ; do \
+val=`for file in \`find $dir/lib -name '*.jar'\` ; do \
   echo -n $file":"; \
   done`"$dir/bin"
 

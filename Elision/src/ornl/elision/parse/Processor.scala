@@ -48,6 +48,9 @@ import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
  */
 class Processor(val context: Context = new Context)
 extends Executor {
+  // We are the implicit executor.
+  ornl.elision.core.knownExecutor = this
+  
   /** Whether to trace the parser. */
   private var _trace = false
 

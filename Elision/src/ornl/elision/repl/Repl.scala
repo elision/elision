@@ -229,7 +229,7 @@ object Repl {
   /**
    * Display the banner.
    */
-  private def banner() {
+  def banner() {
     import ornl.elision.parse.Version._
     emitln("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __

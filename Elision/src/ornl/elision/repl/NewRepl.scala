@@ -123,6 +123,22 @@ class NewRepl extends Processor {
   private var _timing = false
  
   //======================================================================
+  // Register handlers.
+  //======================================================================
+  
+  this.register {
+    new Processor.Handler {
+      override def handleAtom(atom: BasicAtom) = {
+        if (atom eq ApplyData._no_show) None
+        else Some(atom)
+      }
+      override def result(atom: BasicAtom) = {
+        println(" == " + atom.toParseString)
+      }
+    }
+  }
+  
+  //======================================================================
   // Methods.
   //======================================================================
   
