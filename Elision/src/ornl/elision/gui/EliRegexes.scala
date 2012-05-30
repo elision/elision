@@ -38,6 +38,8 @@ package ornl.elision.gui
 
 import util.matching._
 
+
+/** Provides regexes and some other useful data for performing syntax highlighting in Eva. */
 object EliRegexes {
 	val multilineComment = new Regex("""(/\*(\n|.)+?\*/)""",
 		"all")
@@ -158,7 +160,7 @@ object EliRegexes {
 		numDec -> EliWebColors.constants
 	)
 	
-	/** A map indicating what regexes need recursive parsing */
+	/** A map indicating what regexes need recursive parsing. -1 indicates that the regex does not need recursive parsing. Any other integer indicates the regex group in which recursive parsing will be performed. */
 	val recursableMap = Map[Regex, Int](
 		multilineComment -> -1,
 		singlelineComment -> -1,
@@ -189,16 +191,31 @@ object EliRegexes {
 		
 }
 
-/** Web color constants for parse string highlighting. */
+/** Web color constants for syntax highlighting in Eva. */
 object EliWebColors {
-	val default = "#000000" // Black. Just black.
-	val comments = "#007700" // Everfree green
-	val stringLits = "#888888" // Derpy gray
-	val vars = "#dd00dd" // Pie magenta
-	val keywords = "#ee9944" // Apple orange
-	val constants = "#0000ff" // Blue
-	val types = "#77a9dd" // Dash blue
-	val properties = "#9977cc" // Twilight lavender
+	/** Black, just black. */
+	val default = "#000000"
+	
+	/** Everfree green */
+	val comments = "#007700"
+	
+	/** Derpy gray */
+	val stringLits = "#888888"
+	
+	/** Pie magenta */
+	val vars = "#dd00dd"
+	
+	/** Apple orange */
+	val keywords = "#ee9944"
+	
+	/** Blue, just blue. */
+	val constants = "#0000ff"
+	
+	/** Dash cyan */
+	val types = "#77a9dd"
+	
+	/** Twilight lavender */
+	val properties = "#9977cc" 
 }
 
 

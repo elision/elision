@@ -48,7 +48,7 @@ import scala.collection.mutable.ListBuffer
 
 import sage2D._
 
-/** Used to display the properties of the currently selected node. */
+/** Used to display information about the currently selected node. */
 
 class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	background = mainGUI.bgColor
@@ -59,15 +59,13 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	label.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
 	contents += label
 	
-	val htmlKit = new javax.swing.text.html.HTMLEditorKit
-	
 	/** The EditorPane that displays the currently selected node's parse string */
 	val parseArea = new EditorPane {
 		editable = false
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
 		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
 		focusable = false
-		editorKit = htmlKit
+		editorKit = new javax.swing.text.html.HTMLEditorKit
 	}
 	
 	/** The scrolling pane that contains parseArea */
@@ -118,9 +116,10 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
 			val breaks = enforceLineWrap(text,50)
 			
+			// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
 			var insertedChars = 0
 			
-			// insert all of our <font></font> tags in their appropriate places.
+			// insert all of our <font></font> and <br/> tags in their appropriate places.
 			while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty) {
 				var tag = ""
 				var insertLoc = 0
@@ -128,7 +127,6 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) < breaks(0))) {
 					// insert a <font color=> tag
 					tag = """<font color=""" + "\"" + colors(0) + "\"" + """>"""
-					
 					insertLoc = starts(0)
 					starts.trimStart(1)
 					colors.trimStart(1)
@@ -138,6 +136,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 					insertLoc = ends(0)
 					ends.trimStart(1)
 				} else {
+					// insert a <br/> tag to enforce a line break
 					tag = """<br/>"""
 					insertLoc = breaks(0)
 					breaks.trimStart(1)
@@ -155,6 +154,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 			
 			// insert the line breaks.
 			while(!breaks.isEmpty) {
+				// insert a <br/> tag to enforce a line break
 				var tag = """<br/>"""
 				var insertLoc = breaks(0)
 				breaks.trimStart(1)
@@ -208,8 +208,6 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 							if(recGroup != -1) {
 								bestRecStart = myMatch.start(recGroup)
 								bestRecEnd = myMatch.end(recGroup)
-								
-								println(bestRecStart + " " + bestRecEnd)
 							}
 						}
 					case _ => // this regex could not be applied.
@@ -248,7 +246,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 		
 		while(edibleTxt.size > maxCols) {
 			edibleTxt = edibleTxt.drop(maxCols)
-			breaks += chompedChars + maxCols-1
+			breaks += chompedChars + maxCols
 			chompedChars += maxCols
 		}
 		
