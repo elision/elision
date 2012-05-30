@@ -607,6 +607,72 @@ object Repl {
     // Go get the buildin operators and define them.
     execute(BuiltinOperators.text.text)
     
+    // Get an operator from its reference.
+    _context.operatorLibrary.register("getop",
+        _data => _data.args match {
+          case Args(opref: OperatorRef) =>
+            // Get the referenced operator.
+            opref.operator
+          case _ => ApplyData._no_show
+        })
+        
+    // Enable or disable DeBruijn indices.
+    _context.operatorLibrary.register("setdebruijn",
+        _data => _data.args match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to use De Bruijn indices.
+            Lambda.useDeBruijnIndices = flag
+            emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
+            ApplyData._no_show
+          case _ => ApplyData._no_show
+        })
+        
+    // See if an atom is bindable or not.
+    _context.operatorLibrary.register("is_bindable",
+        _data => _data.args match {
+          case Args(term) =>
+            if (term.isBindable) Literal.TRUE else Literal.FALSE
+          case _ =>
+            _data.as_is
+        })
+    
+    // Fast evaluation.
+    _context.operatorLibrary.register("eval",
+        _data => _data.args match {
+          case Args(x) =>
+            // Immediately rewrite this with the context bindings,
+            // and return the result.
+            x.rewrite(context.binds)._1
+          case _ =>
+            NONE
+        })
+    
+    // Help on an operator.
+    _context.operatorLibrary.register("_help_op",
+        _data => _data.args match {
+          case Args(or: OperatorRef) =>
+            // Give some help.
+            emitln(context.operatorLibrary.help(new StringBuffer(), or).toString)
+            ApplyData._no_show
+          case _ =>
+            ApplyData._no_show
+        })
+        
+    // Help on all operators.
+    _context.operatorLibrary.register("_help_all",
+        _data => _data.args match {
+          case Args() =>
+            // Give some help.
+            val width = scala.tools.jline.TerminalFactory.create().getWidth()
+            println("Elision Help\n")
+            emitln(context.operatorLibrary.help(
+                new StringBuffer(), width).toString)
+            println("Use ! followed by a number to re-execute a " +
+                "line from the history.\n\nTo quit type :quit.\n")
+            ApplyData._no_show
+          case _ => ApplyData._no_show
+        })
+    
     // Bind.
     _context.operatorLibrary.register("bind",
         _data => _data.args match {

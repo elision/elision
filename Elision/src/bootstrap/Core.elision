@@ -191,6 +191,20 @@ def({! read($filename: STRING)
 })
 
 def({! write($filename: STRING)
+      #handler=
+"""|args match {
+   |  case Args(StringLiteral(_, filename)) =>
+   |    val cfile = new FileWriter(filename)
+   |    if (cfile != null) {
+   |      cfile.write(_context.toParseString)
+   |      cfile.flush()
+   |      cfile.close()
+   |    } else {
+   |      error("Unable to save context.")
+   |    }
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Write the content of the current context to a file."
       #detail=
 """Write the current context to the file specified by $filename."""
@@ -201,6 +215,15 @@ def({! write($filename: STRING)
 //======================================================================
 
 def({! bind($v,$a)
+      #handler=
+"""|args match {
+   |  case Args(from:Variable, to:BasicAtom) =>
+   |    // Bind the variable in this context.
+   |    context.bind(from.name, to)
+   |    emitln("Bound " + from.toParseString)
+   |    ApplyData._no_show
+   |  case _ => ApplyData._no_show
+   |}"""
       #description="Bind a variable to an atom."
       #detail=
 """|Bind the variable $v to the atom $a in the current context.  Variable
@@ -209,12 +232,31 @@ def({! bind($v,$a)
 })
 
 def({! unbind($v)
+      #handler=
+"""|args match {
+   |  case Args(from:Variable) =>
+   |    // Unbind the variable in this context.
+   |    context.unbind(from.name)
+   |    emitln("Unbound " + from.toParseString)
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Unbind a variable."
       #detail=
 """Forget any binding for variable $v in the current context."""
 })
 
 def({! showbinds()
+      #handler=
+"""|args match {
+   |  case Args() => {
+   |    println(context.binds.filterKeys(!_.startsWith("_")).map {
+   |      pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
+   |    }.mkString("{ bind\n", ",\n", "\n}"))
+   |    _no_show
+   |  }
+   |  case _ => _no_show
+   |}"""
       #description="Show the bindings in the current context."
       #detail=
 """|Show all the bindings present in the current context, except for bindings
@@ -226,7 +268,16 @@ def({! showbinds()
 // Tracing and timing.
 //======================================================================
 
-def({! traceparse()
+def({! traceparse() #handler=
+"""|args match {
+   |  case Args() =>
+   |    // Toggle tracing.
+   |    _trace = !_trace
+   |    _parser = new AtomParser(_context, _trace)
+   |    emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Toggle tracing of the parser."
       #detail=
 """|Enable or disable tracing the parser.  This is really only useful if you
@@ -237,7 +288,16 @@ def({! traceparse()
    |tracing."""
 })
 
-def({! tracematch()
+def({! tracematch() #tracematch=
+"""|args match {
+   |  case Args() =>
+   |    // Toggle tracing.
+   |    BasicAtom.traceMatching = !BasicAtom.traceMatching
+   |    emitln("Match tracing is " +
+   |        (if (BasicAtom.traceMatching) "ON." else "OFF."))
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Toggle tracing of matching attempts."
       #detail=
 """|Enable or disable tracing of match attempts.  This generates output from

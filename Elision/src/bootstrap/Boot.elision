@@ -37,7 +37,8 @@
 
 // First we bootstrap the def operator, so we can define other operators.
 // We do this by using the def operator to define itself.  This allows us
-// to define def the same way we define any other operator.
+// to define def the same way we define any other operator, except that
+// instead of wrapping it with a def, we use a lambda.
 \$def.($def.%($def)).{! def($op)
           #handler=
 """|args match {
