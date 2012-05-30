@@ -49,6 +49,8 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * really just holds the two parts: the ''tag'' and the ''content'',
  * and provides a few methods for working with the content.
  * 
+ * These should only be built by the parser.
+ * 
  * @param tag			The tag.
  * @param content	The content.
  */
@@ -69,11 +71,20 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
   }
   
   /**
-   * Extract a special form instance from this holder.
+   * Extract a special form instance from this holder.  This directly creates
+   * a special form; it does not interpret it based on the tag.  If the latter
+   * is what you want, use the `interpret` method.
    * 
    * @return	The special form instance.
    */
   def toSpecialForm() = new SpecialForm(tag, content)
+  
+  /**
+   * Interpret this based on the tag, and return the resulting special form.
+   * 
+   * @return	The correct atom based on the tag.
+   */
+  def interpret = SpecialForm(tag, content)
 }
 
 /**
@@ -194,18 +205,29 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
         if (mTYPE >:> Manifest.classType(key.getClass))
           throw new SpecialFormException(
               "The value for key " + toESymbol(key) + " of form " +
-              tag.toParseString + " is of the wrong type: " + item.toParseString)
+              tag.toParseString + " is of the wrong type: " +
+              item.toParseString + ". Expected " + mTYPE.toString +
+              " but got " + Manifest.classType(key.getClass) + ".")
         else
           item.asInstanceOf[TYPE]
     }
   }
   
   /**
-   * Extract a special form instance from this holder.
+   * Extract a special form instance from this holder.  This directly creates
+   * a special form; it does not interpret it based on the tag.  If the latter
+   * is what you want, use the `interpret` method.
    * 
    * @return	The special form instance.
    */
   def toSpecialForm() = new SpecialForm(tag, content)
+  
+  /**
+   * Interpret this based on the tag, and return the resulting special form.
+   * 
+   * @return	The correct atom based on the tag.
+   */
+  def interpret = SpecialForm(tag, content)
 }
 
 /**
@@ -251,26 +273,25 @@ extends BasicAtom {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("SpecialForm rewrite: ")
-	val tagNode = rwNode.addChild("Tag: ").addChild(tag)
-	val contentNode = rwNode.addChild("Content: ").addChild(content)
+		// get the node representing this atom that is being rewritten
+		val rwNode = RWTree.current.addChild("SpecialForm rewrite: ")
+		val tagNode = rwNode.addChild("Tag: ").addChild(tag)
+		val contentNode = rwNode.addChild("Content: ").addChild(content)
 	
-	RWTree.current = tagNode
+		RWTree.current = tagNode
     val newtag = tag.rewrite(binds)
-	tagNode.addChild(newtag._1)
+    tagNode.addChild(newtag._1)
 	
-	RWTree.current = contentNode
+    RWTree.current = contentNode
     val newcontent = content.rewrite(binds)
-	contentNode.addChild(newcontent._1)
+    contentNode.addChild(newcontent._1)
 	
     if (newtag._2 || newcontent._2) {
-		RWTree.current = rwNode
-		val newSF = SpecialForm(newtag._1, newcontent._1)
-		rwNode.addChild(newSF)
-		(newSF, true)
-	}
-    else (this, false)
+			RWTree.current = rwNode
+			val newSF = SpecialForm(newtag._1, newcontent._1)
+			rwNode.addChild(newSF)
+			(newSF, true)
+		} else (this, false)
   }
 	//////////////////// end GUI changes
   

@@ -58,6 +58,20 @@ package object core {
   val `^TYPE` = TypeUniverse
   
   /**
+   * Maintain an executor to use.  The provided default executor always
+   * throws an exception when invoked from a native handler, so you must
+   * replace this with something rational as soon as reasonable.
+   */
+  implicit var knownExecutor: Executor = new Executor {
+    val console = PrintConsole 
+    val context = new Context()
+    def parse(text: String): ParseResult = ParseFailure(
+        "This default executor cannot parse text; override this with a full" +
+        "executor implementation to properly support parsing from within" +
+        "native operators.")
+  }
+  
+  /**
    * Provide a convenient method to compute a hash code from many different
    * objects.  This is intended to be suitable for a few basic cases.
    * 
@@ -95,8 +109,8 @@ package object core {
     val ap = new AtomParser(context, trace)
     try {
       ap.parseAtoms(str) match {
-        case ap.Failure(_) => None
-        case ap.Success(atoms) => Some(atoms)
+        case AtomParser.Failure(_) => None
+        case AtomParser.Success(atoms) => Some(atoms)
       }
     } catch {
       case th: ParsingException => println(th.getMessage)
@@ -269,8 +283,6 @@ package object core {
      * @return	The new sequence.
      */
     def apply[A](items: A*): OmitSeq[A] = new OmitSeq1[A](items.toIndexedSeq)
-    
-    var depth = 0
   }
   
   /**
@@ -285,13 +297,7 @@ package object core {
     
     // Proxy to backing sequence.
     def apply(index: Int) = {
-      OmitSeq.depth += 1
-      if (OmitSeq.depth > 20) {
-        throw new OutOfMemoryError("STOP")
-      }
-      val ret = backing(index)
-      OmitSeq.depth -= 1
-      ret
+      backing(index)
     }
     
     /**

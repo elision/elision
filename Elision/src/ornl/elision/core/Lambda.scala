@@ -217,7 +217,7 @@ extends BasicAtom with Applicable {
 	    lvar.tryMatch(atom) match {
 	      case fail:Fail =>
 	        throw new LambdaVariableMismatchException(
-	            "Lambda variable does not match body: " + fail.theReason)
+	            "Lambda argument does not match parameter: " + fail.theReason)
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
 		      val newbody = body.rewrite(binds)._1

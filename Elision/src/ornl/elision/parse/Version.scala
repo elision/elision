@@ -1,40 +1,33 @@
-/*======================================================================
- *       _ _     _
+/*       _ _     _
  *   ___| (_)___(_) ___  _ __
  *  / _ \ | / __| |/ _ \| '_ \
  * |  __/ | \__ \ | (_) | | | |
  *  \___|_|_|___/_|\___/|_| |_|
- * The Elision Term Rewriter
- * 
- * Copyright (c) 2012 by UT-Battelle, LLC.
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 
- * 1. Redistributions of source code must retain the above copyright notice, this
+ *
+ * Copyright (c) 2012 by Stacy Prowell (sprowell@gmail.com).
+ * All rights reserved.  http://stacyprowell.com
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *  - Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *  - Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
- * Collection of administrative costs for redistribution of the source code or
- * binary form is allowed. However, collection of a royalty or other fee in excess
- * of good faith amount for cost recovery for such redistribution is prohibited.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER, THE DOE, OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
-package ornl.elision.repl
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package ornl.elision.parse
 
 /**
  * Provide information about the current version of Elision.
@@ -124,47 +117,4 @@ object Version {
 	  }
   }
   init
-}
-
-/**
- * Provide facilities for reading and interpreting Elision atoms.
- * 
- * == Purpose ==
- * This provides a generic framework for building interactive and batch
- * processing systems, and maintains a [[ornl.elision.core.Context]]
- * instance.
- * 
- * == Use ==
- * The executive maintains an instance of [[ornl.elision.core.Context]] to
- * store rules, operators, and bindings.
- * 
- * There are a few important methods available.
- *   * `interpret` takes text and attempts to parse the text to obtain atoms.
- *   * `append` expects to get text, and keeps track of whether there are open
- *     parentheses, braces, brackets, or verbatim blocks.  You can continue to
- *     append text; once the system detects that the input is "complete" (in
- *     that all parentheses, braces, brackets, and verbatim blocks are closed)
- *     it passes the complete text to `interpret`.
- *     
- * == Callbacks ==
- * Override the `execute` method.  This method is passed each atom as it is
- * found by `interpret`.  The default implementation does nothing.
- */
-class Executive {
-  import ornl.elision.core._
-  
-  /** The context used by this executive. */
-	val context = new Context()
-  
-  /**
-   * Override this method to receive every atom as it is obtained by the
-   * interpret method.  The default implementation does nothing.
-   * 
-   * @param atom	An atom.
-   */
-  def execute(atom: BasicAtom) {}
-  
-  def append(text: String) = {
-    
-  }
 }

@@ -157,9 +157,6 @@ object Repl {
   /** Emit a warning message, with the WARNING prefix. */
   private def warn(msg: String) { println("WARNING: " + msg) }
   
-  /** A special literal that we never show, or save as a binding. */
-  private val _no_show = Literal(Symbol(" NO SHOW "))
-  
   /**
    * The entry point when started from the command line.  Print the current
    * version number, then invoke `run`.
@@ -232,8 +229,8 @@ object Repl {
   /**
    * Display the banner.
    */
-  private def banner() {
-    import Version._
+  def banner() {
+    import ornl.elision.parse.Version._
     emitln("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
@@ -270,7 +267,10 @@ object Repl {
   def run() {
     // Display the banner
     banner()
-    
+
+    // Start the clock.
+    var starttime = java.lang.System.currentTimeMillis()
+
     // Define the operators.
     val qt = _quiet
     val ba = _bindatoms
@@ -310,8 +310,16 @@ object Repl {
     val term = cr.getTerminal
     cr.flush()
     cr.setHistory(_hist)
-    var starttime: Long = 0L
-    var endtime: Long = 0L
+    
+    // Report startup time.
+    var endtime = java.lang.System.currentTimeMillis()
+    val elapsed = endtime - starttime
+    val mins = elapsed / 60000
+    val secs = (elapsed % 60000) / 1000
+    val mils = elapsed % 1000
+    printf("Startup Time: %d:%02d.%03d\n", mins, secs, mils)
+    
+    // Start main loop.
     while(true) {
       // Hold the accumulted line.
       var line = ""
@@ -413,11 +421,9 @@ object Repl {
    * standard output.
    * 
    * ==Commands==
-   * This method supports several special commands.
+   * This method supports several special commands.  Prefix these with a colon.
    *  - `:quit`
    *    Terminate the current session.
-   *  - `help`
-   *    Print help text.
    * 
    * @param line	The line to execute.
    * @param quiet	If true, suppress printing of the atoms.  Errors are still
@@ -457,7 +463,7 @@ object Repl {
 			
 			//////////////////// GUI changes
 			
-	    	case _parser.Success(list) => {
+	    	case AtomParser.Success(list) => {
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {
 					RWTree.current = treeRoot.addChild("line node")
@@ -470,7 +476,7 @@ object Repl {
 	    	case _parser.Success(list) =>
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => handle(node.interpret))*/
-	      case _parser.Failure(msg) => println(msg)
+	      case AtomParser.Failure(msg) => println(msg)
 		  
 	    }
     } catch {
@@ -546,7 +552,7 @@ object Repl {
     
     // Check the result.
     result match {
-      case _parser.Success(list) =>
+      case AtomParser.Success(list) =>
         // If there is more than one atom, then we have a failure.
         if (list.length == 0)
           error("Round-trip parse failure for atom " +
@@ -564,7 +570,7 @@ object Repl {
           println("  original: " + atom.toParseString)
           println("  result:   " + newatom.toParseString)
         }
-      case _parser.Failure(msg) =>
+      case AtomParser.Failure(msg) =>
         error("Round-trip parse failure for atom " + atom.toString +
             ".\nParse failed: " + msg)
     }
@@ -585,119 +591,99 @@ object Repl {
         """.stripMargin, true)
     _context.operatorLibrary.add(defOper)
     _context.operatorLibrary.register("def",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(op: Operator) =>
             // Add the operator to the library.
             _context.operatorLibrary.add(op)
             emitln("Defined operator " + toESymbol(op.name) + ".")
-            _no_show
+            ApplyData._no_show
           case Args(op) =>
             error("Atom is not a named operator: " + op.toParseString)
-            _no_show
+            ApplyData._no_show
           case _ =>
-            _no_show
+            ApplyData._no_show
         })
         
     // Go get the buildin operators and define them.
     execute(BuiltinOperators.text.text)
     
-    // Dereference operator.
-    _context.operatorLibrary.register("getop",
-        (_, list:AtomSeq, _) => list match {
-          case Args(opref:OperatorRef) =>
-            // Get the referenced operator.
-            opref.operator
-          case _ => _no_show
-        })
-    
     // Bind.
     _context.operatorLibrary.register("bind",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(from:Variable, to:BasicAtom) =>
           	// Bind the variable in this context.
             context.bind(from.name, to)
             emitln("Bound " + from.toParseString)
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
 
     // Equal.
     _context.operatorLibrary.register("equal",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(x:BasicAtom, y:BasicAtom) =>
             // Check for equality.
             if (x == y) Literal.TRUE else Literal.FALSE
-          case _ => _no_show
+          case _ => ApplyData._no_show
         })
         
     // Unbind.
     _context.operatorLibrary.register("unbind",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(from:Variable) =>
           	// Unbind the variable in this context.
             context.unbind(from.name)
             emitln("Unbound " + from.toParseString)
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Showbinds.
     _context.operatorLibrary.register("showbinds",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() => {
             println(context.binds.filterKeys(!_.startsWith("_")).map {
               pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
             }.mkString("{ bind\n", ",\n", "\n}"))
-            _no_show
+            ApplyData._no_show
           }
-          case _ => _no_show
+          case _ => ApplyData._no_show
         })
         
     // Timing.
     _context.operatorLibrary.register("timing",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() => {
             _timing = !_timing
             emitln("Timing is " + (if (_timing) "ON" else "OFF") + ".")
-            _no_show
+            ApplyData._no_show
           }
-          case _ => _no_show
+          case _ => ApplyData._no_show
         })
         
     // Context.
     _context.operatorLibrary.register("context",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
             println(_context.toParseString)
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Stacktrace.
     _context.operatorLibrary.register("stacktrace",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
             _stacktrace = !_stacktrace
             emitln("Printing stack traces is " +
                 (if (_stacktrace) "ON" else "OFF") + ".") 
-            _no_show
-          case _ => _no_show
-        })
-        
-    // Evaluate fast.
-    _context.operatorLibrary.register("eval",
-        (_, list:AtomSeq, _) => list match {
-          case Args(x) =>
-            // Immediately rewrite this with the context bindings, and return
-            // the result.
-            x.rewrite(context.binds)._1
-          case _ =>
-            NONE
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Read.
     _context.operatorLibrary.register("read",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(StringLiteral(_, filename)) =>
             val qt = _quiet
             val ba = _bindatoms
@@ -719,13 +705,13 @@ object Repl {
             }
             _quiet = qt
             _bindatoms = ba
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Include.
     _context.operatorLibrary.register("read_once",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(StringLiteral(_, filename)) =>
             if (!_included.contains(filename)) {
               _included += filename
@@ -750,13 +736,13 @@ object Repl {
 	            _quiet = qt
 	            _bindatoms = ba
             }
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Write.
     _context.operatorLibrary.register("write",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(StringLiteral(_, filename)) =>
 				    val cfile = new FileWriter(filename)
 				    if (cfile != null) {
@@ -766,243 +752,204 @@ object Repl {
 				    } else {
 				      error("Unable to save context.")
 				    }
-            _no_show
-          case _ => _no_show
-        })
-        
-    // Help.
-    _context.operatorLibrary.register("_help_op",
-        (_, list:AtomSeq, _) => list match {
-          case Args(or: OperatorRef) =>
-            // Give some help.
-            emitln(_context.operatorLibrary.help(new StringBuffer(), or).toString)
-            _no_show
-            
-          case _ =>
-            _no_show
-        })
-    _context.operatorLibrary.register("_help_all",
-        (_, list:AtomSeq, _) => list match {
-          case Args() =>
-          	// Give some help.
-            val width = scala.tools.jline.TerminalFactory.create().getWidth()
-            println("Elision Help\n")
-            emitln(_context.operatorLibrary.help(new StringBuffer(), width).toString)
-		        println("""
-		            |Use ! followed by a number to re-execute a line from the history.
-		            |
-		            |To quit type :quit.
-		            |""".stripMargin)
-		        _no_show
-		        
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Traceparse.
     _context.operatorLibrary.register("traceparse",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
 		        // Toggle tracing.
 		        _trace = !_trace
 		        _parser = new AtomParser(_context, _trace)
 		        emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
-		        _no_show
-          case _ => _no_show
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Tracematch.
     _context.operatorLibrary.register("tracematch",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
 		        // Toggle tracing.
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
 		        emitln("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
-		        _no_show
-          case _ => _no_show
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Showscala.
     _context.operatorLibrary.register("showscala",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
 		        // Toggle showing the Scala term.
 		        _showScala = !_showScala
 		        emitln("Showing Scala is " + (if (_showScala) "ON." else "OFF."))
-		        _no_show
-          case _ => _no_show
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Showprior.
     _context.operatorLibrary.register("showprior",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
 		        // Toggle showing the prior term.
 		        _showPrior = !_showPrior
 		        emitln("Showing prior term is " + (if (_showPrior) "ON." else "OFF."))
-		        _no_show
-          case _ => _no_show
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // History.
     _context.operatorLibrary.register("history",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
 		        // Show the history.
             val it = _hist.entries
             while (it.hasNext) println(it.next)
 		        println("Persistent history is found in: " + _filename)
-		        _no_show
-          case _ => _no_show
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Quiet.
     _context.operatorLibrary.register("quiet",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
             // Enable quiet.
             _quiet = !_quiet
             emitln("Quiet is " + (if (_quiet) "enabled." else "disabled."))
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Declare a ruleset.
     _context.operatorLibrary.register("declare",
-        (_, list:AtomSeq, _) => {
-        	list foreach { _ match {
+        _data => {
+        	_data.args foreach { _ match {
 	          case sl:SymbolLiteral =>
 	            // Declare the specified ruleset.
 	            _context.ruleLibrary.declareRuleset(sl.value.name)
 	            emitln("Declared ruleset " + sl.toParseString + ".")
 	          case _ =>
         	}}
-        	_no_show
+        	ApplyData._no_show
       	})
         
     // Enable a ruleset.
     _context.operatorLibrary.register("enable",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(SymbolLiteral(_, sym)) =>
             // Enable the specified ruleset.
             _context.ruleLibrary.enableRuleset(sym.name)
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Disable a ruleset.
     _context.operatorLibrary.register("disable",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(SymbolLiteral(_, sym)) =>
             // Disable the specified ruleset.
             _context.ruleLibrary.disableRuleset(sym.name)
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Set the limit on automatic rewrites.
     _context.operatorLibrary.register("setlimit",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(IntegerLiteral(_, count)) =>
             // Enable the specified ruleset.
             _context.ruleLibrary.setLimit(count)
             emitln("Rewrite limit is now " + count + ".")
-            _no_show
-          case _ => _no_show
-        })
-        
-    // Set whether to use De Bruijn indices.
-    _context.operatorLibrary.register("setdebruijn",
-        (_, list:AtomSeq, _) => list match {
-          case Args(BooleanLiteral(_, flag)) =>
-            // Set whether to use De Bruijn indices.
-            Lambda.useDeBruijnIndices = flag
-            emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Set whether to descend into children.
     _context.operatorLibrary.register("setdescend",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(BooleanLiteral(_, flag)) =>
             // Set whether to descend.
             _context.ruleLibrary.setDescend(flag)
             emitln("Top-down rewriting is " + (if (flag) "ON." else "OFF."))
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Set whether to do round-trip parsing.
     _context.operatorLibrary.register("setroundtrip",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(BooleanLiteral(_, flag)) =>
             // Set whether to descend.
             _doRoundTrip = flag
             emitln("Round-trip checking is " + (if (flag) "ON." else "OFF."))
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Set whether to automatically define operators.
     _context.operatorLibrary.register("setautodefine",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(BooleanLiteral(_, flag)) =>
             // Set whether to automatically define operators.
             _autodefine = flag
             emitln("Automatic declaration of operators is " +
                 (if (flag) "ON." else "OFF."))
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Enable or disable the rewriter.
     _context.operatorLibrary.register("rewrite",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args() =>
             // Toggle rewriting.
             _rewrite = !_rewrite
             emitln("Automatic rewriting is " +
                 (if (_rewrite) "ON." else "OFF."))
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // See what rules are in scope.
     _context.operatorLibrary.register("showrules",
-        (_, list:AtomSeq, _) => list match {
+        _data => _data.args match {
           case Args(atom) =>
             // Get the rules, and print each one.
             for (rule <- _context.ruleLibrary.getRules(atom)) {
               println(rule.toParseString)
             }
-            _no_show
-          case _ => _no_show
+            ApplyData._no_show
+          case _ => ApplyData._no_show
         })
         
     // Define mod as a Symbolic operator.
     _context.operatorLibrary.register("mod",
-        (op: Operator, args: AtomSeq, _) => args.atoms match {
+        _data => _data.args match {
           case Args(IntegerLiteral(_, x), IntegerLiteral(_, y)) => x mod y
-          case _ => Apply(op, args, true)
+          case _ => _data.as_is
         })
         
     // Define neg as a Symbolic operator.
     _context.operatorLibrary.register("neg",
-        (op: Operator, args: AtomSeq, _) => args match {
+        _data => _data.args match {
           case Args(IntegerLiteral(_, x)) => -x
-          case _ => Apply(op, args, true)
+          case _ => _data.as_is
         })
         
     // Define add as a Symbolic operator.
 		_context.operatorLibrary.register("add",
-      (op: Operator, args: AtomSeq, _) => {
+      _data => {
 			  // Accumulate the integer literals found.
 			  var lits:BigInt = 0
 			  // Accumulate other atoms found.
 			  var other = IndexedSeq[BasicAtom]()
 			  // Traverse the list and divide the atoms.
-			  args.foreach {
+			  _data.args.foreach {
 			    x => x match {
 			      case IntegerLiteral(_, value) => lits += value
 			      case _ => other :+= x
@@ -1011,22 +958,12 @@ object Repl {
 			  // Now add the accumulated literals to the list.
 			  other :+= Literal(INTEGER, lits)
 			  // Construct and return a new operator application.
-			  Apply(op, AtomSeq(NoProps, other), true)
+			  Apply(_data.op, AtomSeq(NoProps, other), true)
       })
-      
-    // Is bindable.
-    _context.operatorLibrary.register("is_bindable",
-        (op: Operator, args: AtomSeq, _) => {println("F")
-          args match {
-          case Args(term) =>
-            if (term.isBindable) Literal.TRUE else Literal.FALSE
-          case _ =>
-            Apply(op, args, true)
-        }})
 
     // Force a core dump.
     _context.operatorLibrary.register("fail",
-        (op: Operator, args: AtomSeq, _) =>
+        _data =>
           throw new VerifyError("no memory")
         )
         
@@ -1042,7 +979,7 @@ object Repl {
    */
   private def handle(atom: BasicAtom): Boolean = {
     // If we come here with the special "no show" literal, we skip all of this.
-    if (atom == _no_show) return true
+    if (atom == ApplyData._no_show) return true
     
 	//////////////////// GUI changes
 	

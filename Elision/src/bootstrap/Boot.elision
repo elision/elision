@@ -35,7 +35,78 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-read_once("Core.elision")
-read_once("Context.elision")
-read_once("Strategies.elision")
-read_once("Math.elision")
+// First we bootstrap the def operator, so we can define other operators.
+{! _() #handler="""
+	// Define the def operator that defines other operators.  This is the
+	// only operator we have to define this way.
+	val defOper = TypedSymbolicOperator("def", NONE, AtomSeq(NoProps, 'op),
+	    "Add the named operator to the context.",
+	    "This will add the operator op to the current context.  This makes\n" +
+	    "the operator available by name, or through an OPREF.", true)
+	context.operatorLibrary.add(defOper)
+	context.operatorLibrary.register("def",
+	    _data => _data.args match {
+	      case Args(op: Operator) =>
+	        // Add the operator to the library.
+	        context.operatorLibrary.add(op)
+	        console.emitln("Defined operator " + toESymbol(op.name) + ".")
+	        ApplyData._no_show
+	      case Args(op) =>
+	        console.error("Atom is not a named operator: " + op.toParseString)
+	        ApplyData._no_show
+	      case _ =>
+	        console.error("Expected exactly one operator argument.  Got: " +
+	          args.toParseString)
+	        ApplyData._no_show
+	    })
+	ApplyData._no_show
+"""}.%()
+
+// The next operator we need is read_once so we can read the rest of the
+// bootstrap definitions.  Define read_once next.  It expects to get access
+// to a set of known, already read files, and we use the executors cache
+// for this.
+def({! read_once($filename: STRING) #handler="""
+
+    // We use a mutable set in the executor cache to store the names of all
+    // files read.  There are other approaches, but this one will probably do
+    // for now.
+	import scala.collection.mutable.Set
+	
+	// Go and get the included files from the cache.
+	val included = exec.fetchAs[Set[String]]("read_once.included", Set[String]())
+    args match {
+      case Args(StringLiteral(_, filename)) =>
+        if (!included.contains(filename)) {
+          included += filename
+          val cfile = new java.io.BufferedReader(new java.io.FileReader(filename))
+          if (cfile != null) {
+            var buf = new StringBuilder
+            var go = true
+            while (go) {
+              val line = cfile.readLine
+              if (line != null) buf.append(line).append('\n') else go = false
+            }
+            exec.parse(buf.toString)
+            cfile.close()
+          } else {
+            error("Unable to open file.")
+          }
+        }
+        _no_show
+      case _ => _no_show
+    }
+
+"""
+      #description="Read the content of the specified file."
+      #detail=
+"""|Read the file specified by $filename, executing each line of the file as
+   |though it were typed at the REPL prompt while quiet mode was in effect
+   |(so most output is suppressed).  No numbered repl bindings are generated
+   |from this action."""
+})
+
+read_once("src/bootstrap/Core.elision")
+read_once("src/bootstrap/Context.elision")
+read_once("src/bootstrap/Strategies.elision")
+read_once("src/bootstrap/Math.elision")

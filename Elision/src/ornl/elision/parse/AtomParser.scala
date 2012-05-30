@@ -57,6 +57,27 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * supporting functions.
  */
 object AtomParser {
+	
+	//----------------------------------------------------------------------
+	// Parse result.
+	//----------------------------------------------------------------------
+  
+  /** A parse result. */
+  abstract sealed class Presult
+  
+  /**
+   * The parse was successful.
+   * 
+   * @param nodes	The nodes parsed.
+   */
+  case class Success(nodes: List[AstNode]) extends Presult
+  
+  /**
+   * The parse failed.
+   * 
+   * @param err	The reason for the parsing failure.
+   */
+  case class Failure(err: String) extends Presult
   
   //----------------------------------------------------------------------
   // Build character literals.
@@ -1064,27 +1085,6 @@ extends Parser {
   import AtomParser._
 	
 	//----------------------------------------------------------------------
-	// Parse result.
-	//----------------------------------------------------------------------
-  
-  /** A parse result. */
-  abstract sealed class Presult
-  
-  /**
-   * The parse was successful.
-   * 
-   * @param nodes	The nodes parsed.
-   */
-  case class Success(nodes: List[AstNode]) extends Presult
-  
-  /**
-   * The parse failed.
-   * 
-   * @param err	The reason for the parsing failure.
-   */
-  case class Failure(err: String) extends Presult
-	
-	//----------------------------------------------------------------------
 	// Perform parsing.
 	//----------------------------------------------------------------------
   
@@ -1103,6 +1103,24 @@ extends Parser {
       case Some(nodes) => Success(nodes)
       case None => Failure("Invalid MPL2 source:\n" +
               ErrorUtils.printParseErrors(parsingResult))
+    }
+  }
+    
+  /**
+   * Entry point to parse all atoms from the given source.
+   * 
+   * @param line	The string to parse.
+   * @return	The parsing result.
+   */
+  def parseAtoms(source: scala.io.Source): Presult = {
+    val tr =
+      if (trace) TracingParseRunner(AtomSeq)
+      else ReportingParseRunner(AtomSeq)
+    val parsingResult = tr.run(source)
+    parsingResult.result match {
+      case Some(nodes) => Success(nodes)
+      case None => Failure("Invalid MPL2 source:\n" +
+          ErrorUtils.printParseErrors(parsingResult))
     }
   }
 
