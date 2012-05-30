@@ -145,7 +145,7 @@ object EliRegexes {
 		boolConstants -> EliWebColors.constants,
 		keywords -> EliWebColors.keywords,
 		algProps -> EliWebColors.properties,
-		specialForm -> EliWebColors.vars,
+		specialForm -> EliWebColors.keywords,
 		opDefShortcut -> EliWebColors.keywords,
 		sequence -> EliWebColors.properties,
 		brackets -> EliWebColors.stringLits,
@@ -193,9 +193,9 @@ object EliRegexes {
 object EliWebColors {
 	val default = "#000000" // Black. Just black.
 	val comments = "#007700" // Everfree green
-	val stringLits = "#ddaa77" // Apple orange
+	val stringLits = "#888888" // Derpy gray
 	val vars = "#dd00dd" // Pie magenta
-	val keywords = "#ff0000" // Red
+	val keywords = "#ee9944" // Apple orange
 	val constants = "#0000ff" // Blue
 	val types = "#77a9dd" // Dash blue
 	val properties = "#9977cc" // Twilight lavender

@@ -173,7 +173,11 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	/**
 	 * Consumes the parse string text to construct lists for correct start and end positions
 	 * for <font color=~~~~> </font> tags to be inserted into the parse string. 
-	 *
+	 * @param txt			the parse string that is having highlighting applied to it.
+	 * @param prevChomped	a count of how many characters in txt have already been processed for highlighting.
+	 * @param starts		a list of insertion indices for <font> tags.
+	 * @param colors		a list of web colors coresponding to the indices in starts.
+	 * @param ends			a list of insertion indices for </font> tags.
 	 */
 	
 	private def applyElisionRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int]) : Unit = {
@@ -218,7 +222,14 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 				colors += color
 				
 				// apply recursive highlighting if needed.
-				if(bestRecStart != -1) 	applyElisionRegexes(text.substring(bestRecStart,bestRecEnd), chompedChars + bestRecStart, starts, colors, ends)
+				if(bestRecStart != -1) {
+					ends += chompedChars + bestRecStart
+					
+					applyElisionRegexes(text.substring(bestRecStart,bestRecEnd), chompedChars + bestRecStart, starts, colors, ends)
+					
+					starts += chompedChars + bestRecEnd
+					colors += color
+				}
 				
 				ends += chompedChars + bestEnd
 				
