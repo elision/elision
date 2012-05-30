@@ -110,33 +110,62 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 		
 		if(!disableHighlight) { // skip this whole block if we're disabling highlighting.
 			// obtain the lists of data for the font tags.
-			val (starts,colors,ends) = applyElisionRegexes(text)
+			val starts = new ListBuffer[Int]
+			val colors = new ListBuffer[String]
+			val ends = new ListBuffer[Int]
+			applyElisionRegexes(text, 0, starts, colors, ends)
+			
+			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
+			val breaks = enforceLineWrap(text,50)
+			
 			var insertedChars = 0
 			
-			while(!starts.isEmpty || !ends.isEmpty) {
+			// insert all of our <font></font> tags in their appropriate places.
+			while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty) {
 				var tag = ""
 				var insertLoc = 0
 				
-				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0))) {
+				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) < breaks(0))) {
 					// insert a <font color=> tag
 					tag = """<font color=""" + "\"" + colors(0) + "\"" + """>"""
 					
 					insertLoc = starts(0)
 					starts.trimStart(1)
 					colors.trimStart(1)
-				} else {
+				} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) < breaks(0))) {
 					// insert a </font> tag
 					tag = """</font>"""
 					insertLoc = ends(0)
 					ends.trimStart(1)
+				} else {
+					tag = """<br/>"""
+					insertLoc = breaks(0)
+					breaks.trimStart(1)
 				}
 				
 				val (str1, str2) = result.splitAt(insertLoc + insertedChars)
 				result = str1 + tag + str2
 				insertedChars += tag.size
 			}
+		} else { // we still need to enforce line breaks even if we're not highlighting anything.
+			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
+			val breaks = enforceLineWrap(text,50)
+			
+			var insertedChars = 0
+			
+			// insert the line breaks.
+			while(!breaks.isEmpty) {
+				var tag = """<br/>"""
+				var insertLoc = breaks(0)
+				breaks.trimStart(1)
+				
+				val (str1, str2) = result.splitAt(insertLoc + insertedChars)
+				result = str1 + tag + str2
+				insertedChars += tag.size
+			}
 		}
-		
+
+		// set the parseArea's text to the resulting HTML-injected parse string.
 		parseArea.text = result
 	}
 	
@@ -147,13 +176,10 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	 *
 	 */
 	
-	private def applyElisionRegexes(txt: String) : (ListBuffer[Int], ListBuffer[String], ListBuffer[Int]) = {
-		val starts = new ListBuffer[Int]
-		val colors = new ListBuffer[String]
-		val ends = new ListBuffer[Int]
+	private def applyElisionRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int]) : Unit = {
+
 		var text = txt
-		
-		var chompedChars = 0
+		var chompedChars = prevChomped
 		
 		// populate our lists of font tag data by having our regular expressions consume the text until
 		// no more regular expressions can consume any of the text.
@@ -161,6 +187,8 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 			var bestRegex : Regex = null
 			var bestStart : Int = -1
 			var bestEnd : Int = -1
+			var bestRecStart : Int = -1
+			var bestRecEnd : Int = -1
 			
 			// iterate over our list of regexes and find the one the can be applied the earliest.
 			for(regex <- EliRegexes.rList) {
@@ -171,6 +199,14 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 							bestRegex = regex
 							bestStart = myMatch.start
 							bestEnd = myMatch.end
+							
+							val recGroup = EliRegexes.recursableMap(bestRegex)
+							if(recGroup != -1) {
+								bestRecStart = myMatch.start(recGroup)
+								bestRecEnd = myMatch.end(recGroup)
+								
+								println(bestRecStart + " " + bestRecEnd)
+							}
 						}
 					case _ => // this regex could not be applied.
 				}
@@ -180,32 +216,32 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 				val color = EliRegexes.colorMap(bestRegex)
 				starts += chompedChars + bestStart
 				colors += color
+				
+				// apply recursive highlighting if needed.
+				if(bestRecStart != -1) 	applyElisionRegexes(text.substring(bestRecStart,bestRecEnd), chompedChars + bestRecStart, starts, colors, ends)
+				
 				ends += chompedChars + bestEnd
 				
 				text = text.drop(bestEnd)
 				chompedChars += bestEnd
 			}
 		}
+	}
+	
+	
+	/** Enforces wrapped lines in a parse string so that the editor pane doesn't grossly resize this panel.*/
+	private def enforceLineWrap(txt : String, maxCols : Int) : ListBuffer[Int] = {
+		var chompedChars = 0
+		var edibleTxt = txt
+		val breaks = new ListBuffer[Int]
 		
-		/*
-		// this is just test code. It doesn't highlight anything meaningful.
-		starts += 5
-		colors += EliWebColors.keywords
-		ends += 10
+		while(edibleTxt.size > maxCols) {
+			edibleTxt = edibleTxt.drop(maxCols)
+			breaks += chompedChars + maxCols-1
+			chompedChars += maxCols
+		}
 		
-		starts += 10
-		colors += EliWebColors.comments
-		ends += 15
-		
-		starts += 20
-		colors += EliWebColors.properties
-		ends += 25
-		// end test code.
-		*/
-		
-		
-		
-		(starts,colors,ends)
+		breaks
 	}
 }
 

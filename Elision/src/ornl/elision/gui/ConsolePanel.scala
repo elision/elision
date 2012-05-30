@@ -80,7 +80,7 @@ class ConsolePanel extends ScrollPane {
 	val ps = new PrintStream(tos)
 	
 	java.lang.System.setOut(ps)
-	//java.lang.System.setErr(ps)
+	java.lang.System.setErr(ps)
 	
 	repl.start
 

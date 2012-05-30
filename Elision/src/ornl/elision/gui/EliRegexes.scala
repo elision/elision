@@ -47,6 +47,7 @@ object EliRegexes {
 		"all")
 	val stringLit = new Regex("""(\"(\n|\\\"|.)*?\")""",							
 		"all")
+	// " // "
 	
 	val lambdaBackTick = new Regex("""((\\\$\$?)(`(\n|\\`|.)*?`))""",		
 		"all")
@@ -99,7 +100,7 @@ object EliRegexes {
 		"all")
 	val numDec = new Regex("""(-?[0-9]*([0-9]+[.])?[0-9]+(e|p)?)""",
 		"all")
-	
+	// "
 	/** A list of the regexes in the correct precedence that they should be applied. */
 	val rList = List(	multilineComment,
 						singlelineComment,
@@ -128,46 +129,76 @@ object EliRegexes {
 						numDec
 				)
 	
+	/** A map between regexes and their appropriate web colors. */
 	val colorMap = Map[Regex,String](
-			multilineComment -> EliWebColors.comments,
-			singlelineComment -> EliWebColors.comments,
-			verbatim -> EliWebColors.stringLits,
-			stringLit -> EliWebColors.stringLits,
-			lambdaBackTick -> EliWebColors.keywords,
-			lambdaNormal -> EliWebColors.keywords,
-			varBackTick -> EliWebColors.vars,
-			varNormal -> EliWebColors.vars,
-			termSFBackTick -> EliWebColors.vars,
-			termSFNormal -> EliWebColors.vars,
-			typeRoot -> EliWebColors.types,
-			boolConstants -> EliWebColors.constants,
-			keywords -> EliWebColors.keywords,
-			algProps -> EliWebColors.properties,
-			specialForm -> EliWebColors.vars,
-			opDefShortcut -> EliWebColors.keywords,
-			sequence -> EliWebColors.properties,
-			brackets -> EliWebColors.stringLits,
-			typeBackTick -> EliWebColors.types,
-			typeNormal -> EliWebColors.types,
-			symbolBackTicks -> EliWebColors.vars,
-			symbolNormal -> EliWebColors.vars,
-			numHex -> EliWebColors.constants,
-			numBin -> EliWebColors.constants,
-			numDec -> EliWebColors.constants
-		)
+		multilineComment -> EliWebColors.comments,
+		singlelineComment -> EliWebColors.comments,
+		verbatim -> EliWebColors.stringLits,
+		stringLit -> EliWebColors.stringLits,
+		lambdaBackTick -> EliWebColors.keywords,
+		lambdaNormal -> EliWebColors.keywords,
+		varBackTick -> EliWebColors.vars,
+		varNormal -> EliWebColors.vars,
+		termSFBackTick -> EliWebColors.vars,
+		termSFNormal -> EliWebColors.vars,
+		typeRoot -> EliWebColors.types,
+		boolConstants -> EliWebColors.constants,
+		keywords -> EliWebColors.keywords,
+		algProps -> EliWebColors.properties,
+		specialForm -> EliWebColors.vars,
+		opDefShortcut -> EliWebColors.keywords,
+		sequence -> EliWebColors.properties,
+		brackets -> EliWebColors.stringLits,
+		typeBackTick -> EliWebColors.types,
+		typeNormal -> EliWebColors.types,
+		symbolBackTicks -> EliWebColors.vars,
+		symbolNormal -> EliWebColors.vars,
+		numHex -> EliWebColors.constants,
+		numBin -> EliWebColors.constants,
+		numDec -> EliWebColors.constants
+	)
+	
+	/** A map indicating what regexes need recursive parsing */
+	val recursableMap = Map[Regex, Int](
+		multilineComment -> -1,
+		singlelineComment -> -1,
+		verbatim -> -1,
+		stringLit -> -1,
+		lambdaBackTick -> -1,
+		lambdaNormal -> -1,
+		varBackTick -> -1,
+		varNormal -> -1,
+		termSFBackTick -> -1,
+		termSFNormal -> -1,
+		typeRoot -> -1,
+		boolConstants -> -1,
+		keywords -> -1,
+		algProps -> -1,
+		specialForm -> 4,
+		opDefShortcut -> 4,
+		sequence -> -1,
+		brackets -> -1,
+		typeBackTick -> -1,
+		typeNormal -> -1,
+		symbolBackTicks -> -1,
+		symbolNormal -> -1,
+		numHex -> -1,
+		numBin -> -1,
+		numDec -> -1
+	)
 		
 }
 
-
+/** Web color constants for parse string highlighting. */
 object EliWebColors {
-	val default = "#000000"
-	val comments = "#007700"
-	val stringLits = "#ddaa77"
-	val vars = "#0000ff"
-	val keywords = "#ff0000"
-	val constants = "#0000ff"
-	val types = "#77a9dd"
-	val properties = "#7777cc"
+	val default = "#000000" // Black. Just black.
+	val comments = "#007700" // Everfree green
+	val stringLits = "#ddaa77" // Apple orange
+	val vars = "#dd00dd" // Pie magenta
+	val keywords = "#ff0000" // Red
+	val constants = "#0000ff" // Blue
+	val types = "#77a9dd" // Dash blue
+	val properties = "#9977cc" // Twilight lavender
 }
 
 
