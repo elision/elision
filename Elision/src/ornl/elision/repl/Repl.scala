@@ -103,7 +103,7 @@ object Repl {
   _context.operatorLibrary = _library
   
   /** The parser to use. */
-  private var _parser = new AtomParser(_context, false, false)
+  private var _parser = new AtomParser(_context, true, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
@@ -461,9 +461,9 @@ object Repl {
 			//////////////////// GUI changes
 			
 	    	case _parser.Success(list) => {
-	    	  Console println "LML IN SUCCESS "+ list.length
-	    	  Console println list
-	    	  System.exit(1)
+//	    	  Console println "LML IN SUCCESS "+ list.length
+//	    	  Console println list
+//	    	  System.exit(1)
 	    	  
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {

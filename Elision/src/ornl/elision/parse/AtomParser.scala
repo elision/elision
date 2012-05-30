@@ -1850,8 +1850,8 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
         case _ ~ x => IdempotentNode(x.getOrElse(TrueNode))
       } |
       ignoreCase("!A") ^^ { case _ => AssociativeNode(FalseNode) } |
-      ignoreCase("!C") ^^ { case _ => AssociativeNode(FalseNode) } |
-      ignoreCase("!I") ^^ { case _ => AssociativeNode(FalseNode) }).* ^^ {
+      ignoreCase("!C") ^^ { case _ => CommutativeNode(FalseNode) } |
+      ignoreCase("!I") ^^ { case _ => IdempotentNode(FalseNode) }).* ^^ {
         AlgPropNode(_)
       }
 
@@ -1955,7 +1955,7 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
 //      """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
 
   lazy val Everb: PackratParser[String] = {
-    "(?s)\"\"\".*\"\"\"".r ^^ { case str =>
+    "(?s)\"\"\".*?\"\"\"".r ^^ { case str =>
       construct(str.toString.drop(3).dropRight(3).toList.map(_.toString)) }
   }
 
@@ -2070,11 +2070,22 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
 object Main extends App {
   val _parser = new ParseCombinators(new Context)
   val t0 = System.nanoTime();
+
   val text =
 <execute>
 <![CDATA[
-1
-1
+def({ operator #name=typeof #cases %($x:$T)->$T
+      #description="Extract and show the type of the argument."
+      #detail=
+"""Given a single argument, extract the type $T of that argument $x
+and return the extracted type. """
+} ) 
+
+def({ operator #name=getop #params=%($x:OPREF)
+      #description="Given an operator reference, return the operator."
+      #detail=
+"""Given a single argument, extract the type $T of that argument $x
+and return the extracted type. """})
 ]]>
 </execute>
     val ret = _parser.run(text.text)
