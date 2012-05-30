@@ -435,7 +435,7 @@ class TreeVisPanel extends GamePanel {
 			treeSprite.selectNode(clickedNode, decompDepth)
 			
 			mainGUI.propsPanel.textArea.text = clickedNode.properties
-			mainGUI.propsPanel.parseArea.text = clickedNode.term
+			mainGUI.propsPanel.parseStringHighlight(clickedNode.term, clickedNode.isComment)
 			
 			camera.x = clickedNode.worldX
 			camera.y = clickedNode.worldY

@@ -45,7 +45,7 @@ object EliRegexes {
 		"all")
 	val verbatim = new Regex("""((\"\"\"(\n|.)*?\"\"\"))""",				
 		"all")
-	val stringLit = new Regex("""(\"(\n|.)*?\")""",							
+	val stringLit = new Regex("""(\"(\n|\\\"|.)*?\")""",							
 		"all")
 	
 	val lambdaBackTick = new Regex("""((\\\$\$?)(`(\n|\\`|.)*?`))""",		
@@ -99,9 +99,76 @@ object EliRegexes {
 		"all")
 	val numDec = new Regex("""(-?[0-9]*([0-9]+[.])?[0-9]+(e|p)?)""",
 		"all")
+	
+	/** A list of the regexes in the correct precedence that they should be applied. */
+	val rList = List(	multilineComment,
+						singlelineComment,
+						verbatim,
+						stringLit,
+						lambdaBackTick,
+						lambdaNormal,
+						varBackTick,
+						varNormal,
+						termSFBackTick,
+						termSFNormal,
+						typeRoot,
+						boolConstants,
+						keywords,
+						algProps,
+						specialForm,
+						opDefShortcut,
+						sequence,
+						brackets,
+						typeBackTick,
+						typeNormal,
+						symbolBackTicks,
+						symbolNormal,
+						numHex,
+						numBin,
+						numDec
+				)
+	
+	val colorMap = Map[Regex,String](
+			multilineComment -> EliWebColors.comments,
+			singlelineComment -> EliWebColors.comments,
+			verbatim -> EliWebColors.stringLits,
+			stringLit -> EliWebColors.stringLits,
+			lambdaBackTick -> EliWebColors.keywords,
+			lambdaNormal -> EliWebColors.keywords,
+			varBackTick -> EliWebColors.vars,
+			varNormal -> EliWebColors.vars,
+			termSFBackTick -> EliWebColors.vars,
+			termSFNormal -> EliWebColors.vars,
+			typeRoot -> EliWebColors.types,
+			boolConstants -> EliWebColors.constants,
+			keywords -> EliWebColors.keywords,
+			algProps -> EliWebColors.properties,
+			specialForm -> EliWebColors.vars,
+			opDefShortcut -> EliWebColors.keywords,
+			sequence -> EliWebColors.properties,
+			brackets -> EliWebColors.stringLits,
+			typeBackTick -> EliWebColors.types,
+			typeNormal -> EliWebColors.types,
+			symbolBackTicks -> EliWebColors.vars,
+			symbolNormal -> EliWebColors.vars,
+			numHex -> EliWebColors.constants,
+			numBin -> EliWebColors.constants,
+			numDec -> EliWebColors.constants
+		)
+		
 }
 
 
+object EliWebColors {
+	val default = "#000000"
+	val comments = "#007700"
+	val stringLits = "#ddaa77"
+	val vars = "#0000ff"
+	val keywords = "#ff0000"
+	val constants = "#0000ff"
+	val types = "#77a9dd"
+	val properties = "#7777cc"
+}
 
 
 

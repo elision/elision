@@ -304,7 +304,7 @@ object TreeSprite {
 	 def buildWelcomeTree : TreeSprite = {
 		val realroot = new NodeSprite("root")
 			val root0 = addChild("Welcome to the ",realroot)
-			val root = addChild("Elision Visualization Assistant (Eva)!",realroot)
+			val root = addChild("<font color=\"#770000\">Elision</font> <font color=\"#007700\">Visualization</font> <font color=\"#000077\">Assistant</font> (Eva)!",realroot)
 				val node1 = addChild("To create a rewrite tree visualization,", root)
 				val node2 = addChild("simply do one of the following: ",root)
 					addChild("Enter input into the ", node2)
