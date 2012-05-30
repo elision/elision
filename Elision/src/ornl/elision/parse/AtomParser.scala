@@ -1059,7 +1059,7 @@ object AtomParser {
  * @param context	The context for rulesets and operators.
  * @param trace 	If true, enable tracing.  Off by default.
  */
-class AtomParser(val context: Context, val trace: Boolean = false)
+class AtomParser(val context: Context, val toggle: Boolean = false, val trace: Boolean = false)
   extends Parser {
   import AtomParser._
 
@@ -1095,14 +1095,24 @@ class AtomParser(val context: Context, val trace: Boolean = false)
    * @return	The parsing result.
    */
   def parseAtoms(line: String): Presult = {
-    val tr =
-      if (trace) TracingParseRunner(AtomSeq)
-      else ReportingParseRunner(AtomSeq)
-    val parsingResult = tr.run(line)
-    parsingResult.result match {
-      case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid MPL2 source:\n" +
-        ErrorUtils.printParseErrors(parsingResult))
+    if (toggle) {
+      val parser = new ParseCombinators(context)
+      
+      import scala.util.parsing.combinator.Parsers
+      parser.run(line) match {
+        case parser.Success(list, _) => Success(list.asInstanceOf[List[AstNode]])
+        case parser.NoSuccess(msg, _)	 => Failure(msg)
+      }
+    } else {      
+    	val tr =
+    			if (trace) TracingParseRunner(AtomSeq)
+    			else ReportingParseRunner(AtomSeq)
+    			val parsingResult = tr.run(line)
+    			parsingResult.result match {
+    			case Some(nodes) => Success(nodes)
+    			case None => Failure("Invalid MPL2 source:\n" +
+    					ErrorUtils.printParseErrors(parsingResult))
+    			}
     }
   }
 
@@ -1660,7 +1670,7 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   // nest comments. From:
   // http://stackoverflow.com/questions/5952720/ignoring-c-style-comments-in-a-scala-combinator-parser
   protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
-
+  
   //======================================================================
   // Parse application/lambda.
   //======================================================================
@@ -1710,7 +1720,7 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
     ParsedSpecialForm |
 
     // Invoke an external parser to do something.
-    ExternalParse |
+//    ExternalParse |
 
     "^TYPE" ^^ {
       case _ => TypeUniverseNode()
@@ -1742,15 +1752,14 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   //======================================================================
   // Parse special form / external parser
   //======================================================================
-  // TODO: Make ExternalParse work, sould really return AtomSeqNode
+  // TODO: Make ExternalParse work, should really return AtomSeqNode
   lazy val ExternalParse: PackratParser[NakedSymbolNode] =
     "[" ~ rep1sep(Esym, ",") ~ "[" ~ ("]]" ~> Atom).? ~ "]]" ^^^ {
       NakedSymbolNode("NOT IMPLEMENTED")
     }
 
-  lazy val ParsedSpecialForm: PackratParser[SpecialFormNode	] =
+  lazy val ParsedSpecialForm: PackratParser[SpecialFormNode] =
     AlternativeOperatorDefinition | GeneralForm | SpecialBindForm
-      
 
   // TODO: this should differ a little from the other parser, check it for correctness
   lazy val AlternativeOperatorDefinition: PackratParser[SpecialFormNode] =
@@ -1777,18 +1786,18 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   lazy val SpecialBindForm: PackratParser[SpecialFormNode] =
     "{" ~ Esym ~ (
       ((AtomApplication).* ^^ {
-      case list =>
-        if (list.length == 0) None
-        else Some(NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(), list))
-      }) ~ 
-    (BindBlock | ListBlock).* ^^ {
-      case x ~ y => x match {
-        case None => BindingsNode(y)
-        case Some(map) => BindingsNode(map :: y)
+        case list =>
+          if (list.length == 0) None
+          else Some(NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(), list))
+      }) ~
+      (BindBlock | ListBlock).* ^^ {
+        case x ~ y => x match {
+          case None => BindingsNode(y)
+          case Some(map) => BindingsNode(map :: y)
+        }
+      }) ~ "}" ^^ {
+        case _ ~ sym ~ monster ~ _ => SpecialFormNode(NakedSymbolNode(sym), monster)
       }
-    }) ~ "}" ^^ {
-      case _ ~ sym ~ monster ~ _ => SpecialFormNode(NakedSymbolNode(sym), monster)
-    }
 
   // TODO: This Tuple3 is gross, change it
   lazy val OperatorPrototypeNode: PackratParser[Tuple3[NakedSymbolNode, List[AstNode], AstNode]] =
@@ -1821,7 +1830,7 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
     })
 
   lazy val AlgProp: PackratParser[AlgPropNode] =
-    "%" ~> PropListLong | PropListShort
+    "%" ~> (PropListLong | PropListShort)
 
   lazy val PropListShort: PackratParser[AlgPropNode] =
     (
@@ -1911,22 +1920,60 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   lazy val strSym = """(\\[\\bfnrt`"]|[^\p{Cntrl}\\`]|\\u[a-fA-F0-9]{4})*"""
   lazy val strNrm = """(\\[\\bfnrt`"]|[^\p{Cntrl}\\"]|\\u[a-fA-F0-9]{4})*"""
 
+  lazy val EscapedCharacter: PackratParser[String] =
+    """\\[`"nrt\\]""".r ^^ { _.toString }
+    
+  lazy val NormalCharacter: PackratParser[String] =
+    """[^"\\]""".r ^^ { _.toString }
+  
+  lazy val SymNorm: PackratParser[String] =
+    """[^`\\]""".r ^^ { _.toString }
+    
+  lazy val SymCharacter: PackratParser[String] = 
+    EscapedCharacter | SymNorm
+  
+  lazy val Character: PackratParser[String] = 
+    EscapedCharacter | NormalCharacter
+    
   lazy val Estr: PackratParser[String] =
-    ("\"" + strNrm + "\"").r ^^ { _.toString.drop(1).dropRight(1) }
-
+    "\"" ~> rep(Character) <~ "\"" ^^ { construct(_) }
+  
   lazy val Esym: PackratParser[String] =
-    ("`" + strSym + "`").r ^^ { _.toString.drop(1).dropRight(1) } |
-      """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
+    "`" ~> rep(SymCharacter) <~ "`" ^^ { construct(_) } |
+    """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
+    
+//  // TODO: Find a better way to use construct here. Probably just add a new method
+//  lazy val Estr: PackratParser[String] =
+//    ("\"" + strNrm + "\"").r ^^ { case str =>
+//      val stringList = str.toString.drop(1).dropRight(1).toList.map(_.toString) 
+//      construct(stringList) }
+//
+//  lazy val Esym: PackratParser[String] =
+//    ("`" + strSym + "`").r ^^ { case str =>
+//      val stringList = str.toString.drop(1).dropRight(1).toList.map(_.toString) 
+//      construct(stringList) } |
+//      """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
 
-  lazy val Literal: PackratParser[AstNode] =
+  lazy val Everb: PackratParser[String] = {
+    "(?s)\"\"\".*\"\"\"".r ^^ { case str =>
+      construct(str.toString.drop(3).dropRight(3).toList.map(_.toString)) }
+  }
+
+  // TODO: construct doesn't correctly handle things like `\t\n`
+  lazy val Literal: PackratParser[AstNode] = { 		
     Esym ~ ":" ~ Atom ^^ {
       case sym ~ _ ~ typ => SymbolLiteralNode(Some(typ), sym)
     } |
-      Esym ^^ { SymbolLiteralNode(None, _) } |
-      Estr ~ ":" ~ Atom ^^ {
-        case str ~ _ ~ typ => StringLiteralNode(typ, str)
-      } |
-      Estr ^^ { StringLiteralNode(SimpleTypeNode(STRING), _) }
+    Esym ^^ { SymbolLiteralNode(None, _) } |
+    Everb ~ ":" ~ Atom ^^ {
+      case str ~ _ ~ typ => StringLiteralNode(typ, str)
+    } |
+    Everb ^^ { StringLiteralNode(SimpleTypeNode(STRING), _) } |
+	  Estr ~ ":" ~ Atom ^^ {
+	    case str ~ _ ~ typ => StringLiteralNode(typ, str)
+	  } |
+    Estr ^^ { StringLiteralNode(SimpleTypeNode(STRING), _) }
+  }
   //======================================================================
   // END a literal.
   //======================================================================  
@@ -2012,10 +2059,10 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   //======================================================================
   // END a number.
   //======================================================================
-
-  //  def run(arg: String): ParseResult[Any] = {
-  //    parseAll(AtomSeq, new PackratReader(new CharSequenceReader(arg)))
-  //  }
+  def run(arg: String): ParseResult[Any] = {
+//    Console println "`"+ arg +"`"
+    parseAll(AtomSeq, new PackratReader(new CharSequenceReader(arg)))
+  }
 
   def ignoreCase(str: String): Regex = ("""(?i)\Q""" + str + """\E""").r
 }
@@ -2023,8 +2070,15 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
 object Main extends App {
   val _parser = new ParseCombinators(new Context)
   val t0 = System.nanoTime();
-  //  val ret = _parser.run(""" "         	" """)
-  //  Console.println(ret)
+  val text =
+<execute>
+<![CDATA[
+1
+1
+]]>
+</execute>
+    val ret = _parser.run(text.text)
+    Console.println(ret)
   //    _parser.run("add(1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(900,45)))))))))))))")
 
   val t1 = System.nanoTime();

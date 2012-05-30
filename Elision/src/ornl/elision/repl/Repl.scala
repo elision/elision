@@ -103,7 +103,7 @@ object Repl {
   _context.operatorLibrary = _library
   
   /** The parser to use. */
-  private var _parser = new AtomParser(_context, false)
+  private var _parser = new AtomParser(_context, false, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
@@ -117,8 +117,11 @@ object Repl {
   /** Whether to bind the results of evaluating atoms. */
   private var _bindatoms = true
   
-  /** Whether or not to trace the parser. */
+  /** Whether or not to trace the parboiled parser. */
   private var _trace = false
+
+  /** Toggle which parser to use. */
+  private var _toggleParser = false
   
   /** Have we defined the operators.  This is used by the `run` method. */
   private var _opsDefined = false
@@ -458,6 +461,10 @@ object Repl {
 			//////////////////// GUI changes
 			
 	    	case _parser.Success(list) => {
+	    	  Console println "LML IN SUCCESS "+ list.length
+	    	  Console println list
+	    	  System.exit(1)
+	    	  
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {
 					RWTree.current = treeRoot.addChild("line node")
@@ -804,7 +811,7 @@ object Repl {
           case Args() =>
 		        // Toggle tracing.
 		        _trace = !_trace
-		        _parser = new AtomParser(_context, _trace)
+		        _parser = new AtomParser(_context, _toggleParser, _trace)
 		        emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
 		        _no_show
           case _ => _no_show
@@ -818,6 +825,18 @@ object Repl {
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
 		        emitln("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
+		        _no_show
+          case _ => _no_show
+        })
+ 
+    // ToggleParser.
+    _context.operatorLibrary.register("toggleparser",
+        (_, list:AtomSeq, _) => list match {
+          case Args() =>
+		        // Toggle the parser used.
+            _toggleParser = !_toggleParser
+            _parser = new AtomParser(_context, _toggleParser, _trace)
+            emitln("Using "+ (if(_toggleParser) "packrat" else "parboiled") +" parser.")
 		        _no_show
           case _ => _no_show
         })
