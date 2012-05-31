@@ -105,8 +105,8 @@ package object core {
    * @param trace		Whether to trace the parse.
    * @return	The result of parsing, which may be None.
    */
-  def parse(str: String, context: Context, trace: Boolean = false) = {
-    val ap = new AtomParser(context, trace)
+  def parse(str: String, context: Context, toggle: Boolean = false, trace: Boolean = false) = {
+    val ap = new AtomParser(context, toggle, trace)
     try {
       ap.parseAtoms(str) match {
         case AtomParser.Failure(_) => None
