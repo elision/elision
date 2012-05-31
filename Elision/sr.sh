@@ -45,10 +45,11 @@ val=`for file in \`find $dir/lib -name '*.jar'\` ; do \
   echo -n $file":"; \
   done`"$dir/bin"
 
-# Now start a Scala interpreter with the classpath.
+# Now start a Scala interpreter with the classpath and run the REPL.
 scala \
 	-i \
-	-cp $val
+	-cp $val \
+	ornl.elision.repl.SimpleRepl
 
 # Done.  We exit with the exit value from the scala command.
 exit $?

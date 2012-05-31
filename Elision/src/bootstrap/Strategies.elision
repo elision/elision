@@ -35,24 +35,26 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
+println("Reading Strategies...")
+
 // Declare the rulesets.
 declare(IF, STRAT)
   
 // Declare the if operator and the rules to make it work.
-{ operator if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T }
+def({! if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T })
 { rule if(true, $thenpart, $elsepart) -> $thenpart #ruleset IF }
 { rule if(false, $thenpart, $elsepart) -> $elsepart #ruleset IF }
   
 // The no-op strategy leaves atoms unmodified.  The flag is always set to
 // true.
-{ operator s_noop(): STRATEGY }
+def({! s_noop(): STRATEGY })
 { rule (s_noop().$a) -> {bind atom->$a flag->true} #ruleset STRAT }
   
 // Declare operators to modify the flag returned from a strategy.
-{ operator s_true($s: STRATEGY): STRATEGY }
+def({! s_true($s: STRATEGY): STRATEGY })
 { rule (s_true($s).$a) -> (($s.$a).{bind atom->$atom flag->true})
   #ruleset STRAT }
-{ operator s_false($s: STRATEGY): STRATEGY }
+def({! s_false($s: STRATEGY): STRATEGY })
 { rule (s_false($s).$a) -> (($s.$a).{bind atom->$atom flag->false}) 
   #ruleset STRAT }
   
@@ -60,29 +62,29 @@ declare(IF, STRAT)
 // the flag.  If it is true, the second strategy is executed.  Otherwise the
 // third strategy is executed.  The flag is the result of the last strategy
 // executed.
-{ operator s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
-	$elsepart: STRATEGY @lazy): STRATEGY }
+def({! s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
+	$elsepart: STRATEGY @lazy): STRATEGY })
 { rule (s_if($test, $thenpart, $elsepart).$a) ->
   (($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom)))
   #ruleset STRAT }
   
 // The while strategy executes the subordinate strategy for as long as it
 // yields the true flag.
-{ operator s_while($test: STRATEGY): STRATEGY }
+def({! s_while($test: STRATEGY): STRATEGY })
 { rule (s_while($test).$a) ->
   (s_if($test, s_while($test), s_noop()).$a) #ruleset STRAT }
   
-{ operator s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
+def({! s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative })
 { rule (s_then($p, $q).$a) ->
   ($q.(($p.$a).$atom)) #ruleset STRAT }
   
-{ operator s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
+def({! s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative })
 { rule (s_and($p, $q).$a) ->
   (s_if($p, $q, s_noop()).$a) #ruleset STRAT }
   
-{ operator s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative }
+def({! s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative })
 { rule (s_or($p, $q).$a) ->
   (s_if($p, s_noop(), $q).$a) #ruleset STRAT }
   
-{ operator s_td($part: STRATEGY): STRATEGY }
+def({! s_td($part: STRATEGY): STRATEGY })
 { rule (s_td($s).$a) -> (s_then($s,{map s_td($s)}).$a) #ruleset STRAT }

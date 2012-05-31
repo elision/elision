@@ -5921,6 +5921,177 @@ Apply(Lambda(Variable('T,"x"),'T),"Fred")
 
 \end_layout
 
+\begin_layout Section
+Lambdas and Metavariables
+\end_layout
+
+\begin_layout Standard
+It is often useful to use metavariables in lambdas.
+ Consider 
+\family typewriter
+is_bindable(atom)
+\family default
+.
+ This evaluates to 
+\family typewriter
+true
+\family default
+ if the atom is bindable (that is, is a variable), and evaluates to 
+\family typewriter
+false
+\family default
+ if it is not.
+ Suppose I want a function to tell me whether an atom is bindable or not.
+ I might try to write this as follows: 
+\family typewriter
+
+\backslash
+$a.is_bindable($a)
+\family default
+.
+ This will not work.
+ The term 
+\family typewriter
+is_bindable($x)
+\family default
+ immediately evaluates to true (since 
+\family typewriter
+$x
+\family default
+ is bindable), leaving the constant lambda 
+\family typewriter
+
+\backslash
+$x.true
+\family default
+.
+ This is not what we want at all.
+\end_layout
+
+\begin_layout Standard
+The solution is to use metavariables (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Metavariables"
+
+\end_inset
+
+).
+ We write 
+\family typewriter
+
+\backslash
+$$x.is_bindable($$x)
+\family default
+.
+ This works as desired.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$x.is_bindable($x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl16 = true
+\end_layout
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$$x.is_bindable($$x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl15 = false
+\end_layout
+
+\end_inset
+
+The first entry fails (because 
+\family typewriter
+7
+\family default
+ is not bindable), but the second entry works.
+ Once you decide to use a metavariable in one place in a lambda, however,
+ you must use it everywhere.
+ The reason is that the lambda variables get rewritten to De Bruijn indices
+ (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:De-Bruijn-Indices"
+
+\end_inset
+
+) based on the lambda parameter.
+ The following illustrates how this can fail.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$x.is_bindable($$x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl16 = true
+\end_layout
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$$x.is_bindable($x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl15 = true
+\end_layout
+
+\end_inset
+
+In the first case a De Bruijn variable 
+\family typewriter
+$v
+\family default
+ is created for 
+\family typewriter
+$x
+\family default
+, and the body is rewritten to 
+\family typewriter
+is_bindable($v)
+\family default
+ which is true.
+ The second case falls into the problem discussed earlier, where 
+\family typewriter
+is_bindable($x)
+\family default
+ is rewritten to 
+\family typewriter
+true
+\family default
+ before De Bruijn substitution can even occur.
+\end_layout
+
+\begin_layout Standard
+The simple rule is to use metavariables consistently in lambdas.
+ If you use a metavariable in the body, you must also use a metavariable
+ for the parameter.
+\end_layout
+
 \begin_layout Chapter
 \begin_inset CommandInset label
 LatexCommand label
@@ -7385,7 +7556,7 @@ width "100col%"
 special "none"
 height "1in"
 height_special "totalheight"
-status collapsed
+status open
 
 \begin_layout Subsection*
 Scala
@@ -7576,23 +7747,19 @@ context.operatorLibrary.add(addOp)
 \begin_layout Plain Layout
 The operator library is also where you register a closure for a symbolic
  operator.
- The closure must take a triple, consisting of the operator, the argument
- list as an instance of 
+ The closure must take an instance of 
 \family typewriter
-core.AtomSeq
+core.ApplyData
 \family default
-, and an instance of 
+ and return an instance of 
 \family typewriter
-core.Bindings
+core.BasicAtom
 \family default
 .
- The bindings are the result of matching the operator parameters against
- the arguments, and may be useful in some cases.
- The closure must then return an atom.
- Matching, binding, and rewriting are all explained in more detail in 
+ More details on this are given in 
 \begin_inset CommandInset ref
 LatexCommand formatted
-reference "chap:Matching-and-Rewriting"
+reference "chap:Native-Handlers"
 
 \end_inset
 
@@ -7626,7 +7793,7 @@ context.operatorLibrary.register("add",
 \end_layout
 
 \begin_layout LyX-Code
-  (op: Operator, args: AtomSeq, _) => {
+  (data: ApplyData) => {
 \end_layout
 
 \begin_layout LyX-Code
@@ -7650,7 +7817,7 @@ context.operatorLibrary.register("add",
 \end_layout
 
 \begin_layout LyX-Code
-	args.foreach {
+	data.args.foreach {
 \end_layout
 
 \begin_layout LyX-Code
@@ -13096,11 +13263,12 @@ rs.
 \end_layout
 
 \begin_layout Section
-Rewrite Rules
+Rewrite Rules and Guards
 \end_layout
 
-\begin_layout Section
-Guards
+\begin_layout Standard
+A rewrite rule generalizes the notion of a map pair a bit by introducing
+ additional guards.
 \end_layout
 
 \begin_layout Section
@@ -13109,6 +13277,82 @@ Rulesets
 
 \begin_layout Section
 Strategies
+\end_layout
+
+\begin_layout Standard
+In Elision a 
+\emph on
+strategy
+\emph default
+ is an atom 
+\begin_inset Formula $S$
+\end_inset
+
+ that, when applied to another atom 
+\begin_inset Formula $A$
+\end_inset
+
+ yields two things: a potentially new atom 
+\begin_inset Formula $A'$
+\end_inset
+
+ and a Boolean value 
+\begin_inset Formula $f$
+\end_inset
+
+.
+ These items are packaged in a binding of the form 
+\family typewriter
+{bind atom->
+\family default
+
+\begin_inset Formula $A'$
+\end_inset
+
+
+\family typewriter
+ flag->
+\family default
+
+\begin_inset Formula $f$
+\end_inset
+
+
+\family typewriter
+}
+\family default
+.
+ Any atom that satisfies this requirement is a strategy.
+\end_layout
+
+\begin_layout Standard
+There are already several examples of strategies.
+ Map pairs and rewrite rules both satisfy this requirement, and are considered
+ strategies.
+ The following is a simple strategy that takes an atom and returns that
+ atom with the flag true.
+\end_layout
+
+\begin_layout LyX-Code
+{ operator #name=s_noop #type=STRATEGY #cases
+\end_layout
+
+\begin_layout LyX-Code
+  $a -> {binds atom->$$a flag->true} }
+\end_layout
+
+\begin_layout Standard
+This illustrates some points about strategies.
+ First, the names of strategy operators start with 
+\family typewriter
+s_
+\family default
+.
+ Second, strategies are given the type 
+\family typewriter
+STRATEGY
+\family default
+, even though the result is a binding.
 \end_layout
 
 \begin_layout Section
@@ -13126,7 +13370,7 @@ name "chap:Contexts"
 
 \end_inset
 
-Contexts
+Executors and Contexts
 \end_layout
 
 \begin_layout Standard
@@ -13138,6 +13382,29 @@ Rewrite rules, operator definitions, and bindings need to be made persistent
 context
 \emph default
 , and is explored in more detail in this chapter.
+ Also, Elision code must be parsed to obtain atoms, and that is the job
+ of an 
+\emph on
+executor
+\emph default
+.
+\end_layout
+
+\begin_layout Standard
+Executors are provided by classes that implement the 
+\family typewriter
+core.Executor
+\family default
+ trait, and contexts are instances of 
+\family typewriter
+core.Context
+\family default
+.
+ Every executor instance also holds an instance of a context.
+\end_layout
+
+\begin_layout Standard
+Elision atoms are immutable, so 
 \end_layout
 
 \begin_layout Chapter
@@ -13146,6 +13413,561 @@ BasicAtom
 \end_layout
 
 \begin_layout Chapter
+Exceptions
+\end_layout
+
+\begin_layout Standard
+Elision attempts to handle exceptions rationally, and to 
+\emph on
+never
+\emph default
+ allow the system to fail completely.
+ Once Elision is up and the REPL is running, exceptions are trapped and
+ an attempt is made to dispose of them appropriately.
+ The following sections describe how Elision handles exceptions.
+\end_layout
+
+\begin_layout Section
+Elision Exceptions
+\end_layout
+
+\begin_layout Standard
+Elision uses a number of exceptions to signal conditions internally.
+ These are usually serious conditions, from the point of view of the rewriter,
+ but do 
+\emph on
+not
+\emph default
+ represent complete failure.
+ That is, it should be possible to continue after one of these exceptions.
+ All such exceptions extend 
+\family typewriter
+core.ElisionException
+\family default
+ and provide a human-readable string as the message.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.ArgumentListException
+\family default
+ An error was detected in the argument list for an operator.
+ This is typically a type check error, or the wrong number of arguments,
+ as with 
+\family typewriter
+add(5,"Tim")
+\family default
+.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.LambdaUnboundedRecursionException
+\family default
+ The stack was exhausted during evaluation of a lambda expression.
+ This typically represents unbounded recursion.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.LambdaVariableMismatchException
+\family default
+ The argument provided to a lambda does not match the lambda parameter.
+ This is typically a type error, as with 
+\family typewriter
+
+\backslash
+$x:INTEGER.$x."Not an integer."
+\family default
+.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.NativeHandlerException
+\family default
+ A native handler for an operator could not be parsed, or represented incomplete
+ input (missing a closing parenthesis or brace, for instance).
+ For example, 
+\family typewriter
+{! foo() #handler=
+\family default
+"
+\family typewriter
+ for(atom <- args) { 
+\family default
+"
+\family typewriter
+}
+\family default
+.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.OperatorDefinitionException
+\family default
+ An error occurred in evaluating an operator definition.
+ Most likely your properties and prototype do not agree, as with 
+\family typewriter
+{! foo($x:INTEGER):INTEGER is associative}
+\family default
+.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.OperatorRedefinitionException
+\family default
+ An attempt was made to re-define an operator, but the operator library
+ does not allow this.
+ Under normal circumstances (i.e., using the REPL), redefinition is allowed
+ with a warning.
+\end_layout
+
+\begin_layout Description
+
+\family typewriter
+core.SpecialFormException
+\family default
+ A structural error was discovered interpreting a special form.
+ Typically this means that the content was missing an required bind pair,
+ as with 
+\family typewriter
+{operator #type=INTEGER}
+\family default
+.
+\end_layout
+
+\begin_layout Section
+Java Exceptions and Throwables
+\end_layout
+
+\begin_layout Standard
+Other exceptions are handled differently by Elision.
+\end_layout
+
+\begin_layout Chapter
+Reading Elision Files
+\end_layout
+
+\begin_layout Standard
+Elision provides several mechanisms to read files.
+\end_layout
+
+\begin_layout Itemize
+The REPL.
+ You can pipe input to the REPL, or you can use the 
+\family typewriter
+read
+\family default
+ and 
+\family typewriter
+read_once
+\family default
+ commands at the prompt.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+read(filename: String)
+\family default
+ method of 
+\family typewriter
+parse.Processor
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+elc
+\family default
+ (Elision compiler) command that reads input, and then generates the Scala
+ code to re-create the resulting context.
+\end_layout
+
+\begin_layout Standard
+These methods all work essentially the same way: input is consumed from
+ some source, parsed into a sequence of atoms, and each atom is then handled
+ in some appropriate manner.
+ All this work is generalized by the 
+\family typewriter
+parse.Processor
+\family default
+ class.
+ The following sections discuss how to use these to create additional facilities.
+\end_layout
+
+\begin_layout Section
+Processor
+\end_layout
+
+\begin_layout Standard
+If you want to process Elision files you should begin with 
+\family typewriter
+parse.Processor
+\family default
+.
+ This class provides a context, along with several methods to read data.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Methods to Read Atoms
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="4" columns="2">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="top" width="0">
+<column alignment="left" valignment="top" width="0">
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Method
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Use
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+read(filename: String)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read the content of the specified file.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+read(stream: Source)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read the content of the provided stream.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family typewriter
+execute(text: String)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Read from the provided string.
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+Internally, all text is ultimately processed by the 
+\family typewriter
+execute(String)
+\family default
+ method.
+ The flow of this method is as follows.
+\end_layout
+
+\begin_layout Enumerate
+Parse the text, obtaining a sequence of 
+\family typewriter
+parse.AtomParser.AstNode
+\family default
+ instances.
+\end_layout
+
+\begin_layout Enumerate
+For each node, do the following for each registered instance of 
+\family typewriter
+parse.Processor.Handler
+\family default
+, in the order registered.
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Pass the current node to the 
+\family typewriter
+handleNode(node: AtomParser.AstNode)
+\family default
+ method.
+ This method must return an 
+\family typewriter
+Option[AtomParser.AstNode]
+\family default
+.
+ If the returned value is 
+\family typewriter
+None
+\family default
+, then the node is discarded.
+ If the returned value is 
+\family typewriter
+Some(node)
+\family default
+, then the returned node becomes the current node.
+ A simple default implementation of 
+\family typewriter
+handleNode
+\family default
+ is:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+def handleNode(node: AtomParser.AstNode) = Some(node)
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Pass the node to all listening actors via 
+\family typewriter
+actor ! node
+\family default
+.
+\end_layout
+
+\begin_layout Enumerate
+Convert the node into an atom by invoking the node's 
+\family typewriter
+interpret
+\family default
+ method.
+\end_layout
+
+\begin_layout Enumerate
+Pass any current atom to the 
+\family typewriter
+handleAtom(atom: BasicAtom)
+\family default
+ method.
+ This method is responsible for performing any specialized processing of
+ the atom 
+\emph on
+post-construction
+\emph default
+ (as the atom was already constructed during execution of the 
+\family typewriter
+interpret
+\family default
+ method in 
+\family typewriter
+handleAtom
+\family default
+), and should return an optional atom.
+ If 
+\family typewriter
+None
+\family default
+ is returned then the atom is discarded and the system proceeds to the next
+ node.
+ If the return value is 
+\family typewriter
+Some(atom)
+\family default
+, then the returned atom becomes the current atom.
+ A simple default implementation of 
+\family typewriter
+handleAtom
+\family default
+ is:
+\end_layout
+
+\begin_deeper
+\begin_layout LyX-Code
+def handleAtom(atom: BasicAtom) = Some(atom)
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Pass the atom to all listening actors via 
+\family typewriter
+actor ! atom
+\family default
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+Other events can be passed to actors.
+ Whenever a new file is provided for processing, a 
+\family typewriter
+FileStart
+\family default
+ object is sent to the actors.
+ When processing of the file is complete, a 
+\family typewriter
+FileEnd
+\family default
+ is sent.
+ When a new stream is provided for processing, a 
+\family typewriter
+StreamStart
+\family default
+ is sent to all actors.
+ When a stream is exhausted, a 
+\family typewriter
+StreamEnd
+\family default
+ is sent to all actors.
+ The flow of messages thus looks as follows, if a valid filename is provided
+ to the 
+\family typewriter
+read
+\family default
+ method.
+\end_layout
+
+\begin_layout LyX-Code
+FileStart
+\end_layout
+
+\begin_layout LyX-Code
+StreamStart
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout LyX-Code
+AtomParser.AstNode
+\end_layout
+
+\begin_layout LyX-Code
+BasicAtom
+\end_layout
+
+\begin_layout LyX-Code
+StreamEnd
+\end_layout
+
+\begin_layout LyX-Code
+FileEnd
+\end_layout
+
+\begin_layout Section
+Operators
+\end_layout
+
+\begin_layout Standard
+The 
+\end_layout
+
+\begin_layout Chapter
+\begin_inset CommandInset label
+LatexCommand label
+name "chap:Native-Handlers"
+
+\end_inset
+
 Native Handlers
 \end_layout
 
@@ -13214,7 +14036,7 @@ mod(4,2)
 0
 \family default
 .
- First we give the definition of the operator, without native handler.
+ First we give the definition of the operator, without a native handler.
 \end_layout
 
 \begin_layout LyX-Code
@@ -13239,52 +14061,503 @@ A native
 handler
 \emph default
  consists of a Scala closure.
- It's argument is a triple of the form (
-\emph on
-operator
-\emph default
-, 
-\emph on
-arguments
-\emph default
-, 
-\emph on
-bindings
-\emph default
-), where 
-\emph on
-operator
-\emph default
- is the operator to apply, as an instance of 
+ It's argument is an instance of 
 \family typewriter
-core.SymbolicOperator
+core.ApplyData
 \family default
-, the 
-\emph on
-arguments
-\emph default
- are given as an instance of 
+, and the handler is expected to return an instance of 
 \family typewriter
-core.AtomSeq
+core.BasicAtom
 \family default
-, and the 
-\emph on
-bindings
-\emph default
- are an instance of 
+.
+ There are several fields and methods of 
 \family typewriter
-core.Bindings
+core.ApplyData
 \family default
- that result from matching the argument list to the parameters.
- In addition the closure has access to some specialized fields and methods.
+ that can be useful in writing a native handler.
 \end_layout
 
 \begin_layout Itemize
+The field 
+\family typewriter
+executor
+\family default
+ provides access to an instance of 
+\family typewriter
+core.Executor
+\family default
+.
+ This is a class that provides an 
+\family typewriter
+execute(text)
+\family default
+ method, where 
+\family typewriter
+text
+\family default
+ is a string to be parsed as a sequence of atoms.
+ The 
+\family typewriter
+core.Executor
+\family default
+ instance also provides access to a 
+\family typewriter
+core.Context
+\family default
+ instance.
+\end_layout
 
+\begin_layout Itemize
+The field 
+\family typewriter
+_no_show
+\family default
+ is a special symbol that is used by certain interactive systems, such as
+ the REPL, to indicate that no value should be displayed as the result of
+ the handler.
+ This is the common return value for operators that are executed solely
+ for their side effect.
+ For example, this is the value returned by the 
+\family typewriter
+help
+\family default
+ operator.
+ This should be checked by object identity, not equality, so that it is
+ possible to use 
+\family typewriter
+_no_show
+\family default
+ as a symbol normally.
+\end_layout
+
+\begin_layout Itemize
+The method 
+\family typewriter
+as_is
+\family default
+ indicates that the result should be the application of the operator to
+ the argument list without any further processing.
+ This is commonly used as the return value for an operator in cases where
+ no special processing is required.
+\end_layout
+
+\begin_layout Itemize
+The field 
+\family typewriter
+op
+\family default
+ is the instance of 
+\family typewriter
+core.SymbolicOperator
+\family default
+ being applied.
+\end_layout
+
+\begin_layout Itemize
+The field 
+\family typewriter
+args
+\family default
+ is an instance of 
+\family typewriter
+core.AtomSeq
+\family default
+ that contains the arguments to the operator, in order.
+\end_layout
+
+\begin_layout Itemize
+The field 
+\family typewriter
+binds
+\family default
+ is an instance of 
+\family typewriter
+core.Bindings
+\family default
+ that binds each parameter to its corresponding argument.
+ For associative operators the parameters bound are synthetic, and are named
+ 
+\family typewriter
+$`:1`
+\family default
+, 
+\family typewriter
+$`:2`
+\family default
+, ...
+\end_layout
+
+\begin_layout Standard
+Remember that strings and numbers are automatically converted to atoms.
+ To take apart the argument list, a special extractor 
+\family typewriter
+core.Args
+\family default
+ is provided.
+ This is a sequence extractor for 
+\family typewriter
+core.AtomSeq
+\family default
+ instances.
+ Given all this, we can write the native handler for 
+\family typewriter
+mod
+\family default
+ as follows.
+\end_layout
+
+\begin_layout LyX-Code
+def modHandler(data: ApplyData) = data.args match {
+\end_layout
+
+\begin_layout LyX-Code
+  case Args(IntegerLiteral(_, b), IntegerLiteral(_, d) => b mod d
+\end_layout
+
+\begin_layout LyX-Code
+  case _ => as_is
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+Now if 
 \family typewriter
 context
 \family default
- provides access to the context in which the operator is defined.
+ is the context where the operator is defined we can register the handler
+ as follows.
+ Note that we convert the function into a closure and pass the closure.
+\end_layout
+
+\begin_layout LyX-Code
+context.operatorLibrary.register("mod", modHandler _)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+%
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This can all be done from within Elision.
+ In fact, it is possible to declare a native handler for an operator from
+ the REPL.
+ This is done by adding a 
+\family typewriter
+#handler
+\family default
+ bind pair to the definition of the operator.
+ The value for 
+\family typewriter
+#handler
+\family default
+ must be a string literal.
+ The string literal executes in the following context.
+\end_layout
+
+\begin_layout LyX-Code
+import ornl.elision.core._
+\end_layout
+
+\begin_layout LyX-Code
+def _handler(_data: ApplyData): BasicAtom = {
+\end_layout
+
+\begin_layout LyX-Code
+  import _data._
+\end_layout
+
+\begin_layout LyX-Code
+  import ApplyData._
+\end_layout
+
+\begin_layout LyX-Code
+  // The #handler value is placed here.
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+The result is a function whose closure is stored as the native handler for
+ the operator.
+ Note that the operator need not be declared in any context; it is possible
+ to use this to execute arbitrary Scala code.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This trick is how the 
+\family typewriter
+def
+\family default
+ operator is defined.
+\end_layout
+
+\end_inset
+
+ Consider the following.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {! _() #handler=""" "hello world!" """}.%()
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl0 = "hello world!"
+\end_layout
+
+\begin_layout Plain Layout
+
+e> {! _() #handler=""" println("hello world!") ; _no_show """}.%()
+\end_layout
+
+\begin_layout Plain Layout
+
+hello world!
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Returning to the closure for the 
+\family typewriter
+mod
+\family default
+ operator, we can define it as follows.
+\end_layout
+
+\begin_layout LyX-Code
+{! mod($b: INTEGER, $d: INTEGER): INTEGER
+\end_layout
+
+\begin_layout LyX-Code
+   #description="Compute the remainder of integer division."
+\end_layout
+
+\begin_layout LyX-Code
+   #detail="""Compute the remainder when $b is divided by $d."""
+\end_layout
+
+\begin_layout LyX-Code
+   #handler="""|args match {
+\end_layout
+
+\begin_layout LyX-Code
+               |  case Args(IntegerLiteral(_, b), IntegerLiteral(_, d))
+ =>
+\end_layout
+
+\begin_layout LyX-Code
+               |    b mod d
+\end_layout
+
+\begin_layout LyX-Code
+               |  case _ => as_is
+\end_layout
+
+\begin_layout LyX-Code
+               |}"""
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+As with 
+\family typewriter
+#detail
+\family default
+, if the first character is the pipe symbol (
+\family typewriter
+|
+\family default
+), then the margin is stripped.
+ Note that handler does not need to refer to 
+\family typewriter
+_data.args
+\family default
+, as everything in 
+\family typewriter
+_data
+\family default
+ is imported.
+ If other classes are required, you may add an 
+\family typewriter
+import
+\family default
+ statement to obtain them.
+\end_layout
+
+\begin_layout Standard
+Some examples follow.
+ First we write a 
+\begin_inset Quotes eld
+\end_inset
+
+hello world
+\begin_inset Quotes erd
+\end_inset
+
+ operator.
+\end_layout
+
+\begin_layout LyX-Code
+{! foo() #handler=""" "hello world!" """}
+\end_layout
+
+\begin_layout Standard
+Next we create an operator that evaluates its string argument.
+ If the argument evaluates to atoms, then the last atom is returned.
+ Alternately we could return a collection of atoms.
+\end_layout
+
+\begin_layout LyX-Code
+{! evaluate(text: String)
+\end_layout
+
+\begin_layout LyX-Code
+   #handler="""|args match {
+\end_layout
+
+\begin_layout LyX-Code
+               |  case Args(StringLiteral(_, text) =>
+\end_layout
+
+\begin_layout LyX-Code
+               |    val atoms = executor.execute(text)
+\end_layout
+
+\begin_layout LyX-Code
+               |    if (atoms.length > 0) atoms(atoms.length-1)
+\end_layout
+
+\begin_layout LyX-Code
+               |    else _no_show
+\end_layout
+
+\begin_layout LyX-Code
+               |  case _ => as_is
+\end_layout
+
+\begin_layout LyX-Code
+               |}"""
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+%
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Finally, we explore how to create the 
+\family typewriter
+def
+\family default
+ operator that defines other operators.
+ This is one of the most complex uses of this language feature.
+\end_layout
+
+\begin_layout LyX-Code
+// Create the def operator.
+\end_layout
+
+\begin_layout LyX-Code
+{! _($op) #handler="""
+\end_layout
+
+\begin_layout LyX-Code
+context.operatorLibrary.add(args(0))
+\end_layout
+
+\begin_layout LyX-Code
+context.operatorLibrary.register("def", {
+\end_layout
+
+\begin_layout LyX-Code
+data: ApplyData => data.args match {
+\end_layout
+
+\begin_layout LyX-Code
+  case Args(oper: Operator) =>
+\end_layout
+
+\begin_layout LyX-Code
+    data.context.operatorLibrary.add(oper)
+\end_layout
+
+\begin_layout LyX-Code
+    data.emitln("Defined operator "+toESymbol(oper.name)+"."
+\end_layout
+
+\begin_layout LyX-Code
+  case Args(atom) =>
+\end_layout
+
+\begin_layout LyX-Code
+    data.error("Atom is not a named operator: "+atom.toParseString)
+\end_layout
+
+\begin_layout LyX-Code
+  case _ =>
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout LyX-Code
+_no_show
+\end_layout
+
+\begin_layout LyX-Code
+})
+\end_layout
+
+\begin_layout LyX-Code
+"""}.%({! def($op: ANY)})
+\end_layout
+
+\begin_layout Standard
+The trick is that we pass the operator definition in, avoiding to have to
+ create it programmatically.
 \end_layout
 
 \begin_layout Chapter
@@ -13573,8 +14846,67 @@ ornl.elision.Version
 \end_layout
 
 \begin_layout Itemize
-Files that provide Elision support for editors or IDE's, such as Emacs,
- Eclipse, Sublime, and others.
+Files that provide Elision support for editors or IDE's, such as Emacs
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.gnu.org/software/emacs/
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+, Eclipse
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.eclipse.org/
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+, and Sublime
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.sublimetext.com/2
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Itemize
@@ -13859,28 +15191,430 @@ This chapter describes the general style of coding to use for contributions
 \end_layout
 
 \begin_layout Section
+Concepts
+\end_layout
+
+\begin_layout Standard
+The following definition is due to David Parnas.
+\end_layout
+
+\begin_layout Definition*
+One code entity 
+\begin_inset Formula $A$
+\end_inset
+
+ 
+\emph on
+uses
+\emph default
+ another entity 
+\begin_inset Formula $B$
+\end_inset
+
+ iff the correct functioning of 
+\begin_inset Formula $A$
+\end_inset
+
+ depends on the availability of a correct implementation of 
+\begin_inset Formula $B$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Quotes eld
+\end_inset
+
+uses
+\begin_inset Quotes erd
+\end_inset
+
+ relation is not the same as 
+\begin_inset Quotes eld
+\end_inset
+
+invokes.
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\begin_inset Formula $A$
+\end_inset
+
+ may invoke code in 
+\begin_inset Formula $B$
+\end_inset
+
+ without using 
+\begin_inset Formula $B$
+\end_inset
+
+ in the manner described above.
+ For example, an operating system invokes programs, but the functioning
+ of the operating system should not depend on the correct functioning of
+ the programs.
+\end_layout
+
+\begin_layout Standard
+Problems arise when there are loops in the uses relation.
+ That is, 
+\begin_inset Formula $A$
+\end_inset
+
+ uses 
+\begin_inset Formula $B$
+\end_inset
+
+ and 
+\begin_inset Formula $B$
+\end_inset
+
+ uses 
+\begin_inset Formula $A$
+\end_inset
+
+.
+ Then neither 
+\begin_inset Formula $A$
+\end_inset
+
+ nor 
+\begin_inset Formula $B$
+\end_inset
+
+ work until 
+\emph on
+both
+\emph default
+ work.
+ This condition is also referred to as a 
+\emph on
+tangle
+\emph default
+.
+ These are bad because nothing works until everything works.
+ The code becomes very brittle, and changes 
+\begin_inset Quotes eld
+\end_inset
+
+ripple
+\begin_inset Quotes erd
+\end_inset
+
+ through the system in ways that are hard to trace.
+\end_layout
+
+\begin_layout Description
+Rule Avoid loops in the use hierarchy.
+\end_layout
+
+\begin_layout Section
 Architectural Rules
+\end_layout
+
+\begin_layout Description
+Rule All code must be in packages under 
+\family typewriter
+ornl.elision
+\family default
+.
 \end_layout
 
 \begin_layout Section
 Scaladoc
 \end_layout
 
-\begin_layout Labeling
-\labelwidthstring 00.00.0000
-Rule Document every public and protected method and field using Scaladoc.
+\begin_layout Standard
+In general it is recommended to follow the Scaladoc guidelines found at
+ 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://docs.scala-lang.org/style/scaladoc.html
 \end_layout
 
-\begin_layout Labeling
-\labelwidthstring 00.00.0000
+\end_inset
+
+.
+ We make some revisions here.
+\end_layout
+
+\begin_layout Description
+Rule The Elision style is to use Java-style documentation comments (first
+ asterisks align and comment starts on second line), and not the style recommend
+ed for Scaladoc (second asterisks align and comments start on first line).
+ There is better tool support for this style at present.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+/** This is the style from the Scaladoc page.
+\end_layout
+
+\begin_layout Plain Layout
+
+  * Please don't use it.
+  Most formatters don't
+\end_layout
+
+\begin_layout Plain Layout
+
+  * know what to do with it.
+\end_layout
+
+\begin_layout Plain Layout
+
+  */
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+/**
+\end_layout
+
+\begin_layout Plain Layout
+
+ * This is the common "Javadoc" style.
+  Do use it.
+\end_layout
+
+\begin_layout Plain Layout
+
+ */
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+Rule Document every public and protected method and field using Scaladoc.
+ It is not necessary to document private methods and fields, but it is probably
+ advisable.
+\end_layout
+
+\begin_layout Description
 Rule Documentation may be omitted when a method or field overrides or implements
  a method from a parent class.
  In some cases you may wish to replace the textual documentation, but may
- omit the documentation of parameters and the return value.
+ omit the documentation of parameters and/or the return value.
 \end_layout
 
 \begin_layout Section
 Comments
+\end_layout
+
+\begin_layout Standard
+Comment your code by recording design decisions, your rationale for choices,
+ and descriptions of how complicated code sections work.
+ Essentially record what you will want to know when you have to understand
+ the code five years later, or when someone new to the project has to make
+ changes and not break anything.
+ If there is an assumptions in your code, you should record them.
+\end_layout
+
+\begin_layout Description
+Rule Write complete sentences.
+ Capitalize and punctuate appropriately, and make a reasonable attempt to
+ spell correctly.
+\end_layout
+
+\begin_layout Description
+Rule Use single-line comments for short comments.
+ For long explanations, use the 
+\family typewriter
+/*
+\family default
+...
+\family typewriter
+*/
+\family default
+ style.
+\end_layout
+
+\begin_layout Description
+Rule Use comment blocks to delineate logical sections of large classes.
+ These take the following form:
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+//======================================================================
+\end_layout
+
+\begin_layout Plain Layout
+
+// Section description goes here.
+\end_layout
+
+\begin_layout Plain Layout
+
+//======================================================================
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Don't comment every line, and don't just re-state what the line does.
+ Assume the person reading the code (probably you) will know how to read
+ the code.
+ Use comments to explain what is going on.
+ The following commentary is useless.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// get atoms
+\end_layout
+
+\begin_layout Plain Layout
+
+val atoms = atomset.filter(!_.isBindable)
+\end_layout
+
+\begin_layout Plain Layout
+
+// loop over atoms
+\end_layout
+
+\begin_layout Plain Layout
+
+for (atom <- atoms) {
+\end_layout
+
+\begin_layout Plain Layout
+
+  // print atom
+\end_layout
+
+\begin_layout Plain Layout
+
+  println(atom.toParseString)
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+This commentary is just a more verbose version of the above commentary.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// Get the unbindable atoms.
+\end_layout
+
+\begin_layout Plain Layout
+
+val atoms = atomset.filter(!_.isBindable)
+\end_layout
+
+\begin_layout Plain Layout
+
+// Print all the atoms.
+\end_layout
+
+\begin_layout Plain Layout
+
+for (atom <- atoms) {
+\end_layout
+
+\begin_layout Plain Layout
+
+  // Print the next atom on its own line.
+\end_layout
+
+\begin_layout Plain Layout
+
+  println(atom.toParseString)
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+This is actually the recommended style.
+ Keep it simple.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+// Print all unbindables.
+\end_layout
+
+\begin_layout Plain Layout
+
+val atoms = atomset.filter(!_.isBindable)
+\end_layout
+
+\begin_layout Plain Layout
+
+for (atom <- atoms) {
+\end_layout
+
+\begin_layout Plain Layout
+
+  println(atom.toParseString)
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Spacing
+\end_layout
+
+\begin_layout Description
+Rule Use two-space increments for indentation.
+ If possible, set your editor to use spaces instead of tab characters, and
+ do not use tab characters.
+\end_layout
+
+\begin_layout Description
+Rule Skip a blank line between any Scaladoc documented items, and between
+ classes no matter whether they are documented or not.
+\end_layout
+
+\begin_layout Description
+Rule Break lines at 80 characters (or just slightly over).
 \end_layout
 
 \begin_layout Section
@@ -14194,6 +15928,62 @@ textbackslash}
 
 \end_inset
 
+.
+\end_layout
+
+\begin_layout Standard
+Though not explicitly in the grammar, comments are allowed in two forms.
+ Single line comments starting with
+\family typewriter
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{//}
+\end_layout
+
+\end_inset
+
+
+\family default
+ and ending with a newline, and multi-line comments starting with
+\family typewriter
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{/*}
+\end_layout
+
+\end_inset
+
+
+\family default
+ and ending with 
+\family typewriter
+
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+term{*/}
+\end_layout
+
+\end_inset
+
+
+\family default
 .
 \end_layout
 

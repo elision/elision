@@ -168,7 +168,7 @@ object Apply {
    */
   def apply(op: BasicAtom, arg: BasicAtom, bypass: Boolean = false): BasicAtom = {
     // Do not try to compute if metaterms are present.
-    if (!arg.evenMeta && !arg.isTerm) SimpleApply(op, arg)
+    if (!op.evenMeta && !arg.isTerm) SimpleApply(op, arg)
     else {
 		//////////////////// GUI changes
 		// get the node representing this atom that is being rewritten

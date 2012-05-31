@@ -70,10 +70,10 @@ class UndefinedOperatorException(msg: String) extends ElisionException(msg)
  * 
  * @param allowRedefinition	If true, allow redefinition of operators (madness)
  * 													as described above.  A warning is always generated!
- * 													This is false by default.
+ * 													This is true by default.
  */
 class OperatorLibrary(
-    val allowRedefinition: Boolean = false) extends Fickle with Mutable {
+    val allowRedefinition: Boolean = true) extends Fickle with Mutable {
 
   /**
    * The mapping from operator name to operator.  This holds the mapping as it
@@ -114,8 +114,7 @@ class OperatorLibrary(
  	 * 								matching the parameters against the arguments.  It must
  	 * 								return a new atom.
  	 */
- 	def register(name: String,
- 	    handler: (Operator, AtomSeq, Bindings) => BasicAtom) = {
+ 	def register(name: String, handler: ApplyData => BasicAtom) = {
  	  // Go fetch the operator.  It must be defined.
  	  _nameToOperator.get(name) match {
  	    case None =>
