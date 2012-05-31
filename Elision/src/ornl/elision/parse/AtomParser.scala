@@ -1322,7 +1322,7 @@ extends Parser {
         ignoreCase("commutative") ~>
         	((x) => CommutativeNode(TrueNode)) |
         ignoreCase("idempotent") ~>
-        	((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~~>
+        	((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~ WS ~~>
     (AlgPropNode(_))
   }.label("operator properties")
   
@@ -1443,7 +1443,7 @@ extends Parser {
         	((x) => IdempotentNode(x.getOrElse(TrueNode))) |
         ignoreCase("!A") ~> ((x) => AssociativeNode(FalseNode)) |
         ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
-        ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
+        ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~ WS ~~>
     (AlgPropNode(_))
   }.label("an algebraic properties specification.")
 

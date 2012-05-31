@@ -35,6 +35,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
+println("Reading Core...")
+
 //======================================================================
 // Meta.
 //======================================================================
@@ -174,7 +176,6 @@ def({! read($filename: STRING)
                   |        else go = false
                   |      }
                   |      exec.parse(buf.toString)
-                  |      println(buf)
                   |      cfile.close()
                   |    } else {
                   |      error("Unable to open file.")

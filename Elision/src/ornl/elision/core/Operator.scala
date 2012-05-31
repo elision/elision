@@ -247,7 +247,9 @@ object OperatorRef {
    * @param op	The operator.
    * @return	A reference to the operator.
    */
-  def apply(op: Operator) = new OperatorRef(op)
+  def apply(op: Operator) = new OperatorRef(op) {
+    override val evenMeta = op.evenMeta
+  }
 }
 
 /**

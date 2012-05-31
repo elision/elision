@@ -35,6 +35,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
+println("Reading Context...")
+
 //======================================================================
 // Context.
 //======================================================================
@@ -93,14 +95,6 @@ and evaluated, the result is converted to a string, and the string parsed.
 If the original is not equal to the result, then a "round trip parse"
 failure is printed.  You will want to disable this if you are trying
 to trace either the rewriter or the parser."""
-})
-
-def({! rewrite()
-      #description="Toggle whether automatic rewriting is allowed."
-      #detail=
-"""Toggle whether to perform automatic rewriting.  The system will perform
-rewriting based on the enabled rulesets and the rewrite limit, if
-automatic rewriting is enabled."""
 })
 
 //======================================================================
