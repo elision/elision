@@ -1122,6 +1122,7 @@ class AtomParser(val context: Context, val toggle: Boolean = false, val trace: B
    * @param line	The string to parse.
    * @return	The parsing result.
    */
+  // FIXME: Currently only supports the parboiled parser
   def parseAtoms(source: scala.io.Source): Presult = {
     val tr =
       if (trace) TracingParseRunner(AtomSeq)
