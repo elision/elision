@@ -63,7 +63,6 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	val parseArea = new EditorPane {
 		editable = false
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
 		focusable = false
 		editorKit = new javax.swing.text.html.HTMLEditorKit
 	}
@@ -97,161 +96,22 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	contents += taPanel
 
 	
+	
+	
+	
 	/**
 	 * Displays an atom's parse string in parseArea with Elision syntax highlighting applied. 
 	 * @param text					the atom's parse string.
 	 * @param disableHighlight		disables highlighting if true.
 	 */
-	
 	def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
-		var result = text
 		
-		if(!disableHighlight) { // skip this whole block if we're disabling highlighting.
-			// obtain the lists of data for the font tags.
-			val starts = new ListBuffer[Int]
-			val colors = new ListBuffer[String]
-			val ends = new ListBuffer[Int]
-			applyElisionRegexes(text, 0, starts, colors, ends)
-			
-			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-			val breaks = enforceLineWrap(text,50)
-			
-			// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
-			var insertedChars = 0
-			
-			// insert all of our <font></font> and <br/> tags in their appropriate places.
-			while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty) {
-				var tag = ""
-				var insertLoc = 0
-				
-				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) < breaks(0))) {
-					// insert a <font color=> tag
-					tag = """<font color=""" + "\"" + colors(0) + "\"" + """>"""
-					insertLoc = starts(0)
-					starts.trimStart(1)
-					colors.trimStart(1)
-				} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) < breaks(0))) {
-					// insert a </font> tag
-					tag = """</font>"""
-					insertLoc = ends(0)
-					ends.trimStart(1)
-				} else {
-					// insert a <br/> tag to enforce a line break
-					tag = """<br/>"""
-					insertLoc = breaks(0)
-					breaks.trimStart(1)
-				}
-				
-				val (str1, str2) = result.splitAt(insertLoc + insertedChars)
-				result = str1 + tag + str2
-				insertedChars += tag.size
-			}
-		} else { // we still need to enforce line breaks even if we're not highlighting anything.
-			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-			val breaks = enforceLineWrap(text,50)
-			
-			var insertedChars = 0
-			
-			// insert the line breaks.
-			while(!breaks.isEmpty) {
-				// insert a <br/> tag to enforce a line break
-				var tag = """<br/>"""
-				var insertLoc = breaks(0)
-				breaks.trimStart(1)
-				
-				val (str1, str2) = result.splitAt(insertLoc + insertedChars)
-				result = str1 + tag + str2
-				insertedChars += tag.size
-			}
-		}
-
 		// set the parseArea's text to the resulting HTML-injected parse string.
-		parseArea.text = result
+		parseArea.text = EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40)
 	}
 	
 	
-	/**
-	 * Consumes the parse string text to construct lists for correct start and end positions
-	 * for <font color=~~~~> </font> tags to be inserted into the parse string. 
-	 * @param txt			the parse string that is having highlighting applied to it.
-	 * @param prevChomped	a count of how many characters in txt have already been processed for highlighting.
-	 * @param starts		a list of insertion indices for <font> tags.
-	 * @param colors		a list of web colors coresponding to the indices in starts.
-	 * @param ends			a list of insertion indices for </font> tags.
-	 */
 	
-	private def applyElisionRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int]) : Unit = {
-
-		var text = txt
-		var chompedChars = prevChomped
-		
-		// populate our lists of font tag data by having our regular expressions consume the text until
-		// no more regular expressions can consume any of the text.
-		while(text != "") {
-			var bestRegex : Regex = null
-			var bestStart : Int = -1
-			var bestEnd : Int = -1
-			var bestRecStart : Int = -1
-			var bestRecEnd : Int = -1
-			
-			// iterate over our list of regexes and find the one the can be applied the earliest.
-			for(regex <- EliRegexes.rList) {
-				
-				regex.findFirstMatchIn(text) match {
-					case Some(myMatch : scala.util.matching.Regex.Match) =>
-						if(bestStart == -1 || myMatch.start < bestStart) {
-							bestRegex = regex
-							bestStart = myMatch.start
-							bestEnd = myMatch.end
-							
-							val recGroup = EliRegexes.recursableMap(bestRegex)
-							if(recGroup != -1) {
-								bestRecStart = myMatch.start(recGroup)
-								bestRecEnd = myMatch.end(recGroup)
-							}
-						}
-					case _ => // this regex could not be applied.
-				}
-			}
-			if(bestRegex == null)	text = ""
-			else {
-				val color = EliRegexes.colorMap(bestRegex)
-				starts += chompedChars + bestStart
-				colors += color
-				
-				// apply recursive highlighting if needed.
-				if(bestRecStart != -1) {
-					ends += chompedChars + bestRecStart
-					
-					applyElisionRegexes(text.substring(bestRecStart,bestRecEnd), chompedChars + bestRecStart, starts, colors, ends)
-					
-					starts += chompedChars + bestRecEnd
-					colors += color
-				}
-				
-				ends += chompedChars + bestEnd
-				
-				text = text.drop(bestEnd)
-				chompedChars += bestEnd
-			}
-		}
-	}
-	
-	
-	/** Enforces wrapped lines in a parse string so that the editor pane doesn't grossly resize this panel.*/
-	private def enforceLineWrap(txt : String, maxCols : Int) : ListBuffer[Int] = {
-		var chompedChars = 0
-		var edibleTxt = txt
-		val breaks = new ListBuffer[Int]
-		
-		while(edibleTxt.size > maxCols) {
-			edibleTxt = edibleTxt.drop(maxCols)
-			breaks += chompedChars + maxCols
-			chompedChars += maxCols
-		}
-		
-		breaks
-	}
 }
 
 

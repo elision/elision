@@ -45,7 +45,7 @@ import java.io._
 
 
 /**
- *	This panel displays the Elision REPL in a scrollable TextArea.
+ *	This panel displays the Elision REPL in a scrollable EditorPane.
  */
 
 class ConsolePanel extends ScrollPane {
@@ -54,12 +54,13 @@ class ConsolePanel extends ScrollPane {
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	
-	/** The TextArea containing the REPL */
+	/** The EditorPane containing the REPL */
 	val console = new TextArea("",20,80) {
 		wordWrap = true
 		lineWrap = true
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
+	//	editorKit = new javax.swing.text.html.HTMLEditorKit
 	}
 	
 	/** The REPL thread instance */
@@ -80,7 +81,7 @@ class ConsolePanel extends ScrollPane {
 	val ps = new PrintStream(tos)
 	
 	java.lang.System.setOut(ps)
-	java.lang.System.setErr(ps)
+//	java.lang.System.setErr(ps)
 	
 	repl.start
 
@@ -104,7 +105,7 @@ class ElisionREPLThread extends Thread {
 
 
 /**
- * An OutputStream object that is convenient for redirecting stdout and stderr to a TextArea object.
+ * An OutputStream object that is convenient for redirecting stdout and stderr to a EditorPane object.
  * @param textArea		The TextArea object we want the stream to output to.
  * @param maxLines		The maximum number of lines we want to have in textArea at any one time. 
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
@@ -126,14 +127,15 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 		try {
 			textArea.text += new String(ba)
 			enforceMaxLines
+			
+			anchorPos = textArea.text.length
+			readOnlyOutput = textArea.text
+		
+			textArea.caret.position = textArea.text.length
 		} catch {
 			case ioe : IOException => ioe.printStackTrace
+			case _ =>
 		}
-		
-		anchorPos = textArea.text.length
-		readOnlyOutput = textArea.text
-		
-		textArea.caret.position = textArea.text.length
 	}
 	
 	/**
@@ -146,14 +148,15 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 		try {
 			textArea.text += new String(ba,off,len)
 			enforceMaxLines
+			
+			anchorPos = textArea.text.length
+			readOnlyOutput = textArea.text
+		
+			textArea.caret.position = textArea.text.length
 		} catch {
 			case ioe : IOException => ioe.printStackTrace
+			case _ =>
 		}
-		
-		anchorPos = textArea.text.length
-		readOnlyOutput = textArea.text
-		
-		textArea.caret.position = textArea.text.length
 	}
 	
 	/**
@@ -163,8 +166,13 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 	 */
 	def enforceMaxLines : Unit = {
 		if(maxLines < TextAreaOutputStream.infiniteMaxLines) return
-		while(textArea.lineCount > maxLines)
+		while(lineCount > maxLines) //(textArea.lineCount > maxLines)
 			textArea.text = textArea.text.substring(1,textArea.text.length)
+	}
+	
+	
+	def lineCount() : Int = {
+		0
 	}
 
 }
