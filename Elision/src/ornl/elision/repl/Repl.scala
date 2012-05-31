@@ -461,10 +461,6 @@ object Repl {
 			//////////////////// GUI changes
 			
 	    	case _parser.Success(list) => {
-//	    	  Console println "LML IN SUCCESS "+ list.length
-//	    	  Console println list
-//	    	  System.exit(1)
-	    	  
 	    	  // Interpret each node, and stop if we encounter a failure.
 	    	  list.forall(node => {
 					RWTree.current = treeRoot.addChild("line node")
