@@ -38,6 +38,98 @@
 println("Reading Core...")
 
 //======================================================================
+// Control properties.
+//======================================================================
+
+def({! setprop($name: STRING, $val)
+#handler=
+""" args match {
+      case Args(StringLiteral(_, name), value) =>
+        value match {
+          case StringLiteral(_, str) =>
+            exec.setProperty(name, str)
+            _no_show
+          case IntegerLiteral(_, value) =>
+            exec.setProperty(name, value)
+            _no_show
+          case BooleanLiteral(_, flag) =>
+            exec.setProperty(name, flag)
+            _no_show
+          case _ =>
+            console.error("Only STRING, INTEGER, and BOOLEAN values are allowed.")
+            _no_show
+        }
+      case _ => as_is
+    }
+"""
+#description="Set a property value."
+#detail=
+"""|Set the value of a property.  The property name (a STRING), is given as
+   |the first argument, and the value (which must be a STRING, INTEGER, or
+   |BOOLEAN) is given as the second argument."""
+})
+
+def({! getprop($name: STRING)
+#handler=
+""" args match {
+      case Args(StringLiteral(_, name)) =>
+        val value = exec.getProperty[Any](name)
+        value match {
+          case str: String =>
+            Literal(str)
+          case value: BigInt =>
+            Literal(value)
+          case value: Int =>
+            Literal(value)
+          case flag: Boolean =>
+            Literal(flag)
+          case _ =>
+            console.error("Bad stored property value detected.")
+            NONE
+        }
+      case _ => as_is
+    }
+"""
+#description="Get a property value."
+#detail=
+"""|Get the value of a property.  The property is looked up by name (given
+   |as a STRING value)."""
+})
+
+def({! listprops()
+#handler=
+""" // Get all the properties that have been declared.
+    for ((name, description, value) <- exec.getProperties) {
+      val what = (if (value.isInstanceOf[BasicAtom])
+          value.asInstanceOf[BasicAtom].toParseString
+        else
+          value.toString)
+      val line = "%20s: %s (%s)".format(name, description, what)
+      console.sendln(line)
+    }
+    _no_show
+"""
+#description="List all the known properties."
+#detail=
+"""|List all the declared properties, a short description, and their current
+   |value."""
+})
+
+//======================================================================
+// If.
+//======================================================================
+
+def({operator #name=if #cases
+  %(true, $then @lazy, $else @lazy) -> $$then,
+  %(false, $then @lazy, $else @lazy) -> $$else,
+  %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
+  #description="Simple if-then(-else)."
+  #detail=
+"""|If the first argument is true, return the second.  If the first argument
+   |is false, return the third."""
+})
+
+//======================================================================
 // Meta.
 //======================================================================
 
@@ -251,40 +343,13 @@ def({! showbinds()
       #handler=
 """|println(context.binds.filterKeys(!_.startsWith("_")).map {
    |  pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
-   |}.mkString("{ bind\n", ",\n", "\n}"))
+   |}.mkString("{ binds\n", ",\n", "\n}"))
    |_no_show"""
       #description="Show the bindings in the current context."
       #detail=
 """|Show all the bindings present in the current context, except for bindings
    |to variables whose name starts with an underscore, as these are considered
    |"private." """
-})
-
-def({! applybinds() #handler=
-"""|emitln("Applying stored bindings to atoms is " +
-   |  (if (exec.stash("applybinds", !exec.fetchAs[Boolean]("applybinds", true)))
-   |     "ON."
-   |   else
-   |     "OFF."))
-   |_no_show"""
-      #description="Toggle whether to apply the bindings to atoms."
-      #detail=
-"""|Enable or disable rewriting of atoms with the currently stored bindings.
-   |Use bind and unbind to add and remove bindings, and showbinds to see all
-   |bindings currently in effect (except REPL bindings)."""
-})
-
-def({! setreplbinds() #handler=
-"""|emitln("Generating REPL binds is " +
-   |  (if (exec.stash("setreplbinds", !exec.fetchAs[Boolean]("setreplbinds", true)))
-   |     "ON."
-   |   else
-   |     "OFF."))
-   |_no_show"""
-      #description="Toggle whether to automatically create $_repl binds."
-      #detail=
-"""|Enable or disable the automatic creation of $_repl bindings.  These are
-   |numbered bindings created for each atom evaluated by the REPL."""
 })
 
 //======================================================================
@@ -346,35 +411,6 @@ def({! timing($f:BOOLEAN) #handler=
 // Display.
 //======================================================================
 
-def({! showscala() #handler=
-"""|emitln("Showing Scala source is " +
-   |  (if (exec.stash("showscala", !exec.fetchAs[Boolean]("showscala", false)))
-   |     "ON."
-   |   else
-   |     "OFF."))
-   |_no_show"""
-      #description="Toggle showing the Scala version of parsed atoms."
-      #detail=
-"""|Enable or disable display of the Scala code to create each atom that the
-   |system displays.  The assumption is that you have imported the core
-   |package for Elision."""
-})
-
-def({! showprior() #handler=
-"""|emitln("Showing atom prior to binding is " +
-   |  (if (exec.stash("showprior", !exec.fetchAs[Boolean]("showprior", false)))
-   |     "ON."
-   |   else
-   |     "OFF."))
-   |_no_show"""
-      #description=
-        "Toggle showing the atom prior to applying bindings and rewriting."
-      #detail=
-"""|When enabled, additional output is generated that shows the parsed atom
-   |prior to applying any bindings from the current context and prior to any
-   |rewriting attempts."""
-})
-
 def({! quiet() #handler=
 """|exec.console.quiet = !exec.console.quiet
    |emitln("Quiet is " + (if (exec.console.quiet) "enabled." else "disabled."))
@@ -414,19 +450,4 @@ def({! fail() #handler=
       #detail=
 """|Generate a runtime exception (a VerifyError).  This causes a core dump and
    |may be useful if you are trying to debug the system."""
-})
-
-def({! stacktrace() #handler=
-"""|emitln("Showing stack trace on exceptions is " +
-   |  (if (exec.stash("stacktrace", !exec.fetchAs[Boolean]("stacktrace", false)))
-   |     "ON."
-   |   else
-   |     "OFF."))
-   |_no_show"""
-      #description="Toggle whether or not a stack trace is shown."
-      #detail=
-"""|For non-Elision exceptions the exception message is shown, but the stack
-   |trace is typically suppressed (this is not true for runtime errors; the
-   |stack trace is always shown for these).  This will enable (or disable)
-   |showing the stack trace for all non-Elision exceptions."""
 })

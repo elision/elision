@@ -29,6 +29,7 @@
  */
 package ornl.elision.core
 import ornl.elision.ElisionException
+import scala.util.Properties
 
 /**
  * The cache contains the wrong type of item for the requested key.
@@ -36,6 +37,117 @@ import ornl.elision.ElisionException
  * @param msg		The human-readable message explaining the problem.
  */
 class CacheException(msg: String) extends ElisionException(msg)
+
+/**
+ * Manage a collection of properties.
+ */
+trait PropertyManager {
+  val _prop2val = scala.collection.mutable.HashMap[String,Any]()
+  val _prop2desc = scala.collection.mutable.HashMap[String,String]()
+  
+  /**
+   * Declare a property.
+   * 
+   * @param name        The property name.
+   * @param description Human-readable description of the property.
+   * @param default     The default value of the property.
+   * @return  The default value.
+   */
+  def declareProperty[TYPE](name: String, description: String, default: TYPE) {
+    default match {
+      case str: String =>
+      case value: BigInt =>
+      case value: Int =>
+      case flag: Boolean =>
+      case atom: BasicAtom =>
+      case _ =>
+        throw new CacheException("Unsupported data type for properties.  " +
+        		"Properties must be strings, integers, or Booleans, and may " +
+        		"be any BasicAtom, but got " +
+        		Manifest.classType(name.getClass) + ".")
+    }
+    _prop2val(name) = default
+    _prop2desc(name) = description
+    default
+  }
+  
+  /**
+   * Get the value of a property.  Properties are intended to be used to
+   * control various functions of the executor and modular extensions to
+   * it, and not just for storing arbitrary data during execution.
+   * 
+   * Properties must be declared before they can be set or read.  See
+   * `declareProperty`.  The type of the property may not be changed once
+   * it has been declared.
+   * 
+   * When getting a property value, specify the `TYPE` so the returned value
+   * is correctly typed.
+   * 
+   * @param key     The property name.
+   * @param default The default value of the property.
+   * @return  The requested property value.
+   */
+  def getProperty[TYPE](name: String)
+  (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
+    _prop2val.get(name) match {
+      case None =>
+        throw new CacheException("No such property: " + toEString(name) + ".")
+      case Some(item) =>
+        if (mTYPE <:< Manifest.classType(item.getClass))
+          throw new CacheException(
+              "The property " + toEString(name) +
+              " is of the wrong type.  Expected " + mTYPE.toString +
+              " but got " + Manifest.classType(item.getClass) + ".")
+        else
+          item.asInstanceOf[TYPE]
+    }
+  }
+  
+  /**
+   * Set the value of a property.  See the documentation of `getProperty` for
+   * information about the use of properties.
+   * 
+   * @param key     The property name.
+   * @param value   The property value.
+   * @return  The new property value.
+   */
+  def setProperty[TYPE](name: String, value: TYPE)
+  (implicit mTYPE: scala.reflect.Manifest[TYPE]) = {
+    _prop2val.get(name) match {
+      case None =>
+        throw new CacheException("No such property: " + toEString(name) + ".")
+      case Some(item) =>
+        if (mTYPE <:< Manifest.classType(item.getClass))
+          throw new CacheException(
+              "The property " + toEString(name) +
+              " is of the wrong type.  Expected " + mTYPE.toString +
+              " but got " + Manifest.classType(item.getClass) + ".")
+        else
+          _prop2val(name) = value
+          value
+    }
+  }
+  
+  /**
+   * Get all declared properties.
+   * 
+   * @return  The returned value is a set of entries of the form (name,
+   *          description, value).
+   */
+  def getProperties = {
+    var list = List[(String, String, Any)]()
+    for (name <- _prop2val.
+        keySet.
+        toList.
+        sortWith(_.toLowerCase < _.toLowerCase).
+        filter(!_.startsWith("_"))) {
+      val description = _prop2desc(name)
+      val value = _prop2val(name)
+      list :+= ((name, description, value))
+    } // Collect all properties.
+    list
+  }
+}
 
 /**
  * Indicate that it a history is maintained.  Limited access to the history
@@ -178,7 +290,7 @@ trait Timeable {
  * This can be done by parsing the usual Elision representation of atoms, or
  * by some other means.
  */
-trait Executor {
+trait Executor extends PropertyManager {
   
   /** A parse result. */
   abstract sealed class ParseResult
@@ -225,7 +337,7 @@ trait Executor {
       case Some(item) =>
         if (mTYPE >:> Manifest.classType(key.getClass))
           throw new CacheException(
-              "The cache entry for key " + toESymbol(key) +
+              "The cache entry for key " + toEString(key) +
               " is of the wrong type.  Expected " + mTYPE.toString +
               " but got " + Manifest.classType(key.getClass) + ".")
         else

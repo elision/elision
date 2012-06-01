@@ -36,15 +36,13 @@
 ======================================================================*/
 package ornl.elision.repl
 
-import ornl.elision.core._
-import scala.collection.mutable.ListBuffer
-import ornl.elision.parse.AtomParser
-import scala.tools.jline.console.history.FileHistory
-import scala.tools.jline.console.ConsoleReader
-import java.io.File
 import ornl.elision.ElisionException
-import java.io.{FileWriter, FileReader, BufferedReader}
-import ornl.elision.core.OperatorLibrary
+import ornl.elision.core._
+import ornl.elision.parse.AtomParser
+import scala.collection.mutable.ListBuffer
+import scala.tools.jline.console.ConsoleReader
+import scala.tools.jline.console.history.FileHistory
+import java.io.{File, FileWriter, FileReader, BufferedReader}
 
 /**
  * Provide a REPL to experiment with the new term rewriter.

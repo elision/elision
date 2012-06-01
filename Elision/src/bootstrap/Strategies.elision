@@ -40,11 +40,6 @@ println("Reading Strategies...")
 // Declare the rulesets.
 declare(IF, STRAT)
   
-// Declare the if operator and the rules to make it work.
-def({! if($test: BOOLEAN, $thenpart: $T @lazy, $elsepart: $T @lazy): $T })
-{ rule if(true, $thenpart, $elsepart) -> $thenpart #ruleset IF }
-{ rule if(false, $thenpart, $elsepart) -> $elsepart #ruleset IF }
-  
 // The no-op strategy leaves atoms unmodified.  The flag is always set to
 // true.
 def({! s_noop(): STRATEGY })

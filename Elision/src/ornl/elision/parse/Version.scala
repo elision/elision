@@ -78,6 +78,8 @@ package ornl.elision.parse
  * }}}
  */
 object Version {
+  _init
+
   /** Name of the program. */
   var name = "Elision"
     
@@ -99,7 +101,7 @@ object Version {
   /** If true then data was loaded.  If false, it was not. */
   var loaded = false
 
-  private def init {
+  private def _init {
 	  // Open the file.  We expect to find config.xml in the classpath.
 	  val config_resource = getClass.getResource("/configuration.xml")
 	  if (config_resource != null) {
@@ -116,5 +118,4 @@ object Version {
 	    loaded = true
 	  }
   }
-  init
 }

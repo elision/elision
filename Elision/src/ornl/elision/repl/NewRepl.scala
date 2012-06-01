@@ -118,6 +118,12 @@ class NewRepl extends Processor {
   override def getHistoryFilename = _filename
   
   //======================================================================
+  // Initialize properties for the REPL.
+  //======================================================================
+  
+  declareProperty("showscala", "Show the Scala source for each atom.", false)
+  
+  //======================================================================
   // Define the REPL control fields.
   //======================================================================
   
@@ -129,41 +135,89 @@ class NewRepl extends Processor {
   //======================================================================
   
   def showatom(prefix: String, atom: BasicAtom) {
-    if (fetchAs[Boolean]("showscala", false))
+    if (getProperty[Boolean]("showscala"))
       // This is explicitly requested output, show show it regardless of the
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     console.emitln(prefix + atom.toParseString)
   }
   
-  this.register {
+  this.register(
     // Register a basic handler that applies the context bindings to the
     // atom.
     new Processor.Handler {
-      override def handleAtom(atom: BasicAtom) = {
-        if (fetchAs[Boolean]("showprior", false))
-          showatom("", atom)
-        if (fetchAs[Boolean]("applybinds", true))
-          Some(atom.rewrite(context.binds)._1)
-        else
-          Some(atom)
+      override def init(exec: Executor) = {
+        declareProperty("showprior",
+            "Show each atom prior to rewriting with the context's bindings.",
+            false)
+        declareProperty("applybinds",
+            "Rewrite each atom with the context's bindings.", true)
+        true
       }
-    }
+      override def handleAtom(atom: BasicAtom) = {
+        if (getProperty[Boolean]("showprior")) {
+          showatom("", atom)
+        }
+        if (getProperty[Boolean]("applybinds")) {
+          Some(atom.rewrite(context.binds)._1)
+        } else {
+          Some(atom)
+        }
+      }
+    },
+    
+    // Register a handler that automatically defines operators (if that
+    // is enabled) and stores rules.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("autoop",
+            "If the current result is an operator, automatically declare it " +
+            "in the operator library.", true)
+        declareProperty("autorule",
+            "If the current atom is a rewrite rule, automatically declare it " +
+            "in the rule library.", true)
+        true
+      }
+      override def handleAtom(atom: BasicAtom) = {
+        atom match {
+          case op: Operator if getProperty[Boolean]("autoop") =>
+            context.operatorLibrary.add(op)
+            console.emitln("Defined operator " + op.name + ".")
+            None
+          case rule: RewriteRule if getProperty[Boolean]("autorule") =>
+            context.ruleLibrary.add(rule)
+            console.emitln("Declared rule.")
+            None
+          case _ =>
+            Some(atom)
+        }
+      }
+    },
     
     // Register a basic handler that discards "no show" atoms and prints
     // the result of evaluation.  This handler will also create a REPL
-    // bind if that is enabled.
+    // bind if that is enabled.  Because this displays the results, it
+    // should be near the end of the chain.
     new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("setreplbinds",
+            "Generate $_repl numbered bindings for each atom as it is " +
+            "evaluated.", true)
+        declareProperty("setreplbinds.index",
+            "The index of the current $_repl numbered binding.", 0)
+        true
+      }
       override def handleAtom(atom: BasicAtom) = {
         if (atom eq ApplyData._no_show) None
         else Some(atom)
       }
       override def result(atom: BasicAtom) = {
         // If we are binding atoms, bind it to a new REPL variable.
-        if (fetchAs[Boolean]("setreplbinds", true)) {
+        if (getProperty[Boolean]("setreplbinds")) {
           // Get the current binding index.
           val index = "_repl" +
-              stash("setreplbinds.index", fetchAs[Int]("setreplbinds.index", 0)+1)
+              setProperty("setreplbinds.index",
+                  getProperty[Int]("setreplbinds.index")+1)
           // Commit the binding.
           context.bind(index, atom)
           showatom("$"+index+" = ", atom)
@@ -172,7 +226,7 @@ class NewRepl extends Processor {
         }
       }
     }
-  }
+  )
   
   //======================================================================
   // Methods.
