@@ -42,10 +42,14 @@ println("Reading Math...")
 //======================================================================
 
 def({! equal($x,$y): BOOLEAN is %C
-      #description="Report whether two atoms are equal."
-      #detail=
-"""Test whether the two atoms $x and $y are considered equal by the
-system."""
+#handler="""
+  args match {
+    case Args(x:BasicAtom, y:BasicAtom) => x == y
+    case _ => _no_show
+  }"""
+#description="Report whether two atoms are equal."
+#detail=
+"""Test whether the two atoms $x and $y are considered equal by the system."""
 })
 
 //======================================================================
@@ -53,21 +57,46 @@ system."""
 //======================================================================
 
 def({! mod($b: INTEGER, $d: INTEGER): INTEGER
-      #description="Compute the remainder from division."
-      #detail=
+#handler="""
+  args match {
+    case Args(IntegerLiteral(_, b), IntegerLiteral(_, d)) => b mod d
+    case _ => as_is
+  }"""
+#description="Compute the remainder from division."
+#detail=
 """Compute $b mod $d, returning the remainder when $b is divided by $d."""
 })
 
 def({! neg($x: INTEGER): INTEGER
-      #description="Negate an integer."
-      #detail=
-"""Compute the negation of the integer $x; that is, compute 0 - $x."""
+#handler="""
+  args match {
+    case Args(IntegerLiteral(_, x)) => -x
+    case _ => as_is
+  }"""
+#description="Negate an integer."
+#detail="""Compute the negation of the integer $x; that is, compute 0 - $x."""
 })
 
 def({! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
-      #description="Compute the integer sum of the arguments."
-      #detail=
-"""Compute the sum of the integer arguments."""
+#handler="""
+  // Accumulate the integer literals found.
+  var lits:BigInt = 0
+  // Accumulate other atoms found.
+  var other = IndexedSeq[BasicAtom]()
+  // Traverse the list and divide the atoms.
+  args.foreach {
+    x => x match {
+      case IntegerLiteral(_, value) => lits += value
+      case _ => other :+= x
+    }
+  }
+  // Now add the accumulated literals to the list.
+  other :+= Literal(INTEGER, lits)
+  // Construct and return a new operator application.
+  Apply(_data.op, AtomSeq(NoProps, other), true)
+"""
+#description="Compute the integer sum of the arguments."
+#detail="""Compute the sum of the integer arguments."""
 })
 
 //======================================================================

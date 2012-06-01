@@ -201,6 +201,60 @@ class NewRepl extends Processor {
       }
     },
     
+    // Register a handler to perform automated rewriting of atoms.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("autorewrite",
+            "Automatically apply rules in the active rulesets to each atom" +
+            "as it is evaluated.", true)
+        true
+      }
+      override def handleAtom(atom: BasicAtom) = {
+        if (getProperty[Boolean]("autorewrite")) {
+          Some(context.ruleLibrary.rewrite(atom)._1)
+        } else {
+          Some(atom)
+        }
+      }
+    },
+    
+    // Register a handler to perform round-trip testing of atoms.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("roundtrip",
+            "Perform round-trip testing of atoms as they are entered.", true)
+        true
+      }
+      override def result(atom: BasicAtom) {
+        if (!getProperty[Boolean]("roundtrip")) return
+        // Get the string.
+        val string = atom.toParseString
+        // Parse this string.
+        parse(string) match {
+          case ParseFailure(msg) =>
+            console.error("Round trip testing failed for atom:\n  " + string +
+                "\nParsing terminated with an error:\n  " + msg + "\n")
+          case ParseSuccess(atoms) =>
+            if (atoms.length < 1) {
+              console.error("Round trip testing failed for atom:\n  " + string +
+                  "\nParsing returned no atoms.")
+            } else if (atoms.length > 1) {
+              console.error("Round trip testing failed for atom:\n  " + string +
+                  "\nParsing returned more than one atom:\n" +
+                  atoms.mkParseString("  ","\n","\n"))
+            } else if (atoms(0) != atom) {
+              console.error("Round trip testing failed for atom:\n  " + string +
+                  "\nAtom returned by parser not equal to original:\n  " +
+                  atoms(0).toParseString + "\n")
+            }
+          case a:Any =>
+            console.error("Round trip testing failed for atom:\n  " + string +
+                "\nParsing failed with an unexpected result:\n  " + a.toString +
+                "\n")
+        }
+      }
+    },
+    
     // Register a basic handler that discards "no show" atoms and prints
     // the result of evaluation.  This handler will also create a REPL
     // bind if that is enabled.  Because this displays the results, it
