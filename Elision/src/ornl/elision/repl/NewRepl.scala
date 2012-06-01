@@ -247,10 +247,6 @@ class NewRepl extends Processor {
                   "\nAtom returned by parser not equal to original:\n  " +
                   atoms(0).toParseString + "\n")
             }
-          case a:Any =>
-            console.error("Round trip testing failed for atom:\n  " + string +
-                "\nParsing failed with an unexpected result:\n  " + a.toString +
-                "\n")
         }
       }
     },
