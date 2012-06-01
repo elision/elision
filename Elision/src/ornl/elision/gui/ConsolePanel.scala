@@ -76,10 +76,10 @@ class ConsolePanel extends ScrollPane {
 	// execute the Elision REPL to run in another thread.
 	
 	/** Used for REPL output */
-	val tos = new TextAreaOutputStream(console,60, new ByteArrayOutputStream)
+	val tos = new EditorPaneOutputStream(console,60, new ByteArrayOutputStream)
 	
 	/** Used for REPL input */
-	val tis = new TextAreaInputStream(tos)
+	val tis = new EditorPaneInputStream(tos)
 	
 	/** Used for REPL output */
 	val ps = new PrintStream(tos)
@@ -115,7 +115,7 @@ class ElisionREPLThread extends Thread {
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
 
-class TextAreaOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
+class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
 	
 	/** flag for applying Elision formatting to output */
 	var applyFormatting = false
@@ -214,6 +214,7 @@ class TextAreaOutputStream( var textArea : EditorPane, var maxLines : Int, val b
 object ConsolePanel {
 	val infiniteMaxLines = 10
 	var textArea : EditorPane = null
+	val MAX_HISTORY : Int = 20
 	
 	def getText() : String = {
 		val doc = textArea.peer.getDocument
@@ -231,7 +232,7 @@ object ConsolePanel {
  * @param taos		The TextAreaOutputStream that contains the TextArea that is housing the REPL.
  */
 
-class TextAreaInputStream( var taos : TextAreaOutputStream) {
+class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 
 	/** A convenient reference to taos's textArea */
 	val textArea = taos.textArea
@@ -342,18 +343,19 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			// create the inputString to send to the REPL
 			val srcString : String = ConsolePanel.getText // textArea.text
 			val inputString = srcString.substring(taos.anchorPos)
+			val formattedInputString = EliSyntaxFormatting.applyHTMLHighlight(inputString, false, 80)
 			
-			taos.updateReadOnlyText(inputString)
+			taos.updateReadOnlyText(formattedInputString)
 			taos.anchorPos = ConsolePanel.getLength
 			
 			// store the input string in the history list.
 			
 			history.prepend(inputString) //.dropRight(1))
-			if(history.size > TextAreaInputStream.MAX_HISTORY) 	history.trimEnd(1)
+			if(history.size > ConsolePanel.MAX_HISTORY) 	history.trimEnd(1)
 			historyIndex = -1
 			
 			// send the input String to the Repl's actor
-			//println()
+			println()
 			ornl.elision.repl.ReplActor ! inputString
 			
 		} catch {
@@ -362,11 +364,6 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 	}
 }
  
- /** Static values used by TextAreaInputStream */
-
- object TextAreaInputStream {
-	val MAX_HISTORY : Int = 20
- }
  
  
  

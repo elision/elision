@@ -107,7 +107,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
 		
 		// set the parseArea's text to the resulting HTML-injected parse string.
-		parseArea.text = EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40)
+		parseArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40) + """</div>"""
 	}
 	
 	
