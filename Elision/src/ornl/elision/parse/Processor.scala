@@ -29,7 +29,7 @@
  */
 package ornl.elision.parse
 
-import ornl.elision.core.{BasicAtom, Context, Executor, PrintConsole}
+import ornl.elision.core._
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 
 /**
@@ -47,18 +47,28 @@ import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
  * @param context		The context to use; if none is provided, use an empty one.
  */
 class Processor(val context: Context = new Context)
-extends Executor {
+extends Executor
+with TraceableParse
+with Timeable
+with HasHistory {
   // We are the implicit executor.
   ornl.elision.core.knownExecutor = this
+  
+  // Set up the stacktrace property.
+  declareProperty("stacktrace",
+      "Print a stack trace on all (non-Elision) exceptions.", false)
   
   /** Whether to trace the parser. */
   private var _trace = false
 
+  /** Select the parser to use */
+  private var _toggle = false
+  
   /** The queue of handlers, in order. */
   private var _queue = List[Processor.Handler]()
   
   /** The parser to use. */
-  private var _parser = new AtomParser(context, _trace)
+  private var _parser = new AtomParser(context, _toggle, _trace)
   
   val console = PrintConsole
   
@@ -68,7 +78,6 @@ extends Executor {
    */
   protected def banner() {
     import Version._
-    val buf = new StringBuffer()
     console.emitln(
         """|      _ _     _
 					 |  ___| (_)___(_) ___  _ __
@@ -89,23 +98,9 @@ extends Executor {
     }
   }
   
-  /**
-   * Add a line to the history, if one is being maintained.  If the processor
-   * maintains a history it should override this to enable adding the given
-   * line to the history, if that is desired.  This is used by the system to
-   * add informational lines to the history.  The default implementation does
-   * nothing.
-   * 
-   * @param line	The line to add to the history.
-   */
-  def addHistoryLine(line: String) {}
-  
-  /**
-   * Get an iterator over the history.  By default this returns the empty
-   * iterator, so override this to return the appropriate iterator if your
-   * processor supports history.
-   */
-  def getHistoryIterator: Iterator[String] = Set().iterator
+  def reportElapsed {
+    console.sendln("elapsed: " + getLastTimeString + "\n")
+  }
   
   /**
    * Read the content of the provided file.
@@ -146,6 +141,17 @@ extends Executor {
    * atoms.  It may contain zero or more atoms, but each atom must be
    * complete, or a parse error may result.
    * 
+   * This method tries to trap exceptions and handle them intelligently.
+   * Elision exceptions are printed as error messages.  General exceptions
+   * are printed along with their class information and message, and a
+   * stack trace if that is enabled.  Out of memory is handled by
+   * invoking the garbage collector to try to recover.  Finally, a runtime
+   * exception (a `Throwable`) causes a core dump and is reported as an
+   * internal error.
+   * 
+   * In all cases the system attempts to continue, unless a second exception
+   * occurs while handling the first.
+   * 
    * @param text		The text to parse.
    */
   def execute(text: String) {
@@ -160,26 +166,50 @@ extends Executor {
   }
   
   private def _execute(result: Presult) {
-  	result match {
-			case Failure(err) => console.error(err)
-			case Success(nodes) =>
-			  // We assume that there is at least one handler; otherwise not much
-			  // will happen.  Process each node.
-			  for (node <- nodes) {
-			    _handleNode(node) match {
-			      case None =>
-			      case Some(newnode) =>
-			        // Interpret the node.
-			        val atom = newnode.interpret
-			        _handleAtom(atom) match {
-			          case None =>
-			          case Some(newatom) =>
-			            // Hand off the node.
-			            _result(newatom)
-			        }
-			    }
-			  } // Process all the nodes.
-  	}
+    import ornl.elision.ElisionException
+    startTimer
+    try {
+    	result match {
+  			case Failure(err) => console.error(err)
+  			case Success(nodes) =>
+  			  // We assume that there is at least one handler; otherwise not much
+  			  // will happen.  Process each node.
+  			  for (node <- nodes) {
+  			    _handleNode(node) match {
+  			      case None =>
+  			      case Some(newnode) =>
+  			        // Interpret the node.
+  			        val atom = newnode.interpret
+  			        _handleAtom(atom) match {
+  			          case None =>
+  			          case Some(newatom) =>
+  			            // Hand off the node.
+  			            _result(newatom)
+  			        }
+  			    }
+  			  } // Process all the nodes.
+    	}
+    } catch {
+      case ElisionException(msg) =>
+        console.error(msg)
+      case ex: Exception =>
+        console.error("(" + ex.getClass + ") " + ex.getMessage())
+        if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+      case oom: java.lang.OutOfMemoryError =>
+        System.gc()
+        console.error("Memory exhausted.  Trying to recover...")
+        val rt = Runtime.getRuntime()
+        val mem = rt.totalMemory()
+        val free = rt.freeMemory()
+        val perc = free.toDouble / mem.toDouble * 100
+        console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+      case th: Throwable =>
+        console.error("(" + th.getClass + ") " + th.getMessage())
+        if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+        _coredump("Internal error.", Some(th))
+    }
+    stopTimer
+    showElapsed
   }
   
   private def _handleNode(node: AstNode): Option[AstNode] = {
@@ -227,6 +257,11 @@ extends Executor {
   }
   
   /**
+   * Determine whether tracing is enabled.
+   */
+  def trace = _trace
+  
+  /**
    * Register a handler.  This handler will be placed at the front of the
    * queue, so it will be processed before any other currently registered
    * handlers.
@@ -241,10 +276,11 @@ extends Executor {
 	 * Register a handler.  This handler is placed at the end of the queue, so
 	 * it is invoked after any other currently registered handlers.
 	 * 
-	 * @param handler		The handler to add.
+	 * @param handlers		The handlers to add, in order.
 	 */
-	def register(handler: Processor.Handler) {
-	  _queue = _queue :+ handler
+	def register(handlers: Processor.Handler*) {
+	  for (handler <- handlers) handler.init(this)
+	  _queue = _queue ++ handlers
 	}
 	  
   /**
@@ -313,6 +349,21 @@ object Processor {
    * error handling methods.  These actually do something, so have a look!
    */
   trait Handler {
+    /**
+     * This method is invoked when the handler is registered.  The primary
+     * use is to set up the values of properties that are important to the
+     * handler.
+     * 
+     * The executor is passed along, so properties can be set.  The return
+     * value is used to determine if setup was successful or not.
+     * 
+     * @param exec    The executor.
+     * @return  True if success, and false if failure.  When false is
+     *          returned, the handler is discarded and registration does
+     *          not continue.
+     */
+    def init(exec: Executor): Boolean = true
+    
     /**
      * Handle a parsed abstract syntax tree node.  The default return value
      * for this method is `Some(node)`.  If you need to do processing of the

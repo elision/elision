@@ -36,15 +36,13 @@
 ======================================================================*/
 package ornl.elision.repl
 
-import ornl.elision.core._
-import scala.collection.mutable.ListBuffer
-import ornl.elision.parse.AtomParser
-import scala.tools.jline.console.history.FileHistory
-import scala.tools.jline.console.ConsoleReader
-import java.io.File
 import ornl.elision.ElisionException
-import java.io.{FileWriter, FileReader, BufferedReader}
-import ornl.elision.core.OperatorLibrary
+import ornl.elision.core._
+import ornl.elision.parse.AtomParser
+import scala.collection.mutable.ListBuffer
+import scala.tools.jline.console.ConsoleReader
+import scala.tools.jline.console.history.FileHistory
+import java.io.{File, FileWriter, FileReader, BufferedReader}
 
 /**
  * Provide a REPL to experiment with the new term rewriter.
@@ -103,7 +101,7 @@ object Repl {
   _context.operatorLibrary = _library
   
   /** The parser to use. */
-  private var _parser = new AtomParser(_context, false)
+  private var _parser = new AtomParser(_context, true, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
@@ -117,8 +115,11 @@ object Repl {
   /** Whether to bind the results of evaluating atoms. */
   private var _bindatoms = true
   
-  /** Whether or not to trace the parser. */
+  /** Whether or not to trace the parboiled parser. */
   private var _trace = false
+
+  /** Toggle which parser to use. */
+  private var _toggleParser = false
   
   /** Have we defined the operators.  This is used by the `run` method. */
   private var _opsDefined = false
@@ -619,6 +620,72 @@ object Repl {
     // Go get the buildin operators and define them.
     execute(BuiltinOperators.text.text)
     
+    // Get an operator from its reference.
+    _context.operatorLibrary.register("getop",
+        _data => _data.args match {
+          case Args(opref: OperatorRef) =>
+            // Get the referenced operator.
+            opref.operator
+          case _ => ApplyData._no_show
+        })
+        
+    // Enable or disable DeBruijn indices.
+    _context.operatorLibrary.register("setdebruijn",
+        _data => _data.args match {
+          case Args(BooleanLiteral(_, flag)) =>
+            // Set whether to use De Bruijn indices.
+            Lambda.useDeBruijnIndices = flag
+            emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
+            ApplyData._no_show
+          case _ => ApplyData._no_show
+        })
+        
+    // See if an atom is bindable or not.
+    _context.operatorLibrary.register("is_bindable",
+        _data => _data.args match {
+          case Args(term) =>
+            if (term.isBindable) Literal.TRUE else Literal.FALSE
+          case _ =>
+            _data.as_is
+        })
+    
+    // Fast evaluation.
+    _context.operatorLibrary.register("eval",
+        _data => _data.args match {
+          case Args(x) =>
+            // Immediately rewrite this with the context bindings,
+            // and return the result.
+            x.rewrite(context.binds)._1
+          case _ =>
+            NONE
+        })
+    
+    // Help on an operator.
+    _context.operatorLibrary.register("_help_op",
+        _data => _data.args match {
+          case Args(or: OperatorRef) =>
+            // Give some help.
+            emitln(context.operatorLibrary.help(new StringBuffer(), or).toString)
+            ApplyData._no_show
+          case _ =>
+            ApplyData._no_show
+        })
+        
+    // Help on all operators.
+    _context.operatorLibrary.register("_help_all",
+        _data => _data.args match {
+          case Args() =>
+            // Give some help.
+            val width = scala.tools.jline.TerminalFactory.create().getWidth()
+            println("Elision Help\n")
+            emitln(context.operatorLibrary.help(
+                new StringBuffer(), width).toString)
+            println("Use ! followed by a number to re-execute a " +
+                "line from the history.\n\nTo quit type :quit.\n")
+            ApplyData._no_show
+          case _ => ApplyData._no_show
+        })
+    
     // Bind.
     _context.operatorLibrary.register("bind",
         _data => _data.args match {
@@ -774,7 +841,7 @@ object Repl {
           case Args() =>
 		        // Toggle tracing.
 		        _trace = !_trace
-		        _parser = new AtomParser(_context, _trace)
+		        _parser = new AtomParser(_context, _toggleParser, _trace)
 		        emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
 		        ApplyData._no_show
           case _ => ApplyData._no_show
@@ -788,6 +855,18 @@ object Repl {
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
 		        emitln("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
+        })
+ 
+    // ToggleParser.
+    _context.operatorLibrary.register("toggleparser",
+        _data => _data.args match {
+          case Args() =>
+		        // Toggle the parser used.
+            _toggleParser = !_toggleParser
+            _parser = new AtomParser(_context, _toggleParser, _trace)
+            emitln("Using "+ (if(_toggleParser) "packrat" else "parboiled") +" parser.")
 		        ApplyData._no_show
           case _ => ApplyData._no_show
         })

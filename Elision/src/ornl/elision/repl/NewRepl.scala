@@ -122,6 +122,14 @@ class NewRepl extends Processor {
     def next = it.next.toString
   }
   
+  override def getHistoryFilename = _filename
+  
+  //======================================================================
+  // Initialize properties for the REPL.
+  //======================================================================
+  
+  declareProperty("showscala", "Show the Scala source for each atom.", false)
+  
   //======================================================================
   // Define the REPL control fields.
   //======================================================================
@@ -133,17 +141,99 @@ class NewRepl extends Processor {
   // Register handlers.
   //======================================================================
   
-  this.register {
+  def showatom(prefix: String, atom: BasicAtom) {
+    if (getProperty[Boolean]("showscala"))
+      // This is explicitly requested output, show show it regardless of the
+      // quiet setting.
+      console.sendln("Scala: " + prefix + atom.toString)
+    console.emitln(prefix + atom.toParseString)
+  }
+  
+  this.register(
+    // Register a basic handler that applies the context bindings to the
+    // atom.
     new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("showprior",
+            "Show each atom prior to rewriting with the context's bindings.",
+            false)
+        declareProperty("applybinds",
+            "Rewrite each atom with the context's bindings.", true)
+        true
+      }
+      override def handleAtom(atom: BasicAtom) = {
+        if (getProperty[Boolean]("showprior")) {
+          showatom("", atom)
+        }
+        if (getProperty[Boolean]("applybinds")) {
+          Some(atom.rewrite(context.binds)._1)
+        } else {
+          Some(atom)
+        }
+      }
+    },
+    
+    // Register a handler that automatically defines operators (if that
+    // is enabled) and stores rules.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("autoop",
+            "If the current result is an operator, automatically declare it " +
+            "in the operator library.", true)
+        declareProperty("autorule",
+            "If the current atom is a rewrite rule, automatically declare it " +
+            "in the rule library.", true)
+        true
+      }
+      override def handleAtom(atom: BasicAtom) = {
+        atom match {
+          case op: Operator if getProperty[Boolean]("autoop") =>
+            context.operatorLibrary.add(op)
+            console.emitln("Defined operator " + op.name + ".")
+            None
+          case rule: RewriteRule if getProperty[Boolean]("autorule") =>
+            context.ruleLibrary.add(rule)
+            console.emitln("Declared rule.")
+            None
+          case _ =>
+            Some(atom)
+        }
+      }
+    },
+    
+    // Register a basic handler that discards "no show" atoms and prints
+    // the result of evaluation.  This handler will also create a REPL
+    // bind if that is enabled.  Because this displays the results, it
+    // should be near the end of the chain.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("setreplbinds",
+            "Generate $_repl numbered bindings for each atom as it is " +
+            "evaluated.", true)
+        declareProperty("setreplbinds.index",
+            "The index of the current $_repl numbered binding.", 0)
+        true
+      }
       override def handleAtom(atom: BasicAtom) = {
         if (atom eq ApplyData._no_show) None
         else Some(atom)
       }
       override def result(atom: BasicAtom) = {
-        println(" == " + atom.toParseString)
+        // If we are binding atoms, bind it to a new REPL variable.
+        if (getProperty[Boolean]("setreplbinds")) {
+          // Get the current binding index.
+          val index = "_repl" +
+              setProperty("setreplbinds.index",
+                  getProperty[Int]("setreplbinds.index")+1)
+          // Commit the binding.
+          context.bind(index, atom)
+          showatom("$"+index+" = ", atom)
+        } else {
+          showatom("", atom)
+        }
       }
     }
-  }
+  )
   
   //======================================================================
   // Methods.
@@ -154,7 +244,7 @@ class NewRepl extends Processor {
     banner()
 
     // Start the clock.
-    var starttime = java.lang.System.currentTimeMillis()
+    startTimer
 
     // Define the operators.
     read("src/bootstrap/Boot.elision")
@@ -176,12 +266,8 @@ class NewRepl extends Processor {
     cr.setHistory(_hist)
     
     // Report startup time.
-    var endtime = java.lang.System.currentTimeMillis()
-    val elapsed = endtime - starttime
-    val mins = elapsed / 60000
-    val secs = (elapsed % 60000) / 1000
-    val mils = elapsed % 1000
-    printf("Startup Time: %d:%02d.%03d\n", mins, secs, mils)
+    stopTimer
+    printf("Startup Time: " + getLastTimeString + "\n")
     
     // Start main loop.
     while(true) {
@@ -241,22 +327,9 @@ class NewRepl extends Processor {
       // Flush the console.  Is this necessary?
       cr.flush()
       
-      // Record the start time.
-      starttime = java.lang.System.currentTimeMillis()
-      
       // Run the line.
       execute(line)
       //println(scala.tools.jline.TerminalFactory.create().getWidth())
-      
-      // If we are reporting timing, do that now.
-      if (_timing) {
-        endtime = java.lang.System.currentTimeMillis()
-        val elapsed = endtime - starttime
-        val mins = elapsed / 60000
-        val secs = (elapsed % 60000) / 1000
-        val mils = elapsed % 1000
-        printf("elapsed: %d:%02d.%03d\n", mins, secs, mils)
-      }
     } // Forever read, eval, print.
   }
   

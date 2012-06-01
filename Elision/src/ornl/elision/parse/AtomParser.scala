@@ -78,17 +78,17 @@ object AtomParser {
    * @param err	The reason for the parsing failure.
    */
   case class Failure(err: String) extends Presult
-  
+
   //----------------------------------------------------------------------
   // Build character literals.
   //----------------------------------------------------------------------
-  
+
   /**
    * Accumulate a character into a string.  The character may actually be an
    * escape sequence that will be interpreted here.
-   * 
+   *
    * See `toEString` for the reverse conversion.
-   * 
+   *
    * The following escapes are interpreted.
    * {{{
    * \"  -> double quotation mark
@@ -98,7 +98,7 @@ object AtomParser {
    * \t  -> tab
    * \r  -> carriage return
    * }}}
-   * 
+   *
    * @param front	The string to get the new character appended at the end.
    * @param last	The new character, possibly an escape to interpret.
    * @return	The new string.
@@ -116,20 +116,20 @@ object AtomParser {
       case _ => last
     })
   }
-  
+
   /**
    * Given a list of strings, each of which represents a single character
    * (possibly as an escape), concatenate them into a single string.
-   * 
+   *
    * @param chars	The list of characters.
    * @return	The composed string.
    */
   def construct(chars: List[String]) = {
-    chars.foldLeft(new StringBuilder())(append(_,_)).toString
+    chars.foldLeft(new StringBuilder())(append(_, _)).toString
   }
-	
-	//======================================================================
-	// Definitions for an abstract syntax tree for atoms.
+
+  //======================================================================
+  // Definitions for an abstract syntax tree for atoms.
   //----------------------------------------------------------------------
   // Here are all the myriad classes used to capture parts as they are 
   // parsed.  The basic idea is that each thing represented by an AstNode
@@ -1077,17 +1077,21 @@ object AtomParser {
 /**
  * A parser to parse a single atom.
  * 
+ * TODO Remove the use of toggle and prefer a configuration option.
+ * 
  * @param context	The context for rulesets and operators.
  * @param trace 	If true, enable tracing.  Off by default.
+ * @param toggle  If true, select the new (parser combinator) parser.
  */
-class AtomParser(val context: Context, val trace: Boolean = false)
-extends Parser {
+class AtomParser(val context: Context, val trace: Boolean = false,
+    toggle: Boolean = false)
+  extends Parser with Fickle {
   import AtomParser._
-	
-	//----------------------------------------------------------------------
-	// Perform parsing.
-	//----------------------------------------------------------------------
-  
+
+  //----------------------------------------------------------------------
+  // Perform parsing.
+  //----------------------------------------------------------------------
+
   /**
    * Entry point to parse all atoms from the given string.
    * 
@@ -1095,14 +1099,24 @@ extends Parser {
    * @return	The parsing result.
    */
   def parseAtoms(line: String): Presult = {
-    val tr =
-      if (trace) TracingParseRunner(AtomSeq)
-      else ReportingParseRunner(AtomSeq)
-    val parsingResult = tr.run(line)
-    parsingResult.result match {
-      case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid MPL2 source:\n" +
-              ErrorUtils.printParseErrors(parsingResult))
+    if (toggle) {
+      val parser = new ParseCombinators(context)
+      
+      import scala.util.parsing.combinator.Parsers
+      parser.run(line) match {
+        case parser.Success(list, _) => Success(list.asInstanceOf[List[AstNode]])
+        case parser.NoSuccess(msg, _)	 => Failure(msg)
+      }
+    } else {      
+    	val tr =
+    			if (trace) TracingParseRunner(AtomSeq)
+    			else ReportingParseRunner(AtomSeq)
+    			val parsingResult = tr.run(line)
+    			parsingResult.result match {
+    			case Some(nodes) => Success(nodes)
+    			case None => Failure("Invalid MPL2 source:\n" +
+    					ErrorUtils.printParseErrors(parsingResult))
+    			}
     }
   }
     
@@ -1112,6 +1126,7 @@ extends Parser {
    * @param line	The string to parse.
    * @return	The parsing result.
    */
+  // FIXME: Currently only supports the parboiled parser
   def parseAtoms(source: scala.io.Source): Presult = {
     val tr =
       if (trace) TracingParseRunner(AtomSeq)
@@ -1322,7 +1337,7 @@ extends Parser {
         ignoreCase("commutative") ~>
         	((x) => CommutativeNode(TrueNode)) |
         ignoreCase("idempotent") ~>
-        	((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~~>
+        	((x) => IdempotentNode(TrueNode)), WS ~ ", ") ~ WS ~~>
     (AlgPropNode(_))
   }.label("operator properties")
   
@@ -1443,7 +1458,7 @@ extends Parser {
         	((x) => IdempotentNode(x.getOrElse(TrueNode))) |
         ignoreCase("!A") ~> ((x) => AssociativeNode(FalseNode)) |
         ignoreCase("!C") ~> ((x) => CommutativeNode(FalseNode)) |
-        ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~~>
+        ignoreCase("!I") ~> ((x) => IdempotentNode(FalseNode))) ~ WS ~~>
     (AlgPropNode(_))
   }.label("an algebraic properties specification.")
 
@@ -1663,4 +1678,443 @@ extends Parser {
    */
   override implicit def toRule(string: String) =
     if (string.endsWith(" ")) str(string.trim) ~ WS else str(string)
+}
+
+import scala.util.parsing.combinator.JavaTokenParsers
+import scala.util.parsing.combinator.PackratParsers
+class ParseCombinators(val context: Context) extends JavaTokenParsers with PackratParsers {
+  import scala.util.matching.Regex
+  import ornl.elision.parse.AtomParser._
+  import scala.util.parsing.input.CharSequenceReader
+  import ornl.elision.core.{ ANY => EANY }
+
+  // TODO: This is a quickfix to implement c-style comments. It works well, but we cannot
+  // nest comments. From:
+  // http://stackoverflow.com/questions/5952720/ignoring-c-style-comments-in-a-scala-combinator-parser
+  protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
+  
+  //======================================================================
+  // Parse application/lambda.
+  //======================================================================
+  lazy val AtomSeq: PackratParser[List[AstNode]] = (
+    rep(AtomApplication))
+
+  lazy val Atom: PackratParser[AstNode] = (
+    "(" ~> AtomApplication <~ ")" |
+
+    Lambda |
+
+    OperatorApplication |
+
+    TypedList |
+
+    AlgProp |
+
+    Variable |
+
+    // A "naked" operator is specified by explicitly giving the operator
+    // type OPREF.  Otherwise it is parsed as a symbol.
+    Esym ~ ":" ~ "OPREF" ^^ {
+      case sym ~ _ ~ _ => OperatorNode(sym, context.operatorLibrary)
+    } |
+
+    // A "naked" ruleset reference is specified by explicitly giving the
+    // ruleset reference type RSREF.  Otherwise we continue and parse as
+    // a symbol. 
+    Esym ~ ":" ~ "RSREF" ^^ {
+      case sym ~ _ ~ _ => RulesetNode(sym, context.ruleLibrary)
+    } |
+
+    // Parse a literal.  A literal can take many forms, but it should be
+    // possible to always detect the kind of literal during parse.  By
+    // default literals go into a simple type, but this can be overridden.
+    Literal |
+
+    // Parse a typed number.  This can be any number.
+    AnyNumber ~ ":" ~ Atom ^^ {
+      case num ~ _ ~ typ => num.retype(typ)
+    } |
+
+    // Parse an untyped number.  This can be any number.
+    AnyNumber |
+
+    // Parse a special form.
+    ParsedSpecialForm |
+
+    // Invoke an external parser to do something.
+//    ExternalParse |
+
+    "^TYPE" ^^ {
+      case _ => TypeUniverseNode()
+    })
+
+  lazy val OperatorApplication: PackratParser[ApplicationNode] =
+    Esym ~ "(" ~ repsep(AtomApplication, ",") ~ ")" ^^ {
+      case op ~ "(" ~ arg ~ ")" => ApplicationNode(
+        context, NakedSymbolNode(op), AtomSeqNode(AlgPropNode(), arg))
+    }
+
+  lazy val AtomApplication: PackratParser[AstNode] =
+    Atom ~ "->" ~ Atom ^^ { case x ~ "->" ~ y => MapPairNode(x, y) } |
+      Atom ~ rep("." ~> Atom) ^^ {
+        case x ~ list => list.foldLeft(x)(
+          ApplicationNode(context, _, _))
+      }
+
+  // TODO: fix lambdas
+  lazy val Lambda: PackratParser[LambdaNode] =
+    "\\" ~ Variable ~ "." ~ Atom ^^ {
+      case "\\" ~ v ~ "." ~ body => LambdaNode(v, body)
+    }
+
+  //======================================================================
+  // END application/lambda.
+  //======================================================================    
+
+  //======================================================================
+  // Parse special form / external parser
+  //======================================================================
+  // TODO: Make ExternalParse work, should really return AtomSeqNode
+  lazy val ExternalParse: PackratParser[NakedSymbolNode] =
+    "[" ~ rep1sep(Esym, ",") ~ "[" ~ ("]]" ~> Atom).? ~ "]]" ^^^ {
+      NakedSymbolNode("NOT IMPLEMENTED")
+    }
+
+  lazy val ParsedSpecialForm: PackratParser[SpecialFormNode] =
+    AlternativeOperatorDefinition | GeneralForm | SpecialBindForm
+
+  // TODO: this should differ a little from the other parser, check it for correctness
+  lazy val AlternativeOperatorDefinition: PackratParser[SpecialFormNode] =
+    "{!" ~ OperatorPrototypeNode ~ (ignoreCase("is") ~> (PropListLong | AlgProp)).? ~
+      (BindBlock | ListBlock).* ~ "}" ^^ {
+        case _ ~ proto ~ props ~ blocks ~ _ =>
+          val newparams = props match {
+            case None => AtomSeqNode(AlgPropNode(), proto._2)
+            case Some(ap) => AtomSeqNode(ap, proto._2)
+          }
+          val binds = BindingsNode(List(
+            NakedSymbolNode("name") -> proto._1,
+            NakedSymbolNode("params") -> newparams,
+            NakedSymbolNode("type") -> proto._3) ++ blocks)
+          SpecialFormNode(NakedSymbolNode("operator"), binds)
+      }
+
+  lazy val GeneralForm: PackratParser[SpecialFormNode] =
+    "{:" ~ AtomApplication ~ AtomApplication ~ ":}" ^^ {
+      case _ ~ x ~ y ~ _ => SpecialFormNode(x, y)
+    }
+
+  // TODO: Please, make it stop. What have we done.
+  lazy val SpecialBindForm: PackratParser[SpecialFormNode] =
+    "{" ~ Esym ~ (
+      ((AtomApplication).* ^^ {
+        case list =>
+          if (list.length == 0) None
+          else Some(NakedSymbolNode("") -> AtomSeqNode(AlgPropNode(), list))
+      }) ~
+      (BindBlock | ListBlock).* ^^ {
+        case x ~ y => x match {
+          case None => BindingsNode(y)
+          case Some(map) => BindingsNode(map :: y)
+        }
+      }) ~ "}" ^^ {
+        case _ ~ sym ~ monster ~ _ => SpecialFormNode(NakedSymbolNode(sym), monster)
+      }
+
+  // TODO: This Tuple3 is gross, change it
+  lazy val OperatorPrototypeNode: PackratParser[Tuple3[NakedSymbolNode, List[AstNode], AstNode]] =
+    Esym ~ "(" ~ repsep(Atom, ",") ~ ")" ~ (":" ~> Atom).? ^^ {
+      case name ~ _ ~ params ~ _ ~ typ => typ match {
+        case None => (NakedSymbolNode(name), params, AnyNode)
+        case Some(typeNode) => (NakedSymbolNode(name), params, typeNode.asInstanceOf[AstNode])
+      }
+    }
+
+  lazy val ListBlock: PackratParser[(NakedSymbolNode, AtomSeqNode)] =
+    "#" ~ Esym ~ repsep(AtomApplication, ",") ^^ {
+      case _ ~ sym ~ list => (NakedSymbolNode(sym), AtomSeqNode(AlgPropNode(), list))
+    }
+
+  lazy val BindBlock: PackratParser[(NakedSymbolNode, AstNode)] =
+    "#" ~ Esym ~ "=" ~ AtomApplication ^^ {
+      case _ ~ sym ~ _ ~ appl => (NakedSymbolNode(sym) -> appl)
+    }
+  //======================================================================
+  // END special form / external parser
+  //======================================================================  
+
+  //======================================================================
+  // Parse property/typed list
+  //======================================================================    
+  lazy val TypedList: PackratParser[AtomSeqNode] = (
+    AlgProp ~ "(" ~ repsep(AtomApplication, ",") ~ ")" ^^ {
+      case props ~ _ ~ list ~ _ => AtomSeqNode(props, list)
+    })
+
+  lazy val AlgProp: PackratParser[AlgPropNode] =
+    "%" ~> (PropListLong | PropListShort)
+
+  lazy val PropListShort: PackratParser[AlgPropNode] =
+    (
+      ignoreCase("B") ~ "[" ~ AtomApplication ~ "]" ^^ {
+        case _ ~ _ ~ x ~ _ => AbsorberNode(x)
+      } |
+      ignoreCase("D") ~ "[" ~ AtomApplication ~ "]" ^^ {
+        case _ ~ _ ~ x ~ _ => IdentityNode(x)
+      } |
+      ignoreCase("A") ~ ("[" ~> AtomApplication <~ "]").? ^^ {
+        case _ ~ x => AssociativeNode(x.getOrElse(TrueNode))
+      } |
+      ignoreCase("C") ~ ("[" ~> AtomApplication <~ "]").? ^^ {
+        case _ ~ x => CommutativeNode(x.getOrElse(TrueNode))
+      } |
+      ignoreCase("I") ~ ("[" ~> AtomApplication <~ "]").? ^^ {
+        case _ ~ x => IdempotentNode(x.getOrElse(TrueNode))
+      } |
+      ignoreCase("!A") ^^ { case _ => AssociativeNode(FalseNode) } |
+      ignoreCase("!C") ^^ { case _ => CommutativeNode(FalseNode) } |
+      ignoreCase("!I") ^^ { case _ => IdempotentNode(FalseNode) }).* ^^ {
+        AlgPropNode(_)
+      }
+
+  // TODO: Check and make sure this supports guards like the more succinct version
+  lazy val PropListLong: PackratParser[AlgPropNode] =
+    rep1sep(
+      ignoreCase("absorber") ~> AtomApplication ^^ { AbsorberNode(_) } |
+        ignoreCase("identity") ~> AtomApplication ^^ { IdentityNode(_) } |
+        ignoreCase("not") ~> (
+          ignoreCase("associative") ^^^ { AssociativeNode(FalseNode) } |
+          ignoreCase("commutative") ^^^ { CommutativeNode(FalseNode) } |
+          ignoreCase("idempotent") ^^^ { IdempotentNode(FalseNode) }) |
+          ignoreCase("associative") ^^^ { AssociativeNode(TrueNode) } |
+          ignoreCase("commutative") ^^^ { CommutativeNode(TrueNode) } |
+          ignoreCase("idempotent") ^^^ { IdempotentNode(TrueNode) }, ",") ^^ {
+        AlgPropNode(_)
+      }
+  //======================================================================
+  // END property/typed list
+  //======================================================================
+
+  //======================================================================
+  // Parse a variable.
+  //======================================================================
+  lazy val guard: PackratParser[Option[AstNode]] =
+    opt("{" ~> AtomApplication <~ "}") ^^ {
+      case Some(appl) => Some(appl)
+      case _ => None
+    }
+
+  lazy val label: PackratParser[String] = "@" ~> Esym
+
+  lazy val VariableTyped: PackratParser[VariableNode] =
+    Esym ~ guard ~ ":" ~ Atom ~ rep(label) ^^ {
+      case sym ~ grd ~ _ ~ typ ~ list => VariableNode(
+        typ, sym, grd, list.toSet)
+    }
+
+  lazy val VariableUntyped: PackratParser[VariableNode] =
+    Esym ~ guard ~ rep(label) ^^ {
+      case sym ~ grd ~ list => VariableNode(
+        SimpleTypeNode(EANY), sym, grd, list.toSet)
+    }
+
+  lazy val VariableTerm: PackratParser[VariableNode] =
+    "$" ~> (VariableTyped | VariableUntyped)
+
+  lazy val VariableMeta: PackratParser[MetaVariableNode] =
+    "$$" ~> (VariableTyped | VariableUntyped) ^^ {
+      MetaVariableNode(_)
+    }
+
+  lazy val Variable: PackratParser[VariableNode] =
+    VariableTerm | VariableMeta
+
+  //======================================================================
+  // END a variable.
+  //======================================================================
+
+  //======================================================================
+  // Parse a literal.
+  //======================================================================
+
+  // this also does unicode
+  // TODO: Fix hard tabs, for some reason they don't work in either parser
+  lazy val strSym = """(\\[\\bfnrt`"]|[^\p{Cntrl}\\`]|\\u[a-fA-F0-9]{4})*"""
+  lazy val strNrm = """(\\[\\bfnrt`"]|[^\p{Cntrl}\\"]|\\u[a-fA-F0-9]{4})*"""
+
+  lazy val EscapedCharacter: PackratParser[String] =
+    """\\[`"nrt\\]""".r ^^ { _.toString }
+    
+  lazy val NormalCharacter: PackratParser[String] =
+    """[^"\\]""".r ^^ { _.toString }
+  
+  lazy val SymNorm: PackratParser[String] =
+    """[^`\\]""".r ^^ { _.toString }
+    
+  lazy val SymCharacter: PackratParser[String] = 
+    EscapedCharacter | SymNorm
+  
+  lazy val Character: PackratParser[String] = 
+    EscapedCharacter | NormalCharacter
+    
+  lazy val Estr: PackratParser[String] =
+    "\"" ~> rep(Character) <~ "\"" ^^ { construct(_) }
+  
+  lazy val Esym: PackratParser[String] =
+    "`" ~> rep(SymCharacter) <~ "`" ^^ { construct(_) } |
+    """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
+    
+//  // TODO: Find a better way to use construct here. Probably just add a new method
+//  lazy val Estr: PackratParser[String] =
+//    ("\"" + strNrm + "\"").r ^^ { case str =>
+//      val stringList = str.toString.drop(1).dropRight(1).toList.map(_.toString) 
+//      construct(stringList) }
+//
+//  lazy val Esym: PackratParser[String] =
+//    ("`" + strSym + "`").r ^^ { case str =>
+//      val stringList = str.toString.drop(1).dropRight(1).toList.map(_.toString) 
+//      construct(stringList) } |
+//      """[a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
+
+  lazy val Everb: PackratParser[String] = {
+    "(?s)\"\"\".*?\"\"\"".r ^^ { case str =>
+      construct(str.toString.drop(3).dropRight(3).toList.map(_.toString)) }
+  }
+
+  // TODO: construct doesn't correctly handle things like `\t\n`
+  lazy val Literal: PackratParser[AstNode] = { 		
+    Esym ~ ":" ~ Atom ^^ {
+      case sym ~ _ ~ typ => SymbolLiteralNode(Some(typ), sym)
+    } |
+    Esym ^^ { SymbolLiteralNode(None, _) } |
+    Everb ~ ":" ~ Atom ^^ {
+      case str ~ _ ~ typ => StringLiteralNode(typ, str)
+    } |
+    Everb ^^ { StringLiteralNode(SimpleTypeNode(STRING), _) } |
+	  Estr ~ ":" ~ Atom ^^ {
+	    case str ~ _ ~ typ => StringLiteralNode(typ, str)
+	  } |
+    Estr ^^ { StringLiteralNode(SimpleTypeNode(STRING), _) }
+  }
+  //======================================================================
+  // END a literal.
+  //======================================================================  
+
+  //======================================================================
+  // Parse a number.
+  //======================================================================
+
+  // Decimals ( with exponents )
+  lazy val optSign: PackratParser[Option[Boolean]] = (
+    opt("""[+-]""".r) ^^ {
+      case Some("+") => Some(true)
+      case Some("-") => Some(false)
+      case _ => None
+    })
+
+  lazy val optFrac: PackratParser[Option[UnsignedIntegerNode]] =
+    opt("." ~> AnyInteger) ^^ {
+      case Some(int) => Some(int)
+      case _ => None
+    }
+
+  lazy val optExp: PackratParser[Option[SignedIntegerNode]] = (
+    opt("""[eEpP]""".r ~> Exponent) ^^ {
+      case Some(exp) => Some(exp)
+      case _ => None
+    })
+
+  lazy val optExpHex: PackratParser[Option[SignedIntegerNode]] = (
+    opt("""[pP]""".r ~> Exponent) ^^ {
+      case Some(exp) => Some(exp)
+      case _ => None
+    })
+
+  lazy val AnyNumber: PackratParser[NumberNode] = (
+    // hex
+    optSign ~ ignoreCase("0x") ~ HInteger ~ optFrac ~ optExpHex ^^ {
+      case sign ~ _ ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    } |
+    // binary
+    optSign ~ ignoreCase("0b") ~ BInteger ~ optFrac ~ optExp ^^ {
+      case sign ~ _ ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    } |
+    // octal
+    optSign ~ ignoreCase("0") ~ OInteger ~ optFrac ~ optExp ^^ {
+      case sign ~ _ ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    } |
+    // decimal
+    optSign ~ DInteger ~ optFrac ~ optExp ^^ {
+      case sign ~ int ~ frac ~ exp =>
+        NumberNode(sign: Option[Boolean], int: UnsignedIntegerNode,
+          frac: Option[UnsignedIntegerNode], exp: Option[SignedIntegerNode])
+    })
+
+  // Integers
+  lazy val AnyInteger: PackratParser[UnsignedIntegerNode] =
+    ignoreCase("0x") ~> HInteger |
+      ignoreCase("0b") ~> BInteger |
+      ignoreCase("0") ~> OInteger |
+      DInteger
+
+  lazy val DInteger: PackratParser[UnsignedIntegerNode] =
+    """[0-9]+""".r ^^ (UnsignedIntegerNode(_: String, 10))
+  lazy val HInteger: PackratParser[UnsignedIntegerNode] =
+    """[a-fA-F0-9]+""".r ^^ (UnsignedIntegerNode(_: String, 16))
+  lazy val BInteger: PackratParser[UnsignedIntegerNode] =
+    """[01]+""".r ^^ (UnsignedIntegerNode(_: String, 2))
+  lazy val OInteger: PackratParser[UnsignedIntegerNode] =
+    """[0-7]+""".r ^^ (UnsignedIntegerNode(_: String, 8))
+
+  // Exponent
+  lazy val Exponent: PackratParser[SignedIntegerNode] = (
+    optSign ~ AnyInteger ^^ {
+      case sign ~ int => SignedIntegerNode(sign, int)
+    })
+
+  //======================================================================
+  // END a number.
+  //======================================================================
+  def run(arg: String): ParseResult[Any] = {
+//    Console println "`"+ arg +"`"
+    parseAll(AtomSeq, new PackratReader(new CharSequenceReader(arg)))
+  }
+
+  def ignoreCase(str: String): Regex = ("""(?i)\Q""" + str + """\E""").r
+}
+
+object Main extends App {
+  val _parser = new ParseCombinators(new Context)
+  val t0 = System.nanoTime();
+
+  val text =
+<execute>
+<![CDATA[
+def({ operator #name=typeof #cases %($x:$T)->$T
+      #description="Extract and show the type of the argument."
+      #detail=
+"""Given a single argument, extract the type $T of that argument $x
+and return the extracted type. """
+} ) 
+
+def({ operator #name=getop #params=%($x:OPREF)
+      #description="Given an operator reference, return the operator."
+      #detail=
+"""Given a single argument, extract the type $T of that argument $x
+and return the extracted type. """})
+]]>
+</execute>
+    val ret = _parser.run(text.text)
+    Console.println(ret)
+  //    _parser.run("add(1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(1000,1000,add(900,45)))))))))))))")
+
+  val t1 = System.nanoTime();
+
+  Console.println(((t1 - t0).toDouble / 1000000000).toString())
 }

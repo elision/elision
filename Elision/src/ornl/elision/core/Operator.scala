@@ -247,7 +247,9 @@ object OperatorRef {
    * @param op	The operator.
    * @return	A reference to the operator.
    */
-  def apply(op: Operator) = new OperatorRef(op)
+  def apply(op: Operator) = new OperatorRef(op) {
+    override val evenMeta = op.evenMeta
+  }
 }
 
 /**
@@ -441,7 +443,7 @@ object TypedSymbolicOperator {
     var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     if (description.value(0) == '|') description = description.value.stripMargin('|')
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
-    val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
+    val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
 
     // Fetch the handler text.
     var handlertxt = bh.fetchAs[StringLiteral]("handler", Some("")).value

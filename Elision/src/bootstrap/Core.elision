@@ -35,6 +35,100 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
+println("Reading Core...")
+
+//======================================================================
+// Control properties.
+//======================================================================
+
+def({! setprop($name: STRING, $val)
+#handler=
+""" args match {
+      case Args(StringLiteral(_, name), value) =>
+        value match {
+          case StringLiteral(_, str) =>
+            exec.setProperty(name, str)
+            _no_show
+          case IntegerLiteral(_, value) =>
+            exec.setProperty(name, value)
+            _no_show
+          case BooleanLiteral(_, flag) =>
+            exec.setProperty(name, flag)
+            _no_show
+          case _ =>
+            console.error("Only STRING, INTEGER, and BOOLEAN values are allowed.")
+            _no_show
+        }
+      case _ => as_is
+    }
+"""
+#description="Set a property value."
+#detail=
+"""|Set the value of a property.  The property name (a STRING), is given as
+   |the first argument, and the value (which must be a STRING, INTEGER, or
+   |BOOLEAN) is given as the second argument."""
+})
+
+def({! getprop($name: STRING)
+#handler=
+""" args match {
+      case Args(StringLiteral(_, name)) =>
+        val value = exec.getProperty[Any](name)
+        value match {
+          case str: String =>
+            Literal(str)
+          case value: BigInt =>
+            Literal(value)
+          case value: Int =>
+            Literal(value)
+          case flag: Boolean =>
+            Literal(flag)
+          case _ =>
+            console.error("Bad stored property value detected.")
+            NONE
+        }
+      case _ => as_is
+    }
+"""
+#description="Get a property value."
+#detail=
+"""|Get the value of a property.  The property is looked up by name (given
+   |as a STRING value)."""
+})
+
+def({! listprops()
+#handler=
+""" // Get all the properties that have been declared.
+    for ((name, description, value) <- exec.getProperties) {
+      val what = (if (value.isInstanceOf[BasicAtom])
+          value.asInstanceOf[BasicAtom].toParseString
+        else
+          value.toString)
+      val line = "%20s: %s (%s)".format(name, description, what)
+      console.sendln(line)
+    }
+    _no_show
+"""
+#description="List all the known properties."
+#detail=
+"""|List all the declared properties, a short description, and their current
+   |value."""
+})
+
+//======================================================================
+// If.
+//======================================================================
+
+def({operator #name=if #cases
+  %(true, $then @lazy, $else @lazy) -> $$then,
+  %(false, $then @lazy, $else @lazy) -> $$else,
+  %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
+  #description="Simple if-then(-else)."
+  #detail=
+"""|If the first argument is true, return the second.  If the first argument
+   |is false, return the third."""
+})
+
 //======================================================================
 // Meta.
 //======================================================================
@@ -174,7 +268,6 @@ def({! read($filename: STRING)
                   |        else go = false
                   |      }
                   |      exec.parse(buf.toString)
-                  |      println(buf)
                   |      cfile.close()
                   |    } else {
                   |      error("Unable to open file.")
@@ -191,6 +284,20 @@ def({! read($filename: STRING)
 })
 
 def({! write($filename: STRING)
+      #handler=
+"""|args match {
+   |  case Args(StringLiteral(_, filename)) =>
+   |    val cfile = new java.io.FileWriter(filename)
+   |    if (cfile != null) {
+   |      cfile.write(context.toParseString)
+   |      cfile.flush()
+   |      cfile.close()
+   |    } else {
+   |      error("Unable to save context.")
+   |    }
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Write the content of the current context to a file."
       #detail=
 """Write the current context to the file specified by $filename."""
@@ -201,6 +308,15 @@ def({! write($filename: STRING)
 //======================================================================
 
 def({! bind($v,$a)
+      #handler=
+"""|args match {
+   |  case Args(from:Variable, to:BasicAtom) =>
+   |    // Bind the variable in this context.
+   |    context.bind(from.name, to)
+   |    emitln("Bound " + from.toParseString)
+   |    ApplyData._no_show
+   |  case _ => ApplyData._no_show
+   |}"""
       #description="Bind a variable to an atom."
       #detail=
 """|Bind the variable $v to the atom $a in the current context.  Variable
@@ -209,12 +325,26 @@ def({! bind($v,$a)
 })
 
 def({! unbind($v)
+      #handler=
+"""|args match {
+   |  case Args(from:Variable) =>
+   |    // Unbind the variable in this context.
+   |    context.unbind(from.name)
+   |    emitln("Unbound " + from.toParseString)
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Unbind a variable."
       #detail=
 """Forget any binding for variable $v in the current context."""
 })
 
 def({! showbinds()
+      #handler=
+"""|println(context.binds.filterKeys(!_.startsWith("_")).map {
+   |  pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
+   |}.mkString("{ binds\n", ",\n", "\n}"))
+   |_no_show"""
       #description="Show the bindings in the current context."
       #detail=
 """|Show all the bindings present in the current context, except for bindings
@@ -226,7 +356,15 @@ def({! showbinds()
 // Tracing and timing.
 //======================================================================
 
-def({! traceparse()
+def({! traceparse() #handler=
+"""|exec match {
+   |  case tp: TraceableParse =>
+   |    // Toggle tracing.
+   |    tp.trace = !tp.trace
+   |    emitln("Parser tracing is " + (if (tp.trace) "ON." else "OFF."))
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Toggle tracing of the parser."
       #detail=
 """|Enable or disable tracing the parser.  This is really only useful if you
@@ -237,7 +375,16 @@ def({! traceparse()
    |tracing."""
 })
 
-def({! tracematch()
+def({! tracematch() #handler=
+"""|args match {
+   |  case Args() =>
+   |    // Toggle tracing.
+   |    BasicAtom.traceMatching = !BasicAtom.traceMatching
+   |    emitln("Match tracing is " +
+   |        (if (BasicAtom.traceMatching) "ON." else "OFF."))
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Toggle tracing of matching attempts."
       #detail=
 """|Enable or disable tracing of match attempts.  This generates output from
@@ -245,7 +392,15 @@ def({! tracematch()
    |variety of reasons, so you may see some unexpected output here."""
 })
 
-def({! timing($f:BOOLEAN)
+def({! timing($f:BOOLEAN) #handler=
+"""|exec match {
+   |  case tm: Timeable =>
+   |    // Toggle timing.
+   |    tm.timing = !tm.timing
+   |    emitln("Timing is " + (if (tm.timing) "ON." else "OFF."))
+   |    _no_show
+   |  case _ => _no_show
+   |}"""
       #description="Toggle showing the evaluation time."
       #detail=
 """|Toggle showing the total elapsed "wall clock" time to evaluate an atom.
@@ -256,24 +411,10 @@ def({! timing($f:BOOLEAN)
 // Display.
 //======================================================================
 
-def({! showscala()
-      #description="Toggle showing the Scala version of parsed atoms."
-      #detail=
-"""|Enable or disable display of the Scala code to create each atom that the
-   |system displays.  The assumption is that you have imported the core
-   |package for Elision."""
-})
-
-def({! showprior()
-      #description=
-        "Toggle showing the atom prior to applying bindings and rewriting."
-      #detail=
-"""|When enabled, additional output is generated that shows the parsed atom
-   |prior to applying any bindings from the current context and prior to any
-   |rewriting attempts."""
-})
-
-def({! quiet()
+def({! quiet() #handler=
+"""|exec.console.quiet = !exec.console.quiet
+   |emitln("Quiet is " + (if (exec.console.quiet) "enabled." else "disabled."))
+   |_no_show"""
       #description="Toggle disable most output."
       #detail=
 """|Enable or disable printing of most output.  Explicitly requested output is
@@ -281,7 +422,17 @@ def({! quiet()
    |q> prompt."""
 })
 
-def({! history()
+def({! history() #handler=
+"""|exec match {
+   |  case hh: HasHistory =>
+   |    // Show the history.
+   |    val it = hh.getHistoryIterator
+   |    while (it.hasNext) println(it.next)
+   |    println("Persistent history is found in: " + hh.getHistoryFilename)
+   |    _no_show
+   |  case _ =>
+   |    _no_show
+   |}"""
       #description="Show the current history."
       #detail=
 """|Show the current history of lines executed.  This history is numbered, and
@@ -293,18 +444,10 @@ def({! history()
 // Error reporting.
 //======================================================================
 
-def({! fail()
+def({! fail() #handler=
+"""|throw new VerifyError("core dump requested by user")"""
       #description="Generate a runtime exception."
       #detail=
 """|Generate a runtime exception (a VerifyError).  This causes a core dump and
    |may be useful if you are trying to debug the system."""
-})
-
-def({! stacktrace()
-      #description="Toggle whether or not a stack trace is shown."
-      #detail=
-"""|For non-Elision exceptions the exception message is shown, but the stack
-   |trace is typically suppressed (this is not true for runtime errors; the
-   |stack trace is always shown for these).  This will enable (or disable)
-   |showing the stack trace for all non-Elision exceptions."""
 })

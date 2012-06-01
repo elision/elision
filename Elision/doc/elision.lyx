@@ -5921,6 +5921,177 @@ Apply(Lambda(Variable('T,"x"),'T),"Fred")
 
 \end_layout
 
+\begin_layout Section
+Lambdas and Metavariables
+\end_layout
+
+\begin_layout Standard
+It is often useful to use metavariables in lambdas.
+ Consider 
+\family typewriter
+is_bindable(atom)
+\family default
+.
+ This evaluates to 
+\family typewriter
+true
+\family default
+ if the atom is bindable (that is, is a variable), and evaluates to 
+\family typewriter
+false
+\family default
+ if it is not.
+ Suppose I want a function to tell me whether an atom is bindable or not.
+ I might try to write this as follows: 
+\family typewriter
+
+\backslash
+$a.is_bindable($a)
+\family default
+.
+ This will not work.
+ The term 
+\family typewriter
+is_bindable($x)
+\family default
+ immediately evaluates to true (since 
+\family typewriter
+$x
+\family default
+ is bindable), leaving the constant lambda 
+\family typewriter
+
+\backslash
+$x.true
+\family default
+.
+ This is not what we want at all.
+\end_layout
+
+\begin_layout Standard
+The solution is to use metavariables (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Metavariables"
+
+\end_inset
+
+).
+ We write 
+\family typewriter
+
+\backslash
+$$x.is_bindable($$x)
+\family default
+.
+ This works as desired.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$x.is_bindable($x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl16 = true
+\end_layout
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$$x.is_bindable($$x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl15 = false
+\end_layout
+
+\end_inset
+
+The first entry fails (because 
+\family typewriter
+7
+\family default
+ is not bindable), but the second entry works.
+ Once you decide to use a metavariable in one place in a lambda, however,
+ you must use it everywhere.
+ The reason is that the lambda variables get rewritten to De Bruijn indices
+ (see 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:De-Bruijn-Indices"
+
+\end_inset
+
+) based on the lambda parameter.
+ The following illustrates how this can fail.
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$x.is_bindable($$x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl16 = true
+\end_layout
+
+\begin_layout Plain Layout
+
+e> 
+\backslash
+$$x.is_bindable($x).7
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl15 = true
+\end_layout
+
+\end_inset
+
+In the first case a De Bruijn variable 
+\family typewriter
+$v
+\family default
+ is created for 
+\family typewriter
+$x
+\family default
+, and the body is rewritten to 
+\family typewriter
+is_bindable($v)
+\family default
+ which is true.
+ The second case falls into the problem discussed earlier, where 
+\family typewriter
+is_bindable($x)
+\family default
+ is rewritten to 
+\family typewriter
+true
+\family default
+ before De Bruijn substitution can even occur.
+\end_layout
+
+\begin_layout Standard
+The simple rule is to use metavariables consistently in lambdas.
+ If you use a metavariable in the body, you must also use a metavariable
+ for the parameter.
+\end_layout
+
 \begin_layout Chapter
 \begin_inset CommandInset label
 LatexCommand label
