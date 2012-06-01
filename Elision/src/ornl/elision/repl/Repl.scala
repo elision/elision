@@ -101,7 +101,7 @@ object Repl {
   _context.operatorLibrary = _library
   
   /** The parser to use. */
-  private var _parser = new AtomParser(_context, false)
+  private var _parser = new AtomParser(_context, true, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
@@ -115,8 +115,11 @@ object Repl {
   /** Whether to bind the results of evaluating atoms. */
   private var _bindatoms = true
   
-  /** Whether or not to trace the parser. */
+  /** Whether or not to trace the parboiled parser. */
   private var _trace = false
+
+  /** Toggle which parser to use. */
+  private var _toggleParser = false
   
   /** Have we defined the operators.  This is used by the `run` method. */
   private var _opsDefined = false
@@ -826,7 +829,7 @@ object Repl {
           case Args() =>
 		        // Toggle tracing.
 		        _trace = !_trace
-		        _parser = new AtomParser(_context, _trace)
+		        _parser = new AtomParser(_context, _toggleParser, _trace)
 		        emitln("Parser tracing is " + (if (_trace) "ON." else "OFF."))
 		        ApplyData._no_show
           case _ => ApplyData._no_show
@@ -840,6 +843,18 @@ object Repl {
 		        BasicAtom.traceMatching = !BasicAtom.traceMatching
 		        emitln("Match tracing is " +
 		            (if (BasicAtom.traceMatching) "ON." else "OFF."))
+		        ApplyData._no_show
+          case _ => ApplyData._no_show
+        })
+ 
+    // ToggleParser.
+    _context.operatorLibrary.register("toggleparser",
+        _data => _data.args match {
+          case Args() =>
+		        // Toggle the parser used.
+            _toggleParser = !_toggleParser
+            _parser = new AtomParser(_context, _toggleParser, _trace)
+            emitln("Using "+ (if(_toggleParser) "packrat" else "parboiled") +" parser.")
 		        ApplyData._no_show
           case _ => ApplyData._no_show
         })

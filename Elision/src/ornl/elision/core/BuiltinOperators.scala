@@ -190,6 +190,12 @@ from the matcher as it attempts to match atoms.  The matcher is called
 for a variety of reasons, so you may see some unexpected output here."""
 })
 
+def({ operator #name=toggleparser #params=%()
+      #description="Toggle the parser which is used."
+      #detail=
+"""Select to use either the Parboiled parser or the Scala packrat parser."""
+})
+
 def({ operator #name=showscala #params=%()
       #description="Toggle showing the Scala version of parsed atoms."
       #detail=

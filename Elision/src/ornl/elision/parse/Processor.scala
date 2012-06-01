@@ -61,11 +61,14 @@ with HasHistory {
   /** Whether to trace the parser. */
   private var _trace = false
 
+  /** Select the parser to use */
+  private var _toggle = false
+  
   /** The queue of handlers, in order. */
   private var _queue = List[Processor.Handler]()
   
   /** The parser to use. */
-  private var _parser = new AtomParser(context, _trace)
+  private var _parser = new AtomParser(context, _toggle, _trace)
   
   val console = PrintConsole
   
