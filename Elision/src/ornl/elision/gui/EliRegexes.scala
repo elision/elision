@@ -318,7 +318,7 @@ object EliSyntaxFormatting {
 			indents -= curLine.count(ch => (ch == '}' || ch == ')' || ch == ']') )
 			indents = math.max(0,indents)
 			
-			println(curLine)
+	//		println(curLine)
 			// chomp the characters before the break point.
 			edibleTxt = edibleTxt.drop(breakPt)
 			
@@ -338,7 +338,7 @@ object EliSyntaxFormatting {
 				tabs += chompedChars
 			}
 		}
-		println(edibleTxt)
+	//	println(edibleTxt)
 		
 		(breaks, tabs)
 	}
@@ -442,6 +442,42 @@ object EliSyntaxFormatting {
 		}
 		// wrap the whole text in a font tag to give it the font face "Lucida Console" then return our final result.
 		result = """<div style="font-family:Lucida Console;font-size:12pt">""" + result + """</div>"""
+		result
+	}
+	
+	
+	/** Applies C-style formatting to a parse string for use in an EditorPane. (does not include colors)*/
+	def applyBreaksAndTabs(text : String, maxCols : Int = 50) : String = {
+		var result = text
+		
+		// inserting characters alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
+		var insertedChars = 0
+
+		// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
+		val (breaks, tabs) = enforceLineWrap(text,maxCols)
+		
+		// insert the line breaks.
+		while(!breaks.isEmpty || !tabs.isEmpty) {
+			var tag = ""
+			var insertLoc = 0
+			
+			if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
+				// insert a <br/> tag to enforce a line break
+				tag = "\n"
+				insertLoc = breaks(0)
+				breaks.trimStart(1)
+			} else {
+				// insert a tab
+				tag = "   "
+				insertLoc = tabs(0)
+				tabs.trimStart(1)
+			}
+				
+			val (str1, str2) = result.splitAt(insertLoc + insertedChars)
+			result = str1 + tag + str2
+			insertedChars += tag.size
+		}
+		
 		result
 	}
 }

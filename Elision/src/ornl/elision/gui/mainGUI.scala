@@ -80,14 +80,14 @@ object mainGUI extends SimpleSwingApplication {
 			layout( consolePanel) = South
 			layout( propsPanel) = East
 		}
-		
+		size = new Dimension(800,600)
 		visible = true
 	}
 	
 	
 	
 	// get focus in the REPL panel
-	consolePanel.console.requestFocusInWindow
+	//consolePanel.console.requestFocusInWindow
 	// treeVisPanel.requestFocusInWindow
 	// treeVisPanel.requestFocus
 }
@@ -259,7 +259,7 @@ object guiMenuBar extends MenuBar {
 		
 		contents = new BorderPanel {
 			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			val minLines = TextAreaOutputStream.infiniteMaxLines
+			val minLines = ConsolePanel.infiniteMaxLines
 			layout( new GridPanel(2,1) { 
 						contents += new Label("Enter max lines: (integer >= " + minLines + ")")
 						contents += new Label("(<" + minLines + " will make there be no maximum)") 
@@ -540,6 +540,9 @@ object GUIActor extends Actor {
 				}
 				case "quit" => 
 					System.exit(0)
+				case ("replFormat", flag : Boolean) =>
+					mainGUI.consolePanel.tos.applyFormatting = flag
+					ornl.elision.repl.ReplActor ! ("wait", false)
 				case _ => // discard anything else that comes into the mailbox.
 			}
 		}

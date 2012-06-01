@@ -53,15 +53,19 @@ class ConsolePanel extends ScrollPane {
 	
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+	preferredSize = new Dimension(Integer.MAX_VALUE,200)
 	
 	/** The EditorPane containing the REPL */
-	val console = new TextArea("",20,80) {
-		wordWrap = true
-		lineWrap = true
+	val console = new EditorPane { //new TextArea("",20,80) { // new EditorPane {
+	//	wordWrap = true
+	//	lineWrap = true
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-	//	editorKit = new javax.swing.text.html.HTMLEditorKit
+		editorKit = new javax.swing.text.html.HTMLEditorKit
+		text = """<div style="font-family:Lucida Console;font-size:12pt">Booting up..."""
 	}
+	
+	ConsolePanel.textArea = console
 	
 	/** The REPL thread instance */
 	var repl = new ElisionREPLThread
@@ -111,13 +115,16 @@ class ElisionREPLThread extends Thread {
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
 
-class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
+class TextAreaOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
+	
+	/** flag for applying Elision formatting to output */
+	var applyFormatting = false
 	
 	/** The position of the last output character in textArea. */
 	var anchorPos : Int = 0
 	
 	/** The contents of the textArea since the last time it received output. */
-	var readOnlyOutput = textArea.text
+	var readOnlyOutput = "" //textArea.text
 	
 	/**
 	 * Writes an array of bytes to the output stream.
@@ -125,16 +132,9 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 	 */
 	override def write(ba : Array[Byte]) : Unit = {
 		try {
-			textArea.text += new String(ba)
-			enforceMaxLines
-			
-			anchorPos = textArea.text.length
-			readOnlyOutput = textArea.text
-		
-			textArea.caret.position = textArea.text.length
+			_write(new String(ba))
 		} catch {
-			case ioe : IOException => ioe.printStackTrace
-			case _ =>
+			case ioe : Exception => ioe.printStackTrace
 		}
 	}
 	
@@ -146,16 +146,27 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 	 */
 	override def write(ba : Array[Byte], off : Int, len : Int) : Unit = {
 		try {
-			textArea.text += new String(ba,off,len)
-			enforceMaxLines
-			
-			anchorPos = textArea.text.length
-			readOnlyOutput = textArea.text
-		
-			textArea.caret.position = textArea.text.length
+			_write(new String(ba,off,len))
 		} catch {
-			case ioe : IOException => ioe.printStackTrace
-			case _ =>
+			case ioe : Exception => ioe.printStackTrace
+		}
+	}
+	
+	private def _write(_newTxt : String) : Unit = {
+		try {
+			var newTxt = _newTxt
+			if(applyFormatting) newTxt = EliSyntaxFormatting.applyHTMLHighlight(newTxt, false, 80)
+			else newTxt = replaceAngleBrackets(newTxt)
+			newTxt = replaceWithHTML(newTxt)
+			
+			updateReadOnlyText(newTxt)
+			enforceMaxLines
+			textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + readOnlyOutput
+			anchorPos = ConsolePanel.getLength // readOnlyOutput.size // 
+			
+			textArea.caret.position = anchorPos // textArea.text.length
+		} catch {
+			case ioe : Exception => ioe.printStackTrace
 		}
 	}
 	
@@ -165,7 +176,7 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 	 * than maxLines.
 	 */
 	def enforceMaxLines : Unit = {
-		if(maxLines < TextAreaOutputStream.infiniteMaxLines) return
+		if(maxLines < ConsolePanel.infiniteMaxLines) return
 		while(lineCount > maxLines) //(textArea.lineCount > maxLines)
 			textArea.text = textArea.text.substring(1,textArea.text.length)
 	}
@@ -174,11 +185,44 @@ class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val bao
 	def lineCount() : Int = {
 		0
 	}
-
+	
+	
+	private def replaceWithHTML(txt : String) : String = {
+		var result = txt
+		
+		result = result.replaceAllLiterally(" ","""&nbsp;""")
+		result = result.replaceAllLiterally("\t","""&nbsp;&nbsp;&nbsp;""")
+		result = result.replaceAllLiterally("\n","""<br/>""")
+		
+		result
+	}
+	
+	private def replaceAngleBrackets(txt : String) : String = {
+		var result = txt
+		
+		result = result.replaceAllLiterally("<","""&lt;""")
+		result = result.replaceAllLiterally(">","""&gt;""")
+		
+		result
+	}
+	
+	def updateReadOnlyText(newTxt : String) : Unit = {
+		readOnlyOutput += newTxt // ConsolePanel.getText // 
+	}
 }
 
-object TextAreaOutputStream {
+object ConsolePanel {
 	val infiniteMaxLines = 10
+	var textArea : EditorPane = null
+	
+	def getText() : String = {
+		val doc = textArea.peer.getDocument
+		doc.getText(0,doc.getLength)
+	}
+	
+	def getLength() : Int = {
+		textArea.peer.getDocument.getLength
+	}
 }
 
 
@@ -204,7 +248,7 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			if(e.char == '\n') {
 				sendToInputStream
 			}
-			if(e.char == '\b' && textArea.text.length < taos.anchorPos) {
+			if(e.char == '\b' && ConsolePanel.getLength < taos.anchorPos) {
 				textArea.text = taos.readOnlyOutput
 			}
 		}
@@ -219,12 +263,10 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			// prevent the user from moving the caret past the prompt string
 			if(e.key == swing.event.Key.Left) {
 				var avoidInfLoop = false
-				while(textArea.caret.position < taos.anchorPos + 1 && !avoidInfLoop) {
-					try {
-						textArea.caret.position += 1
-					} catch {
-						case _ => avoidInfLoop = true
-					}
+				try {
+					textArea.caret.position = math.max(taos.anchorPos, textArea.caret.position)
+				} catch {
+					case _ => avoidInfLoop = true
 				}
 			}
 			
@@ -239,14 +281,14 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			// moved to the end of the text area string at the end.
 			if(e.key == swing.event.Key.Up) {
 				try {
-					textArea.caret.position = textArea.text.length
+					textArea.caret.position = ConsolePanel.getLength
 				} catch {
 					case _ => {}
 				}
 			}
 			if(e.key == swing.event.Key.Down) {
 				try {
-					textArea.caret.position = textArea.text.length
+					textArea.caret.position = ConsolePanel.getLength
 				} catch {
 					case _ => {}
 				}
@@ -289,17 +331,20 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 		import ornl.elision.repl.Repl
 		
 		try {
-			// get rid of the '\n' produced by pressing enter.
+		/*	// get rid of the '\n' produced by pressing enter.
 			val endLinePos = textArea.text.indexOf('\n',taos.anchorPos)
 			textArea.text = textArea.text.take(endLinePos) + textArea.text.substring(endLinePos+1)
 			
 			// if for any reason the first character after the prompt string isn't a space, insert a space.
 			
 			if(textArea.text.charAt(taos.anchorPos) != ' ') textArea.text.take(taos.anchorPos) + " " + textArea.text.substring(taos.anchorPos + 1)
-			
+		*/	
 			// create the inputString to send to the REPL
+			val srcString : String = ConsolePanel.getText // textArea.text
+			val inputString = srcString.substring(taos.anchorPos)
 			
-			val inputString = textArea.text.substring(taos.anchorPos)
+			taos.updateReadOnlyText(inputString)
+			taos.anchorPos = ConsolePanel.getLength
 			
 			// store the input string in the history list.
 			
@@ -308,14 +353,9 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			historyIndex = -1
 			
 			// send the input String to the Repl's actor
-			println()
+			//println()
 			ornl.elision.repl.ReplActor ! inputString
 			
-		//	java.lang.System.in.read(inputString.getBytes,0,inputString.length)
-		
-		//	val isr = new InputStreamReader(bais)
-		//	val br = new BufferedReader(isr)
-		//	br.readLine
 		} catch {
 			case _ =>
 		}

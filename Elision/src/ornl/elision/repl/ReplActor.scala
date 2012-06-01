@@ -52,8 +52,10 @@ object ReplActor extends Actor {
 	var guiInput : String = "no gui input yet"
 
 	/** a reference to the GUI's actor. */
-	
 	var guiActor : Actor = null
+	
+	/** a flag that tells the Actor to be verbose while waiting on the GUI. */
+	var verbose = false
 	
 	/** 
 	 * The actor's act loop will wait to receive string input from the GUI. 
@@ -63,13 +65,23 @@ object ReplActor extends Actor {
 	def act() = {
 		loop {
 			react {
-				case str : String => {
-					
+				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false
-				}
+				case ("wait", flag : Boolean) =>
+					waitingForGuiInput = flag
 				case _ => {}
 			}
+		}
+	}
+	
+	/** forces the current thread to wait for the GUI to finish doing something. */
+	def waitOnGUI(doStuff : () => Unit = null, msg : String = null) : Unit = {
+		waitingForGuiInput = true
+		if(doStuff != null) doStuff()
+		while(waitingForGuiInput) {
+			if(verbose && msg != null) println("waiting on the GUI: " + msg)
+			Thread.sleep(20) // sleep until the REPL receives input from the GUI
 		}
 	}
 }
