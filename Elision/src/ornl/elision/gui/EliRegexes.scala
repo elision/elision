@@ -444,7 +444,7 @@ object EliSyntaxFormatting {
 					tag = """&gt;"""
 					insertLoc = gtList(0)
 					gtList.trimStart(1)
-					// trim out the '<'. 
+					// trim out the '>'. 
 					val (str1,str2) = result.splitAt(insertLoc + insertedChars)
 					result = str1 + str2.drop(1)
 					trimmedChars = 1
@@ -486,7 +486,7 @@ object EliSyntaxFormatting {
 					tag = """&gt;"""
 					insertLoc = gtList(0)
 					gtList.trimStart(1)
-					// trim out the '<'. 
+					// trim out the '>'. 
 					val (str1,str2) = result.splitAt(insertLoc + insertedChars)
 					result = str1 + str2.drop(1)
 					trimmedChars = 1
@@ -499,6 +499,48 @@ object EliSyntaxFormatting {
 		}
 		// wrap the whole text in a font tag to give it the font face "Lucida Console" then return our final result.
 		//result = """<div style="font-family:Lucida Console;font-size:12pt">""" + result + """</div>"""
+		result
+	}
+	
+	
+	/** Only replaces < > with &lt; &gt; respectively. */
+	def applyMinHTML(text : String) : String = {
+		var result = text
+		
+		// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
+		var insertedChars = 0
+		
+		// obtain the locations of angle brackets so we can convert them to be not interpretted by the EditorPane's HTML kit.
+		val (ltList,gtList) = enforceAngleBracketReplacement(text)
+		
+		while(!ltList.isEmpty || !gtList.isEmpty) {
+			var tag = ""
+			var insertLoc = 0
+			var trimmedChars = 0
+			
+			if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
+				tag = """&lt;"""
+				insertLoc = ltList(0)
+				ltList.trimStart(1)
+				// trim out the '<'. 
+				val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+				result = str1 + str2.drop(1)
+				trimmedChars = 1
+			} else {
+				tag = """&gt;"""
+				insertLoc = gtList(0)
+				gtList.trimStart(1)
+				// trim out the '>'. 
+				val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+				result = str1 + str2.drop(1)
+				trimmedChars = 1
+			}
+				
+			val (str1, str2) = result.splitAt(insertLoc + insertedChars)
+			result = str1 + tag + str2
+			insertedChars += tag.size - trimmedChars
+		}
+		
 		result
 	}
 	
