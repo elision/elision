@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ElisionGUI
+package ornl.elision.gui
 
 import swing._
 import scala.swing.BorderPanel.Position._
@@ -43,10 +43,12 @@ import scala.concurrent.ops._
 import sys.process._
 import java.io._
 import java.awt.Graphics2D
+import scala.util.matching._
+import scala.collection.mutable.ListBuffer
 
 import sage2D._
 
-/** Used to display the properties of the currently selected node. */
+/** Used to display information about the currently selected node. */
 
 class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	background = mainGUI.bgColor
@@ -61,20 +63,9 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	val parseArea = new EditorPane {
 		editable = false
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
 		focusable = false
-	//	editorKit = new javax.swing.text.rtf.RTFEditorKit
+		editorKit = new javax.swing.text.html.HTMLEditorKit
 	}
-	
-	/*	val parseArea = new TextArea("",5,50) {
-		wordWrap = true
-		lineWrap = true
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-		focusable = false
-	}
-	*/
 	
 	/** The scrolling pane that contains parseArea */
 	val parsePanel = new ScrollPane {
@@ -103,5 +94,24 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
 	}
 	contents += taPanel
+
+	
+	
+	
+	
+	/**
+	 * Displays an atom's parse string in parseArea with Elision syntax highlighting applied. 
+	 * @param text					the atom's parse string.
+	 * @param disableHighlight		disables highlighting if true.
+	 */
+	def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
+		
+		// set the parseArea's text to the resulting HTML-injected parse string.
+		parseArea.text = EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40)
+	}
+	
+	
+	
 }
+
 

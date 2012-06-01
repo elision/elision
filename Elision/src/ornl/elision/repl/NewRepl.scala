@@ -73,6 +73,13 @@ class NewRepl extends Processor {
 	import scala.tools.jline.console.ConsoleReader
 	import java.io.{File, FileWriter, FileReader, BufferedReader}
   
+  
+	//////////////////// GUI changes
+	
+	private var _disableGUIComs = true
+	
+	//////////////////// end GUI changes
+  
   //======================================================================
   // Figure out where to read and store the history, and where to store
   // the last context.
@@ -241,7 +248,17 @@ class NewRepl extends Processor {
 
     // Define the operators.
     read("src/bootstrap/Boot.elision")
-
+	
+	//////////////////// GUI changes
+	
+	// activates communications with the GUI if we are using it.
+	if(ReplActor.guiMode) {
+		_disableGUIComs = false
+		ReplActor.start
+	}
+	
+	//////////////////// end GUI changes
+	
     // Configure the console and history.
     val cr = new ConsoleReader
     val term = cr.getTerminal
@@ -270,6 +287,7 @@ class NewRepl extends Processor {
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
       	segment = cr.readLine(if (console.quiet) p2 else p1)
+		
       	if (segment == null) {
       	  return true
       	}
@@ -299,6 +317,10 @@ class NewRepl extends Processor {
       
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+		//////////////////// GUI changes
+		if(ReplActor.guiActor != null)  ReplActor.guiActor ! "quit"
+		//////////////////// end GUI changes
+		
         return
       }
       

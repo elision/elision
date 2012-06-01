@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ElisionGUI
+package ornl.elision.gui
 
 import swing._
 import scala.swing.BorderPanel.Position._
@@ -435,7 +435,7 @@ class TreeVisPanel extends GamePanel {
 			treeSprite.selectNode(clickedNode, decompDepth)
 			
 			mainGUI.propsPanel.textArea.text = clickedNode.properties
-			mainGUI.propsPanel.parseArea.text = clickedNode.term
+			mainGUI.propsPanel.parseStringHighlight(clickedNode.term, clickedNode.isComment)
 			
 			camera.x = clickedNode.worldX
 			camera.y = clickedNode.worldY
