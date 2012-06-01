@@ -853,7 +853,7 @@ object Repl {
           case Args() =>
 		        // Toggle the parser used.
             _toggleParser = !_toggleParser
-            _parser = new AtomParser(_context, _toggleParser, _trace)
+            _parser = new AtomParser(_context, _trace, _toggleParser)
             emitln("Using "+ (if(_toggleParser) "packrat" else "parboiled") +" parser.")
 		        ApplyData._no_show
           case _ => ApplyData._no_show
