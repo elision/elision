@@ -1077,11 +1077,15 @@ object AtomParser {
 /**
  * A parser to parse a single atom.
  * 
+ * TODO Remove the use of toggle and prefer a configuration option.
+ * 
  * @param context	The context for rulesets and operators.
  * @param trace 	If true, enable tracing.  Off by default.
+ * @param toggle  If true, select the new (parser combinator) parser.
  */
-class AtomParser(val context: Context, val toggle: Boolean = false, val trace: Boolean = false)
-  extends Parser {
+class AtomParser(val context: Context, val trace: Boolean = false,
+    toggle: Boolean = false)
+  extends Parser with Fickle {
   import AtomParser._
 
   //----------------------------------------------------------------------
