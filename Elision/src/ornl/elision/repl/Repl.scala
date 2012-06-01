@@ -101,7 +101,7 @@ object Repl {
   _context.operatorLibrary = _library
   
   /** The parser to use. */
-  private var _parser = new AtomParser(_context, true, false)
+  private var _parser = new AtomParser(_context, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
