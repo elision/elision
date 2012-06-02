@@ -93,13 +93,7 @@ trait PropertyManager {
       case None =>
         throw new CacheException("No such property: " + toEString(name) + ".")
       case Some(item) =>
-        if (mTYPE <:< Manifest.classType(item.getClass))
-          throw new CacheException(
-              "The property " + toEString(name) +
-              " is of the wrong type.  Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(item.getClass) + ".")
-        else
-          item.asInstanceOf[TYPE]
+        item.asInstanceOf[TYPE]
     }
   }
   
@@ -117,14 +111,17 @@ trait PropertyManager {
       case None =>
         throw new CacheException("No such property: " + toEString(name) + ".")
       case Some(item) =>
-        if (mTYPE <:< Manifest.classType(item.getClass))
-          throw new CacheException(
-              "The property " + toEString(name) +
-              " is of the wrong type.  Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(item.getClass) + ".")
-        else
-          _prop2val(name) = value
-          value
+        _prop2val(name) = value
+        value
+//        if (Manifest.classType(item.getClass) <:< mTYPE) {
+//          _prop2val(name) = value
+//          value
+//        } else {
+//          throw new CacheException(
+//              "The property " + toEString(name) +
+//              " is of the wrong type.  Expected " + mTYPE.toString +
+//              " but got " + Manifest.classType(item.getClass) + ".")
+//        }
     }
   }
   

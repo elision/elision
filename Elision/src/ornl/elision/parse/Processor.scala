@@ -58,6 +58,14 @@ with HasHistory {
   declareProperty("stacktrace",
       "Print a stack trace on all (non-Elision) exceptions.", false)
   
+  // Configure file search properties.
+  declareProperty("usepath",
+      "Whether to use the search path to locate files.", true)
+  declareProperty("useclasspath",
+      "Whether to use the class path to locate files.", true)
+  declareProperty("path",
+      "The search path to use to locate files.", FileResolver.defaultPath)
+  
   /** Whether to trace the parser. */
   private var _trace = false
 
@@ -103,7 +111,9 @@ with HasHistory {
   }
   
   /**
-   * Read the content of the provided file.
+   * Read the content of the provided file.  This method uses a
+   * [[ornl.elision.parse.FileResolver]] instance to find the requested
+   * file.
    * 
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
@@ -111,7 +121,17 @@ with HasHistory {
    * 					The file cannot be found or cannot be read.
    */
   def read(filename: String) {
-    read(scala.io.Source.fromFile(filename))
+    // Make a resolver from the properties.  Is this costly to do every time
+    // we want to read a file?  Probably not.
+    val usePath = getProperty[Boolean]("usepath")
+    val useClassPath = getProperty[Boolean]("useclasspath")
+    val path = getProperty[String]("path")
+    val resolver = FileResolver(usePath, useClassPath, Some(path))
+    resolver.find(filename) match {
+      case None => console.error("File not found: " + filename)
+      case Some(reader) =>
+        read(scala.io.Source.fromInputStream(reader))
+    }
   }
   
   /**
@@ -122,17 +142,18 @@ with HasHistory {
    * 					The file cannot be found or cannot be read.
    */
   def read(file: java.io.File) {
-    read(scala.io.Source.fromFile(file))
+    read(scala.io.Source.fromFile(file), file.getAbsolutePath)
   }
   
   /**
    * Read the content of the provided reader.
    * 
-   * @param reader		The reader providing input.
+   * @param source		The reader providing input.
+   * @param filename  The file name, if relevant.
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
    */
-  def read(source: scala.io.Source) {
+  def read(source: scala.io.Source, filename: String = "(console)") {
   	_execute(_parser.parseAtoms(source)) 
   }
   

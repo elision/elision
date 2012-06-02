@@ -93,15 +93,15 @@ class NewRepl extends Processor {
   
   /** Figure out the location to store the history. */
   private val _filename = {
-    val fname = (if (_prop("path.separator") == ":") ".elision"
-      else "elision.ini")
+    val fname = (if (_prop("path.separator") == ":") ".elision.history.eli"
+      else "elision-history.eli")
     _home + _prop("file.separator") + fname
   }
   
   /** Figure out where to stash the context on exit. */
   protected val _lastcontext = {
-    val fname = (if (_prop("path.separator") == ":") ".elision-context.mpl2"
-      else "elision.context.mpl2")
+    val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
+      else "elision-context.eli")
     _home + _prop("file.separator") + fname
   }
   
@@ -297,17 +297,17 @@ class NewRepl extends Processor {
     startTimer
 
     // Define the operators.
-    read("src/bootstrap/Boot.elision")
+    read("bootstrap/Boot.eli")
 	
-	//////////////////// GUI changes
+    //////////////////// GUI changes
 	
-	// activates communications with the GUI if we are using it.
-	if(ReplActor.guiMode) {
-		_disableGUIComs = false
-		ReplActor.start
-	}
+    // activates communications with the GUI if we are using it.
+    if(ReplActor.guiMode) {
+      _disableGUIComs = false
+      ReplActor.start
+    }
 	
-	//////////////////// end GUI changes
+    //////////////////// end GUI changes
 	
     // Configure the console and history.
     val cr = new ConsoleReader

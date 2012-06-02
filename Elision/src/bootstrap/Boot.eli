@@ -125,10 +125,10 @@ def({! println($a: STRING) #handler=
        #description="Print the given string."
        #detail="""Print the provided string literal to the console."""})
 
-inc("src/bootstrap/Core.elision")
-inc("src/bootstrap/Context.elision")
-inc("src/bootstrap/Strategies.elision")
-inc("src/bootstrap/Math.elision")
+inc("bootstrap/Core.eli")
+inc("bootstrap/Context.eli")
+inc("bootstrap/Strategies.eli")
+inc("bootstrap/Math.eli")
 
 {! _() #handler="exec.console.quiet=false ; _no_show"}.%()
 
