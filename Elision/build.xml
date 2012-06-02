@@ -207,12 +207,14 @@ bin, lib, and other folders.</echo>
 		<mkdir dir="${build.doc}"/>
 		<mkdir dir="${build.doc}/api"/>
 		<scaladoc
+			srcdir		="${build.src}"
 			destdir		="${build.doc}/api"
 			classpathref	="build.classpath"
 			deprecation	="on"
 			unchecked	="on"
 			doctitle	="${configuration.name} API Version ${configuration.version.major}.${configuration.version.minor} Build ${DSTAMP}${TSTAMP}">
-			<src path="${build.src}"/>
+			<include name="**/*.scala"/>
+			<exclude name="**/*.eli"/>
 		</scaladoc>
 		<echo level="info">API documentation is available in ${build.doc}/api.</echo>
 	</target>
