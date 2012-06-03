@@ -47,7 +47,7 @@ def({! context()
   _no_show"""
 #description="Show the content of the current context."
 #detail=
-"""Show the bindings, operators, and rules currently in the current context."""
+"Show the bindings, operators, and rules currently in the current context."
 })
 
 //======================================================================
@@ -55,53 +55,60 @@ def({! context()
 //======================================================================
 
 def({! enable($x: SYMBOL)
-#handler="""
+#handler=
+"""
   args match {
     case Args(SymbolLiteral(_, sym)) =>
       // Enable the specified ruleset.
       context.ruleLibrary.enableRuleset(sym.name)
       _no_show
     case _ => _no_show
-  }"""
+  }
+"""
 #description="Enable the specified ruleset."
 #detail=
-"""|Enable the specified ruleset for automatic rewriting.  Rules in the ruleset
-   |will be automatically applied to atoms."""
+"Enable the specified ruleset for automatic rewriting.  Rules in the ruleset ".
+"will be automatically applied to atoms."
 })
 
 def({! disable($x: SYMBOL)
-#handler="""
+#handler=
+"""
   args match {
     case Args(SymbolLiteral(_, sym)) =>
       // Enable the specified ruleset.
       context.ruleLibrary.disableRuleset(sym.name)
       _no_show
     case _ => _no_show
-  }"""
+  }
+"""
 #description="Disable the specified ruleset."
 #detail=
-"""|Disable the specified ruleset for automatic rewriting.  Rules in the ruleset
-   |may still be used if they are also in another enabled ruleset."""
+"Disable the specified ruleset for automatic rewriting.  Rules in the ruleset ".
+"may still be used if they are also in another enabled ruleset."
 })
 
 def({! setlimit($limit: INTEGER)
-#handler="""
-args match {
-  case Args(IntegerLiteral(_, count)) =>
-    // Enable the specified ruleset.
-    context.ruleLibrary.setLimit(count)
-    emitln("Rewrite limit is now " + count + ".")
-    _no_show
-  case _ => _no_show
-}"""
+#handler=
+"""
+  args match {
+    case Args(IntegerLiteral(_, count)) =>
+      // Enable the specified ruleset.
+      context.ruleLibrary.setLimit(count)
+      emitln("Rewrite limit is now " + count + ".")
+      _no_show
+    case _ => _no_show
+  }
+"""
 #description="Set the automatic rewrite limit."
 #detail=
-"""|Specify the maximum number of times to rewrite an atom using the automatic
-   |rewriter.  Using zero disables the rewriter."""
+"Specify the maximum number of times to rewrite an atom using the automatic ".
+"rewriter.  Using zero disables the rewriter."
 })
 
 def({! setdescend($enable: BOOLEAN)
-#handler="""
+#handler=
+"""
   args match {
     case Args(BooleanLiteral(_, flag)) =>
       // Set whether to descend.
@@ -109,11 +116,12 @@ def({! setdescend($enable: BOOLEAN)
       emitln("Top-down rewriting is " + (if (flag) "ON." else "OFF."))
       _no_show
     case _ => _no_show
-  }"""
+  }
+"""
 #description="Set whether to descend into children during rewriting."
 #detail=
-"""|Specify whether to descend into children during rewriting.  If true then 
-   |try to rewrite children of atoms."""
+"Specify whether to descend into children during rewriting.  If true then ". 
+"try to rewrite children of atoms."
 })
 
 //======================================================================
@@ -121,7 +129,8 @@ def({! setdescend($enable: BOOLEAN)
 //======================================================================
 
 def({! showrules($atom)
-#handler="""
+#handler=
+"""
   args match {
     case Args(atom) =>
       // Get the rules, and print each one.
@@ -130,15 +139,17 @@ def({! showrules($atom)
       }
       _no_show
     case _ => _no_show
-  }"""
+  }
+"""
 #description="Show the rules that may apply to a given atom."
 #detail=
-"""|The atom $atom is passed to the current context's rule library and the rules
-   |that will be used to rewrite it are returned and printed."""
+"The atom $atom is passed to the current context's rule library and the rules ".
+"that will be used to rewrite it are returned and printed."
 })
 
 def({! declare($r1: SYMBOL, $r2: SYMBOL): SYMBOL is %ACI
-#handler="""
+#handler=
+"""
   args foreach { _ match {
     case sl:SymbolLiteral =>
       // Declare the specified ruleset.
@@ -146,9 +157,10 @@ def({! declare($r1: SYMBOL, $r2: SYMBOL): SYMBOL is %ACI
       emitln("Declared ruleset " + sl.toParseString + ".")
     case _ =>
   }}
-_no_show"""
+  _no_show
+"""
 #description="Declare one or more rulesets."
 #detail=
-"""|Declare the named rulesets.  Rulesets must be declared before use, but they
-   |can be re-declared without error."""
+"Declare the named rulesets.  Rulesets must be declared before use, but they ".
+"can be re-declared without error."
 })

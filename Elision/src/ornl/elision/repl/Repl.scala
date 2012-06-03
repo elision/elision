@@ -653,7 +653,9 @@ object Repl {
         _data => _data.args match {
           case Args(or: OperatorRef) =>
             // Give some help.
-            emitln(context.operatorLibrary.help(new StringBuffer(), or).toString)
+            val width = scala.tools.jline.TerminalFactory.create().getWidth()
+            emitln(context.operatorLibrary.help(new StringBuffer(), or,
+                width).toString)
             ApplyData._no_show
           case _ =>
             ApplyData._no_show

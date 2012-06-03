@@ -298,6 +298,10 @@ class NewRepl extends Processor {
 
     // Define the operators.
     read("bootstrap/Boot.eli")
+    
+    // Report startup time.
+    stopTimer
+    printf("Startup Time: " + getLastTimeString + "\n")
 	
     //////////////////// GUI changes
 	
@@ -314,10 +318,6 @@ class NewRepl extends Processor {
     val term = cr.getTerminal
     cr.flush()
     cr.setHistory(_hist)
-    
-    // Report startup time.
-    stopTimer
-    printf("Startup Time: " + getLastTimeString + "\n")
     
     // Start main loop.
     while(true) {

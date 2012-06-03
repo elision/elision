@@ -166,43 +166,49 @@ object Apply {
    * @param bypass	If true, bypass native operator handler invocations.
    * @return	The basic atom resulting from the application.
    */
-  def apply(op: BasicAtom, arg: BasicAtom, bypass: Boolean = false): BasicAtom = {
+  def apply(op: BasicAtom, arg: BasicAtom,
+      bypass: Boolean = false): BasicAtom = {
     // Do not try to compute if metaterms are present.
-    if (!op.evenMeta && !arg.isTerm) SimpleApply(op, arg)
-    else {
-		//////////////////// GUI changes
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current.addChild("object Apply apply: ")
-		val opNode = rwNode.addChild("Operator: ").addChild(op)
-		val argNode = rwNode.addChild("Argument: ").addChild(arg)
-		RWTree.current = opNode
-		//////////////////// end GUI changes
-		
-	    op match {
-		    case app:Applicable =>
-		      try {
-			      // The lhs is applicable; invoke its apply method.  This will
-			      // return some atom, and that atom is the overall result.
-			      app.doApply(arg, bypass)
-		      } catch {
-		        case ex:java.lang.StackOverflowError =>
+    if (!op.evenMeta && !arg.isTerm) {
+      SimpleApply(op, arg)
+    } else {
+  		//////////////////// GUI changes
+  		// get the node representing this atom that is being rewritten
+  		val rwNode = RWTree.current.addChild("object Apply apply: ")
+  		val opNode = rwNode.addChild("Operator: ").addChild(op)
+  		val argNode = rwNode.addChild("Argument: ").addChild(arg)
+  		RWTree.current = opNode
+  		//////////////////// end GUI changes
+  		
+      op match {
+  		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
+  		    // If the argument is also a string literal, then we want to simply
+  		    // concatenate them.
+  		    StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
+  	    case app:Applicable =>
+  	      try {
+  		      // The lhs is applicable; invoke its apply method.  This will
+  		      // return some atom, and that atom is the overall result.
+  		      app.doApply(arg, bypass)
+  	      } catch {
+  	        case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
-			        throw new LambdaUnboundedRecursionException(
-			            "Application results in unbounded recursion: (" +
-			            op.toParseString + ").(" + arg.toParseString + ")")
-		      }
-		    case rew:Rewriter =>
-		      // The lhs is a rewriter; invoke its rewrite method.  This will return
-		      // a pair.  We need to convert the pair to a binding.
-		      val (r_atom, r_flag) = rew.doRewrite(arg)
-		      BindingsAtom(Bindings() +
-		          ("atom" -> r_atom) +
-		          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
-		    case _ =>
-		      // The lhs is something else.  It may be a variable or some other
-		      // expression that we have yet to evaluate.  Just build a simple
-		      // apply of the lhs and rhs.
-		      SimpleApply(op, arg)
+  		        throw new LambdaUnboundedRecursionException(
+  		            "Application results in unbounded recursion: (" +
+  		            op.toParseString + ").(" + arg.toParseString + ")")
+  	      }
+  	    case rew:Rewriter =>
+  	      // The lhs is a rewriter; invoke its rewrite method.  This will return
+  	      // a pair.  We need to convert the pair to a binding.
+  	      val (r_atom, r_flag) = rew.doRewrite(arg)
+  	      BindingsAtom(Bindings() +
+  	          ("atom" -> r_atom) +
+  	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
+  	    case _ =>
+  	      // The lhs is something else.  It may be a variable or some other
+  	      // expression that we have yet to evaluate.  Just build a simple
+  	      // apply of the lhs and rhs.
+  	      SimpleApply(op, arg)
 	    }
     }
   }

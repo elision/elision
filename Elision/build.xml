@@ -134,7 +134,7 @@ bin, lib, and other folders.</echo>
 		<echo level="info">  Build ....... ${DSTAMP}${TSTAMP}</echo>
 		<echo level="verbose">Using CLASSPATH=${build.classpath}.</echo>
 		<echo level="info">Starting build of Elision on ${TODAY} at ${TSTAMP}.</echo>
-    </target>
+        </target>
 	
 	
 	<!-- A simple target to build both the jars and the documentation. -->
@@ -194,7 +194,7 @@ bin, lib, and other folders.</echo>
 				<filter token="TSTAMP" value="${TSTAMP}"/>
 			</filterset>
 		</copy>
-    </target>
+        </target>
 
 
 	<!-- Determine if the documentation is up to date.  If it is, set the
