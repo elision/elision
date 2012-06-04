@@ -59,6 +59,8 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	label.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
 	contents += label
 	
+	
+	
 	/** The EditorPane that displays the currently selected node's parse string */
 	val parseArea = new EditorPane {
 		editable = false
@@ -71,6 +73,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	val parsePanel = new ScrollPane {
 		contents = parseArea
 		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+		preferredSize = new Dimension(PropertiesPanel.preferredWidth,PropertiesPanel.parsePanelHeight)
 	}
 	contents += parsePanel
 	
@@ -79,7 +82,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	contents += label2
 	
 	/** The TextArea that displays the currently selected node's properties */
-	val textArea = new TextArea("",15,50) {
+	val textArea = new TextArea("",15,45) {
 		wordWrap = true
 		lineWrap = true
 		editable = false
@@ -107,11 +110,16 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
 		
 		// set the parseArea's text to the resulting HTML-injected parse string.
-		parseArea.text = EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40)
+		parseArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40) + """</div>"""
 	}
 	
 	
 	
 }
 
+
+object PropertiesPanel {
+	val preferredWidth = 260
+	val parsePanelHeight = 200
+}
 

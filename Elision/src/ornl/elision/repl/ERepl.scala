@@ -168,7 +168,18 @@ class ERepl extends Processor {
       // This is explicitly requested output, show show it regardless of the
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
+    
+	//////////////////// GUI changes
+	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+		ReplActor.guiActor ! ("replFormat",true)
+	, "formatting on")
+	
     console.emitln(prefix + atom.toParseString)
+	
+	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+		ReplActor.guiActor ! ("replFormat",false)
+	, "formatting off")
+	//////////////////// end GUI changes
   }
   
   this.register(
@@ -364,7 +375,21 @@ class ERepl extends Processor {
       // A little function to prompt for, and read, the next segment.  The
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
-      	segment = cr.readLine(if (console.quiet > 0) p2 else p1)
+      	//////////////////// GUI changes
+		segment = 	if (ReplActor.guiMode) {  
+				print("" + (if (console.quiet > 0) p2 else p1))
+				
+				// make the Repl wait for GUI Input
+				ReplActor.waitOnGUI()
+				
+				ReplActor.guiInput
+			} 
+			else {
+				cr.readLine(if (console.quiet > 0) p2 else p1)
+			} 
+		/////////////// end GUI changes
+		
+		//segment = cr.readLine(if (console.quiet > 0) p2 else p1)
 		
       	if (segment == null) {
       	  return true

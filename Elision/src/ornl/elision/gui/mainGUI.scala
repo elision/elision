@@ -57,6 +57,9 @@ object mainGUI extends SimpleSwingApplication {
 	/** The universal background color for the GUI's panels */
 	val bgColor = new Color(0xBBBBff)
 	
+	/** Eva's configuration settings */
+	val config = new EvaConfig
+	
 	/** The panel housing the onboard Elision REPL */
 	val consolePanel = new ConsolePanel
 	
@@ -65,7 +68,7 @@ object mainGUI extends SimpleSwingApplication {
 	
 	/** The panel housing the rewrite tree visualization */
 	val treeVisPanel = new TreeVisPanel
-
+	
 	GUIActor.start
 	
 	/**
@@ -80,14 +83,14 @@ object mainGUI extends SimpleSwingApplication {
 			layout( consolePanel) = South
 			layout( propsPanel) = East
 		}
-		
+		size = new Dimension(1024,800)
 		visible = true
 	}
 	
 	
 	
 	// get focus in the REPL panel
-	consolePanel.console.requestFocusInWindow
+	//consolePanel.console.requestFocusInWindow
 	// treeVisPanel.requestFocusInWindow
 	// treeVisPanel.requestFocus
 }
@@ -107,11 +110,16 @@ object guiMenuBar extends MenuBar {
 		
 		// Open : opens an Elision script file to be immediately processed by the Repl as input.
 		
+		var openDirectory = mainGUI.config.lastOpenPath //"."
+		
 		val openItem = new MenuItem(Action("Open") {
-			val fc = new FileChooser(new File("."))
+			val fc = new FileChooser(new File(openDirectory))
 			fc.showOpenDialog(null)
 			val selFile = fc.selectedFile
 			if(selFile != null) {
+				openDirectory = selFile.getParent
+				mainGUI.config.lastOpenPath = openDirectory
+				mainGUI.config.save
 				GUIActor ! selFile
 			}
 		} )
@@ -201,6 +209,7 @@ object guiMenuBar extends MenuBar {
 		val depthInput = new TextField(10) { 
 			listenTo(keys) 
 			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
+			text = "" + mainGUI.treeVisPanel.decompDepth
 		}
 		val okBtn = new Button(Action("OK") {enterInput(depthInput.text)})
 		val cancelBtn = new Button(Action("Cancel") { close } )
@@ -228,6 +237,8 @@ object guiMenuBar extends MenuBar {
 				val fieldInt = input.toInt
 				if(fieldInt > 0) {
 					mainGUI.treeVisPanel.decompDepth = fieldInt
+					mainGUI.config.decompDepth = fieldInt
+					mainGUI.config.save
 					mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.selectedNode)
 				}
 			} catch {
@@ -259,7 +270,7 @@ object guiMenuBar extends MenuBar {
 		
 		contents = new BorderPanel {
 			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			val minLines = TextAreaOutputStream.infiniteMaxLines
+			val minLines = ConsolePanel.infiniteMaxLines
 			layout( new GridPanel(2,1) { 
 						contents += new Label("Enter max lines: (integer >= " + minLines + ")")
 						contents += new Label("(<" + minLines + " will make there be no maximum)") 
@@ -283,6 +294,8 @@ object guiMenuBar extends MenuBar {
 			try {
 				val fieldInt = input.toInt
 				mainGUI.consolePanel.tos.maxLines = fieldInt
+				mainGUI.config.replMaxLines = fieldInt
+				mainGUI.config.save
 				// close the dialog when we finish processing input
 				close
 			} catch {
@@ -323,12 +336,12 @@ class TreeVisPanel extends GamePanel {
 	/** Keeps track of the mouse's position in world coordinates */
 	var mouseWorldPosition : java.awt.geom.Point2D = new java.awt.geom.Point2D.Double(0,0)
 	
+	/** The current decompression depth for the visualization trees */
+	var decompDepth = mainGUI.config.decompDepth //2
+	
 	/** The sprite representing the visualization of the rewrite tree */
 	var treeSprite = TreeSprite.buildWelcomeTree //TreeSprite.buildTouhouTree
-	treeSprite.selectNode(treeSprite.root,2) 
-	
-	/** The current decompression depth for the visualization trees */
-	var decompDepth = 2
+	treeSprite.selectNode(treeSprite.root, decompDepth) 
 
 	/** A variable used only by the loading screen animation. It's not important. */
 	var loadingThingAngle = 0
@@ -419,6 +432,10 @@ class TreeVisPanel extends GamePanel {
 			g.drawString("Loading...", centerX-50, centerY)
 		
 		loadingThingAngle += 5
+		
+		// display HUD information
+		g.setColor(new Color(0x000000))
+		g.drawString("" + timer.fpsCounter, 10,32)
 	}
 	
 	/**
@@ -540,6 +557,9 @@ object GUIActor extends Actor {
 				}
 				case "quit" => 
 					System.exit(0)
+				case ("replFormat", flag : Boolean) =>
+					mainGUI.consolePanel.tos.applyFormatting = flag
+					ornl.elision.repl.ReplActor ! ("wait", false)
 				case _ => // discard anything else that comes into the mailbox.
 			}
 		}

@@ -192,7 +192,10 @@ object EliRegexes {
 		
 }
 
-/** Web color constants for syntax highlighting in Eva. */
+/** 
+ * Web color constants for syntax highlighting in Eva. 
+ * These are Strings of the form "#[some hex value representing a color]".
+ */
 object EliWebColors {
 	/** Black, just black. */
 	val default = "#000000"
@@ -226,6 +229,9 @@ object EliSyntaxFormatting {
 	val tab = """&nbsp;&nbsp;&nbsp;"""
 	val fauxTab = """~~~"""
 	val tabSize = fauxTab.size
+	
+	val htmlNewLineRegex = new Regex("""(<br/>)""",
+		"all")
 	
 	/**
 	 * Consumes the parse string text to construct lists for correct start and end positions
@@ -318,7 +324,7 @@ object EliSyntaxFormatting {
 			indents -= curLine.count(ch => (ch == '}' || ch == ')' || ch == ']') )
 			indents = math.max(0,indents)
 			
-			println(curLine)
+	//		println(curLine)
 			// chomp the characters before the break point.
 			edibleTxt = edibleTxt.drop(breakPt)
 			
@@ -338,7 +344,7 @@ object EliSyntaxFormatting {
 				tabs += chompedChars
 			}
 		}
-		println(edibleTxt)
+	//	println(edibleTxt)
 		
 		(breaks, tabs)
 	}
@@ -363,6 +369,26 @@ object EliSyntaxFormatting {
 	}
 	
 	
+	/** Finds the locations of all angle brackets in txt. */
+	def enforceAngleBracketReplacement(txt: String) : (ListBuffer[Int], ListBuffer[Int]) = {
+		val ltMatches = new Regex("""([<])""",
+		"all").findAllIn(txt).matchData
+		val gtMatches = new Regex("""([>])""",
+		"all").findAllIn(txt).matchData
+		
+		val ltList = new ListBuffer[Int]
+		val gtList = new ListBuffer[Int]
+		
+		for(myMatch <- ltMatches) {
+			ltList += myMatch.start
+		}
+		
+		for(myMatch <- gtMatches) {
+			gtList += myMatch.start
+		}
+		
+		(ltList,gtList)
+	}
 	
 	
 	/** Applies HTML-style formatting to a parse string for use in an EditorPane. */
@@ -371,6 +397,9 @@ object EliSyntaxFormatting {
 		
 		// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
 		var insertedChars = 0
+		
+		// obtain the locations of angle brackets so we can convert them to be not interpretted by the EditorPane's HTML kit.
+		val (ltList,gtList) = enforceAngleBracketReplacement(text)
 		
 		if(!disableHighlight) { // skip this whole block if we're disabling highlighting.
 			// obtain the lists of data for the font tags.
@@ -383,65 +412,178 @@ object EliSyntaxFormatting {
 			val (breaks, tabs) = enforceLineWrap(text,maxCols)
 			
 			// insert all of our <font></font> and <br/> tags in their appropriate places.
-			while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty || !tabs.isEmpty) {
+			while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty || !tabs.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
 				var tag = ""
 				var insertLoc = 0
+				var trimmedChars = 0
 				
-				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) < breaks(0)) && (tabs.isEmpty || starts(0) < tabs(0))) {
+				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) < breaks(0)) && (tabs.isEmpty || starts(0) < tabs(0)) && (ltList.isEmpty || starts(0) < ltList(0)) && (gtList.isEmpty || starts(0) < gtList(0))) {
 					// insert a <font color=> tag
 					tag = """<font color=""" + "\"" + colors(0) + "\"" + """>"""
 					insertLoc = starts(0)
 					starts.trimStart(1)
 					colors.trimStart(1)
-				} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) < breaks(0)) && (tabs.isEmpty || ends(0) < tabs(0))) {
+				} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) < breaks(0)) && (tabs.isEmpty || ends(0) < tabs(0)) && (ltList.isEmpty || ends(0) < ltList(0)) && (gtList.isEmpty || ends(0) < gtList(0))) {
 					// insert a </font> tag
 					tag = """</font>"""
 					insertLoc = ends(0)
 					ends.trimStart(1)
-				} else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
+				} else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) < ltList(0)) && (gtList.isEmpty || breaks(0) < gtList(0))) {
 					// insert a <br/> tag to enforce a line break
 					tag = """<br/>"""
 					insertLoc = breaks(0)
 					breaks.trimStart(1)
-				} else {
+				} else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) < ltList(0)) && (gtList.isEmpty || tabs(0) < gtList(0))) {
 					// insert a tab
 					tag = tab
 					insertLoc = tabs(0)
 					tabs.trimStart(1)
+				} else if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
+					tag = """&lt;"""
+					insertLoc = ltList(0)
+					ltList.trimStart(1)
+					// trim out the '<'. 
+					val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+					result = str1 + str2.drop(1)
+					trimmedChars = 1
+				} else {
+					tag = """&gt;"""
+					insertLoc = gtList(0)
+					gtList.trimStart(1)
+					// trim out the '>'. 
+					val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+					result = str1 + str2.drop(1)
+					trimmedChars = 1
 				}
 				
 				val (str1, str2) = result.splitAt(insertLoc + insertedChars)
 				result = str1 + tag + str2
-				insertedChars += tag.size
+				insertedChars += tag.size - trimmedChars
 			}
 		} else { // we still need to enforce line breaks even if we're not highlighting anything.
 			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
 			val (breaks, tabs) = enforceLineWrap(text,maxCols)
 			
 			// insert the line breaks.
-			while(!breaks.isEmpty || !tabs.isEmpty) {
+			while(!breaks.isEmpty || !tabs.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
 				var tag = ""
 				var insertLoc = 0
+				var trimmedChars = 0
 				
-				if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
+				if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) < ltList(0)) && (gtList.isEmpty || breaks(0) < gtList(0))) {
 					// insert a <br/> tag to enforce a line break
 					tag = """<br/>"""
 					insertLoc = breaks(0)
 					breaks.trimStart(1)
-				} else {
+				} else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) < ltList(0)) && (gtList.isEmpty || tabs(0) < gtList(0))) {
 					// insert a tab
 					tag = tab
 					insertLoc = tabs(0)
 					tabs.trimStart(1)
+				} else if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
+					tag = """&lt;"""
+					insertLoc = ltList(0)
+					ltList.trimStart(1)
+					// trim out the '<'. 
+					val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+					result = str1 + str2.drop(1)
+					trimmedChars = 1
+				} else {
+					tag = """&gt;"""
+					insertLoc = gtList(0)
+					gtList.trimStart(1)
+					// trim out the '>'. 
+					val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+					result = str1 + str2.drop(1)
+					trimmedChars = 1
 				}
 					
 				val (str1, str2) = result.splitAt(insertLoc + insertedChars)
 				result = str1 + tag + str2
-				insertedChars += tag.size
+				insertedChars += tag.size - trimmedChars
 			}
 		}
 		// wrap the whole text in a font tag to give it the font face "Lucida Console" then return our final result.
-		result = """<div style="font-family:Lucida Console;font-size:12pt">""" + result + """</div>"""
+		//result = """<div style="font-family:Lucida Console;font-size:12pt">""" + result + """</div>"""
+		result
+	}
+	
+	
+	/** Only replaces < > with &lt; &gt; respectively. */
+	def applyMinHTML(text : String) : String = {
+		var result = text
+		
+		// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
+		var insertedChars = 0
+		
+		// obtain the locations of angle brackets so we can convert them to be not interpretted by the EditorPane's HTML kit.
+		val (ltList,gtList) = enforceAngleBracketReplacement(text)
+		
+		while(!ltList.isEmpty || !gtList.isEmpty) {
+			var tag = ""
+			var insertLoc = 0
+			var trimmedChars = 0
+			
+			if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
+				tag = """&lt;"""
+				insertLoc = ltList(0)
+				ltList.trimStart(1)
+				// trim out the '<'. 
+				val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+				result = str1 + str2.drop(1)
+				trimmedChars = 1
+			} else {
+				tag = """&gt;"""
+				insertLoc = gtList(0)
+				gtList.trimStart(1)
+				// trim out the '>'. 
+				val (str1,str2) = result.splitAt(insertLoc + insertedChars)
+				result = str1 + str2.drop(1)
+				trimmedChars = 1
+			}
+				
+			val (str1, str2) = result.splitAt(insertLoc + insertedChars)
+			result = str1 + tag + str2
+			insertedChars += tag.size - trimmedChars
+		}
+		
+		result
+	}
+	
+	
+	
+	/** Applies C-style formatting to a parse string for use in an EditorPane. (does not include colors)*/
+	def applyBreaksAndTabs(text : String, maxCols : Int = 50) : String = {
+		var result = text
+		
+		// inserting characters alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
+		var insertedChars = 0
+
+		// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
+		val (breaks, tabs) = enforceLineWrap(text,maxCols)
+		
+		// insert the line breaks.
+		while(!breaks.isEmpty || !tabs.isEmpty) {
+			var tag = ""
+			var insertLoc = 0
+			
+			if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
+				// insert a <br/> tag to enforce a line break
+				tag = "\n"
+				insertLoc = breaks(0)
+				breaks.trimStart(1)
+			} else {
+				// insert a tab
+				tag = "   "
+				insertLoc = tabs(0)
+				tabs.trimStart(1)
+			}
+				
+			val (str1, str2) = result.splitAt(insertLoc + insertedChars)
+			result = str1 + tag + str2
+			insertedChars += tag.size
+		}
+		
 		result
 	}
 }
