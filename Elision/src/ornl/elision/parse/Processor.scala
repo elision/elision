@@ -117,10 +117,11 @@ with HasHistory {
    * 
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
+   * @param quiet       If true, do not emit any error messages.
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
    */
-  def read(filename: String) {
+  def read(filename: String, quiet: Boolean) {
     // Make a resolver from the properties.  Is this costly to do every time
     // we want to read a file?  Probably not.
     val usePath = getProperty[Boolean]("usepath")
@@ -128,7 +129,8 @@ with HasHistory {
     val path = getProperty[String]("path")
     val resolver = FileResolver(usePath, useClassPath, Some(path))
     resolver.find(filename) match {
-      case None => console.error("File not found: " + filename)
+      case None =>
+        if (!quiet) console.error("File not found: " + filename)
       case Some(reader) =>
         read(scala.io.Source.fromInputStream(reader))
     }

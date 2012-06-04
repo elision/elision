@@ -35,6 +35,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
+// Notify the user.
+{! _() #handler=""" println("Bootstrapping...") ; _no_show """}.%()
+
 // First we bootstrap the def operator, so we can define other operators.
 // We do this by using the def operator to define itself.  This allows us
 // to define def the same way we define any other operator, except that
@@ -123,7 +126,7 @@ decl.
         case proc: ornl.elision.parse.Processor =>
           if (!included.contains(filename)) {
             included += filename
-            proc.read(filename)
+            proc.read(filename, console.quiet < 3)
           }
           // Silently ignore this.
         case _ =>

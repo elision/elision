@@ -135,40 +135,44 @@ class FileResolver(usePath: Boolean = true, useClassPath: Boolean = true,
    * @return  None if not found, or a reader to read the file.
    */
   def find(name: String): Option[InputStream] = {
-    // If the filename is absolute, we just try to open it and do not search.
-    var file = new File(name)
-    if (file.isAbsolute) {
-      // The provided path is absolute.  Just open it.
-      return Some(new FileInputStream(file))
-    }
-    
-    // See if we should look in the search path.  We always look there first
-    // before we look in the classpath.  This is to allow overriding the
-    // distribution files.
-    if (usePath) {
-      // We need to search the path.
-      for (folder <- _path) {
-        // Construct the file.
-        file = new File(folder, name)
-        // See if it exists.
-        if (file.exists) {
-          // The file has been found.  Just open it.
-          return Some(new FileInputStream(file))
-        }
-      } // Search the path.
-    }
-    
-    // See if we should look in the class path.
-    if (useClassPath) {
-      // Try to get the file as a stream.  If it is not leading with a slash,
-      // it needs to do so now.
-      val fn = (if (name.startsWith("/")) name else "/"+name)
-      val stream = getClass.getResourceAsStream(fn)
-      if (stream != null) {
-        return Some(stream)
+    try {
+      // If the filename is absolute, we just try to open it and do not search.
+      var file = new File(name)
+      if (file.isAbsolute) {
+        // The provided path is absolute.  Just open it.
+        return Some(new FileInputStream(file))
       }
+      
+      // See if we should look in the search path.  We always look there first
+      // before we look in the classpath.  This is to allow overriding the
+      // distribution files.
+      if (usePath) {
+        // We need to search the path.
+        for (folder <- _path) {
+          // Construct the file.
+          file = new File(folder, name)
+          // See if it exists.
+          if (file.exists) {
+            // The file has been found.  Just open it.
+            return Some(new FileInputStream(file))
+          }
+        } // Search the path.
+      }
+      
+      // See if we should look in the class path.
+      if (useClassPath) {
+        // Try to get the file as a stream.  If it is not leading with a slash,
+        // it needs to do so now.
+        val fn = (if (name.startsWith("/")) name else "/"+name)
+        val stream = getClass.getResourceAsStream(fn)
+        if (stream != null) {
+          return Some(stream)
+        }
+      }
+    } catch {
+      case ex:java.io.FileNotFoundException =>
     }
-    
+      
     // We are done.  We did not find the file.
     return None
   }

@@ -105,6 +105,18 @@ class NewRepl extends Processor {
     _home + _prop("file.separator") + fname
   }
   
+  /** Figure out the startup file that is read after bootstrapping. */
+  protected val _rc = {
+      val rce = System.getenv("ELISIONRC")
+      if (rce != null) {
+        rce
+      } else {
+        _home + _prop("file.separator") + (
+            if (_prop("path.separator") == ":") ".elisionrc"
+            else "elision.ini")
+      }
+  }
+  
   //======================================================================
   // Configure the history for this REPL.
   //======================================================================
@@ -306,9 +318,13 @@ class NewRepl extends Processor {
     // Start the clock.
     startTimer
 
-    // Define the operators.  We go quiet during this period.
+    // Load all the startup definitions, etc.
     console.quiet = 1
-    read("bootstrap/Boot.eli")
+    // Bootstrap.
+    read("bootstrap/Boot.eli", false)
+    // User stuff.
+    console.emitln("Reading " + _rc + " if present...")
+    read(_rc, true)
     console.quiet = 0
     
     // Report startup time.
