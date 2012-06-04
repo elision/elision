@@ -41,83 +41,117 @@ println("Reading Math...")
 // General operators.
 //======================================================================
 
-def({! equal($x,$y): BOOLEAN is %C
-      #description="Report whether two atoms are equal."
-      #detail=
-"""Test whether the two atoms $x and $y are considered equal by the
-system."""
-})
+decl.{! equal($x,$y): BOOLEAN is %C
+#handler=
+"""
+  args match {
+    case Args(x:BasicAtom, y:BasicAtom) => x == y
+    case _ => _no_show
+  }
+"""
+#description="Report whether two atoms are equal."
+#detail=
+"Test whether the two atoms $x and $y are considered equal by the system."
+}
 
 //======================================================================
 // Integer math.
 //======================================================================
 
-def({! mod($b: INTEGER, $d: INTEGER): INTEGER
-      #description="Compute the remainder from division."
-      #detail=
-"""Compute $b mod $d, returning the remainder when $b is divided by $d."""
-})
+decl.{! mod($b: INTEGER, $d: INTEGER): INTEGER
+#handler=
+"""
+  args match {
+    case Args(IntegerLiteral(_, b), IntegerLiteral(_, d)) => b mod d
+    case _ => as_is
+  }
+"""
+#description="Compute the remainder from division."
+#detail="Compute $b mod $d, returning the remainder when $b is divided by $d."
+}
 
-def({! neg($x: INTEGER): INTEGER
-      #description="Negate an integer."
-      #detail=
-"""Compute the negation of the integer $x; that is, compute 0 - $x."""
-})
+decl.{! neg($x: INTEGER): INTEGER
+#handler=
+"""
+  args match {
+    case Args(IntegerLiteral(_, x)) => -x
+    case _ => as_is
+  }
+"""
+#description="Negate an integer."
+#detail="Compute the negation of the integer $x; that is, compute 0 - $x."
+}
 
-def({! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
-      #description="Compute the integer sum of the arguments."
-      #detail=
-"""Compute the sum of the integer arguments."""
-})
+decl.{! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
+#handler=
+"""
+  // Accumulate the integer literals found.
+  var lits:BigInt = 0
+  // Accumulate other atoms found.
+  var other = IndexedSeq[BasicAtom]()
+  // Traverse the list and divide the atoms.
+  args.foreach {
+    x => x match {
+      case IntegerLiteral(_, value) => lits += value
+      case _ => other :+= x
+    }
+  }
+  // Now add the accumulated literals to the list.
+  other :+= Literal(INTEGER, lits)
+  // Construct and return a new operator application.
+  Apply(_data.op, AtomSeq(NoProps, other), true)
+"""
+#description="Compute the integer sum of the arguments."
+#detail="Compute the sum of the integer arguments."
+}
 
 //======================================================================
 // Boolean math.
 //======================================================================
 
-def({operator #name=not #type=BOOLEAN #cases
+decl.{operator #name=not #type=BOOLEAN #cases
   %(true) -> %(false),
   %(false) -> %(true),
   %($x: BOOLEAN) -> _,
   true -> false,
   false -> true,
   $x: BOOLEAN -> _
-  #description="Boolean negation."
-  #detail=
-"""Negate a provided Boolean value."""
-})
+#description="Boolean negation."
+#detail="Negate a provided Boolean value."
+}
 
-def({operator #name=implies #type=BOOLEAN #cases
+decl.{operator #name=implies #type=BOOLEAN #cases
   %($P: BOOLEAN, true) -> true,
   %(false, $Q: BOOLEAN) -> true,
   %(true, false) -> false,
   %($P: BOOLEAN, $Q: BOOLEAN) -> _
-  #description="Boolean implication."
-  #detail=
-"""The result is true if either the premise $P is false, or the consequent
-$Q is true."""
-})
+#description="Boolean implication."
+#detail=
+"The result is true if either the premise $P is false, or the consequent ".
+"$Q is true."
+}
 
-def({operator #name=iff #type=BOOLEAN #cases
+decl.{operator #name=iff #type=BOOLEAN #cases
   %(true, true) -> true,
   %(false, $Q: BOOLEAN) -> false,
   %($P: BOOLEAN, false) -> false,
   %($P: BOOLEAN, $Q: BOOLEAN) -> _
-  #description="Boolean if and only if."
-  #detail="""The result is true if both the premise $P and the consequent
-$Q are both true."""
-})
+#description="Boolean if and only if."
+#detail=
+"The result is true if both the premise $P and the consequent $Q are both true."
+}
 
-def({! and($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true]
-  #description="Boolean conjunction."
-  #detail="""True if all arguments are true, and false if any is false."""
-})
+decl.{! and($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true]
+#description="Boolean conjunction."
+#detail="True if all arguments are true, and false if any is false."
+}
 
-def({! or($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[true]D[false]
-  #description="Boolean disjunction."
-  #detail="""True if any argument is true, and false if all are false."""
-})
+decl.{! or($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[true]D[false]
+#description="Boolean disjunction."
+#detail="True if any argument is true, and false if all are false."
+}
 
-def({ operator #name=xor #type=BOOLEAN #cases
+decl.{ operator #name=xor #type=BOOLEAN #cases
   %(true) -> true,
   %(false) -> false,
   %(true, false) -> true,
@@ -126,6 +160,6 @@ def({ operator #name=xor #type=BOOLEAN #cases
   %(false, false) -> false,
   %ACD[false](true, $Q: BOOLEAN) -> not($$Q),
   %ACD[false]($P: BOOLEAN, $Q: BOOLEAN) -> _
-  #description="Boolean exclusive or."
-  #detail="""True if exactly one argument is true, and false otherwise."""
-})
+#description="Boolean exclusive or."
+#detail="True if exactly one argument is true, and false otherwise."
+}

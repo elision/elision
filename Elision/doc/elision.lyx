@@ -1310,7 +1310,7 @@ reference "chap:Operators"
 \end_inset
 
 ).
- As such you must follow them with parentheses; otherwise the Elision REPL
+ As such you must follow them with parentheses, otherwise the Elision REPL
  will interpret them as symbols.
  Try 
 \family typewriter
@@ -1322,7 +1322,7 @@ history()
 \family default
 .
 \begin_inset Foot
-status collapsed
+status open
 
 \begin_layout Plain Layout
 It is permissible to put spaces between the operator name and the opening
@@ -1374,13 +1374,81 @@ The REPL reads zero or more atoms per line, evaluates them, and displays
 
 \begin_layout Standard
 Atoms can span multiple lines.
- If a parenthesis, brace, or quotation mark is open at the end of the line,
- then the REPL will prompt for additional input with the prompt 
+ If a parenthesis, brace, quotation mark, or verbatim block
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+A verbatim block is text within triple double quotation marks: 
+\family typewriter
+"""
+\family default
+...
+\family typewriter
+"""
+\family default
+.
+ No escapes are interpreted, and spaces and newlines are maintained.
+ There is an additional trick to verbatim blocks.
+ If the first character is a vertical bar (
+\family typewriter
+|
+\family default
+), then this indicates the left margin, and these are stripped.
+ Thus the verbatim block:
+\end_layout
+
+\begin_layout LyX-Code
+"""|This is the first line,
+\end_layout
+
+\begin_layout LyX-Code
+   |  and this is the second.
+\end_layout
+
+\begin_layout LyX-Code
+   |Escapes and quotation marks are preserved.
+\end_layout
+
+\begin_layout LyX-Code
+   |"See 
+\backslash
+n?" he said."""
+\end_layout
+
+\begin_layout Plain Layout
+Denotes the following string.
+\end_layout
+
+\begin_layout LyX-Code
+"This is the first line,
+\backslash
+n  and this is the second.
+\backslash
+nEscapes and quotation marks
+\end_layout
+
+\begin_layout LyX-Code
+are preserved.
+\backslash
+"See 
+\backslash
+
+\backslash
+n?
+\backslash
+" he said."
+\end_layout
+
+\end_inset
+
+ is open at the end of the line, then the REPL will prompt for additional
+ input with the prompt 
 \family typewriter
 >
 \family default
 .
- The newlines are converted to spaces.
+ The newlines are converted to spaces, except with verbatim blocks.
 \end_layout
 
 \begin_layout Standard

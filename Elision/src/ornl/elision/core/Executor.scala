@@ -93,13 +93,7 @@ trait PropertyManager {
       case None =>
         throw new CacheException("No such property: " + toEString(name) + ".")
       case Some(item) =>
-        if (mTYPE <:< Manifest.classType(item.getClass))
-          throw new CacheException(
-              "The property " + toEString(name) +
-              " is of the wrong type.  Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(item.getClass) + ".")
-        else
-          item.asInstanceOf[TYPE]
+        item.asInstanceOf[TYPE]
     }
   }
   
@@ -117,14 +111,17 @@ trait PropertyManager {
       case None =>
         throw new CacheException("No such property: " + toEString(name) + ".")
       case Some(item) =>
-        if (mTYPE <:< Manifest.classType(item.getClass))
-          throw new CacheException(
-              "The property " + toEString(name) +
-              " is of the wrong type.  Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(item.getClass) + ".")
-        else
-          _prop2val(name) = value
-          value
+        _prop2val(name) = value
+        value
+//        if (Manifest.classType(item.getClass) <:< mTYPE) {
+//          _prop2val(name) = value
+//          value
+//        } else {
+//          throw new CacheException(
+//              "The property " + toEString(name) +
+//              " is of the wrong type.  Expected " + mTYPE.toString +
+//              " but got " + Manifest.classType(item.getClass) + ".")
+//        }
     }
   }
   
@@ -146,6 +143,62 @@ trait PropertyManager {
       list :+= ((name, description, value))
     } // Collect all properties.
     list
+  }
+  
+  /**
+   * Get all public property names, sorted in alphabetical order.
+   * 
+   * @return  The property names.
+   */
+  def getPropertyNames =
+    _prop2val.
+    keys.
+    toList.
+    sortWith(_.toLowerCase < _.toLowerCase).
+    filter(!_.startsWith("_"))
+    
+  def writeProperties(console: Console, width: Int = 80) = {
+    // Get the property names and compute the longest.
+    val pwidth = getPropertyNames.foldLeft(0)(_ max _.length)
+    
+    // There must be dots between the property name and the description,
+    // and there must be spaces around these.
+    val remain = width - 5 - pwidth
+    
+    // Compute the width of the description.
+    val dwidth = (if (remain >= 20) remain else (20 max (width-5)))
+    
+    // Now write the properties.
+    val text = new ornl.elision.util.Text
+    for ((name, description, value) <- getProperties) {
+      // Format the description.
+      val what = (if (value.isInstanceOf[BasicAtom])
+          value.asInstanceOf[BasicAtom].toParseString
+        else
+          value.toString)
+      text.add(description + "  ("+what+")")
+      val lines = text.wrap(dwidth-2)
+      text.clear
+      
+      // Write out the property name.
+      console.send(name)
+      
+      // Write the remainder.
+      if (remain >= 20) {
+        var lead = " "+("."*(width-dwidth-name.length))+" "
+        for (line <- lines) {
+          console.sendln(lead + line)
+          lead = " "+(" "*(width-dwidth))+" "
+        } // Print all lines.
+      } else {
+        console.sendln("")
+        var lead = " "+("."*(width-dwidth))+" "
+        for (line <- lines) {
+          console.sendln(lead + line)
+          lead = " "+(" "*(width-dwidth))+" "
+        } // Print all lines.
+      }
+    } // Print all properties.
   }
 }
 
@@ -171,6 +224,14 @@ trait HasHistory {
    * processor supports history.
    */
   def getHistoryIterator: Iterator[String] = Set().iterator
+  
+  /**
+   * Get a history entry by its index.
+   * 
+   * @param index The index of the history item.
+   * @return  The entry, or `None` if the index does not exist in the history.
+   */
+  def getHistoryEntry(index: Int): Option[String] = None
   
   /**
    * Get the file that holds the persistent history.  By default this returns
@@ -217,6 +278,9 @@ trait TraceableParse {
  * `getLastTime`, or `getLastTimeString`.
  */
 trait Timeable {
+  /** Stack of prior start values. */
+  private var stack = List[Long]()
+  
   /** Whether timing is enabled. */
   private var _timing = false
   
@@ -239,10 +303,21 @@ trait Timeable {
   def timing = _timing
   
   /** Start the timer. */
-  def startTimer { _starttime = java.lang.System.currentTimeMillis() }
+  def startTimer {
+    stack = _starttime :: stack
+    _starttime = java.lang.System.currentTimeMillis()
+  }
 
   /** Stop the timer. */
-  def stopTimer { _elapsed = java.lang.System.currentTimeMillis() - _starttime }
+  def stopTimer {
+    _elapsed = java.lang.System.currentTimeMillis() - _starttime
+    stack match {
+      case Nil =>
+      case head :: tail =>
+        _starttime = head
+        stack = tail
+    }
+  }
   
   /**
    * Get the most recent duration.  This is set by `stopTimer` and is reported

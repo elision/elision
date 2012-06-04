@@ -96,8 +96,13 @@ class OperatorLibrary(
  	 * 
  	 * @return	A parseable version of this instance.
  	 */
- 	override def toString =
- 	  _nameToOperator.values.map(_.toString).mkString("","\n","\n")
+ 	override def toString = {
+ 	  "def _mkoplib(oplib: OperatorLibrary) {\n" +
+ 	  _nameToOperator.values.map("oplib.add(" + _.operator.toString +
+ 	      ".asInstanceOf[Operator])").
+ 	    mkString("","\n","\n") +
+ 	  "}\n"
+ 	}
  	
  	/**
  	 * Register a native handler for an operator.  The operator must already be
@@ -186,7 +191,7 @@ class OperatorLibrary(
  	 * @param app		The destination of the text.
  	 * @param width	Width of the field.
  	 */
- 	def help(app: Appendable, width: Int = 80) = {
+ 	def help(app: Appendable, width: Int): Appendable = {
  	  // Iterate over the operators and compute the longest description.
  	  val dlength =
  	    _nameToOperator.values.foldLeft(0)(_ max _.operator.description.length)
@@ -227,19 +232,21 @@ class OperatorLibrary(
  	 * 
  	 * @param app		Appendable to get output.
  	 * @param opref	The operator reference.
+   * @param width The maximum width allowed.
  	 * @return	The appendable.
  	 */
- 	def help(app: Appendable, opref: OperatorRef): Appendable =
- 	  help(app, opref.operator)
+ 	def help(app: Appendable, opref: OperatorRef, width: Int): Appendable =
+ 	  help(app, opref.operator, width)
  	
  	/**
  	 * Write out help for an operator.
  	 * 
  	 * @param app		Appendable to get output.
  	 * @param opref	The operator.
+ 	 * @param width The maximum width allowed.
  	 * @return	The appendable.
  	 */
- 	def help(app: Appendable, op: Operator) = {
+ 	def help(app: Appendable, op: Operator, width: Int): Appendable = {
  	  // Write operator name and short description.
  	  app.append("Operator: " + op.name).append('\n')
  	  app.append(op.description).append("\n\n")
@@ -260,7 +267,9 @@ class OperatorLibrary(
  	  app.append('\n')
  	  
  	  // Add the details.
- 	  app.append(op.detail).append('\n')
+ 	  for (line <- new ornl.elision.util.Text().add(op.detail).wrap(width)) {
+ 	    app.append(line).append('\n')
+ 	  }
  	  
  	  // The appendable is the value.
  	  app

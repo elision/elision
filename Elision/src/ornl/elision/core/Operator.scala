@@ -265,14 +265,14 @@ object CaseOperator {
   def apply(sfh: SpecialFormHolder): CaseOperator = {
     val bh = sfh.requireBindings
     bh.check(Map("name" -> true, "cases" -> true, "type" -> false,
-      "description" -> false, "detail" -> false))
+      "description" -> false, "detail" -> false, "evenmeta" -> false))
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val cases = bh.fetchAs[AtomSeq]("cases")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     if (description.value(0) == '|') description = description.value.stripMargin('|')
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
-    val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
+    val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
 
@@ -600,26 +600,23 @@ object SymbolicOperator {
   val MAP = OperatorRef(
     SymbolicOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain),
       "Mapping constructor.",
-      """|This operator is used to construct types for operators.  It
-             |indicates a mapping from one type (the domain) to another type
-             |(the codomain).
-          """.stripMargin))
+      "This operator is used to construct types for operators.  It " +
+      "indicates a mapping from one type (the domain) to another type " +
+      "(the codomain)."))
   /** The well-known cross product operator. */
   val xx = OperatorRef(
     SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y),
       "Cross product.",
-      """|This operator is used to construct types for operators.  It
-             |indicates the cross product of two atoms (typically types).
-             |These originate from the types of the parameters of an operator.
-          """.stripMargin))
+      "This operator is used to construct types for operators.  It " +
+      "indicates the cross product of two atoms (typically types).  " +
+      "These originate from the types of the parameters of an operator."))
   /** The well-known list operator. */
   val LIST = OperatorRef(
     SymbolicOperator("LIST", ANY, AtomSeq(NoProps, 'type),
       "List type constructor.",
-      """|This operator is used to indicate the type of a list.  It
-             |takes a single argument that is the type of the atoms in
-             |the list.  For heterogeneous lists this will be ANY.
-          """.stripMargin))
+      "This operator is used to indicate the type of a list.  It takes a " +
+      "single argument that is the type of the atoms in the list.  For " +
+      "heterogeneous lists this will be ANY."))
 
   /**
    * Compute an operator type.

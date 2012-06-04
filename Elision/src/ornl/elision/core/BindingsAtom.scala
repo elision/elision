@@ -150,7 +150,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
    * @return	A Scala parseable string.
    */
   override def toString() = "BindingsAtom(" + mybinds.map(pair =>
-    toEString(pair._1) + " -> " + pair._2).mkString("Map(", ",", ")") + ")"
+    toEString(pair._1) + " -> " + pair._2).mkString("Bindings(", ",", ")") + ")"
     
   override def equals(other: Any) = other match {
     case BindingsAtom(obinds) if (obinds == mybinds) => true

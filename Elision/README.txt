@@ -105,7 +105,7 @@ Running the REPL
 ================
 Elision comes with a REPL (Read Evaluate Print Loop).  You can start it a number
 of ways.  The simplest is to use the script:
-  repl.sh
+  elision.sh
 
 The script runs the REPL out of the bin folder, and does not require the jar to
 be built.

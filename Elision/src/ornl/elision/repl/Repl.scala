@@ -101,7 +101,7 @@ object Repl {
   _context.operatorLibrary = _library
   
   /** The parser to use. */
-  private var _parser = new AtomParser(_context, true, false)
+  private var _parser = new AtomParser(_context, false)
   
   /** Whether to show atoms prior to rewriting with the current bindings. */
   private var _showPrior = false
@@ -164,6 +164,7 @@ object Repl {
    * @param args	The command line arguments.
    */
   def main(args: Array[String]) {
+    warn("You are running the old REPL, which is deprecated.")
     run
     emitln("")
     _hist.add("// Ended Normally: " + new java.util.Date)
@@ -231,7 +232,7 @@ object Repl {
    * Display the banner.
    */
   def banner() {
-    import ornl.elision.parse.Version._
+    import ornl.elision.Version._
     emitln("""|      _ _     _
 							 |  ___| (_)___(_) ___  _ __
 							 | / _ \ | / __| |/ _ \| '_ \
@@ -665,7 +666,9 @@ object Repl {
         _data => _data.args match {
           case Args(or: OperatorRef) =>
             // Give some help.
-            emitln(context.operatorLibrary.help(new StringBuffer(), or).toString)
+            val width = scala.tools.jline.TerminalFactory.create().getWidth()
+            emitln(context.operatorLibrary.help(new StringBuffer(), or,
+                width).toString)
             ApplyData._no_show
           case _ =>
             ApplyData._no_show
@@ -865,7 +868,7 @@ object Repl {
           case Args() =>
 		        // Toggle the parser used.
             _toggleParser = !_toggleParser
-            _parser = new AtomParser(_context, _toggleParser, _trace)
+            _parser = new AtomParser(_context, _trace, _toggleParser)
             emitln("Using "+ (if(_toggleParser) "packrat" else "parboiled") +" parser.")
 		        ApplyData._no_show
           case _ => ApplyData._no_show

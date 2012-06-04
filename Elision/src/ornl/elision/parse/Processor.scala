@@ -58,6 +58,14 @@ with HasHistory {
   declareProperty("stacktrace",
       "Print a stack trace on all (non-Elision) exceptions.", false)
   
+  // Configure file search properties.
+  declareProperty("usepath",
+      "Whether to use the search path to locate files.", true)
+  declareProperty("useclasspath",
+      "Whether to use the class path to locate files.", true)
+  declareProperty("path",
+      "The search path to use to locate files.", FileResolver.defaultPath)
+  
   /** Whether to trace the parser. */
   private var _trace = false
 
@@ -77,7 +85,7 @@ with HasHistory {
    * console using the `emitln` method of the console.
    */
   protected def banner() {
-    import Version._
+    import ornl.elision.Version._
     console.emitln(
         """|      _ _     _
 					 |  ___| (_)___(_) ___  _ __
@@ -103,15 +111,29 @@ with HasHistory {
   }
   
   /**
-   * Read the content of the provided file.
+   * Read the content of the provided file.  This method uses a
+   * [[ornl.elision.parse.FileResolver]] instance to find the requested
+   * file.
    * 
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
+   * @param quiet       If true, do not emit any error messages.
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
    */
-  def read(filename: String) {
-    read(scala.io.Source.fromFile(filename))
+  def read(filename: String, quiet: Boolean) {
+    // Make a resolver from the properties.  Is this costly to do every time
+    // we want to read a file?  Probably not.
+    val usePath = getProperty[Boolean]("usepath")
+    val useClassPath = getProperty[Boolean]("useclasspath")
+    val path = getProperty[String]("path")
+    val resolver = FileResolver(usePath, useClassPath, Some(path))
+    resolver.find(filename) match {
+      case None =>
+        if (!quiet) console.error("File not found: " + filename)
+      case Some(reader) =>
+        read(scala.io.Source.fromInputStream(reader))
+    }
   }
   
   /**
@@ -122,17 +144,18 @@ with HasHistory {
    * 					The file cannot be found or cannot be read.
    */
   def read(file: java.io.File) {
-    read(scala.io.Source.fromFile(file))
+    read(scala.io.Source.fromFile(file), file.getAbsolutePath)
   }
   
   /**
    * Read the content of the provided reader.
    * 
-   * @param reader		The reader providing input.
+   * @param source		The reader providing input.
+   * @param filename  The file name, if relevant.
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
    */
-  def read(source: scala.io.Source) {
+  def read(source: scala.io.Source, filename: String = "(console)") {
   	_execute(_parser.parseAtoms(source)) 
   }
   
@@ -155,7 +178,20 @@ with HasHistory {
    * @param text		The text to parse.
    */
   def execute(text: String) {
-    _execute(_parser.parseAtoms(text))
+    // If the line is a history reference, go and look it up now.
+    var lline = text.trim
+    if (lline.startsWith("!")) {
+      // This is a history reference, so go and get it.
+      val num = lline.substring(1).trim.toInt
+      val prior = getHistoryEntry(num)
+      if (prior == None) {
+        console.error("No such history entry: " + lline)
+        return
+      }
+      lline = prior.get
+      console.emitln(lline)
+    }
+    _execute(_parser.parseAtoms(lline))
   }
   
   def parse(text: String) = {
@@ -206,7 +242,7 @@ with HasHistory {
       case th: Throwable =>
         console.error("(" + th.getClass + ") " + th.getMessage())
         if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-        _coredump("Internal error.", Some(th))
+        coredump("Internal error.", Some(th))
     }
     stopTimer
     showElapsed
@@ -290,7 +326,7 @@ with HasHistory {
    * @param msg		A human-readable message.
    * @param th		An optional throwable.
    */
-  private def _coredump(msg: String, th: Option[Throwable] = None) {
+  protected def coredump(msg: String, th: Option[Throwable] = None) {
     val cfile = new java.io.FileWriter("elision.core")
     if (cfile != null) {
       val binds = <binds>{context.binds.toParseString}</binds>

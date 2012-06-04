@@ -34,7 +34,7 @@ import ornl.elision.parse._
 /**
  * Implement an interface to run the REPL from the prompt.
  */
-object SimpleRepl extends NewRepl {
+object ReplMain extends ERepl {
   def main(args: Array[String]) {
     run()
     console.emitln("")
@@ -67,7 +67,7 @@ object SimpleRepl extends NewRepl {
  * method.  The REPL provides for command line editing, a persistent history,
  * and special operations.
  */
-class NewRepl extends Processor {
+class ERepl extends Processor {
   import ornl.elision.core._
 	import scala.tools.jline.console.history.FileHistory
 	import scala.tools.jline.console.ConsoleReader
@@ -93,16 +93,28 @@ class NewRepl extends Processor {
   
   /** Figure out the location to store the history. */
   private val _filename = {
-    val fname = (if (_prop("path.separator") == ":") ".elision"
-      else "elision.ini")
+    val fname = (if (_prop("path.separator") == ":") ".elision.history.eli"
+      else "elision-history.eli")
     _home + _prop("file.separator") + fname
   }
   
   /** Figure out where to stash the context on exit. */
   protected val _lastcontext = {
-    val fname = (if (_prop("path.separator") == ":") ".elision-context.mpl2"
-      else "elision.context.mpl2")
+    val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
+      else "elision-context.eli")
     _home + _prop("file.separator") + fname
+  }
+  
+  /** Figure out the startup file that is read after bootstrapping. */
+  protected val _rc = {
+      val rce = System.getenv("ELISIONRC")
+      if (rce != null) {
+        rce
+      } else {
+        _home + _prop("file.separator") + (
+            if (_prop("path.separator") == ":") ".elisionrc"
+            else "elision.ini")
+      }
   }
   
   //======================================================================
@@ -114,12 +126,22 @@ class NewRepl extends Processor {
   _hist.setIgnoreDuplicates(false)
   _hist.setMaxSize(10000)
   
-  override def addHistoryLine(line: String) = _hist.add(line)
+  override def addHistoryLine(line: String) = {
+    _hist.add(line)
+    _hist.flush()
+  }
   
   override def getHistoryIterator = new Iterator[String] {
     val it = _hist.entries
     def hasNext = it.hasNext
     def next = it.next.toString
+  }
+  
+  override def getHistoryEntry(index: Int) = {
+    _hist.get(index) match {
+      case null => None
+      case x:Any => Some(x.toString)
+    }
   }
   
   override def getHistoryFilename = _filename
@@ -189,7 +211,7 @@ class NewRepl extends Processor {
         atom match {
           case op: Operator if getProperty[Boolean]("autoop") =>
             context.operatorLibrary.add(op)
-            console.emitln("Defined operator " + op.name + ".")
+            console.emitln("Declared operator " + op.name + ".")
             None
           case rule: RewriteRule if getProperty[Boolean]("autorule") =>
             context.ruleLibrary.add(rule)
@@ -197,6 +219,56 @@ class NewRepl extends Processor {
             None
           case _ =>
             Some(atom)
+        }
+      }
+    },
+    
+    // Register a handler to perform automated rewriting of atoms.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("autorewrite",
+            "Automatically apply rules in the active rulesets to each atom" +
+            "as it is evaluated.", true)
+        true
+      }
+      override def handleAtom(atom: BasicAtom) = {
+        if (getProperty[Boolean]("autorewrite")) {
+          Some(context.ruleLibrary.rewrite(atom)._1)
+        } else {
+          Some(atom)
+        }
+      }
+    },
+    
+    // Register a handler to perform round-trip testing of atoms.
+    new Processor.Handler {
+      override def init(exec: Executor) = {
+        declareProperty("roundtrip",
+            "Perform round-trip testing of atoms as they are entered.", true)
+        true
+      }
+      override def result(atom: BasicAtom) {
+        if (!getProperty[Boolean]("roundtrip")) return
+        // Get the string.
+        val string = atom.toParseString
+        // Parse this string.
+        parse(string) match {
+          case ParseFailure(msg) =>
+            console.error("Round trip testing failed for atom:\n  " + string +
+                "\nParsing terminated with an error:\n  " + msg + "\n")
+          case ParseSuccess(atoms) =>
+            if (atoms.length < 1) {
+              console.error("Round trip testing failed for atom:\n  " + string +
+                  "\nParsing returned no atoms.")
+            } else if (atoms.length > 1) {
+              console.error("Round trip testing failed for atom:\n  " + string +
+                  "\nParsing returned more than one atom:\n" +
+                  atoms.mkParseString("  ","\n","\n"))
+            } else if (atoms(0) != atom) {
+              console.error("Round trip testing failed for atom:\n  " + string +
+                  "\nAtom returned by parser not equal to original:\n  " +
+                  atoms(0).toParseString + "\n")
+            }
         }
       }
     },
@@ -246,28 +318,34 @@ class NewRepl extends Processor {
     // Start the clock.
     startTimer
 
-    // Define the operators.
-    read("src/bootstrap/Boot.elision")
+    // Load all the startup definitions, etc.
+    console.quiet = 1
+    // Bootstrap.
+    read("bootstrap/Boot.eli", false)
+    // User stuff.
+    console.emitln("Reading " + _rc + " if present...")
+    read(_rc, true)
+    console.quiet = 0
+    
+    // Report startup time.
+    stopTimer
+    printf("Startup Time: " + getLastTimeString + "\n")
 	
-	//////////////////// GUI changes
+    //////////////////// GUI changes
 	
-	// activates communications with the GUI if we are using it.
-	if(ReplActor.guiMode) {
-		_disableGUIComs = false
-		ReplActor.start
-	}
+    // activates communications with the GUI if we are using it.
+    if(ReplActor.guiMode) {
+      _disableGUIComs = false
+      ReplActor.start
+    }
 	
-	//////////////////// end GUI changes
+    //////////////////// end GUI changes
 	
     // Configure the console and history.
     val cr = new ConsoleReader
     val term = cr.getTerminal
     cr.flush()
     cr.setHistory(_hist)
-    
-    // Report startup time.
-    stopTimer
-    printf("Startup Time: " + getLastTimeString + "\n")
     
     // Start main loop.
     while(true) {
@@ -286,7 +364,7 @@ class NewRepl extends Processor {
       // A little function to prompt for, and read, the next segment.  The
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
-      	segment = cr.readLine(if (console.quiet) p2 else p1)
+      	segment = cr.readLine(if (console.quiet > 0) p2 else p1)
 		
       	if (segment == null) {
       	  return true
@@ -328,8 +406,27 @@ class NewRepl extends Processor {
       cr.flush()
       
       // Run the line.
-      execute(line)
-      //println(scala.tools.jline.TerminalFactory.create().getWidth())
+      try {
+        execute(line)
+      } catch {
+        case ornl.elision.ElisionException(msg) =>
+          console.error(msg)
+        case ex: Exception =>
+          console.error("(" + ex.getClass + ") " + ex.getMessage())
+          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        case oom: java.lang.OutOfMemoryError =>
+          System.gc()
+          console.error("Memory exhausted.  Trying to recover...")
+          val rt = Runtime.getRuntime()
+          val mem = rt.totalMemory()
+          val free = rt.freeMemory()
+          val perc = free.toDouble / mem.toDouble * 100
+          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+        case th: Throwable =>
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          coredump("Internal error.", Some(th))
+      }
     } // Forever read, eval, print.
   }
   
