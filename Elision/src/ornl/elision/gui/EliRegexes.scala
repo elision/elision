@@ -192,7 +192,10 @@ object EliRegexes {
 		
 }
 
-/** Web color constants for syntax highlighting in Eva. */
+/** 
+ * Web color constants for syntax highlighting in Eva. 
+ * These are Strings of the form "#[some hex value representing a color]".
+ */
 object EliWebColors {
 	/** Black, just black. */
 	val default = "#000000"
@@ -226,6 +229,9 @@ object EliSyntaxFormatting {
 	val tab = """&nbsp;&nbsp;&nbsp;"""
 	val fauxTab = """~~~"""
 	val tabSize = fauxTab.size
+	
+	val htmlNewLineRegex = new Regex("""(<br/>)""",
+		"all")
 	
 	/**
 	 * Consumes the parse string text to construct lists for correct start and end positions

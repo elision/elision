@@ -76,7 +76,7 @@ class ConsolePanel extends ScrollPane {
 	// execute the Elision REPL to run in another thread.
 	
 	/** Used for REPL output */
-	val tos = new EditorPaneOutputStream(console,60, new ByteArrayOutputStream)
+	val tos = new EditorPaneOutputStream(console, mainGUI.config.replMaxLines , new ByteArrayOutputStream)
 	
 	/** Used for REPL input */
 	val tis = new EditorPaneInputStream(tos)
@@ -98,7 +98,16 @@ class ElisionREPLThread extends Thread {
 	override def run : Unit = {
 		ornl.elision.repl.ReplActor.guiMode = true
 		ornl.elision.repl.ReplActor.guiActor = GUIActor
-		ornl.elision.repl.Repl.run
+		runOldRepl
+	}
+	
+	def runOldRepl : Unit = {
+		ornl.elision.repl.Repl.run()
+	}
+	
+	def runNewRepl : Unit = {
+		val myRepl = new ornl.elision.repl.ERepl
+		myRepl.run
 	}
 
 }
@@ -174,13 +183,26 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 */
 	def enforceMaxLines : Unit = {
 		if(maxLines < ConsolePanel.infiniteMaxLines) return
-		while(lineCount > maxLines) //(textArea.lineCount > maxLines)
-			textArea.text = textArea.text.substring(1,textArea.text.length)
+		while(lineCount > maxLines) { //(textArea.lineCount > maxLines)
+			//textArea.text = textArea.text.substring(1,textArea.text.length)
+			if(!chompFirstLine) return
+		}
 	}
 	
-	
+	/** Counts the number of lines in the EditorPane by counting the number of <br/> tags. */
 	def lineCount() : Int = {
-		0
+		EliSyntaxFormatting.htmlNewLineRegex.findAllIn(readOnlyOutput).size
+	}
+	
+	/** Removes the first <br/> tag and everything before it in the EditorPane's readOnlyOutput. */
+	def chompFirstLine() : Boolean = {
+		EliSyntaxFormatting.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
+			case Some(myMatch : scala.util.matching.Regex.Match) =>
+				readOnlyOutput = readOnlyOutput.drop(myMatch.end)
+				true
+			case _ => 
+				false
+		}
 	}
 	
 	

@@ -82,7 +82,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	contents += label2
 	
 	/** The TextArea that displays the currently selected node's properties */
-	val textArea = new TextArea("",15,50) {
+	val textArea = new TextArea("",15,45) {
 		wordWrap = true
 		lineWrap = true
 		editable = false
@@ -119,7 +119,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 
 
 object PropertiesPanel {
-	val preferredWidth = 300
+	val preferredWidth = 260
 	val parsePanelHeight = 200
 }
 
