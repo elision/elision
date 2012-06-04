@@ -114,12 +114,22 @@ class NewRepl extends Processor {
   _hist.setIgnoreDuplicates(false)
   _hist.setMaxSize(10000)
   
-  override def addHistoryLine(line: String) = _hist.add(line)
+  override def addHistoryLine(line: String) = {
+    _hist.add(line)
+    _hist.flush()
+  }
   
   override def getHistoryIterator = new Iterator[String] {
     val it = _hist.entries
     def hasNext = it.hasNext
     def next = it.next.toString
+  }
+  
+  override def getHistoryEntry(index: Int) = {
+    _hist.get(index) match {
+      case null => None
+      case x:Any => Some(x.toString)
+    }
   }
   
   override def getHistoryFilename = _filename
@@ -297,7 +307,7 @@ class NewRepl extends Processor {
     startTimer
 
     // Define the operators.  We go quiet during this period.
-    //console.quiet = 1
+    console.quiet = 1
     read("bootstrap/Boot.eli")
     console.quiet = 0
     
@@ -380,8 +390,27 @@ class NewRepl extends Processor {
       cr.flush()
       
       // Run the line.
-      execute(line)
-      //println(scala.tools.jline.TerminalFactory.create().getWidth())
+      try {
+        execute(line)
+      } catch {
+        case ornl.elision.ElisionException(msg) =>
+          console.error(msg)
+        case ex: Exception =>
+          console.error("(" + ex.getClass + ") " + ex.getMessage())
+          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        case oom: java.lang.OutOfMemoryError =>
+          System.gc()
+          console.error("Memory exhausted.  Trying to recover...")
+          val rt = Runtime.getRuntime()
+          val mem = rt.totalMemory()
+          val free = rt.freeMemory()
+          val perc = free.toDouble / mem.toDouble * 100
+          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+        case th: Throwable =>
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          coredump("Internal error.", Some(th))
+      }
     } // Forever read, eval, print.
   }
   

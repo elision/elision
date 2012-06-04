@@ -125,7 +125,6 @@ object Version {
 	    minor = config.\("version").\("@minor").text
 	    build = config.\("version").\("@build").text
 	    loaded = true
-      if (loaded == true) println("Loaded: " + build)
 	  }
   }
   _init

@@ -176,7 +176,20 @@ with HasHistory {
    * @param text		The text to parse.
    */
   def execute(text: String) {
-    _execute(_parser.parseAtoms(text))
+    // If the line is a history reference, go and look it up now.
+    var lline = text.trim
+    if (lline.startsWith("!")) {
+      // This is a history reference, so go and get it.
+      val num = lline.substring(1).trim.toInt
+      val prior = getHistoryEntry(num)
+      if (prior == None) {
+        console.error("No such history entry: " + lline)
+        return
+      }
+      lline = prior.get
+      console.emitln(lline)
+    }
+    _execute(_parser.parseAtoms(lline))
   }
   
   def parse(text: String) = {
@@ -227,7 +240,7 @@ with HasHistory {
       case th: Throwable =>
         console.error("(" + th.getClass + ") " + th.getMessage())
         if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-        _coredump("Internal error.", Some(th))
+        coredump("Internal error.", Some(th))
     }
     stopTimer
     showElapsed
@@ -311,7 +324,7 @@ with HasHistory {
    * @param msg		A human-readable message.
    * @param th		An optional throwable.
    */
-  private def _coredump(msg: String, th: Option[Throwable] = None) {
+  protected def coredump(msg: String, th: Option[Throwable] = None) {
     val cfile = new java.io.FileWriter("elision.core")
     if (cfile != null) {
       val binds = <binds>{context.binds.toParseString}</binds>
