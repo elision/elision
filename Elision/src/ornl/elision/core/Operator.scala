@@ -265,14 +265,14 @@ object CaseOperator {
   def apply(sfh: SpecialFormHolder): CaseOperator = {
     val bh = sfh.requireBindings
     bh.check(Map("name" -> true, "cases" -> true, "type" -> false,
-      "description" -> false, "detail" -> false))
+      "description" -> false, "detail" -> false, "evenmeta" -> false))
     val name = bh.fetchAs[SymbolLiteral]("name").value.name
     val cases = bh.fetchAs[AtomSeq]("cases")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     if (description.value(0) == '|') description = description.value.stripMargin('|')
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
-    val evenMeta = bh.fetchAs[Boolean]("evenmeta", Some(false))
+    val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
 

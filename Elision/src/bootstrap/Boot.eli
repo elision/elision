@@ -35,14 +35,6 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-/*
-{! _() #handler="""
-   println("Bootstrapping...")
-   exec.console.quiet=true
-   _no_show
-"""}.%()
-*/
-
 // First we bootstrap the def operator, so we can define other operators.
 // We do this by using the def operator to define itself.  This allows us
 // to define def the same way we define any other operator, except that
@@ -70,11 +62,51 @@
 "the operator available by name, or through an OPREF."
 }
 
+// Make the general-purpose decl operator.  This is a more accurately named
+// operator than def, and can in fact replace def.
+def({! _decl($item)
+#handler=
+"""
+  args(0) match {
+    case op: Operator =>
+      context.operatorLibrary.add(op)
+      console.emitln("Declared operator " + toESymbol(op.name) + ".")
+      _no_show
+    case rule: RewriteRule =>
+      context.ruleLibrary.add(rule)
+      console.emitln("Declared rule.")
+      _no_show
+    case _ =>
+      as_is
+  }
+"""
+#evenmeta=true
+#description="Declare a rule or operator in the current context."
+#detail=
+"Given a rewrite rule, add the rewrite rule to the rule library in the ".
+"current context.  Given an operator, add the operator to the operator ".
+"library in the current context."
+})
+
+def({operator
+#name=decl
+#evenmeta=true
+#description="Declare a rule or operator in the current context."
+#detail=
+"Given a rewrite rule, add the rewrite rule to the rule library in the ".
+"current context.  Given an operator, add the operator to the operator ".
+"library in the current context."
+#cases
+  %($item) -> _decl($$item),
+  $item -> _decl($$item)
+})
+
 // The next operator we need is inc so we can read the rest of the
 // bootstrap definitions.  Define inc next.  It expects to get access
 // to a set of known, already read files, and we use the executors cache
 // for this.
-def({! inc($fn: STRING)
+decl.
+{! inc($fn: STRING)
 #handler=
 """
   // We use a mutable set in the executor cache to store the names of all
@@ -109,10 +141,11 @@ def({! inc($fn: STRING)
 "though it were typed at the REPL prompt while quiet mode was in effect ".
 "(so most output is suppressed).  No numbered repl bindings are generated ".
 "from this action."
-})
+}
 
 // Create an operator that emits the atom as a side effect.
-def({! print($a: STRING)
+decl.
+{! print($a: STRING)
 #handler=
 """
   args match {
@@ -124,9 +157,10 @@ def({! print($a: STRING)
 #description="Print the given string and a newline."
 #detail=
 "Print the provided string literal to the console followed by a newline."
-})
+}
 
-def({! println($a: STRING)
+decl.
+{! println($a: STRING)
 #handler=
 """
   args match {
@@ -137,12 +171,9 @@ def({! println($a: STRING)
 """
 #description="Print the given string."
 #detail="Print the provided string literal to the console."
-})
+}
 
 inc("bootstrap/Core.eli")
 inc("bootstrap/Context.eli")
 inc("bootstrap/Strategies.eli")
 inc("bootstrap/Math.eli")
-
-{! _() #handler="exec.console.quiet=false ; _no_show"}.%()
-

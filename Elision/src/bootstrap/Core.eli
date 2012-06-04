@@ -41,7 +41,7 @@ println("Reading Core...")
 // Control properties.
 //======================================================================
 
-def({! setprop($name: STRING, $val)
+decl.{! setprop($name: STRING, $val)
 #handler=
 """
   args match {
@@ -68,9 +68,9 @@ def({! setprop($name: STRING, $val)
 "Set the value of a property.  The property name (a STRING), is given as ".
 "the first argument, and the value (which must be a STRING, INTEGER, or ".
 "BOOLEAN) is given as the second argument."
-})
+}
 
-def({! getprop($name: STRING)
+decl.{! getprop($name: STRING)
 #handler=
 """
   args match {
@@ -96,9 +96,9 @@ def({! getprop($name: STRING)
 #detail=
 "Get the value of a property.  The property is looked up by name (given ".
 "as a STRING value)."
-})
+}
 
-def({! listprops()
+decl.{! listprops()
 #handler=
 """
   val width = (scala.tools.jline.TerminalFactory.create().getWidth() max 5)
@@ -109,13 +109,13 @@ def({! listprops()
 #detail=
 "List all the declared properties, a short description, and their current ".
 "value."
-})
+}
 
 //======================================================================
 // If.
 //======================================================================
 
-def({operator #name=if #cases
+decl.{operator #name=if #cases
   %(true, $then @lazy, $else @lazy) -> $$then,
   %(false, $then @lazy, $else @lazy) -> $$else,
   %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
@@ -123,13 +123,13 @@ def({operator #name=if #cases
   #detail=
 "If the first argument is true, return the second.  If the first argument ".
 "is false, return the third."
-})
+}
 
 //======================================================================
 // Meta.
 //======================================================================
 
-def({! eval($atom)
+decl.{! eval($atom)
 #handler=
 """
   args match {
@@ -147,16 +147,16 @@ def({! eval($atom)
 "constructed.  This forces any bound variables in $atom to be rewritten ".
 "immediately.  It is most useful when $atom is the argument to some other ".
 "operator."
-})
+}
 
-def({ operator #name=typeof #cases %($x)->(\$y:$T.$T.$$x)
+decl.{ operator #name=typeof #cases %($x)->(\$y:$T.$T.$$x)
 #description="Extract and show the type of the argument."
 #detail=
 "Given a single argument, extract the type $T of that argument $x and return ".
 "the extracted type."
-})
+}
 
-def({! getop($x: OPREF)
+decl.{! getop($x: OPREF)
 #handler=
 """
   args match {
@@ -170,9 +170,9 @@ def({! getop($x: OPREF)
 #detail=
 "Given the operator reference $x, resolve the reference to the actual ".
 "operator and return the operator."
-})
+}
 
-def({! setdebruijn($enable: BOOLEAN)
+decl.{! setdebruijn($enable: BOOLEAN)
 #handler=
 """
   args match {
@@ -188,9 +188,9 @@ def({! setdebruijn($enable: BOOLEAN)
 #detail=
 "Specify whether to use DeBruijn indices for lambdas.  Disabling this is ".
 "only useful when you are debugging lambdas."
-})
+}
 
-def({! is_bindable($x): BOOLEAN
+decl.{! is_bindable($x): BOOLEAN
 #handler=
 """
   args match {
@@ -206,13 +206,13 @@ def({! is_bindable($x): BOOLEAN
 "is primarily useful for guards.  You will probably need to protect ".
 "variables by making them into metavariables ($$ instead of $) to prevent ".
 "zealous evaluation."
-})
+}
 
 //======================================================================
 // Help system.
 //======================================================================
 
-def({! _help_op($r: OPREF)
+decl.{! _help_op($r: OPREF)
 #handler=
 """
   args match {
@@ -228,9 +228,9 @@ def({! _help_op($r: OPREF)
 """
 #description="Display detailed help for an operator."
 #detail="Display help text for the operator referenced by $r."
-})
+}
 
-def({! _help_all()
+decl.{! _help_all()
 #handler=
 """
   args match {
@@ -250,22 +250,22 @@ def({! _help_all()
 "Display a list of known operators, along with a short description of each ".
 "one (if given).  Operators whose name begins with an underscore are ".
 "suppressed in this list."
-})
+}
 
-def({ operator #name=help #cases
+decl.{ operator #name=help #cases
       %($r:OPREF) -> _help_op($r), 
       _help_all:OPREF
 #description="Get general help or help on an operator."
 #detail=
 "With no argument, list all operators.  If provided with an operator ".
 "reference, give detailed help on that operator."
-})
+}
 
 //======================================================================
 // File management.
 //======================================================================
 
-def({! read($filename: STRING)
+decl.{! read($filename: STRING)
 #handler=
 """
   args match {
@@ -295,9 +295,9 @@ def({! read($filename: STRING)
 "though it were typed at the REPL prompt while quiet mode was in effect ".
 "(so most output is suppressed).  No numbered repl bindings are generated ".
 "from this action."
-})
+}
 
-def({! write($filename: STRING)
+decl.{! write($filename: STRING)
 #handler=
 """
   args match {
@@ -316,13 +316,13 @@ def({! write($filename: STRING)
 """
 #description="Write the content of the current context to a file."
 #detail="Write the current context to the file specified by $filename."
-})
+}
 
 //======================================================================
 // Manage bindings.
 //======================================================================
 
-def({! bind($v,$a)
+decl.{! bind($v,$a)
 #handler=
 """
   args match {
@@ -339,9 +339,9 @@ def({! bind($v,$a)
 "Bind the variable $v to the atom $a in the current context.  Variable ".
 "bindings are applied after an atom is parsed and constructed, but before ".
 "it is displayed by the REPL.  Variables can be arbitrarily re-bound."
-})
+}
 
-def({! unbind($v)
+decl.{! unbind($v)
 #handler=
 """
   args match {
@@ -355,9 +355,9 @@ def({! unbind($v)
 """
 #description="Unbind a variable."
 #detail="Forget any binding for variable $v in the current context."
-})
+}
 
-def({! showbinds()
+decl.{! showbinds()
 #handler=
 """
   println(context.binds.filterKeys(!_.startsWith("_")).map {
@@ -370,13 +370,13 @@ def({! showbinds()
 "Show all the bindings present in the current context, except for bindings ".
 "to variables whose name starts with an underscore, as these are considered ".
 "\"private.\""
-})
+}
 
 //======================================================================
 // Tracing and timing.
 //======================================================================
 
-def({! traceparse()
+decl.{! traceparse()
 #handler=
 """
   exec match {
@@ -396,9 +396,9 @@ def({! traceparse()
 "\n\n".
 "This is optional; if multiple parsers are present, some may not support ".
 "tracing."
-})
+}
 
-def({! tracematch()
+decl.{! tracematch()
 #handler=
 """
   args match {
@@ -416,9 +416,9 @@ def({! tracematch()
 "Enable or disable tracing of match attempts.  This generates output from ".
 "the matcher as it attempts to match atoms.  The matcher is called for a ".
 "variety of reasons, so you may see some unexpected output here."
-})
+}
 
-def({! timing($f:BOOLEAN)
+decl.{! timing($f:BOOLEAN)
 #handler=
 """
   exec match {
@@ -434,27 +434,37 @@ def({! timing($f:BOOLEAN)
 #detail=
 "Toggle showing the total elapsed \"wall clock\" time to evaluate an atom. ".
 "The result shows minutes, seconds, and milliseconds."
-})
+}
 
 //======================================================================
 // Display.
 //======================================================================
 
-def({! quiet()
+decl.{! quiet($level: INTEGER)
 #handler=
 """
-  exec.console.quiet = !exec.console.quiet
-  emitln("Quiet is " + (if (exec.console.quiet) "enabled." else "disabled."))
+  args match {
+    case Args(IntegerLiteral(_, level)) =>
+      if (level < 0) console.quiet = 0
+      else if (level > 4) console.quiet = 3
+      else console.quiet = level.toInt
+    case _ => as_is
+  }
+  emitln("Quiet is " + (if (console.quiet > 0) "enabled." else "disabled."))
   _no_show
 """
-#description="Toggle disable most output."
+#description="Set the quiet level."
 #detail=
-"Enable or disable printing of most output.  Explicitly requested output is ".
-"always displayed (such as operator help).  Quiet mode is indicated with the ".
-"q> prompt."
-})
+"Specify whether to suppress output.  There are several levels available.  ".
+"Level 0 enables all output, and is the usual mode.  Level 1 suppresses ".
+"all \"casual\" output.  Level 2 suppresses warnings.  Level 3 suppresses ".
+"errors.  Level 4 suppresses pretty much everything, and should be avoided ".
+"unless you have a good reason.  If you enter a level above 4, the system ".
+"will assume you don't know what you are doing and set the level to 3.  ".
+"If you enter a negative number, the system will assume 0."
+}
 
-def({! history()
+decl.{! history()
 #handler=
 """
   exec match {
@@ -473,17 +483,17 @@ def({! history()
 "Show the current history of lines executed.  This history is numbered, and ".
 "numbered items in the history can be recalled later.  The history is saved ".
 "between sessions, if possible."
-})
+}
 
 //======================================================================
 // Error reporting.
 //======================================================================
 
-def({! fail()
+decl.{! fail()
 #handler=
 """throw new VerifyError("core dump requested by user")"""
 #description="Generate a runtime exception."
 #detail=
 "Generate a runtime exception (a VerifyError).  This causes a core dump and ".
 "may be useful if you are trying to debug the system."
-})
+}

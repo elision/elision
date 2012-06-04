@@ -42,82 +42,82 @@ declare(IF, STRAT)
   
 // The no-op strategy leaves atoms unmodified.  The flag is always set to
 // true.
-def({! s_noop(): STRATEGY
+decl.{! s_noop(): STRATEGY
 #description="No-op strategy."
 #detail=
 "This is a trivial strategy that leaves the atom unmodified and sets the ".
 "flag to true."
-})
-{ rule (s_noop().$a) -> {bind atom->$a flag->true} #ruleset STRAT }
+}
+decl.{ rule (s_noop().$a) -> {bind atom->$a flag->true} #ruleset STRAT }
   
 // Declare operators to modify the flag returned from a strategy.
-def({! s_true($s: STRATEGY): STRATEGY
+decl.{! s_true($s: STRATEGY): STRATEGY
 #description="Apply a strategy and force the flag to be true."
 #detail=
 "Apply strategy $s and then force the flag to be true."
-})
-{ rule (s_true($s).$a) -> (($s.$a).{bind atom->$atom flag->true})
+}
+decl.{ rule (s_true($s).$a) -> (($s.$a).{bind atom->$atom flag->true})
   #ruleset STRAT }
 
-def({! s_false($s: STRATEGY): STRATEGY
+decl.{! s_false($s: STRATEGY): STRATEGY
 #description="Apply a strategy and force the flag to be false."
 #detail=
 "Apply strategy $s and then force the flag to be false."
-})
-{ rule (s_false($s).$a) -> (($s.$a).{bind atom->$atom flag->false}) 
+}
+decl.{ rule (s_false($s).$a) -> (($s.$a).{bind atom->$atom flag->false}) 
   #ruleset STRAT }
   
 // Declare the if strategy.  This executes the first strategy, and checks
 // the flag.  If it is true, the second strategy is executed.  Otherwise the
 // third strategy is executed.  The flag is the result of the last strategy
 // executed.
-def({! s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
+decl.{! s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
 	$elsepart: STRATEGY @lazy): STRATEGY
 #description="Conditionally apply strategies."
 #detail=
 "Apply the strategy $test.  If the flag is true, then apply strategy ".
 "$thenpart.  If the flag is false, then apply the strategy $elsepart."
-})
-{ rule (s_if($test, $thenpart, $elsepart).$a) ->
+}
+decl.{ rule (s_if($test, $thenpart, $elsepart).$a) ->
   (($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom)))
   #ruleset STRAT }
   
 // The while strategy executes the subordinate strategy for as long as it
 // yields the true flag.
-def({! s_while($test: STRATEGY): STRATEGY
+decl.{! s_while($test: STRATEGY): STRATEGY
 #description="Apply a strategy as long as the returned flag is true."
 #detail=
 "Apply the strategy $test repeatedly so long as the flag is true."
-})
-{ rule (s_while($test).$a) ->
+}
+decl.{ rule (s_while($test).$a) ->
   (s_if($test, s_while($test), s_noop()).$a) #ruleset STRAT }
   
-def({! s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
+decl.{! s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
 #description="Apply a sequence of strategies, unconditionally."
 #detail=
 "Apply a sequence of strategies, in order, unconditionally."
-})
-{ rule (s_then($p, $q).$a) -> ($q.(($p.$a).$atom)) #ruleset STRAT }
+}
+decl.{ rule (s_then($p, $q).$a) -> ($q.(($p.$a).$atom)) #ruleset STRAT }
   
-def({! s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
+decl.{! s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
 #description="Apply a sequence of strategies and stop at false."
 #detail=
 "Apply a sequence of strategies, in order.  Stop as soon as the flag ".
 "is set to false."
-})
-{ rule (s_and($p, $q).$a) -> (s_if($p, $q, s_noop()).$a) #ruleset STRAT }
+}
+decl.{ rule (s_and($p, $q).$a) -> (s_if($p, $q, s_noop()).$a) #ruleset STRAT }
   
-def({! s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
+decl.{! s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
 #description="Apply a sequence of strategies and stop at true."
 #detail=
 "Apply a sequence of strategies, in order.  Stop as soon as the flag ".
 "is set to true."
-})
-{ rule (s_or($p, $q).$a) -> (s_if($p, s_noop(), $q).$a) #ruleset STRAT }
+}
+decl.{ rule (s_or($p, $q).$a) -> (s_if($p, s_noop(), $q).$a) #ruleset STRAT }
   
-def({! s_td($part: STRATEGY): STRATEGY
+decl.{! s_td($part: STRATEGY): STRATEGY
 #description="Apply a strategy top-down."
 #detail=
 "Map the strategy to the atom, and then to the children."
-})
-{ rule (s_td($s).$a) -> (s_then($s,{map s_td($s)}).$a) #ruleset STRAT }
+}
+decl.{ rule (s_td($s).$a) -> (s_then($s,{map s_td($s)}).$a) #ruleset STRAT }

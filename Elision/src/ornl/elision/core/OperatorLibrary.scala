@@ -96,8 +96,13 @@ class OperatorLibrary(
  	 * 
  	 * @return	A parseable version of this instance.
  	 */
- 	override def toString =
- 	  _nameToOperator.values.map(_.toString).mkString("","\n","\n")
+ 	override def toString = {
+ 	  "def _mkoplib(oplib: OperatorLibrary) {\n" +
+ 	  _nameToOperator.values.map("oplib.add(" + _.operator.toString +
+ 	      ".asInstanceOf[Operator])").
+ 	    mkString("","\n","\n") +
+ 	  "}\n"
+ 	}
  	
  	/**
  	 * Register a native handler for an operator.  The operator must already be

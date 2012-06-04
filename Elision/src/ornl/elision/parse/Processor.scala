@@ -85,7 +85,7 @@ with HasHistory {
    * console using the `emitln` method of the console.
    */
   protected def banner() {
-    import Version._
+    import ornl.elision.Version._
     console.emitln(
         """|      _ _     _
 					 |  ___| (_)___(_) ___  _ __

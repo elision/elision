@@ -41,20 +41,20 @@ println("Reading Context...")
 // Context.
 //======================================================================
 
-def({! context()
+decl.{! context()
 #handler="""
   println(context.toParseString)
   _no_show"""
 #description="Show the content of the current context."
 #detail=
 "Show the bindings, operators, and rules currently in the current context."
-})
+}
 
 //======================================================================
 // Automatic rewriting.
 //======================================================================
 
-def({! enable($x: SYMBOL)
+decl.{! enable($x: SYMBOL)
 #handler=
 """
   args match {
@@ -69,9 +69,9 @@ def({! enable($x: SYMBOL)
 #detail=
 "Enable the specified ruleset for automatic rewriting.  Rules in the ruleset ".
 "will be automatically applied to atoms."
-})
+}
 
-def({! disable($x: SYMBOL)
+decl.{! disable($x: SYMBOL)
 #handler=
 """
   args match {
@@ -86,9 +86,9 @@ def({! disable($x: SYMBOL)
 #detail=
 "Disable the specified ruleset for automatic rewriting.  Rules in the ruleset ".
 "may still be used if they are also in another enabled ruleset."
-})
+}
 
-def({! setlimit($limit: INTEGER)
+decl.{! setlimit($limit: INTEGER)
 #handler=
 """
   args match {
@@ -104,9 +104,9 @@ def({! setlimit($limit: INTEGER)
 #detail=
 "Specify the maximum number of times to rewrite an atom using the automatic ".
 "rewriter.  Using zero disables the rewriter."
-})
+}
 
-def({! setdescend($enable: BOOLEAN)
+decl.{! setdescend($enable: BOOLEAN)
 #handler=
 """
   args match {
@@ -122,13 +122,13 @@ def({! setdescend($enable: BOOLEAN)
 #detail=
 "Specify whether to descend into children during rewriting.  If true then ". 
 "try to rewrite children of atoms."
-})
+}
 
 //======================================================================
 // Rule management.
 //======================================================================
 
-def({! showrules($atom)
+decl.{! showrules($atom)
 #handler=
 """
   args match {
@@ -145,9 +145,9 @@ def({! showrules($atom)
 #detail=
 "The atom $atom is passed to the current context's rule library and the rules ".
 "that will be used to rewrite it are returned and printed."
-})
+}
 
-def({! declare($r1: SYMBOL, $r2: SYMBOL): SYMBOL is %ACI
+decl.{! declare($r1: SYMBOL, $r2: SYMBOL): SYMBOL is %ACI
 #handler=
 """
   args foreach { _ match {
@@ -163,4 +163,4 @@ def({! declare($r1: SYMBOL, $r2: SYMBOL): SYMBOL is %ACI
 #detail=
 "Declare the named rulesets.  Rulesets must be declared before use, but they ".
 "can be re-declared without error."
-})
+}

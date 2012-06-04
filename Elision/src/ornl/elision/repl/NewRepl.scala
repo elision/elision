@@ -189,7 +189,7 @@ class NewRepl extends Processor {
         atom match {
           case op: Operator if getProperty[Boolean]("autoop") =>
             context.operatorLibrary.add(op)
-            console.emitln("Defined operator " + op.name + ".")
+            console.emitln("Declared operator " + op.name + ".")
             None
           case rule: RewriteRule if getProperty[Boolean]("autorule") =>
             context.ruleLibrary.add(rule)
@@ -296,8 +296,10 @@ class NewRepl extends Processor {
     // Start the clock.
     startTimer
 
-    // Define the operators.
+    // Define the operators.  We go quiet during this period.
+    //console.quiet = 1
     read("bootstrap/Boot.eli")
+    console.quiet = 0
     
     // Report startup time.
     stopTimer
@@ -336,7 +338,7 @@ class NewRepl extends Processor {
       // A little function to prompt for, and read, the next segment.  The
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
-      	segment = cr.readLine(if (console.quiet) p2 else p1)
+      	segment = cr.readLine(if (console.quiet > 0) p2 else p1)
 		
       	if (segment == null) {
       	  return true

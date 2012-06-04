@@ -36,7 +36,7 @@ import scala.actors.Actor._
  * A simple console that uses `print` to write to the standard output.
  */
 object PrintConsole extends Console {
-  def send(text: String) { print(text) }
+  def write(text: String) { print(text) }
 }
 
 /**
@@ -46,18 +46,23 @@ object PrintConsole extends Console {
 trait Console {
   
   /** Whether to suppress most output. */
-  private var _quiet = false
+  private var _quiet = 0
   
   /** The end of line character.  TODO This should be set dynamically. */
   private final val _ENDL = "\n"
   
   /**
-   * Specify whether to be quiet.
+   * Specify whether to be quiet.  How quiet it determined by levels.
+   * * 0 : all output
+   * * 1 : suppress most output except warnings, errors, and requested
+   * * 2 : suppress warnings but not errors or requested output
+   * * 3 : suppress warnings and errors, but not requested output
+   * * 4 : suppress everything
    * 
-   * @param suppress	If true, suppress most output.
+   * @param suppress	The quiet level.
    */
-  def quiet_=(suppress: Boolean) {
-    _quiet = suppress
+  def quiet_=(level: Int) {
+    _quiet = level
   }
   
   /**
@@ -67,38 +72,61 @@ trait Console {
   
   /**
    * Send the given text to the appropriate destination.  This is the method
-   * that controls where output goes, and which must be implemented.
+   * that controls where output goes, and which must be implemented.  *You
+   * should not use this method.*  You want `send`, `sendln`, `warn` or
+   * `error`, instead.
    * 
-   * @param text	The text to send.
+   * @param text  The text to send.
    */
-  def send(text: String): Unit
+  protected def write(text: String): Unit
   
   /**
-   * Send the given text to the appropriate destination, followed by the end
-   * of line.  This method uses `send`, so you should not need to override it.
+   * Write followed by a newline.  This method is private, since there is no
+   * use for it outside this class.
    * 
-   * @param text	The text to send.
+   * @param text  The text to send.
    */
-  def sendln(text: String) { send(text) ; send(_ENDL) }
+  private def writeln(text: String) { write(text) ; write(_ENDL) }
   
   /**
    * Write a message, unless quiet is enabled.
    * 
    * @param msg		The message.
    */
-  def emitln(msg: String) { if (!_quiet) sendln(msg) }
+  def emit(msg: String) { if (_quiet < 1) write(msg) }
+  
+  /**
+   * Write a message, unless quiet is enabled.
+   * 
+   * @param msg   The message.
+   */
+  def emitln(msg: String) { if (_quiet < 1) writeln(msg) }
+  
+  /**
+   * Emit a warning message, with the WARNING prefix.
+   *
+   * @param msg   The message.
+   */
+  def warn(msg: String) { if (_quiet < 2) writeln("WARNING: " + msg) }
   
   /**
    * Emit an error message, with the ERROR prefix.
    * 
    * @param msg		The message.
    */
-  def error(msg: String) { sendln("ERROR: " + msg) }
+  def error(msg: String) { if (_quiet < 3) writeln("ERROR: " + msg) }
   
   /**
-   * Emit a warning message, with the WARNING prefix.
-   *
-   * @param msg		The message.
+   * Send explicitly requested output.
+   * 
+   * @param text  The text to send.
    */
-  def warn(msg: String) { sendln("WARNING: " + msg) }
+  def send(text: String) { if (_quiet < 4) write(text) }
+  
+  /**
+   * Send explicitly requested output, followed by a newline.
+   * 
+   * @param text  The text to send.
+   */
+  def sendln(text: String) { if (_quiet < 4) writeln(text) }
 }

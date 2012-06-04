@@ -27,7 +27,7 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.parse
+package ornl.elision
 
 /**
  * Provide information about the current version of Elision.
@@ -78,8 +78,6 @@ package ornl.elision.parse
  * }}}
  */
 object Version {
-  _init
-
   /** Name of the program. */
   var name = "Elision"
     
@@ -100,13 +98,24 @@ object Version {
     
   /** If true then data was loaded.  If false, it was not. */
   var loaded = false
-
+  
   private def _init {
+    // This could be simplified if it were not necessary to configure the
+    // parser to avoid validation.  This is necessary since Scala's
+    // resolver does not find the DTD correctly.
+
+    // Make an XML parser.
+    val factory = javax.xml.parsers.SAXParserFactory.newInstance
+    factory.setValidating(false)
+    val parser = factory.newSAXParser
+    
 	  // Open the file.  We expect to find config.xml in the classpath.
 	  val config_resource = getClass.getResource("/configuration.xml")
+	  val source = new org.xml.sax.InputSource(config_resource.toString)
 	  if (config_resource != null) {
 	    // Parse the file.
-	    val config = scala.xml.XML.load(config_resource.toString())
+	    val config = scala.xml.XML.loadXML(source, parser)
+	    //val config = scala.xml.XML.load(config_resource)
 	    
 	    // Pull out the data and override the local defaults.
 	    name = config.\("@name").text
@@ -116,6 +125,8 @@ object Version {
 	    minor = config.\("version").\("@minor").text
 	    build = config.\("version").\("@build").text
 	    loaded = true
+      if (loaded == true) println("Loaded: " + build)
 	  }
   }
+  _init
 }
