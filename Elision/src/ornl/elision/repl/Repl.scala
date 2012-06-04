@@ -164,6 +164,7 @@ object Repl {
    * @param args	The command line arguments.
    */
   def main(args: Array[String]) {
+    warn("You are running the old REPL, which is deprecated.")
     run
     emitln("")
     _hist.add("// Ended Normally: " + new java.util.Date)

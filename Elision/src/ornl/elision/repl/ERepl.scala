@@ -34,7 +34,7 @@ import ornl.elision.parse._
 /**
  * Implement an interface to run the REPL from the prompt.
  */
-object SimpleRepl extends NewRepl {
+object ReplMain extends ERepl {
   def main(args: Array[String]) {
     run()
     console.emitln("")
@@ -67,7 +67,7 @@ object SimpleRepl extends NewRepl {
  * method.  The REPL provides for command line editing, a persistent history,
  * and special operations.
  */
-class NewRepl extends Processor {
+class ERepl extends Processor {
   import ornl.elision.core._
 	import scala.tools.jline.console.history.FileHistory
 	import scala.tools.jline.console.ConsoleReader

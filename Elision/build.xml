@@ -261,7 +261,7 @@ bin, lib, and other folders.</echo>
 			</archives>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="ornl.elision.repl.Repl"/>
+				<attribute name="Main-Class" value="ornl.elision.repl.ReplMain"/>
 			</manifest>
 		</jar>
 		<jar destfile = "${build.base}/${DSTAMP}/elision-src.jar">

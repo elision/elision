@@ -49,7 +49,7 @@ val=`for file in \`find $dir/lib -name '*.jar'\` ; do \
 scala \
 	-i \
 	-cp $val \
-	ornl.elision.repl.SimpleRepl
+	ornl.elision.repl.ReplMain
 
 # Done.  We exit with the exit value from the scala command.
 exit $?
