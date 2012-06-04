@@ -3,3 +3,18 @@ CHANGES
 
 Version 0.0 to Version 0.1
 --------------------------
+* The old REPL has been replaced with the new REPL.  Startup times are much
+  slower, but lots of good customization is present and the system is more
+  flexible.
+* The system now supports properties, replacing many of the output control
+  operators (like stacktrace and showscala).  Use listprops() to see the
+  properties, and setprop(name,value) to set them.
+* The system now uses a search path to find files.  The search path is
+  given by the ELISION_PATH environment variable in the same style as any
+  other path on your platform.
+* Bootstrap files can be overridden by files in the search path.
+* The system now reads the ELISIONRC environment variable to find a file
+  to read after bootstrapping.  If this is not set, it looks for a
+  .elisionrc or elision.ini in the home folder and reads that if found.
+  The search path is used if ELISIONRC is specified and not absolute.
+
