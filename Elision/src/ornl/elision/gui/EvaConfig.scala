@@ -37,6 +37,7 @@
 package ornl.elision.gui
 
 import java.io._
+import scala.xml._
 
 /** Stores and saves configuration settings for Eva. */
 class EvaConfig extends Serializable {
@@ -52,17 +53,32 @@ class EvaConfig extends Serializable {
 	
 	// try to read config information from Eva's config file (if it exists)
 	try {
-		val fis = new FileInputStream("EvaConfig.config")
+		/*
+		val fis = new FileInputStream("EvaConfig.xml")
 		val ois = new ObjectInputStream(fis)
 		val readObj = ois.readObject
 		ois.close
 		fis.close
+		*/
 		
+		val readObj = XML.loadFile("EvaConfig.xml")
+		
+		/*
 		readObj match {
 			case config : EvaConfig =>
 				decompDepth = config.decompDepth
 				replMaxLines = config.replMaxLines
 				lastOpenPath = config.lastOpenPath
+			case _ => restoreDefaults
+		}
+		*/
+		
+		readObj match {
+			case config : Elem => 
+				decompDepth = (config \ "decompDepth").text.toInt
+				replMaxLines = (config \ "replMaxLines").text.toInt
+				lastOpenPath = (config \ "lastOpenPath").text
+			case _ => restoreDefaults
 		}
 	} catch {
 		case _ =>
@@ -76,13 +92,18 @@ class EvaConfig extends Serializable {
 		lastOpenPath = "."
 	}
 	
-	/** Saves the configuration object to ".\EvaConfig.config" */
+	/** Saves the configuration object to ".\EvaConfig.xml" */
 	def save : Unit = {
-		val fos = new FileOutputStream("EvaConfig.config")
+		/*	
+		val fos = new FileOutputStream("EvaConfig.xml")
 		val oos = new ObjectOutputStream(fos)
 		oos.writeObject(this)
 		oos.close
 		fos.close
+		*/
+		var config = <Eva><decompDepth>{decompDepth}</decompDepth><replMaxLines>{replMaxLines}</replMaxLines><lastOpenPath>{lastOpenPath}</lastOpenPath></Eva>
+		
+		XML.save("EvaConfig.xml",config)
 	}
 }
 

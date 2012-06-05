@@ -164,6 +164,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			if(applyFormatting) newTxt = EliSyntaxFormatting.applyHTMLHighlight(newTxt, false, 80)
 			else newTxt = replaceAngleBrackets(newTxt)
 			newTxt = replaceWithHTML(newTxt)
+			newTxt = reduceTo9Lines(newTxt)
 			
 			updateReadOnlyText(newTxt)
 			enforceMaxLines
@@ -183,15 +184,39 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 */
 	def enforceMaxLines : Unit = {
 		if(maxLines < ConsolePanel.infiniteMaxLines) return
-		while(lineCount > maxLines) { //(textArea.lineCount > maxLines)
+		while(lineCount(readOnlyOutput) > maxLines) { //(textArea.lineCount > maxLines)
 			//textArea.text = textArea.text.substring(1,textArea.text.length)
 			if(!chompFirstLine) return
 		}
 	}
 	
+	/** Reduces a new line of output so that it doesn't exceed 9 lines. If it does, it is cut off and appended with "..." below it. */
+	def reduceTo9Lines(txt : String) : String = {
+		var lineBreakCount = 1
+		for(myMatch <- EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).matchData) {
+			if(lineBreakCount == 9) {
+				var result = txt.take(myMatch.end)
+				var fontStartCount = EliSyntaxFormatting.htmlFontStartRegex.findAllIn(result).size
+				val fontEndCount = EliSyntaxFormatting.htmlFontEndRegex.findAllIn(result).size
+				
+				fontStartCount -= fontEndCount
+				
+				while(fontStartCount > 0) {
+					result += """</font>"""
+					fontStartCount -= 1
+				}
+				result += """..."""
+				return result
+			}
+			
+			lineBreakCount += 1
+		}
+		txt
+	}
+	
 	/** Counts the number of lines in the EditorPane by counting the number of <br/> tags. */
-	def lineCount() : Int = {
-		EliSyntaxFormatting.htmlNewLineRegex.findAllIn(readOnlyOutput).size
+	def lineCount(txt : String) : Int = {
+		EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).size
 	}
 	
 	/** Removes the first <br/> tag and everything before it in the EditorPane's readOnlyOutput. */

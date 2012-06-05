@@ -232,6 +232,10 @@ object EliSyntaxFormatting {
 	
 	val htmlNewLineRegex = new Regex("""(<br/>)""",
 		"all")
+	val htmlFontStartRegex = new Regex("""(<font.*?>)""",
+		"all")
+	val htmlFontEndRegex = new Regex("""(</font>)""",
+		"all")
 	
 	/**
 	 * Consumes the parse string text to construct lists for correct start and end positions

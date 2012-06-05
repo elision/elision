@@ -398,7 +398,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
  * @param binds		Bindings of parameter to argument.
  */
 class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings)
-
+// ' // '
 /**
  * Construction and matching of typed symbolic operators.
  */
@@ -413,7 +413,7 @@ object TypedSymbolicOperator {
       case cl: java.net.URLClassLoader => cl.getURLs.toList
       case _ => sys.error("classloader is not a URLClassLoader")
     }
-  private lazy val _classpath = (_urls.map(_.toString)).mkString(_ps)
+  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps) //(_urls.map(_.toString)).mkString(_ps)
 
   // Build a settings with the correct classpath.
   private val _settings = new scala.tools.nsc.Settings(println _) {
@@ -441,14 +441,14 @@ object TypedSymbolicOperator {
     val params = bh.fetchAs[AtomSeq]("params")
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
-    if (description.value(0) == '|') description = description.value.stripMargin('|')
+    if (description.value(0) == '|') description = description.value.stripMargin('|') // '//
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
 
     // Fetch the handler text.
     var handlertxt = bh.fetchAs[StringLiteral]("handler", Some("")).value
-    if (handlertxt.length > 0 && handlertxt(0) == '|')
-      handlertxt = handlertxt.stripMargin('|')
+    if (handlertxt.length > 0 && handlertxt(0) == '|') // '//
+      handlertxt = handlertxt.stripMargin('|') // '//
 
     // Now make a handler object to pass into the interpreter.
     var handler: Option[ApplyData => BasicAtom] = None

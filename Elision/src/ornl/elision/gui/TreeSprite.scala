@@ -419,13 +419,15 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	// if the term is very long, separate it into multiple lines.
 	private var edibleTerm = "" + term
 	
-	val termLines = new ArrayBuffer[String]
-	while(edibleTerm.length > NodeSprite.maxTermLength) {
+	var termLines = new ArrayBuffer[String]
+	while(edibleTerm.length > NodeSprite.maxTermLength && termLines.size < 9) {
 		val (str1, str2) = edibleTerm.splitAt(NodeSprite.maxTermLength)
 		termLines += str1
 		edibleTerm = str2
 	}
-	termLines += edibleTerm
+	if(termLines.size < 9) termLines += edibleTerm
+	else termLines += "..."
+	
 	
 	/** The node's width */
 	private val boxWidth = termLines(0).length * NodeSprite.font.getSize * 0.66 + 5
