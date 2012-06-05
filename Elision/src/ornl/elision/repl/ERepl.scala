@@ -77,6 +77,7 @@ class ERepl extends Processor {
 	//////////////////// GUI changes
 	
 	private var _disableGUIComs = true
+	ReplActor.disableGUIComs = true
 	
 	//////////////////// end GUI changes
   
@@ -173,9 +174,11 @@ class ERepl extends Processor {
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",true)
 	, "formatting on")
+	//////////////////// end GUI changes
 	
     console.emitln(prefix + atom.toParseString)
 	
+	//////////////////// GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",false)
 	, "formatting off")
@@ -346,7 +349,7 @@ class ERepl extends Processor {
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
-      _disableGUIComs = false
+      ReplActor.disableGUIComs = false
       ReplActor.start
     }
 	

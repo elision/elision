@@ -98,7 +98,7 @@ class ElisionREPLThread extends Thread {
 	override def run : Unit = {
 		ornl.elision.repl.ReplActor.guiMode = true
 		ornl.elision.repl.ReplActor.guiActor = GUIActor
-		runOldRepl
+		runNewRepl
 	}
 	
 	def runOldRepl : Unit = {

@@ -44,6 +44,9 @@ object ReplActor extends Actor {
 
 	/** a flag that tells the REPL whether it is receiving input from a GUI or from the console. */
 	var guiMode : Boolean = false 
+	
+	/** flag for temporarily disabling GUI communication. */
+	var disableGUIComs = false
 
 	/** a flag used by the Repl object to determine whether the actor is waiting on input from a GUI */
 	var waitingForGuiInput : Boolean = false
