@@ -34,58 +34,80 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.repl
+package ornl.elision.gui
 
-import scala.actors.Actor
+import java.io._
+import scala.xml._
 
-/** The REPL's Actor object for communicating with the GUI */
-
-object ReplActor extends Actor {
-
-	/** a flag that tells the REPL whether it is receiving input from a GUI or from the console. */
-	var guiMode : Boolean = false 
+/** Stores and saves configuration settings for Eva. */
+class EvaConfig extends Serializable {
+	/** The current decompression depth for the visualization trees. */
+	var decompDepth = 2
 	
-	/** flag for temporarily disabling GUI communication. */
-	var disableGUIComs = false
-
-	/** a flag used by the Repl object to determine whether the actor is waiting on input from a GUI */
-	var waitingForGuiInput : Boolean = false
-
-	/** a string for storing the most recent input from a GUI */
-	var guiInput : String = "no gui input yet"
-
-	/** a reference to the GUI's actor. */
-	var guiActor : Actor = null
+	/** The maximum number of lines we want to have in the REPL panel at any one time. */
+	var replMaxLines = 60
 	
-	/** a flag that tells the Actor to be verbose while waiting on the GUI. */
-	var verbose = false
+	/** The last directory viewed with the File->Open dialog. */
+	var lastOpenPath = "."
 	
-	/** 
-	 * The actor's act loop will wait to receive string input from the GUI. 
-	 * It will discard any other input in its mailbox.
-	 */
 	
-	def act() = {
-		loop {
-			react {
-				case str : String =>
-					guiInput = str
-					waitingForGuiInput = false
-				case ("wait", flag : Boolean) =>
-					waitingForGuiInput = flag
-				case _ => {}
-			}
+	// try to read config information from Eva's config file (if it exists)
+	try {
+		/*
+		val fis = new FileInputStream("EvaConfig.xml")
+		val ois = new ObjectInputStream(fis)
+		val readObj = ois.readObject
+		ois.close
+		fis.close
+		*/
+		
+		val readObj = XML.loadFile("EvaConfig.xml")
+		
+		/*
+		readObj match {
+			case config : EvaConfig =>
+				decompDepth = config.decompDepth
+				replMaxLines = config.replMaxLines
+				lastOpenPath = config.lastOpenPath
+			case _ => restoreDefaults
 		}
+		*/
+		
+		readObj match {
+			case config : Elem => 
+				decompDepth = (config \ "decompDepth").text.toInt
+				replMaxLines = (config \ "replMaxLines").text.toInt
+				lastOpenPath = (config \ "lastOpenPath").text
+			case _ => restoreDefaults
+		}
+	} catch {
+		case _ =>
+			restoreDefaults
 	}
 	
-	/** forces the current thread to wait for the GUI to finish doing something. */
-	def waitOnGUI(doStuff : () => Unit = null, msg : String = null) : Unit = {
-		waitingForGuiInput = true
-		if(doStuff != null) doStuff()
-		while(waitingForGuiInput) {
-			if(verbose && msg != null) println("waiting on the GUI: " + msg)
-			Thread.sleep(20) // sleep until the REPL receives input from the GUI
-		}
+	/** Restores the default values for all configuration variables. */
+	def restoreDefaults : Unit = {
+		decompDepth = 2
+		replMaxLines = 60
+		lastOpenPath = "."
+	}
+	
+	/** Saves the configuration object to ".\EvaConfig.xml" */
+	def save : Unit = {
+		/*	
+		val fos = new FileOutputStream("EvaConfig.xml")
+		val oos = new ObjectOutputStream(fos)
+		oos.writeObject(this)
+		oos.close
+		fos.close
+		*/
+		var config = <Eva><decompDepth>{decompDepth}</decompDepth><replMaxLines>{replMaxLines}</replMaxLines><lastOpenPath>{lastOpenPath}</lastOpenPath></Eva>
+		
+		XML.save("EvaConfig.xml",config)
 	}
 }
+
+
+
+
 

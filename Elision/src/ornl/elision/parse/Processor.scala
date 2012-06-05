@@ -30,6 +30,7 @@
 package ornl.elision.parse
 
 import ornl.elision.core._
+import ornl.elision.repl.ReplActor
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 
 /**
@@ -191,7 +192,25 @@ with HasHistory {
       lline = prior.get
       console.emitln(lline)
     }
+	
+	//////////////////// GUI changes
+	
+	// Create the root of our rewrite tree it contains a String of the REPL input.
+	val treeRoot = new RWTreeNode(lline)
+	RWTree.current = treeRoot
+	
+	//////////////////// end GUI changes
+	
     _execute(_parser.parseAtoms(lline))
+	
+	//////////////////// GUI changes
+	
+	// send the completed rewrite tree to the GUI's actor
+	
+	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
+		ReplActor.guiActor ! treeRoot
+	
+	//////////////////// end GUI changes
   }
   
   def parse(text: String) = {
@@ -204,6 +223,11 @@ with HasHistory {
   private def _execute(result: Presult) {
     import ornl.elision.ElisionException
     startTimer
+	
+	//////////////////// GUI changes
+	val rwNode = RWTree.current
+	//////////////////// end GUI changes
+	
     try {
     	result match {
   			case Failure(err) => console.error(err)
@@ -211,6 +235,10 @@ with HasHistory {
   			  // We assume that there is at least one handler; otherwise not much
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
+				//////////////////// GUI changes
+				RWTree.current = rwNode.addChild("line node")
+				//////////////////// end GUI changes
+				
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
@@ -263,6 +291,17 @@ with HasHistory {
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
     // Pass the atom to the handlers.  If any returns None, we are done.
     var theAtom = atom
+	
+	//////////////////// GUI changes
+	
+	// obtain the parent tree node from the stack
+	val rwNode = RWTree.current
+	// add this atom as a child to the root node
+	val atomNode = rwNode.addChild(atom)
+	RWTree.current = atomNode
+	
+	//////////////////// end GUI changes
+	
     for (handler <- _queue) {
       handler.handleAtom(theAtom) match {
         case None => return None

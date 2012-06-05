@@ -343,8 +343,8 @@ object Repl {
         	segment = 	if (ReplActor.guiMode) {  
 					print("" + (if (_quiet) p2 else p1))
 					
-					ReplActor.waitingForGuiInput = true	// make the Repl wait for GUI Input
-					while(ReplActor.waitingForGuiInput) { Thread.sleep(100)} // sleep until the REPL receives input from the GUI
+					// make the Repl wait for GUI Input
+					ReplActor.waitOnGUI()
 					
 					ReplActor.guiInput
 				} 
@@ -521,7 +521,19 @@ object Repl {
       case Some(name) => "$" + name + " = "
     }
     if (_showScala) println("Scala: " + pre + atom)
+	
+	//////////////////// GUI changes
+	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+		ReplActor.guiActor ! ("replFormat",true)
+	, "formatting on")
+	
     emitln(pre + atom.toParseString)
+	
+	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+		ReplActor.guiActor ! ("replFormat",false)
+	, "formatting off")
+	//////////////////// end GUI changes
+	
     if (_doRoundTrip) checkParseString(atom)
   }
   
