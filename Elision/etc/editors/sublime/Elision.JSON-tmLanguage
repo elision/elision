@@ -16,6 +16,20 @@
     },
 
     {
+      "begin" : "\"\"\"scala",
+      "end" : "\"\"\"",
+      "patterns" : [
+        { "include" : "source.scala"},
+        { "match" : ".",
+          "name" : "variable.elis"
+        }
+        
+      ],
+      "name" : "string.elis",
+      "comment" : "scala verbatim blocks"
+    },
+
+    {
       "begin" : "\"\"\"",
       "end" : "\"\"\"",
       "name" : "string.elis",

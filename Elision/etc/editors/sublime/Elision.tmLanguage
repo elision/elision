@@ -31,6 +31,29 @@
 		</dict>
 		<dict>
 			<key>begin</key>
+			<string>"""scala</string>
+			<key>comment</key>
+			<string>scala verbatim blocks</string>
+			<key>end</key>
+			<string>"""</string>
+			<key>name</key>
+			<string>string.elis</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>source.scala</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>.</string>
+					<key>name</key>
+					<string>variable.elis</string>
+				</dict>
+			</array>
+		</dict>
+		<dict>
+			<key>begin</key>
 			<string>"""</string>
 			<key>comment</key>
 			<string>verbatim blocks</string>

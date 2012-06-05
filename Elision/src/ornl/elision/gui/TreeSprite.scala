@@ -417,18 +417,29 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
 	
 	// if the term is very long, separate it into multiple lines.
-	private var edibleTerm = "" + term
+	private var edibleTerm = EliSyntaxFormatting.applyBreaksAndTabs(term, NodeSprite.maxTermLength)
 	
-	val termLines = new ArrayBuffer[String]
-	while(edibleTerm.length > NodeSprite.maxTermLength) {
+	var longestLine= ""
+	
+	var termLines = new ArrayBuffer[String]
+	val allLines = edibleTerm.split('\n')
+	while(termLines.size < 9 && allLines.size > termLines.size) {
+		val str = allLines(termLines.size)
+		if(str.size > longestLine.size) longestLine = str
+		termLines += str
+		
+	}
+/*	while(edibleTerm.length > NodeSprite.maxTermLength && termLines.size < 9) {
 		val (str1, str2) = edibleTerm.splitAt(NodeSprite.maxTermLength)
 		termLines += str1
 		edibleTerm = str2
-	}
-	termLines += edibleTerm
+	} */
+	if(allLines.size > termLines.size) termLines += "..."
+
+	
 	
 	/** The node's width */
-	private val boxWidth = termLines(0).length * NodeSprite.font.getSize * 0.66 + 5
+	private val boxWidth = longestLine.length * NodeSprite.font.getSize * 0.66 + 5
 	
 	/** The node's height */
 	private val boxHeight = (NodeSprite.font.getSize+5)*termLines.size // NodeSprite.font.getSize + 5
