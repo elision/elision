@@ -431,9 +431,19 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 		
 			// create the inputString to send to the REPL
 			val srcString : String = ConsolePanel.getText // textArea.text
-			val inputString = srcString.substring(taos.anchorPos)
+			var inputString = srcString.substring(taos.anchorPos)
+			
+			// get rid of the new line we just put in our input string
+			val nlIndex = inputString.indexOf('\n')
+			if(nlIndex != -1) {
+				val (inpStr1, inpStr2) = inputString.splitAt(nlIndex)
+				inputString = inpStr1 + inpStr2.drop(1)
+			}
+			
+			// apply formatting to the fixed input string
 			val formattedInputString = EliSyntaxFormatting.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
 			
+			// add the input string to the readOnlyOutput
 			taos.updateReadOnlyText(formattedInputString)
 			taos.anchorPos = ConsolePanel.getLength
 			

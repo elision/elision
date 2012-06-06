@@ -256,8 +256,7 @@ object EliSyntaxFormatting {
 	 * @param colors		an empty list of web colors coresponding to the indices in starts. This will be populated by this method.
 	 * @param ends			an empty list of insertion indices for </font> tags. This will be populated by this method.
 	 */
-	def applyElisionRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int]) : Unit = {
-
+	def applyElisionRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int], depth : Int = 0) : Unit = {
 		var text = txt
 		var chompedChars = prevChomped
 		
@@ -286,6 +285,10 @@ object EliSyntaxFormatting {
 								bestRecStart = myMatch.start(recGroup)
 								bestRecEnd = myMatch.end(recGroup)
 							}
+							else {
+								bestRecStart = -1
+								bestRecEnd = -1
+							}
 						}
 					case _ => // this regex could not be applied.
 				}
@@ -301,7 +304,7 @@ object EliSyntaxFormatting {
 				if(bestRecStart != -1) {
 					ends += chompedChars + bestRecStart
 					
-					applyElisionRegexes(text.substring(bestRecStart,bestRecEnd), chompedChars + bestRecStart, starts, colors, ends)
+					applyElisionRegexes(text.substring(bestRecStart,bestRecEnd), chompedChars + bestRecStart, starts, colors, ends, depth+1)
 					
 					starts += chompedChars + bestRecEnd
 					colors += color
@@ -322,7 +325,7 @@ object EliSyntaxFormatting {
 	 * @param maxCols	the character width of the component the parse string is going to be displayed in. 
 	 * @return 			two ListBuffers containing indices in txt to insert line breaks and tabs at, respectively.
 	 */
-	def enforceLineWrap(txt : String, maxCols : Int) : (ListBuffer[Int], ListBuffer[Int]) = {
+	def enforceLineWrap(txt : String, maxCols : Int, replaceNewLines : Boolean = true) : (ListBuffer[Int], ListBuffer[Int]) = {
 		var chompedChars = 0
 		var edibleTxt = txt
 		val breaks = new ListBuffer[Int]
@@ -333,8 +336,8 @@ object EliSyntaxFormatting {
 		
 		while(edibleTxt.size > maxCols) {
 			// enforce word wrapping while deciding where to insert a line break.
-			val breakPt = enforceWordWrap(edibleTxt, maxCols)
-			breaks += chompedChars + breakPt - tabSize*(indents % maxIndents) //maxCols
+			val (breakPt, addToList) = enforceWordWrap(edibleTxt, maxCols, replaceNewLines)
+			if(addToList) breaks += chompedChars + breakPt - tabSize*(indents % maxIndents) //maxCols
 			chompedChars += breakPt - tabSize*(indents % maxIndents)
 			
 			// update the number of indents that will be needed for the next line.
@@ -363,29 +366,31 @@ object EliSyntaxFormatting {
 				tabs += chompedChars
 			}
 		}
+		// check if there is one more '\n' character that needs to be accounted for in the leftover edibleTxt.
 		val lastLineBreak = edibleTxt.indexOf('\n')
-		if(lastLineBreak != -1) breaks += chompedChars + lastLineBreak
+		if(lastLineBreak != -1 && replaceNewLines) breaks += chompedChars + lastLineBreak
 		(breaks, tabs)
 	}
 	
 	
 	
-	def enforceLineWrapWithNoTabs(txt : String, maxCols : Int) : ListBuffer[Int] = {
+	def enforceLineWrapWithNoTabs(txt : String, maxCols : Int, replaceNewLines : Boolean = true) : ListBuffer[Int] = {
 		var chompedChars = 0
 		var edibleTxt = txt
 		val breaks = new ListBuffer[Int]
 		
 		while(edibleTxt.size > maxCols) {
 			// enforce word wrapping while deciding where to insert a line break.
-			val breakPt = enforceWordWrap(edibleTxt, maxCols)
-			breaks += chompedChars + breakPt //maxCols
+			val (breakPt, addToList) = enforceWordWrap(edibleTxt, maxCols, replaceNewLines)
+			if(addToList) breaks += chompedChars + breakPt //maxCols
 			chompedChars += breakPt
 			
 			// chomp the characters before the break point. Om nom nom...
 			edibleTxt = edibleTxt.drop(breakPt)
 		}
+		// check if there is one more '\n' character that needs to be accounted for in the leftover edibleTxt.
 		val lastLineBreak = edibleTxt.indexOf('\n')
-		if(lastLineBreak != -1) breaks += chompedChars + lastLineBreak
+		if(lastLineBreak != -1 && replaceNewLines) breaks += chompedChars + lastLineBreak
 		breaks
 	}
 	
@@ -397,21 +402,21 @@ object EliSyntaxFormatting {
 	 * @param maxCols	The character width of the component the parse string is going to be displayed in. 
 	 * @return			the index in txt in which our wordwrap-friendly linebreak will be inserted.
 	 */
-	def enforceWordWrap(txt : String, maxCols : Int) : Int = {
+	def enforceWordWrap(txt : String, maxCols : Int, replaceNewLines : Boolean = true) : (Int, Boolean) = {
 		var index = maxCols
 		var foundIt = false
 		
 		// if a '\n' exists before maxCols in txt, then just return its index.
 		val newLineIndex = txt.indexOf( '\n' )
-		if(newLineIndex != -1 && newLineIndex < maxCols) return newLineIndex+1
+		if(newLineIndex != -1 && newLineIndex < maxCols) return (newLineIndex+1, replaceNewLines)
 		
 		while(!foundIt && index > 1) {
 			index -= 1
 			foundIt = !isWordChar(txt.charAt(index))
 		}
 		
-		if(!foundIt) maxCols
-		else index
+		if(!foundIt) (maxCols, true)
+		else (index, true)
 	}
 	
 	/** 
@@ -471,6 +476,7 @@ object EliSyntaxFormatting {
 			val starts = new ListBuffer[Int]
 			val colors = new ListBuffer[String]
 			val ends = new ListBuffer[Int]
+
 			applyElisionRegexes(text, 0, starts, colors, ends)
 			
 			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
@@ -482,13 +488,13 @@ object EliSyntaxFormatting {
 				var insertLoc = 0
 				var trimmedChars = 0
 				
-				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) < breaks(0)) && (tabs.isEmpty || starts(0) < tabs(0)) && (ltList.isEmpty || starts(0) < ltList(0)) && (gtList.isEmpty || starts(0) < gtList(0))) {
+				if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) <= breaks(0)) && (tabs.isEmpty || starts(0) <= tabs(0)) && (ltList.isEmpty || starts(0) <= ltList(0)) && (gtList.isEmpty || starts(0) <= gtList(0))) {
 					// insert a <font color=> tag
 					tag = """<font color=""" + "\"" + colors(0) + "\"" + """>"""
 					insertLoc = starts(0)
 					starts.trimStart(1)
 					colors.trimStart(1)
-				} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) < breaks(0)) && (tabs.isEmpty || ends(0) < tabs(0)) && (ltList.isEmpty || ends(0) < ltList(0)) && (gtList.isEmpty || ends(0) < gtList(0))) {
+				} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) <= breaks(0)) && (tabs.isEmpty || ends(0) <= tabs(0)) && (ltList.isEmpty || ends(0) <= ltList(0)) && (gtList.isEmpty || ends(0) <= gtList(0))) {
 					// insert a </font> tag
 					tag = """</font>"""
 					insertLoc = ends(0)
@@ -640,7 +646,7 @@ object EliSyntaxFormatting {
 		var insertedChars = 0
 
 		// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-		val (breaks, tabs) = enforceLineWrap(text,maxCols)
+		val (breaks, tabs) = enforceLineWrap(text,maxCols, false)
 		
 		// insert the line breaks.
 		while(!breaks.isEmpty || !tabs.isEmpty) {
@@ -648,7 +654,7 @@ object EliSyntaxFormatting {
 			var insertLoc = 0
 			
 			if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
-				// insert a <br/> tag to enforce a line break
+				// insert a '\n' character
 				tag = "\n"
 				insertLoc = breaks(0)
 				breaks.trimStart(1)

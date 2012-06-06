@@ -81,12 +81,14 @@ object mainGUI extends SimpleSwingApplication {
 		}
 		size = new Dimension(1024,800)
 		visible = true
+		
+		// get focus in the REPL panel
+		consolePanel.console.requestFocusInWindow
 	}
 	
 	
 	
-	// get focus in the REPL panel
-	//consolePanel.console.requestFocusInWindow
+	
 	// treeVisPanel.requestFocusInWindow
 	// treeVisPanel.requestFocus
 }
