@@ -330,4 +330,14 @@ object SpecialForm {
 	    case _ => sfh.toSpecialForm
 	  }
   }
+  
+  /**
+   * Extract the parts of the special form.
+   * 
+   * @param sf    The special form.
+   * @return  The tag and content.
+   */
+  def unapply(sf: SpecialForm) = {
+    Some((sf.tag, sf.content))
+  }
 }

@@ -56,7 +56,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
   /** True if all ruleset names are concrete. */
   private var _conc = true
   /** The ruleset names that are concrete. */
-  private val _namelist = names.map {
+  private val _namelist = (names.map {
     _ match {
       case SymbolLiteral(_, sym) => sym.name
       case StringLiteral(_, name) => name
@@ -64,7 +64,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
         _conc = false
         ""
     }
-  }
+  }).toSet
   
   /*
   def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
@@ -85,40 +85,58 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     }
   }
   */
-  //////////////////// GUI changes
+//  //////////////////// GUI changes
+//  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+//	// get the node representing this atom that is being rewritten
+//	val rwNode = RWTree.current.addChild("RulesetStrategy doRewrite: ")
+//	val atomNode = rwNode.addChild(atom)
+//	
+//    // If this is not concrete, do not execute.
+//    if (!_conc) {
+//		val newSA = SimpleApply(this, atom)
+//		rwNode.addChild(newSA)
+//		return (newSA, false)
+//	}
+//    else {
+//	    // Get the rules.
+//		val rulesNode = rwNode.addChild("rules: ")
+//		RWTree.current = rulesNode
+//	    val rules = context.ruleLibrary.getRules(atom, _namelist)
+//	    // Now try every rule until one applies.
+//	    for (rule <- rules) {
+//			val ruleNode = rulesNode.addChild(rule)
+//			RWTree.current = ruleNode
+//			val (newatom, applied) = rule.doRewrite(atom, hint)
+//			ruleNode.addChild(newatom)
+//			
+//			if (applied) {
+//				atomNode.addChild(newatom)
+//				return (newatom, applied)
+//			}
+//	    }
+//	    return (atom, false)
+//    }
+//  }
+//  //////////////////// end GUI changes
+
   def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("RulesetStrategy doRewrite: ")
-	val atomNode = rwNode.addChild(atom)
-	
     // If this is not concrete, do not execute.
     if (!_conc) {
-		val newSA = SimpleApply(this, atom)
-		rwNode.addChild(newSA)
-		return (newSA, false)
-	}
-    else {
-	    // Get the rules.
-		val rulesNode = rwNode.addChild("rules: ")
-		RWTree.current = rulesNode
-	    val rules = context.ruleLibrary.getRules(atom, _namelist)
-	    // Now try every rule until one applies.
-	    for (rule <- rules) {
-			val ruleNode = rulesNode.addChild(rule)
-			RWTree.current = ruleNode
-			val (newatom, applied) = rule.doRewrite(atom, hint)
-			ruleNode.addChild(newatom)
-			
-			if (applied) {
-				atomNode.addChild(newatom)
-				return (newatom, applied)
-			}
-	    }
-	    return (atom, false)
+      return (SimpleApply(this, atom), false)
+    } else {
+      // Get the rules.
+      val rules = context.ruleLibrary.getRules(atom, _namelist)
+      // Now try every rule until one applies.
+      for (rule <- rules) {
+        val (newatom, applied) = rule.doRewrite(atom, hint)
+        if (applied) {
+          return (newatom, applied)
+        }
+      } // Try all rules.
+      return (atom, false)
     }
   }
-  //////////////////// end GUI changes
-  
+
 }
 
 /**

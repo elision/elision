@@ -215,6 +215,15 @@ object BindingsAtom {
   }
   
   /**
+   * Make a bindings atom directly froma map.
+   * 
+   * @param map The map.
+   * @return  The new atom.
+   */
+  def apply(map: HashMap[String,BasicAtom]) =
+    new BindingsAtom(new Bindings(map))
+  
+  /**
    * Make a bindings atom from the provided sequence of atoms.  Every atom
    * must be an instance of [[ornl.elision.core.MapPair]].
    * 
