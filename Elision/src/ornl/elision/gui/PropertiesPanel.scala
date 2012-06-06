@@ -49,9 +49,9 @@ import scala.collection.mutable.ListBuffer
 import sage2D._
 
 /** Used to display information about the currently selected node. */
-
 class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	background = mainGUI.bgColor
+	/** Used for setting border spacings in this panel */
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	
@@ -118,6 +118,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 }
 
 
+/** Contains constants used by the PropertiesPanel */
 object PropertiesPanel {
 	val preferredWidth = 260
 	val parsePanelHeight = 200
