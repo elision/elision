@@ -53,6 +53,20 @@ import scala.collection.mutable.HashMap
  * variable is bound, and must evaluate to `true` to allow the binding to take
  * place.
  * 
+ * In fact, the variable "guard" is more.  The guard is specified as an atom
+ * in curly braces after the variable name and before any type information.
+ * For proposed binding of variable $x to value v, with guard g, we do the
+ * following.
+ * 
+ * - If g is a [[ornl.elision.core.Rewritable]], then g.a is computed and
+ *   if the flag is true, $x is bound to the resulting atom.
+ * - If g is a [[ornl.elision.core.Applicable]], then g.a is computed and
+ *   $x is bound the result.
+ * - Otherwise g is assumed to be a predicate, and is rewritten with the
+ *   potential bindings.  If the result is true, then $x is bound to v.
+ * 
+ * In all other cases the binding attempt is rejected.
+ * 
  * == Type ==
  * Every variable must have a type, and the type can be `ANY`.
  * 
@@ -97,19 +111,33 @@ class Variable(typ: BasicAtom, val name: String,
    * @param binds			Other bindings that must be honored.
    */
   def bindMe(subject: BasicAtom, binds: Bindings): Outcome = {
-    // Compute the new bindings.
-    val newbinds = binds + (name -> subject)
     // Check any guard.
-    if (guard.isTrue) Match(newbinds)
+    if (guard.isTrue) Match(binds + (name -> subject))
     else {
-      val newterm = guard.rewrite(newbinds)._1
-      if (newterm.isTrue) Match(newbinds)
-      else Fail("Variable guard failed.  Is now: " + newterm.toParseString)
+      guard match {
+        case rew: Rewriter =>
+          // Rewrite the atom.
+          val (newatom, flag) = rew.doRewrite(subject)
+          if (flag) {
+            Match(binds + (name -> newatom))
+          } else {
+            Fail("Variable guard rewriter returned false after rewrite.")
+          }
+        case app: Applicable =>
+          // Apply and return.
+          Match(binds + (name -> app.doApply(subject)))
+        case _ =>
+          // Compute the bindings and check the guard.
+          val newbinds = binds + (name -> subject)
+          val newterm = guard.rewrite(newbinds)._1
+          if (newterm.isTrue) Match(newbinds)
+          else Fail("Variable guard failed.  Is now: " + newterm.toParseString)
+      }
     }
   }
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) =
+      hints: Option[Any]) = {
     // if the variable allows binding, and it is not already bound to a
     // different atom.  We also allow the variable to match ANY.
     if (isBindable) binds.get(name) match {
@@ -131,13 +159,13 @@ class Variable(typ: BasicAtom, val name: String,
         Fail("Variable " + this.toParseString +
           " is already bound to the term " + binds.get(name).get.toParseString +
           ".", this, subject)
-    }
-    else
+    } else {
       // Variables that are not bindable cannot be bound, and cannot match
       // any subject.  This is to prevent allowing them to "match" a bindable
       // variable of the same name and type, and having chaos ensue.
       Fail("Variable is not bindable.", this, subject)
-
+    }
+  }
 	  
 	/*
 	def rewrite(binds: Bindings) = {
