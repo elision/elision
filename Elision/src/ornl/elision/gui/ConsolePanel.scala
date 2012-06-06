@@ -51,12 +51,13 @@ import java.io._
 class ConsolePanel extends ScrollPane {
 	background = mainGUI.bgColor
 	
+	/** Used for setting border spacings in this panel */
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
 	
 	/** The EditorPane containing the REPL */
-	val console = new EditorPane { //new TextArea("",20,80) { // new EditorPane {
+	val console = new EditorPane { //new TextArea("",20,ConsolePanel.maxCols) { // new EditorPane {
 	//	wordWrap = true
 	//	lineWrap = true
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
@@ -95,16 +96,19 @@ class ConsolePanel extends ScrollPane {
 
 class ElisionREPLThread extends Thread {
 	
+	/** Starts a new thread in which the REPL will run in. */
 	override def run : Unit = {
 		ornl.elision.repl.ReplActor.guiMode = true
 		ornl.elision.repl.ReplActor.guiActor = GUIActor
 		runNewRepl
 	}
 	
+	/** Begins running the old REPL */
 	def runOldRepl : Unit = {
 		ornl.elision.repl.Repl.run()
 	}
 	
+	/** Creates an instance of and begins running the new REPL */
 	def runNewRepl : Unit = {
 		val myRepl = new ornl.elision.repl.ERepl
 		myRepl.run
@@ -116,7 +120,7 @@ class ElisionREPLThread extends Thread {
 
 /**
  * An OutputStream object that is convenient for redirecting stdout and stderr to a EditorPane object.
- * @param textArea		The TextArea object we want the stream to output to.
+ * @param textArea		The EditorPane object we want the stream to output to.
  * @param maxLines		The maximum number of lines we want to have in textArea at any one time. 
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
@@ -129,8 +133,8 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	/** The position of the last output character in textArea. */
 	var anchorPos : Int = 0
 	
-	/** The contents of the textArea since the last time it received output. */
-	var readOnlyOutput = "" //textArea.text
+	/** The contents of textArea since the last time it received output. */
+	var readOnlyOutput = ""
 	
 	/**
 	 * Writes an array of bytes to the output stream.
@@ -158,18 +162,32 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		}
 	}
 	
+	/** 
+	 * Does the actually processing work for writing new text to the EditorPane. 
+	 * This includes applying HTML tags for Elision formatting and keeping track 
+	 * of where the boundary between output and input space is. 
+	 * @param _newTxt		is the string being appended to the EditorPane.
+	 */
 	private def _write(_newTxt : String) : Unit = {
 		try {
 			var newTxt = _newTxt
-			if(applyFormatting) newTxt = EliSyntaxFormatting.applyHTMLHighlight(newTxt, false, 80)
-			else newTxt = replaceAngleBrackets(newTxt)
-			newTxt = replaceWithHTML(newTxt)
-			newTxt = reduceTo9Lines(newTxt)
+			if(newTxt == "\n") newTxt = """<br/>"""
+			else {
+				// Inject our new text with HTML tags for Elision formatting.
+				if(applyFormatting) newTxt = EliSyntaxFormatting.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
+				else newTxt = EliSyntaxFormatting.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
+				newTxt = replaceWithHTML(newTxt)
+				if(applyFormatting) newTxt = reduceTo9Lines(newTxt)
+			}
 			
+			// append our processed new text to our previous output.
 			updateReadOnlyText(newTxt)
 			enforceMaxLines
 			
+			// apply a constant-width font to our entire EditorPane.
 			textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + readOnlyOutput
+			
+			// update our anchor point and caret position.
 			anchorPos = ConsolePanel.getLength // readOnlyOutput.size // 
 			textArea.caret.position = anchorPos // textArea.text.length
 		} catch {
@@ -190,7 +208,12 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		}
 	}
 	
-	/** Reduces a new line of output so that it doesn't exceed 9 lines. If it does, it is cut off and appended with "..." below it. */
+	/** 
+	 * Reduces a new line of HTML-formatted output so that it doesn't exceed 9 lines. 
+	 * If it does, it is cut off and appended with "..." below it. 
+	 * @param txt		The HTML string we are reducing to no more than 9 lines.
+	 * @return			Our string reduced to no more than 9 lines when interpretted as HTML. If it exceeds 9 lines, "..." is appended on the line below the 9th line.
+	 */
 	def reduceTo9Lines(txt : String) : String = {
 		var lineBreakCount = 1
 		for(myMatch <- EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).matchData) {
@@ -214,12 +237,19 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		txt
 	}
 	
-	/** Counts the number of lines in the EditorPane by counting the number of <br/> tags. */
+	/** 
+	 * Counts the number of lines in the EditorPane by counting the number of <br/> tags. 
+	 * @param txt	The string we are counting new line tags in.
+	 * @return		The number of new line tags in txt.
+	 */
 	def lineCount(txt : String) : Int = {
 		EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).size
 	}
 	
-	/** Removes the first <br/> tag and everything before it in the EditorPane's readOnlyOutput. */
+	/** 
+	 * Removes the first <br/> tag and everything before it in the EditorPane's readOnlyOutput. 
+	 * @return		true if the readOnlyOutput currently has at least 1 new line tag. Otherwise false.
+	 */
 	def chompFirstLine() : Boolean = {
 		EliSyntaxFormatting.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
 			case Some(myMatch : scala.util.matching.Regex.Match) =>
@@ -230,17 +260,26 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		}
 	}
 	
-	
+	/** 
+	 * Replaces special characters (' ', '\t', and '\n') in a String in a way that HTML can interpret them correctly.
+	 * @param txt		The String we are replacing characters in.
+	 * @return			The modified txt.
+	 */
 	private def replaceWithHTML(txt : String) : String = {
 		var result = txt
 		
 		result = result.replaceAllLiterally(" ","""&nbsp;""")
 		result = result.replaceAllLiterally("\t","""&nbsp;&nbsp;&nbsp;""")
-		result = result.replaceAllLiterally("\n","""<br/>""")
+		//result = result.replaceAllLiterally("\n","""<br/>""")
 		
 		result
 	}
 	
+	/**
+	 * Replaces angle brackets (< and >) with their equivalent in HTML so that they won't be interpretted accidentally as HTML tags. 
+	 * @param txt		The String we are replacing < and >'s in.
+	 * @return			The modified txt.
+	 */
 	private def replaceAngleBrackets(txt : String) : String = {
 		var result = txt
 		
@@ -250,21 +289,36 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		result
 	}
 	
+	/** 
+	 * Appends new already-processed text to our readOnlyOutput. 
+	 * @param newTxt		The text being appended to readOnlyOutput.
+	 */
 	def updateReadOnlyText(newTxt : String) : Unit = {
-		readOnlyOutput += newTxt // ConsolePanel.getText // 
+		readOnlyOutput += newTxt
 	}
 }
 
+/** Contains some helpful constants used by the ConsolePanel, EditorPaneOutputStream, and EditorPaneInputStream. */
 object ConsolePanel {
+	/** If the Repl panel's maximum lines is set below this, then it will not enforce a maximum on the lines it retains.*/
 	val infiniteMaxLines = 10
+	
+	/** The maximum number of columns to enforce in the EditorPane*/
+	val maxCols = 80
+	
+	/** Just a reference to the ConsolePanel's EditorPane */
 	var textArea : EditorPane = null
+	
+	/** The maximum number of input strings to retain in the ConsolePanel's history. */
 	val MAX_HISTORY : Int = 20
 	
+	/** gets the text of the EditorPane */
 	def getText() : String = {
 		val doc = textArea.peer.getDocument
 		doc.getText(0,doc.getLength)
 	}
 	
+	/** gets the length of the EditorPane's text. */
 	def getLength() : Int = {
 		textArea.peer.getDocument.getLength
 	}
@@ -275,7 +329,6 @@ object ConsolePanel {
  * It's not actually an InputStream, but it facilitates in sending input from a textArea to the REPL. 
  * @param taos		The TextAreaOutputStream that contains the TextArea that is housing the REPL.
  */
-
 class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 
 	/** A convenient reference to taos's textArea */
@@ -350,7 +403,6 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 	 * If i is positive, it will cycle backwards once through history. If i is negative, it will cycle foward once through history.
 	 * @param index		An integer in range [-1,1] telling the history which direction to cycle. 1 means go back 1, -1 means go forward 1.
 	 */
-	
 	def getHistory(index : Int) : Unit = {
 		val i = index/math.abs(index) // normalize i so that we can only increment by magnitudes of 1 at a time.
 	
@@ -371,7 +423,6 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 	 * This sends whatever is the current input text to the Repl's actor so that it can be processed by the Repl.
 	 * The input is also saved into the input history.
 	 */
-	
 	def sendToInputStream : Unit = {
 		import java.lang.System
 		import ornl.elision.repl.Repl
@@ -380,9 +431,19 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 		
 			// create the inputString to send to the REPL
 			val srcString : String = ConsolePanel.getText // textArea.text
-			val inputString = srcString.substring(taos.anchorPos)
-			val formattedInputString = EliSyntaxFormatting.applyHTMLHighlight(inputString, false, 80)
+			var inputString = srcString.substring(taos.anchorPos)
 			
+			// get rid of the new line we just put in our input string
+			val nlIndex = inputString.indexOf('\n')
+			if(nlIndex != -1) {
+				val (inpStr1, inpStr2) = inputString.splitAt(nlIndex)
+				inputString = inpStr1 + inpStr2.drop(1)
+			}
+			
+			// apply formatting to the fixed input string
+			val formattedInputString = EliSyntaxFormatting.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
+			
+			// add the input string to the readOnlyOutput
 			taos.updateReadOnlyText(formattedInputString)
 			taos.anchorPos = ConsolePanel.getLength
 			
@@ -415,7 +476,6 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
  * @param maxLines		The maximum number of lines we want to have in textArea at any one time. 
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
-
 class TextAreaOutputStream( var textArea : TextArea, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
 	
 	/** The position of the last output character in textArea. */
@@ -493,7 +553,6 @@ object TextAreaOutputStream {
  * It's not actually an InputStream, but it facilitates in sending input from a textArea to the REPL. 
  * @param taos		The TextAreaOutputStream that contains the TextArea that is housing the REPL.
  */
-
 class TextAreaInputStream( var taos : TextAreaOutputStream) {
 
 	/** A convenient reference to taos's textArea */
