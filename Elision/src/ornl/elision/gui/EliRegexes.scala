@@ -132,7 +132,7 @@ object EliRegexes {
 						numDec
 				)
 	
-	/** A map between regexes and their appropriate web colors. */
+	/** A map between regexes and their appropriate web colors used for HTML formatting. */
 	val colorMap = Map[Regex,String](
 		multilineComment -> EliWebColors.comments,
 		singlelineComment -> EliWebColors.comments,
@@ -226,14 +226,24 @@ object EliWebColors {
 /** provides methods for doing syntax formatting for Elision text */
 object EliSyntaxFormatting {
 	
+	/** A string representing a tab in way that HTML can understand. */
 	val tab = """&nbsp;&nbsp;&nbsp;"""
+	
+	/** A string mimicing a tab. It's really just a bunch of '~'s. */
 	val fauxTab = """~~~"""
+	
+	/** The number of characters making up a tab. */
 	val tabSize = fauxTab.size
 	
+	/** Used to find <br/> tags in an HTML string. */
 	val htmlNewLineRegex = new Regex("""(<br/>)""",
 		"all")
+		
+	/** Used to find <font> start tags in an HTML string. */
 	val htmlFontStartRegex = new Regex("""(<font.*?>)""",
 		"all")
+		
+	/** Used to find </font> end tags in an HTML string. */
 	val htmlFontEndRegex = new Regex("""(</font>)""",
 		"all")
 	
@@ -242,11 +252,10 @@ object EliSyntaxFormatting {
 	 * for <font color=~~~~> </font> tags to be inserted into the parse string. 
 	 * @param txt			the parse string that is having highlighting applied to it.
 	 * @param prevChomped	a count of how many characters in txt have already been processed for highlighting.
-	 * @param starts		a list of insertion indices for <font> tags.
-	 * @param colors		a list of web colors coresponding to the indices in starts.
-	 * @param ends			a list of insertion indices for </font> tags.
+	 * @param starts		an empty list of insertion indices for <font> tags. This will be populated by this method.
+	 * @param colors		an empty list of web colors coresponding to the indices in starts. This will be populated by this method.
+	 * @param ends			an empty list of insertion indices for </font> tags. This will be populated by this method.
 	 */
-	
 	def applyElisionRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int]) : Unit = {
 
 		var text = txt
@@ -271,6 +280,7 @@ object EliSyntaxFormatting {
 							bestStart = myMatch.start
 							bestEnd = myMatch.end
 							
+							// if the regex requires recursive formatting, figure out between what indices to apply the recursive formatting if it is chosen.
 							val recGroup = EliRegexes.recursableMap(bestRegex)
 							if(recGroup != -1) {
 								bestRecStart = myMatch.start(recGroup)
@@ -282,6 +292,7 @@ object EliSyntaxFormatting {
 			}
 			if(bestRegex == null)	text = ""
 			else {
+				// now that we have figured out which regex to apply next, add its coloring/indexing information to our lists.
 				val color = EliRegexes.colorMap(bestRegex)
 				starts += chompedChars + bestStart
 				colors += color
@@ -305,7 +316,12 @@ object EliSyntaxFormatting {
 	}
 	
 	
-	/** Enforces wrapped lines in a parse string so that the editor pane doesn't grossly resize this panel.*/
+	/** 
+	 * Enforces wrapped lines in a parse string so that the editor pane doesn't grossly resize this panel.
+	 * @param txt		the parse string for which we are computing where to insert line breaks and indentations.
+	 * @param maxCols	the character width of the component the parse string is going to be displayed in. 
+	 * @return 			two ListBuffers containing indices in txt to insert line breaks and tabs at, respectively.
+	 */
 	def enforceLineWrap(txt : String, maxCols : Int) : (ListBuffer[Int], ListBuffer[Int]) = {
 		var chompedChars = 0
 		var edibleTxt = txt
@@ -328,8 +344,7 @@ object EliSyntaxFormatting {
 			indents -= curLine.count(ch => (ch == '}' || ch == ')' || ch == ']') )
 			indents = math.max(0,indents)
 			
-	//		println(curLine)
-			// chomp the characters before the break point.
+			// chomp the characters before the break point. Om nom nom...
 			edibleTxt = edibleTxt.drop(breakPt)
 			
 			// insert indentations
@@ -348,17 +363,49 @@ object EliSyntaxFormatting {
 				tabs += chompedChars
 			}
 		}
-	//	println(edibleTxt)
-		
+		val lastLineBreak = edibleTxt.indexOf('\n')
+		if(lastLineBreak != -1) breaks += chompedChars + lastLineBreak
 		(breaks, tabs)
 	}
 	
-	/** Finds where to insert a line break for correct word wrapping. */
+	
+	
+	def enforceLineWrapWithNoTabs(txt : String, maxCols : Int) : ListBuffer[Int] = {
+		var chompedChars = 0
+		var edibleTxt = txt
+		val breaks = new ListBuffer[Int]
+		
+		while(edibleTxt.size > maxCols) {
+			// enforce word wrapping while deciding where to insert a line break.
+			val breakPt = enforceWordWrap(edibleTxt, maxCols)
+			breaks += chompedChars + breakPt //maxCols
+			chompedChars += breakPt
+			
+			// chomp the characters before the break point. Om nom nom...
+			edibleTxt = edibleTxt.drop(breakPt)
+		}
+		val lastLineBreak = edibleTxt.indexOf('\n')
+		if(lastLineBreak != -1) breaks += chompedChars + lastLineBreak
+		breaks
+	}
+	
+	
+	
+	/** 
+	 * Finds where to insert a line break in a single line for correct word wrapping. 
+	 * @param txt 		This is the line of text in which we are figuring out where to insert a line break that will satisfy word wrapping.
+	 * @param maxCols	The character width of the component the parse string is going to be displayed in. 
+	 * @return			the index in txt in which our wordwrap-friendly linebreak will be inserted.
+	 */
 	def enforceWordWrap(txt : String, maxCols : Int) : Int = {
 		var index = maxCols
 		var foundIt = false
 		
-		while(!foundIt && index > 0) {
+		// if a '\n' exists before maxCols in txt, then just return its index.
+		val newLineIndex = txt.indexOf( '\n' )
+		if(newLineIndex != -1 && newLineIndex < maxCols) return newLineIndex+1
+		
+		while(!foundIt && index > 1) {
 			index -= 1
 			foundIt = !isWordChar(txt.charAt(index))
 		}
@@ -367,13 +414,21 @@ object EliSyntaxFormatting {
 		else index
 	}
 	
-	/** checks if a character is an alphanumeric */
+	/** 
+	 * Checks if a character is an alphanumeric. 
+	 * @param c		the character we are testing.
+	 * @return		if c is an alphanumeric character, true. Otherwise false.
+	 */
 	def isWordChar(c : Char) : Boolean = {
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
 	}
 	
 	
-	/** Finds the locations of all angle brackets in txt. */
+	/** 
+	 * Finds the locations of all angle brackets (< and >) in txt. 
+	 * @param txt		The string we are finding the position of <> characters in.
+	 * @return			Two lists containing the indices of the txt's < and > characters, respectively.
+	 */
 	def enforceAngleBracketReplacement(txt: String) : (ListBuffer[Int], ListBuffer[Int]) = {
 		val ltMatches = new Regex("""([<])""",
 		"all").findAllIn(txt).matchData
@@ -395,7 +450,13 @@ object EliSyntaxFormatting {
 	}
 	
 	
-	/** Applies HTML-style formatting to a parse string for use in an EditorPane. */
+	/** 
+	 * Applies HTML-style formatting to a parse string for use in an EditorPane. 
+	 * @param text					The parse string to which we are applying HTML tags for Elision formatting.
+	 * @param disableHighlight		Disables coloring tags if true.
+	 * @param maxCols				The character width of the component the parse string is going to be displayed in. 
+	 * @return						The parse string with HTML tags inserted for Elision formatting.
+	 */
 	def applyHTMLHighlight(text : String, disableHighlight : Boolean = true, maxCols : Int = 50) : String = {
 		var result = text
 		
@@ -432,12 +493,12 @@ object EliSyntaxFormatting {
 					tag = """</font>"""
 					insertLoc = ends(0)
 					ends.trimStart(1)
-				} else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) < ltList(0)) && (gtList.isEmpty || breaks(0) < gtList(0))) {
+				} else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) <= ltList(0)) && (gtList.isEmpty || breaks(0) <= gtList(0))) {
 					// insert a <br/> tag to enforce a line break
 					tag = """<br/>"""
 					insertLoc = breaks(0)
 					breaks.trimStart(1)
-				} else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) < ltList(0)) && (gtList.isEmpty || tabs(0) < gtList(0))) {
+				} else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) <= ltList(0)) && (gtList.isEmpty || tabs(0) <= gtList(0))) {
 					// insert a tab
 					tag = tab
 					insertLoc = tabs(0)
@@ -474,12 +535,12 @@ object EliSyntaxFormatting {
 				var insertLoc = 0
 				var trimmedChars = 0
 				
-				if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) < ltList(0)) && (gtList.isEmpty || breaks(0) < gtList(0))) {
+				if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) <= ltList(0)) && (gtList.isEmpty || breaks(0) <= gtList(0))) {
 					// insert a <br/> tag to enforce a line break
 					tag = """<br/>"""
 					insertLoc = breaks(0)
 					breaks.trimStart(1)
-				} else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) < ltList(0)) && (gtList.isEmpty || tabs(0) < gtList(0))) {
+				} else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) <= ltList(0)) && (gtList.isEmpty || tabs(0) <= gtList(0))) {
 					// insert a tab
 					tag = tab
 					insertLoc = tabs(0)
@@ -513,8 +574,12 @@ object EliSyntaxFormatting {
 	}
 	
 	
-	/** Only replaces < > with &lt; &gt; respectively. */
-	def applyMinHTML(text : String) : String = {
+	/** 
+	 * Only replaces < > with &lt; &gt; respectively. 
+	 * @param text		The parse string we are converting to be HTML-friendly.
+	 * @return 			The parse string with < > characters replaced with &lt; &gt; respectively. 
+	 */
+	def applyMinHTML(text : String, maxCols : Int = 80) : String = {
 		var result = text
 		
 		// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
@@ -522,13 +587,19 @@ object EliSyntaxFormatting {
 		
 		// obtain the locations of angle brackets so we can convert them to be not interpretted by the EditorPane's HTML kit.
 		val (ltList,gtList) = enforceAngleBracketReplacement(text)
+		val breaks = enforceLineWrapWithNoTabs(text,maxCols)
 		
-		while(!ltList.isEmpty || !gtList.isEmpty) {
+		while(!breaks.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
 			var tag = ""
 			var insertLoc = 0
 			var trimmedChars = 0
 			
-			if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
+			if(!breaks.isEmpty && (ltList.isEmpty || breaks(0) <= ltList(0)) && (gtList.isEmpty || breaks(0) <= gtList(0))) {
+				// insert a <br/> tag to enforce a line break
+				tag = """<br/>"""
+				insertLoc = breaks(0)
+				breaks.trimStart(1)
+			} else if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
 				tag = """&lt;"""
 				insertLoc = ltList(0)
 				ltList.trimStart(1)
@@ -556,7 +627,12 @@ object EliSyntaxFormatting {
 	
 	
 	
-	/** Applies C-style formatting to a parse string for use in an EditorPane. (does not include colors)*/
+	/** 
+	 * Applies C-style formatting to a parse string for use in an EditorPane. (does not include colors)
+	 * @param text			the parse string in which we are applying C-style Elision formatting.
+	 * @param maxCols		The character width of the component the parse string is going to be displayed in. 
+	 * @return 				The parse string with new line and mimic-tab (3 spaces) characters inserted in where appropriate for Elision formatting.
+	 */
 	def applyBreaksAndTabs(text : String, maxCols : Int = 50) : String = {
 		var result = text
 		

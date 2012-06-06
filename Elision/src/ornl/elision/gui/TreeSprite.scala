@@ -47,7 +47,6 @@ import collection.mutable.ArrayBuffer
  * Rather, it represents the rewrite tree structure for an Elision term as a 
  * renderable sprite.
  */
-
 class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x,y) {
 	
 	/** The node currently selected in the tree */
@@ -102,7 +101,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param node		The node being selected.
 	 * @param n			The decompression depth for expanding the tree relative to node.
 	 */
-	
 	def selectNode(node : NodeSprite, n : Int = 1) : Unit = {
 		
 		// don't allow leaf nodes to be selected
@@ -138,7 +136,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param mouseWorld	The mouse's position in world coordinates.
 	 * @param n				The decompression depth for expanding the tree relative to node.
 	 */
-	
 	def selectNode(mouseWorld : geom.Point2D, n : Int) : Unit = {
 		selectNode(detectMouseOver(mouseWorld),n)
 	}
@@ -149,7 +146,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param node		the root of the current subtree being decompressed
 	 * @param n			the current depth we are recursively decompressing out to
 	 */
-	
 	private def nDepthDecompress(node : NodeSprite, skipped : NodeSprite, n : Int) : Unit = {
 		if(node.isCompressed) {
 			node.isCompressed = false
@@ -173,7 +169,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param skipped	Is the child of node that we just came up from in the bottom-up select node method. 
 	 *					We don't want to compress it or its children. It already compressed any of its children that needed to be compressed.
 	 */
-	
 	private def compressChildrenOf(node : NodeSprite, skipped : NodeSprite = null) : Unit = {
 		import collection.mutable.Stack
 		
@@ -202,7 +197,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * @param node		The node whose leaf descendants we are currently counting
 	 * @return			The number of node's leaf descendants
 	 */
-	
 	def countLeaves(node : NodeSprite) : Int = {
 		node.numLeaves = 0
 		
@@ -231,7 +225,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 	 * They are stored internally in the tree's NodeSprites.
 	 * @param node		The node for whose children we are currently computing the y-offsets for.
 	 */
-	
 	def computeYOffsets(node : NodeSprite) : (Double, Double) = {
 		// The number of leaves of previous sibling nodes will be used to determine what node's current child
 		// node's y-offset should be. The first child has no siblings before it. Therefore initialize this to 0.
@@ -286,7 +279,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 
 
 /** Contains some static properties used by TreeSprite as well as factory methods for constructing a treesprite. */
-
 object TreeSprite {
 	
 	/** The base x-offset for child nodes from their parent node */
@@ -300,7 +292,6 @@ object TreeSprite {
 	 * Factory method builds a fabricated tree structure with a friendly 
 	 * welcome message and some basic instructions.
 	 */
-	 
 	 def buildWelcomeTree : TreeSprite = {
 		val realroot = new NodeSprite("root")
 			val root0 = addChild("Welcome to the ",realroot)
@@ -320,7 +311,6 @@ object TreeSprite {
 	/**
 	 * Used by some of the TreeSprite factory methods.
 	 */
-	
 	private def addChild(term : String, parent : NodeSprite) : NodeSprite = {
 		val node = new NodeSprite(term, parent)
 		parent.addChild(node)
@@ -332,7 +322,6 @@ object TreeSprite {
 	 * @param rwRoot	The root node of the rewrite tree to be constructed as a TreeSprite.
 	 * @return			The completed TreeSprite constructed from rwRoot
 	 */
-	
 	def buildRWTree(rwRoot : ornl.elision.core.RWTreeNode) : TreeSprite = {
 		val root = new NodeSprite(rwRoot.term)
 		root.properties = rwRoot.properties
@@ -351,7 +340,6 @@ object TreeSprite {
 	 * @param rwRoot	The root node of the current rewrite subtree.
 	 * @param parent	rwRoot's immediate parent.
 	 */
-	 
 	private def buildRWTreeRec(rwNode : ornl.elision.core.RWTreeNode, parent : NodeSprite) : Unit = {
 		val node = new NodeSprite(rwNode.term, parent)
 		node.properties = rwNode.properties
@@ -376,7 +364,6 @@ object TreeSprite {
  * @param term		A string to be used as this node's label. This will be the parse string of the atom this node represents.
  * @param parent	This node's parent NodeSprite.
  */
-
 class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = null) extends Sprite(0,0) {
 	
 	import java.awt.geom.RoundRectangle2D
@@ -419,8 +406,10 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	// if the term is very long, separate it into multiple lines.
 	private var edibleTerm = EliSyntaxFormatting.applyBreaksAndTabs(term, NodeSprite.maxTermLength)
 	
+	/** The longest line of text in this node's label. */
 	var longestLine= ""
 	
+	/** An ArrayBuffer containing the lines of text in this node's label */
 	var termLines = new ArrayBuffer[String]
 	val allLines = edibleTerm.split('\n')
 	while(termLines.size < 9 && allLines.size > termLines.size) {
@@ -429,11 +418,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		termLines += str
 		
 	}
-/*	while(edibleTerm.length > NodeSprite.maxTermLength && termLines.size < 9) {
-		val (str1, str2) = edibleTerm.splitAt(NodeSprite.maxTermLength)
-		termLines += str1
-		edibleTerm = str2
-	} */
 	if(allLines.size > termLines.size) termLines += "..."
 
 	
@@ -463,7 +447,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 * Draws this node and recursively calls its decompressed children to be rendered.
 	 * @param g		The graphics context this node is being rendered on.
 	 */
-	
 	override def draw(g : Graphics2D) : Unit = {
 
 		// obtain the dimensions of this node's term label.
@@ -563,7 +546,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 * @param color		The color we are applying this sprite's alphaMaster to.
 	 * @return		A new Color with RGB identical to color's RGB, but using alphaMaster as its alpha color.
 	 */
-	
 	private def alphaColor(color : Color) : Color = {
 		new Color(color.getRed, color.getGreen, color.getBlue, (255 * alphaMaster).toInt)
 	}
@@ -574,7 +556,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 * Draws the edges of this node to decompressed children.
 	 * @param g		The graphics context the edges are being rendered to.
 	 */
-	
 	private def drawEdges(g : Graphics2D) : Unit = {
 		import java.awt.geom.CubicCurve2D
 		import java.awt.geom.Rectangle2D
@@ -624,7 +605,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 * Adds a child node to this NodeSprite.
 	 * @param node		The child being added to this node.
 	 */
-	
 	def addChild(node : NodeSprite) : Unit = {
 		node.index = children.size
 		children += node
@@ -636,7 +616,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 * @param index		the index of the child whose position we need.
 	 * @return			the child node's position relative to its parent.
 	 */
-	
 	def getChildPosition(index : Int) : geom.Point2D = {
 		val longestSib = getLongestSibling
 		val childX = longestSib - box.width + TreeSprite.defX + 5*numLeaves
@@ -650,7 +629,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 * Gets the width of the longest sibling's box.
 	 * @return		the length of this node's parent's longest child.
 	 */
-	
 	def getLongestSibling : Double = {
 		var longest = 0.0
 		
@@ -667,13 +645,11 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/**
 	 * Returns this node's world coordinates as a Point2D.Double object.
 	 */
-	
-	
 	def getWorldPosition : geom.Point2D = {
 		new geom.Point2D.Double(worldX,worldY)
 	}
 	
-	
+	/** Returns the excess height of this node in pixels beyond what it would normally be if its label were only 1 line. */
 	def excessHeight : Int = {
 		boxHeight - (NodeSprite.font.getSize+5)
 	}
@@ -683,7 +659,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/**
 	 *	Returns the rectangle representing this node's bounding box in world coordinates.
 	 */
-	
 	override def getCollisionBox : Rectangle2D = {
 		new Rectangle2D.Double(worldX + box.x, worldY + box.y, boxWidth, boxHeight)
 	}
@@ -693,34 +668,37 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 
 
 /** Contains static data used by NodeSprites */
-
 object NodeSprite {
+	/** A constant-width font used in the NodeSprites' labels. */
 	val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
 	
+	/** black, just black. */
 	val textColor = new Color(0x000000)
 	
-	// comment color: Twilight lavender
+	/** comment color: Twilight lavender */
 	val comBoxColor = new Color(0xddddff)
 	val comBorderColor = new Color(0x5555aa)
 	
-	// rewritten atom colors: Dash blue
+	/** rewritten atom colors: Dash blue */
 	val boxColor = new Color(0xd7e9ff)
 	val borderColor = new Color(0x77a9dd)
 	
-	// verbatim atom colors: Apple orange
+	/** verbatim atom colors: Apple orange */
 	val verbBoxColor = new Color(0xffeecc)
 	val verbBorderColor = new Color(0xddaa77)
 	
-	// selected colors : Flutter yellow
+	/** selected colors : Flutter yellow */
 	val selectedBoxColor = new Color(0xffffcc)
 	val selectedBorderColor = new Color(0xaaaa55) 
 	
-	// leaf colors: Rare grey
+	/** leaf colors: Rare grey */
 	val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
 	val selectedLeafBoxColor = new Color(0xffffee)
 	
+	/** The maximum length of a line of text in a node's label. */
 	val maxTermLength = 50
 	
+	/** A reference to a Camera object. This is used by NodeSprite only for clipping since the camera's transform is already applied before calling the NodeSprite's render method. */
 	var camera : Camera = null
 }
 
