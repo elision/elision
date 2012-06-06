@@ -65,7 +65,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	val parseArea = new EditorPane {
 		editable = false
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
-		focusable = false
+		focusable = true
 		editorKit = new javax.swing.text.html.HTMLEditorKit
 	}
 	
@@ -88,7 +88,7 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 		editable = false
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-		focusable = false
+		focusable = true
 	}
 	
 	/** The scrolling pane that contains textArea */
