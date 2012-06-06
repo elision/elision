@@ -51,7 +51,6 @@ import sage2D._
 /**	
  * This is the Elision GUI's main window.
  */
-
 object mainGUI extends SimpleSwingApplication {
 	
 	/** The universal background color for the GUI's panels */
@@ -71,10 +70,7 @@ object mainGUI extends SimpleSwingApplication {
 	
 	GUIActor.start
 	
-	/**
-	 * The window's Frame object
-	 */
-	
+	/** The window's Frame object */
 	def top = new MainFrame {
 		title = "Elision Visualization Assistant"
 		menuBar = guiMenuBar
@@ -96,10 +92,7 @@ object mainGUI extends SimpleSwingApplication {
 }
 
 
-/**	
- * This is the menu bar for the GUI
- */
-
+/**	This is the menu bar for the GUI */
 object guiMenuBar extends MenuBar {
 	
 	// File menu
@@ -199,7 +192,6 @@ object guiMenuBar extends MenuBar {
 	
 	
 	/** The dialog window for the "View > Set Decompression Depth" menu item */
-	
 	class DepthDialog extends Dialog {
 		this.title = "Set Decompression Depth"
 		val inset = 3
@@ -227,8 +219,8 @@ object guiMenuBar extends MenuBar {
 		
 		/** 
 		 * processes the input for the dialog when the user clicks OK or presses Enter 
+		 * @param input		The input string being evaluated as the new decompression depth
 		 */
-		
 		private def enterInput(input : String) : Unit = {
 			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
 			// Otherwise, just close the dialog.
@@ -254,7 +246,6 @@ object guiMenuBar extends MenuBar {
 	}
 	
 	/** The dialog window for the "View > Set REPL Maximum Lines" menu item */
-	
 	class MaxLinesDialog extends Dialog {
 		this.title = "Set REPL Maximum Lines"
 		val inset = 3
@@ -285,8 +276,8 @@ object guiMenuBar extends MenuBar {
 		
 		/** 
 		 * processes the input for the dialog when the user clicks OK or presses Enter 
+		 * @param input		The input string being evaluated as the new value for the REPL's maximum lines.
 		 */
-		
 		private def enterInput(input : String) : Unit = {
 			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
 			// Otherwise, just close the dialog.
@@ -318,7 +309,6 @@ object guiMenuBar extends MenuBar {
  * This panel shall display a tree structure showing the rewriting hierarchy 
  * of the last atom string passed to the REPL as input.
  */
-
 class TreeVisPanel extends GamePanel {
 	background = new Color(0xffffff)
 	preferredSize = new Dimension(640,480)
@@ -442,6 +432,7 @@ class TreeVisPanel extends GamePanel {
 	 * Selects a node in the current tree visualization, 
 	 * does some fancy camera work to make sure that that node stays in the same place onscreen
 	 * after the graph is re-expanded, and displays that node's information in the atom properties panel.
+	 * @param clickedNode		The node being selected in our tree.
 	 */
 	
 	def selectNode(clickedNode : NodeSprite) : Unit = {
@@ -463,7 +454,6 @@ class TreeVisPanel extends GamePanel {
 	 * Performs one iteration through the visualization panel's logic. 
 	 * It's mostly just processing mouse input for controlling the camera and selecting nodes.
 	 */
-	
 	def timerLoop : Unit = {
 
 		keyboardIn.poll
@@ -505,7 +495,6 @@ class TreeVisPanel extends GamePanel {
 	
 	// once the panel is set up, start the timer.
 	// the timer will call timerLoop and repaint periodically
-	
 	start()
 }
 
@@ -517,7 +506,6 @@ class TreeVisPanel extends GamePanel {
 import scala.actors.Actor
 
 /** The Actor object used to receive and process communications from the REPL */
-
 object GUIActor extends Actor {
 	def act() = {
 		loop {
