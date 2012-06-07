@@ -84,6 +84,8 @@ object mainGUI extends SimpleSwingApplication {
 		
 		// get focus in the REPL panel
 		consolePanel.console.requestFocusInWindow
+		
+		
 	}
 	
 	
@@ -107,7 +109,7 @@ object guiMenuBar extends MenuBar {
 		
 		var openDirectory = mainGUI.config.lastOpenPath //"."
 		
-		val openItem = new MenuItem(Action("Open") {
+		val openItem = new MenuItem(Action("Open      Ctrl+ O") {
 			val fc = new FileChooser(new File(openDirectory))
 			fc.showOpenDialog(null)
 			val selFile = fc.selectedFile
