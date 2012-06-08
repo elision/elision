@@ -273,6 +273,19 @@ bin, lib, and other folders.</echo>
 				<attribute name="Main-Class" value="ornl.elision.repl.ReplMain"/>
 			</manifest>
 		</jar>
+        <jar
+			filesetmanifest	="skip"
+			destfile		="${build.latest}/elision-eva.jar"
+			index			="true">
+			<fileset dir="${build.bin}"/>
+			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
+			<zipgroupfileset dir="${env.SCALA_HOME}/lib" includes="scala-library.jar"/>
+			<zipgroupfileset dir="${env.SCALA_HOME}/lib" includes="scala-compiler.jar"/>
+			<manifest>
+				<attribute name="Build-Date" value="${DSTAMP}"/>
+				<attribute name="Main-Class" value="ornl.elision.gui.mainGUI"/>
+			</manifest>
+		</jar>
 		<jar destfile = "${build.base}/${DSTAMP}/elision-src.jar">
 			<fileset dir="${build.src}"/>
 			<manifest>
