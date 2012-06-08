@@ -341,11 +341,10 @@ object TreeSprite {
 	 * @param parent	rwRoot's immediate parent.
 	 */
 	private def buildRWTreeRec(rwNode : ornl.elision.core.RWTreeNode, parent : NodeSprite) : Unit = {
-		val node = new NodeSprite(rwNode.term, parent)
+		val node = new NodeSprite(rwNode.term, parent, rwNode.isComment)
 		node.properties = rwNode.properties
 		parent.addChild(node)
-		
-		node.isComment = rwNode.isComment
+
 		node.isStringAtom = rwNode.isStringAtom
 		
 		for(child <- rwNode.children) {
@@ -363,8 +362,9 @@ object TreeSprite {
  * of a TreeSprite's root node, this should be 0,0.
  * @param term		A string to be used as this node's label. This will be the parse string of the atom this node represents.
  * @param parent	This node's parent NodeSprite.
+ * @param isComment Flag indicates that this node is just a documentation string and doesn't actually represent an atom.
  */
-class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = null) extends Sprite(0,0) {
+class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = null, val isComment : Boolean = true) extends Sprite(0,0) {
 	
 	import java.awt.geom.RoundRectangle2D
 	import java.awt.geom.Rectangle2D
@@ -403,14 +403,19 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	var expansion : Double = 0.1 // used for a smooth decompression animation
 	
 	
-	// if the term is very long, separate it into multiple lines.
-	private var edibleTerm = EliSyntaxFormatting.applyBreaksAndTabs(term, NodeSprite.maxTermLength)
+	
+    // obtain data for syntax highlighting and formatting
+    
+	private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = EliSyntaxFormatting.applyNonHTMLFormatting(term, isComment, NodeSprite.maxTermLength)
 	
 	/** The longest line of text in this node's label. */
 	var longestLine= ""
 	
 	/** An ArrayBuffer containing the lines of text in this node's label */
 	var termLines = new ArrayBuffer[String]
+    
+    // if the term is very long, separate it into multiple lines.
+    
 	val allLines = edibleTerm.split('\n')
 	while(termLines.size < 9 && allLines.size > termLines.size) {
 		val str = allLines(termLines.size)
@@ -419,8 +424,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		
 	}
 	if(allLines.size > termLines.size) termLines += "..."
-
 	
+	/** Flag for drawing the node's label with syntax coloring. */
+	var syntaxColoring = true
 	
 	/** The node's width */
 	private val boxWidth = longestLine.length * NodeSprite.font.getSize * 0.66 + 5
@@ -434,11 +440,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** The node's properties describing the Elision atom it represents */
 	var properties : String = ""
 	
-	/** flag indicates that this node is just a documentation string and doesn't actually represent an atom */
-	var isComment = true
-	
 	/** flag indicates that this node represents a StringLiteral atom. */
 	var isStringAtom = false
+	
 	
 	//////////////////// Rendering methods
 	
@@ -497,8 +501,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		
 		g.setColor(alphaColor(NodeSprite.textColor))
 		if(isOnScreen && NodeSprite.camera.zoom > 0.3) { 
-			for(i <- 0 until termLines.size) 
-				g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+		//	for(i <- 0 until termLines.size) 
+		//		g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+            drawLabel(g)
 		}
 		
 		// restore the graphics context's font
@@ -550,6 +555,90 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		new Color(color.getRed, color.getGreen, color.getBlue, (255 * alphaMaster).toInt)
 	}
 	
+	
+	/**
+	 * Draws the node's label. It applies Elision syntax highlighting if the syntaxColoring flag is true.
+     * @param g     The graphics context to draw the label with.
+	 */
+	private def drawLabel(g : Graphics2D) : Unit = {
+		if(syntaxColoring && !isComment) {
+			var colorStack = new collection.mutable.Stack[java.awt.Color]
+			var chompedChars = 0
+            
+            val startsCpy = txtClrStarts.clone
+            val endsCpy = txtClrEnds.clone
+            val colorsCpy = txtClrColors.clone
+            
+        //    System.err.println(term)
+        //    System.err.println(startsCpy)
+        //    System.err.println(endsCpy)
+            
+            def checkForNewColor(pos : Int) : Unit = {
+                // are we at a color end?
+                if(!endsCpy.isEmpty && pos == endsCpy(0) - chompedChars) {
+                    val prevColor = colorStack.pop
+                    g.setColor(prevColor)
+                    
+                //    System.err.println("Color end encountered at " + endsCpy(0) + ". Switching to color: " + prevColor.toString)
+                    
+                    // rotate ends
+                    val thisEnd = endsCpy(0)
+                    endsCpy.remove(0)
+                }  
+                if(!startsCpy.isEmpty && pos == startsCpy(0) - chompedChars) {
+                    val newColor = colorsCpy(0)
+                    colorStack = colorStack.push(g.getColor)
+                    g.setColor(newColor)
+                    
+                //    System.err.println("Color start encountered at " + startsCpy(0) +". Switching to color: " + newColor.toString)
+                    
+                    // rotate starts
+                    val thisStart = startsCpy(0)
+                    startsCpy.remove(0)
+                    
+                    // rotate colors
+                    colorsCpy.remove(0)
+                }
+            }
+            
+            // draw each line
+			for(i <- 0 until termLines.size) {
+				var j : Int = 0
+				val curLine = termLines(i)
+			//	System.err.println(curLine)
+                // process the characters in the current line until they have all been drawn.
+                checkForNewColor(j)
+                
+				while(j < curLine.size) {
+					
+                    
+                    // figure out the indices for this draw.
+					var k = curLine.size
+                    val nextStart = if(startsCpy.isEmpty) -9999 else startsCpy(0) - chompedChars
+                    val nextEnd = if(endsCpy.isEmpty) -9999 else endsCpy(0) - chompedChars
+                    if(nextStart >= j && nextStart < k) k = nextStart
+                    if(nextEnd >= j && nextEnd < k) k = nextEnd
+                    
+                //    System.err.println((j, k) + " " + (nextStart, nextEnd))
+                    
+                    // use the indices we obtained to create a substring of the current string and draw it with our current color.
+                    val substr = curLine.substring(j,k)
+                    g.drawString(substr, (3 + j*(NodeSprite.font.getSize*0.6)).toInt, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+
+                    j = k
+                    checkForNewColor(j)
+				}
+                chompedChars += curLine.size+1
+			}
+         //   Thread.sleep(1000)
+			
+		} else {
+			for(i <- 0 until termLines.size) 
+				g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+		}
+	}
+    
+    
 	
 	
 	/**

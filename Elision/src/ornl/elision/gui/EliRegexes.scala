@@ -373,7 +373,13 @@ object EliSyntaxFormatting {
 	}
 	
 	
-	
+	/**
+     * Determines where to insert word/line-wrap friendly break points in a string without applying Elision-style indentation.
+     * @param txt               The string we are determining line breaks for.
+     * @param maxCols	        The character width of the component the parse string is going to be displayed in. 
+     * @param replaceNewLines   A flag that tells this method to mark indices where it finds '\n' characters. Default true.
+     * @return                  A list of indices where new lines should be inserted to enforce word/line wrapping.
+     */
 	def enforceLineWrapWithNoTabs(txt : String, maxCols : Int, replaceNewLines : Boolean = true) : ListBuffer[Int] = {
 		var chompedChars = 0
 		var edibleTxt = txt
@@ -583,6 +589,7 @@ object EliSyntaxFormatting {
 	/** 
 	 * Only replaces < > with &lt; &gt; respectively. 
 	 * @param text		The parse string we are converting to be HTML-friendly.
+     * @param maxCols	The character width of the component the parse string is going to be displayed in. 
 	 * @return 			The parse string with < > characters replaced with &lt; &gt; respectively. 
 	 */
 	def applyMinHTML(text : String, maxCols : Int = 80) : String = {
@@ -634,26 +641,52 @@ object EliSyntaxFormatting {
 	
 	
 	/** 
-	 * Applies C-style formatting to a parse string for use in an EditorPane. (does not include colors)
+	 * Applies C-style formatting to a parse string for use in NodeSprites.
 	 * @param text			the parse string in which we are applying C-style Elision formatting.
 	 * @param maxCols		The character width of the component the parse string is going to be displayed in. 
-	 * @return 				The parse string with new line and mimic-tab (3 spaces) characters inserted in where appropriate for Elision formatting.
+	 * @return 				The parse string with new line and mimic-tab (3 spaces) characters inserted in where appropriate for Elision formatting, A list of start indices for syntax coloring, A list of colors corresponding to the indices in the previous list, and a list of end indices for syntax coloring.
 	 */
-	def applyBreaksAndTabs(text : String, maxCols : Int = 50) : String = {
+	def applyNonHTMLFormatting(text : String, disableHighlight : Boolean = true, maxCols : Int = 50) : (String, ListBuffer[Int], ListBuffer[java.awt.Color], ListBuffer[Int]) = {
 		var result = text
 		
 		// inserting characters alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
 		var insertedChars = 0
 
+		// obtain the lists of data for the coloring.
+		val starts = new ListBuffer[Int]
+		val colors = new ListBuffer[String]
+		val ends = new ListBuffer[Int]
+		
+        try {
+            if(!disableHighlight) applyElisionRegexes(text, 0, starts, colors, ends)
+		} catch {
+            case _ =>
+                // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
+                System.err.println("I just don't know what went wrong! :\n" + text) 
+        }
+		val resultStarts = new ListBuffer[Int]
+		val resultColors = new ListBuffer[java.awt.Color]
+		val resultEnds = new ListBuffer[Int]
+		
 		// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
 		val (breaks, tabs) = enforceLineWrap(text,maxCols, false)
 		
 		// insert the line breaks.
-		while(!breaks.isEmpty || !tabs.isEmpty) {
+		while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty || !tabs.isEmpty) {
 			var tag = ""
 			var insertLoc = 0
 			
-			if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
+			if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) <= breaks(0)) && (tabs.isEmpty || starts(0) <= tabs(0))) {
+				// there aren't any color tags. Instead, we adjust the index at which the coloring is applied to account for previous formatting.
+				resultStarts += starts(0) + insertedChars
+				resultColors += new java.awt.Color(Integer.parseInt(colors(0).drop(1), 16) )
+				starts.trimStart(1)
+				colors.trimStart(1)
+			} else if(!ends.isEmpty && (breaks.isEmpty || ends(0) <= breaks(0)) && (tabs.isEmpty || ends(0) <= tabs(0))) {
+				// there aren't any color tags. Instead, we adjust the index at which the coloring is applied to account for previous formatting.
+				resultEnds += ends(0) + insertedChars
+				ends.trimStart(1)
+			} else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
 				// insert a '\n' character
 				tag = "\n"
 				insertLoc = breaks(0)
@@ -664,13 +697,15 @@ object EliSyntaxFormatting {
 				insertLoc = tabs(0)
 				tabs.trimStart(1)
 			}
-				
+            
+            
+            // insert the new line or tab spaces into our result string
 			val (str1, str2) = result.splitAt(insertLoc + insertedChars)
 			result = str1 + tag + str2
 			insertedChars += tag.size
 		}
 		
-		result
+		(result, resultStarts, resultColors, resultEnds)
 	}
 }
 
