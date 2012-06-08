@@ -110,8 +110,8 @@ decl.{! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
 //======================================================================
 
 decl.{operator #name=not #type=BOOLEAN #cases
-  %(true) -> %(false),
-  %(false) -> %(true),
+  %(true) -> false,
+  %(false) -> true,
   %($x: BOOLEAN) -> _,
   true -> false,
   false -> true,

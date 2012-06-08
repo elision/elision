@@ -11227,27 +11227,27 @@ status open
 
 \begin_layout Plain Layout
 
-e> def({operator #name=sum #cases
+e> decl.{operator #name=sum #cases
 \end_layout
 
 \begin_layout Plain Layout
 
- >           %($x: INTEGER) -> $x,
+ >           %($x: INTEGER) -> $$x,
 \end_layout
 
 \begin_layout Plain Layout
 
- >           %($x: STRING) -> $x,
+ >           %($x: STRING) -> $$x,
 \end_layout
 
 \begin_layout Plain Layout
 
- >           %AC($x: INTEGER, $y: INTEGER) -> add($x,$y),
+ >           %AC($x: INTEGER, $y: INTEGER) -> add($$x,$$y),
 \end_layout
 
 \begin_layout Plain Layout
 
- >           %A($x: STRING, $y: STRING) -> ($x.$y),
+ >           %A($x: STRING, $y: STRING) -> ($$x.$$y),
 \end_layout
 
 \begin_layout Plain Layout
@@ -11267,7 +11267,7 @@ e> def({operator #name=sum #cases
 
 \begin_layout Plain Layout
 
- > })
+ > }
 \end_layout
 
 \begin_layout Plain Layout
@@ -11316,22 +11316,22 @@ Cases:
 
 \begin_layout Plain Layout
 
-  (%($x:INTEGER) -> $x)
+  (%($x:INTEGER) -> $$x)
 \end_layout
 
 \begin_layout Plain Layout
 
-  (%($x:STRING) -> $x)
+  (%($x:STRING) -> $$x)
 \end_layout
 
 \begin_layout Plain Layout
 
-  (%AC($x:INTEGER, $y:INTEGER) -> add($x, $y))
+  (%AC($x:INTEGER, $y:INTEGER) -> add($$x, $$y))
 \end_layout
 
 \begin_layout Plain Layout
 
-  (%A($x:STRING, $y:STRING) -> ($x.$y))
+  (%A($x:STRING, $y:STRING) -> ($$x.$$y))
 \end_layout
 
 \begin_layout Plain Layout
@@ -12656,7 +12656,7 @@ binds.toParseString
 \begin_layout Plain Layout
 This code will generate the output 
 \family typewriter
-{ binds x->5 y->6 }
+{ binds x -> 5 y -> 6 }
 \family default
 .
 \end_layout
@@ -12714,7 +12714,7 @@ binds:BasicAtom
 \family default
 , or 
 \family typewriter
-core.BindingsAtom(binds)
+BindingsAtom(binds)
 \family default
 .
  Likewise, an instance of 
