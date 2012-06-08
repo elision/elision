@@ -384,7 +384,11 @@ class CaseOperator private (sfh: SpecialFormHolder,
         case as: AtomSeq => OpApply(OperatorRef(this), as, Bindings())
         case _ => SimpleApply(OperatorRef(this), args)
       }
-      case other => other
+      case other =>
+        // We have to do one more thing.  We need to bind $__ to this operator,
+        // and $_ to the original argument list, and then rewrite the result.
+        val binds = Bindings("_"->args, "__"->this)
+        other.rewrite(binds)._1
     }
   }
 }
