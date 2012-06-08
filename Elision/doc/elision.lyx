@@ -13461,7 +13461,7 @@ add
 \end_layout
 
 \begin_layout Standard
-Elision provides a simple form to perform matching.
+Elision provides a simple way to test matching.
  The 
 \emph on
 match atom
@@ -13594,7 +13594,7 @@ e> {match add($x,$y)}.add($a,$b,$c)
 
 \begin_layout Plain Layout
 
-$_repl9 = { binds x -> $a y -> %AC!ID[0]($b, $c) }
+$_repl9 = { binds x -> $a y -> add($b, $c) }
 \end_layout
 
 \end_inset
@@ -13644,7 +13644,17 @@ $_repl11 = 19
 
 \end_inset
 
-Of course this trick won't work so well when 
+Remember that the applicative dot is left-associative, so the bindings are
+ created first, and then used to rewrite the atom 
+\family typewriter
+$y
+\family default
+, yielding the result 
+\family typewriter
+19
+\family default
+.
+ Of course this trick won't work so well when 
 \family typewriter
 NONE
 \family default
@@ -13668,7 +13678,7 @@ pattern
 newatom
 \family default
  is the atom to rewrite if a match is obtained.
- The map pair is an 
+ The map pair is a 
 \emph on
 rewriter
 \emph default
@@ -13781,7 +13791,7 @@ $_repl1 = { binds x -> 5 }
 
 This is often sufficient, but sometimes we would like to have greater control
  over the matching process.
- For example, we might like to only match a non-zero integer.
+ For example, we might like to match only a non-zero integer.
  We can do this with a 
 \emph on
 variable
@@ -13862,7 +13872,7 @@ status open
 
 \begin_layout Plain Layout
 
-e> def({! foo($x,$y) is %AC})
+e> decl.{! foo($x,$y) is %AC}
 \end_layout
 
 \begin_layout Plain Layout
@@ -13877,7 +13887,7 @@ e> {match foo($x:INTEGER, $y)}.foo("Jim",5,"Tim",0)
 
 \begin_layout Plain Layout
 
-$_repl2 = { binds x -> 5 y -> %AC("Jim", "Tim", 0) }
+$_repl2 = { binds x -> foo("Jim", 5) y -> foo("Tim", 0) }
 \end_layout
 
 \begin_layout Plain Layout
@@ -13887,7 +13897,7 @@ e> {match foo($x{equal($$x,0)}:INTEGER, $y)}.foo("Jim",5,"Tim",0)
 
 \begin_layout Plain Layout
 
-$_repl3 = { binds x -> 0 y -> %AC("Jim", 5, "Tim") }
+$_repl3 = { binds x -> 0 y -> foo("Jim", 5, "Tim") }
 \end_layout
 
 \end_inset
@@ -14751,7 +14761,7 @@ core.ApplyData
 \begin_layout Itemize
 The field 
 \family typewriter
-executor
+exec
 \family default
  provides access to an instance of 
 \family typewriter
@@ -14760,7 +14770,7 @@ core.Executor
 .
  This is a class that provides an 
 \family typewriter
-execute(text)
+parse(text)
 \family default
  method, where 
 \family typewriter
@@ -14775,7 +14785,46 @@ core.Executor
 \family typewriter
 core.Context
 \family default
+ instance, and to a 
+\family typewriter
+core.Console
+\family default
  instance.
+\end_layout
+
+\begin_layout Itemize
+The field 
+\family typewriter
+context
+\family default
+ is the context provided by the executor.
+ It provides access to the operator and rule libraries and to the current
+ bindings.
+\end_layout
+
+\begin_layout Itemize
+The field 
+\family typewriter
+console
+\family default
+ is the console provided by the executor.
+ It has methods 
+\family typewriter
+error(msg)
+\family default
+ and 
+\family typewriter
+warn(msg)
+\family default
+ to generate errors and warnings, and 
+\family typewriter
+emit(msg)
+\family default
+ and 
+\family typewriter
+emitln(msg)
+\family default
+ to write arbitrary text to the console.
 \end_layout
 
 \begin_layout Itemize
@@ -14922,9 +14971,7 @@ status open
 \end_layout
 
 \begin_layout Standard
-This can all be done from within Elision.
- In fact, it is possible to declare a native handler for an operator from
- the REPL.
+It is possible to declare a native handler for an operator from the REPL.
  This is done by adding a 
 \family typewriter
 #handler
@@ -14967,19 +15014,6 @@ The result is a function whose closure is stored as the native handler for
  the operator.
  Note that the operator need not be declared in any context; it is possible
  to use this to execute arbitrary Scala code.
-\begin_inset Foot
-status open
-
-\begin_layout Plain Layout
-This trick is how the 
-\family typewriter
-def
-\family default
- operator is defined.
-\end_layout
-
-\end_inset
-
  Consider the following.
 \end_layout
 
@@ -15102,33 +15136,67 @@ hello world
 \end_layout
 
 \begin_layout Standard
-Next we create an operator that evaluates its string argument.
- If the argument evaluates to atoms, then the last atom is returned.
+Next we create a much more complex operator that evaluates its string argument.
+ If the argument evaluates to one or more atoms, then the last atom is returned.
  Alternately we could return a collection of atoms.
+ This makes use of the executor, console, and some of the special fields
+ (like 
+\family typewriter
+_no_show
+\family default
+ and 
+\family typewriter
+as_is
+\family default
+).
 \end_layout
 
 \begin_layout LyX-Code
-{! evaluate(text: String)
+{! evaluate($text: STRING)
 \end_layout
 
 \begin_layout LyX-Code
-   #handler="""|args match {
+   #handler="""|import ornl.elision.core._
 \end_layout
 
 \begin_layout LyX-Code
-               |  case Args(StringLiteral(_, text) =>
+               |args match {
 \end_layout
 
 \begin_layout LyX-Code
-               |    val atoms = executor.execute(text)
+               |  case Args(StringLiteral(_, text)) =>
 \end_layout
 
 \begin_layout LyX-Code
-               |    if (atoms.length > 0) atoms(atoms.length-1)
+               |    exec.parse(text) match {
 \end_layout
 
 \begin_layout LyX-Code
-               |    else _no_show
+               |      case exec.ParseFailure(msg) =>
+\end_layout
+
+\begin_layout LyX-Code
+               |        console.error(msg)
+\end_layout
+
+\begin_layout LyX-Code
+               |        _no_show
+\end_layout
+
+\begin_layout LyX-Code
+               |      case exec.ParseSuccess(atoms) =>
+\end_layout
+
+\begin_layout LyX-Code
+               |        if (atoms.length > 0) atoms(atoms.length-1)
+\end_layout
+
+\begin_layout LyX-Code
+               |        else _no_show
+\end_layout
+
+\begin_layout LyX-Code
+               |    }
 \end_layout
 
 \begin_layout LyX-Code
@@ -15158,12 +15226,11 @@ status open
 \end_layout
 
 \begin_layout Standard
-Finally, we explore how to create the 
+Finally, we will use a few language features to create a 
 \family typewriter
-def
+_decl
 \family default
- operator that defines other operators.
- This is one of the most complex uses of this language feature.
+ operator that can be used to declare other operators and rules.
 \end_layout
 
 \begin_layout LyX-Code
@@ -15171,64 +15238,159 @@ def
 \end_layout
 
 \begin_layout LyX-Code
-{! _($op) #handler="""
+{! _decl($item)
 \end_layout
 
 \begin_layout LyX-Code
-context.operatorLibrary.add(args(0))
+#handler=
 \end_layout
 
 \begin_layout LyX-Code
-context.operatorLibrary.register("def", {
+"""
 \end_layout
 
 \begin_layout LyX-Code
-data: ApplyData => data.args match {
+  args(0) match {
 \end_layout
 
 \begin_layout LyX-Code
-  case Args(oper: Operator) =>
+    case op: Operator =>
 \end_layout
 
 \begin_layout LyX-Code
-    data.context.operatorLibrary.add(oper)
+      context.operatorLibrary.add(op)
 \end_layout
 
 \begin_layout LyX-Code
-    data.emitln("Defined operator "+toESymbol(oper.name)+"."
+      console.emitln("Declared operator " + toESymbol(op.name) + ".")
 \end_layout
 
 \begin_layout LyX-Code
-  case Args(atom) =>
+      _no_show
 \end_layout
 
 \begin_layout LyX-Code
-    data.error("Atom is not a named operator: "+atom.toParseString)
+    case rule: RewriteRule =>
 \end_layout
 
 \begin_layout LyX-Code
-  case _ =>
+      context.ruleLibrary.add(rule)
+\end_layout
+
+\begin_layout LyX-Code
+      console.emitln("Declared rule.")
+\end_layout
+
+\begin_layout LyX-Code
+      _no_show
+\end_layout
+
+\begin_layout LyX-Code
+    case _ =>
+\end_layout
+
+\begin_layout LyX-Code
+      as_is
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout LyX-Code
+"""
+\end_layout
+
+\begin_layout LyX-Code
+#evenmeta=true
+\end_layout
+
+\begin_layout LyX-Code
+#description="Declare a rule or operator in the current context."
+\end_layout
+
+\begin_layout LyX-Code
+#detail=
+\end_layout
+
+\begin_layout LyX-Code
+"Given a rewrite rule, add the rewrite rule to the rule library in the ".
+\end_layout
+
+\begin_layout LyX-Code
+"current context.
+  Given an operator, add the operator to the operator ".
+\end_layout
+
+\begin_layout LyX-Code
+"library in the current context."
 \end_layout
 
 \begin_layout LyX-Code
 }
 \end_layout
 
-\begin_layout LyX-Code
-_no_show
-\end_layout
+\begin_layout Standard
+There is one field in the above that requires some explanation.
+ The 
+\family typewriter
+#evenmeta=true
+\family default
+ forces evaluation of this operator even when the argument is a metaterm.
+ Since both operator definitions and rewrite rules typically contain metaterms,
+ this is essential.
+ This feature breaks the general model of 
+\begin_inset Quotes eld
+\end_inset
 
-\begin_layout LyX-Code
-})
-\end_layout
+metaterms prevent evaluation,
+\begin_inset Quotes erd
+\end_inset
 
-\begin_layout LyX-Code
-"""}.%({! def($op: ANY)})
+ so its use is not recommended.
+ In fact, it only exists to address cases like the above.
 \end_layout
 
 \begin_layout Standard
-The trick is that we pass the operator definition in, avoiding to have to
- create it programmatically.
+An interesting question is how to get 
+\family typewriter
+_decl
+\family default
+ itself declared without the use of another operator.
+ That is, how could we 
+\begin_inset Quotes eld
+\end_inset
+
+bootstrap
+\begin_inset Quotes erd
+\end_inset
+
+ the system? Since 
+\family typewriter
+_decl
+\family default
+ is capable of declaring operators, we 
+\emph on
+could
+\emph default
+ use it to declare itself.
+ We do this with a lambda.
+\end_layout
+
+\begin_layout LyX-Code
+
+\backslash
+$op.($op.%($op)).{! _decl($item) ...
+ }
+\end_layout
+
+\begin_layout Standard
+This yields 
+\family typewriter
+_decl
+\family default
+ applied to an argument list containing itself, and thus results in the
+ operator declaring itself, as we want.
 \end_layout
 
 \begin_layout Chapter
@@ -15428,6 +15590,22 @@ README.txt
 \begin_layout Itemize
 The 
 \family typewriter
+CHANGES.txt
+\family default
+ file that describes changes from one version to the next.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
+LICENSE.txt
+\family default
+ file that contains the license for Elision.
+\end_layout
+
+\begin_layout Itemize
+The 
+\family typewriter
 build.xml
 \family default
  file that is used by Ant to compile the system and generate the API documentati
@@ -15444,7 +15622,7 @@ There are scripts present in this folder.
 \begin_layout Itemize
 The 
 \family typewriter
-repl.sh
+elision.sh
 \family default
  script sets up the 
 \family typewriter
@@ -15578,6 +15756,11 @@ http://www.sublimetext.com/2
 \end_inset
 
 .
+ See the 
+\family typewriter
+editors
+\family default
+ folder.
 \end_layout
 
 \begin_layout Itemize
@@ -15736,8 +15919,8 @@ This folder contains third party code necessary to compile and run the system.
 \begin_layout Standard
 If you need to use third party code in Elision, and you want to contribute
  back to the main distribution, you must first clear the inclusion of the
- code with the maintainers to make sure there are no licensing conflicts,
- and then you should place the distribution in this folder.
+ third-party code with the maintainers to make sure there are no licensing
+ conflicts, and then you should place the distribution in this folder.
  This allows for consistent and rational versioning.
  If the user were required to get and install the third party libraries,
  they might obtain incompatible versions.
@@ -15761,6 +15944,11 @@ ornl.elision
 .
  This is where you will place new source files, as well as any extra files
  required by Scaladoc.
+ The one exception is the 
+\family typewriter
+src/bootstrap
+\family default
+ folder that holds the Elision source for bootstrapping the system.
 \end_layout
 
 \begin_layout Section
@@ -15806,21 +15994,20 @@ This folder is created by the build process and contains the most recently
 \family typewriter
 elision.jar
 \family default
- file.
+ and 
+\family typewriter
+elision-all.jar
+\family default
+ files.
  Any jar files in the third-party library folder (
 \family typewriter
 lib
 \family default
-) are included in this file.
- This file can be executed with the 
+) are included in these files, and 
 \family typewriter
-scala
+elision-all.jar
 \family default
- command, so 
-\family typewriter
-scala latest/elision.jar
-\family default
- will start the REPL.
+ also includes some of the Scala distribution's jar files.
  Nothing else should be present in this folder.
 \end_layout
 
@@ -15848,6 +16035,11 @@ latest
 src
 \family default
  folder at the time of the build.
+ Because 
+\family typewriter
+elision-all.jar
+\family default
+ is so large, it is not included.
  These folders can be deleted if they are not needed.
  Nothing else should be present in these folders.
 \end_layout
