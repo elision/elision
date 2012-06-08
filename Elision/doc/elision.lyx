@@ -4674,7 +4674,7 @@ status collapsed
 It is possible to create new named root atoms.
  The following declares an operator that does just this.
  Give it a symbol, and that symbol becomes a named root type.
- For now don't worry about how this all works; it will be explained in 
+ For details about how this works, see 
 \begin_inset CommandInset ref
 LatexCommand formatted
 reference "chap:Native-Handlers"
@@ -9078,11 +9078,31 @@ Atoms are transformed when entered, based on their properties, before any
 \end_layout
 
 \begin_layout LyX-Code
-def({operator #name=foo #params=%AD[0]($x:INTEGER,$y:INTEGER) #type=INTEGER})
+decl.{operator #name=foo
 \end_layout
 
 \begin_layout LyX-Code
-def({operator #name=bar #params=%AB[true]($x:BOOLEAN,$y:BOOLEAN) #type=BOOLEAN})
+      #params=%AD[0]($x:INTEGER,$y:INTEGER)
+\end_layout
+
+\begin_layout LyX-Code
+      #type=INTEGER}
+\end_layout
+
+\begin_layout LyX-Code
+decl.{operator #name=bar
+\end_layout
+
+\begin_layout LyX-Code
+      #params=%AB[true]($x:BOOLEAN,$y:BOOLEAN)
+\end_layout
+
+\begin_layout LyX-Code
+      #type=BOOLEAN}
+\end_layout
+
+\begin_layout Standard
+We observe the following based on these definitions.
 \end_layout
 
 \begin_layout Itemize
@@ -9739,13 +9759,14 @@ $x.$y
 \end_layout
 
 \begin_layout Standard
+In 
 \begin_inset CommandInset ref
 LatexCommand formatted
 reference "chap:Special-Forms"
 
 \end_inset
 
- will introduce several other uses of the applicative dot.
+ we will introduce several other uses of the applicative dot.
 \end_layout
 
 \begin_layout Standard
