@@ -42,73 +42,73 @@ println("Reading Core...")
 //======================================================================
 
 decl.{! setprop($name: STRING, $val)
-#handler=
-"""
-  args match {
-    case Args(StringLiteral(_, name), value) =>
-      value match {
-        case StringLiteral(_, str) =>
-          exec.setProperty(name, str)
-          _no_show
-        case IntegerLiteral(_, value) =>
-          exec.setProperty(name, value)
-          _no_show
-        case BooleanLiteral(_, flag) =>
-          exec.setProperty(name, flag)
-          _no_show
-        case _ =>
-          console.error("Only STRING, INTEGER, and BOOLEAN values are allowed.")
-          _no_show
-      }
-    case _ => as_is
-  }
-"""
-#description="Set a property value."
-#detail=
-"Set the value of a property.  The property name (a STRING), is given as ".
-"the first argument, and the value (which must be a STRING, INTEGER, or ".
-"BOOLEAN) is given as the second argument."
+  #handler=
+  """
+    args match {
+      case Args(StringLiteral(_, name), value) =>
+        value match {
+          case StringLiteral(_, str) =>
+            exec.setProperty(name, str)
+            _no_show
+          case IntegerLiteral(_, value) =>
+            exec.setProperty(name, value)
+            _no_show
+          case BooleanLiteral(_, flag) =>
+            exec.setProperty(name, flag)
+            _no_show
+          case _ =>
+            console.error("Only STRING, INTEGER, and BOOLEAN values are allowed.")
+            _no_show
+        }
+      case _ => as_is
+    }
+  """
+  #description="Set a property value."
+  #detail=
+  "Set the value of a property.  The property name (a STRING), is given as ".
+  "the first argument, and the value (which must be a STRING, INTEGER, or ".
+  "BOOLEAN) is given as the second argument."
 }
 
 decl.{! getprop($name: STRING)
-#handler=
-"""
-  args match {
-    case Args(StringLiteral(_, name)) =>
-      val value = exec.getProperty[Any](name)
-      value match {
-        case str: String =>
-          Literal(str)
-        case value: BigInt =>
-          Literal(value)
-        case value: Int =>
-          Literal(value)
-        case flag: Boolean =>
-          Literal(flag)
-        case _ =>
-          console.error("Bad stored property value detected.")
-          NONE
-      }
-    case _ => as_is
-  }
-"""
-#description="Get a property value."
-#detail=
-"Get the value of a property.  The property is looked up by name (given ".
-"as a STRING value)."
+  #handler=
+  """
+    args match {
+      case Args(StringLiteral(_, name)) =>
+        val value = exec.getProperty[Any](name)
+        value match {
+          case str: String =>
+            Literal(str)
+          case value: BigInt =>
+            Literal(value)
+          case value: Int =>
+            Literal(value)
+          case flag: Boolean =>
+            Literal(flag)
+          case _ =>
+            console.error("Bad stored property value detected.")
+            NONE
+        }
+      case _ => as_is
+    }
+  """
+  #description="Get a property value."
+  #detail=
+  "Get the value of a property.  The property is looked up by name (given ".
+  "as a STRING value)."
 }
 
 decl.{! listprops()
-#handler=
-"""
-  val width = (scala.tools.jline.TerminalFactory.create().getWidth() max 5)
-  exec.writeProperties(console, width)
-  _no_show
-"""
-#description="List all the known properties."
-#detail=
-"List all the declared properties, a short description, and their current ".
-"value."
+  #handler=
+  """
+    val width = (scala.tools.jline.TerminalFactory.create().getWidth() max 5)
+    exec.writeProperties(console, width)
+    _no_show
+  """
+  #description="List all the known properties."
+  #detail=
+  "List all the declared properties, a short description, and their current ".
+  "value."
 }
 
 //======================================================================
@@ -121,8 +121,8 @@ decl.{operator #name=if #cases
   %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
   #description="Simple if-then(-else)."
   #detail=
-"If the first argument is true, return the second.  If the first argument ".
-"is false, return the third."
+  "If the first argument is true, return the second.  If the first argument ".
+  "is false, return the third."
 }
 
 //======================================================================
@@ -130,135 +130,162 @@ decl.{operator #name=if #cases
 //======================================================================
 
 decl.{! eval($atom)
-#handler=
-"""
-  args match {
-    case Args(x) =>
-      // Immediately rewrite this with the context bindings,
-      // and return the result.
-      x.rewrite(context.binds)._1
-    case _ =>
-      NONE
-  }
-"""
-#description="Force fast rewrite using the current bindings."
-#detail=
-"The context bindings are typically applied after an atom is parsed and ".
-"constructed.  This forces any bound variables in $atom to be rewritten ".
-"immediately.  It is most useful when $atom is the argument to some other ".
-"operator."
+  #handler=
+  """
+    args match {
+      case Args(x) =>
+        // Immediately rewrite this with the context bindings,
+        // and return the result.
+        x.rewrite(context.binds)._1
+      case _ =>
+        NONE
+    }
+  """
+  #description="Force fast rewrite using the current bindings."
+  #detail=
+  "The context bindings are typically applied after an atom is parsed and ".
+  "constructed.  This forces any bound variables in $atom to be rewritten ".
+  "immediately.  It is most useful when $atom is the argument to some other ".
+  "operator."
 }
 
 decl.{ operator #name=typeof #cases %($x)->(\$y:$T.$T.$$x)
-#description="Extract and show the type of the argument."
-#detail=
-"Given a single argument, extract the type $T of that argument $x and return ".
-"the extracted type."
+  #description="Extract and show the type of the argument."
+  #detail=
+  "Given a single argument, extract the type $T of that argument $x and return ".
+  "the extracted type."
+}
+
+decl.{! operator($name)
+  #description="Look up an operator."
+  #detail=
+  "Given the name of an operator (as a string or symbol), look up the ".
+  "operator and return a reference to it."
+  #handler=
+  """
+  args match {
+    case Args(SymbolLiteral(_, sym)) =>
+      context.operatorLibrary(sym.name)
+    case Args(StringLiteral(_, name)) =>
+      context.operatorLibrary(name)
+    case _ => as_is
+  }
+  """
 }
 
 decl.{! getop($x: OPREF)
-#handler=
-"""
-  args match {
-    case Args(opref:OperatorRef) =>
-      // Get the referenced operator.
-      opref.operator
-    case _ => _no_show
-  }
-"""
-#description="Given an operator reference, return the operator."
-#detail=
-"Given the operator reference $x, resolve the reference to the actual ".
-"operator and return the operator."
+  #handler=
+  """
+    args match {
+      case Args(opref:OperatorRef) =>
+        // Get the referenced operator.
+        opref.operator
+      case _ => _no_show
+    }
+  """
+  #description="Given an operator reference, return the operator."
+  #detail=
+  "Given the operator reference $x, resolve the reference to the actual ".
+  "operator and return the operator."
 }
 
 decl.{! setdebruijn($enable: BOOLEAN)
-#handler=
-"""
-  args match {
-    case Args(BooleanLiteral(_, flag)) =>
-      // Set whether to use De Bruijn indices.
-      Lambda.useDeBruijnIndices = flag
-      emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
-      _no_show
-    case _ => _no_show
-  }
-"""
-#description="Enable or disable the use of DeBruijn indices."
-#detail=
-"Specify whether to use DeBruijn indices for lambdas.  Disabling this is ".
-"only useful when you are debugging lambdas."
+  #handler=
+  """
+    args match {
+      case Args(BooleanLiteral(_, flag)) =>
+        // Set whether to use De Bruijn indices.
+        Lambda.useDeBruijnIndices = flag
+        emitln("De Bruijn rewriting is " + (if (flag) "ON." else "OFF."))
+        _no_show
+      case _ => _no_show
+    }
+  """
+  #description="Enable or disable the use of DeBruijn indices."
+  #detail=
+  "Specify whether to use DeBruijn indices for lambdas.  Disabling this is ".
+  "only useful when you are debugging lambdas."
 }
 
 decl.{! is_bindable($x): BOOLEAN
-#handler=
-"""
-  args match {
-    case Args(term) =>
-      if (term.isBindable) Literal.TRUE else Literal.FALSE
-    case _ =>
-      as_is
-  }
-"""
-#description="Determine whether an atom is bindable."
-#detail=
-"If the atom $x is bindable, return true.  Otherwise, return false.  This ".
-"is primarily useful for guards.  You will probably need to protect ".
-"variables by making them into metavariables ($$ instead of $) to prevent ".
-"zealous evaluation."
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isBindable) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is bindable."
+  #detail=
+  "If the atom $x is bindable, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "zealous evaluation."
 }
 
 //======================================================================
 // Help system.
 //======================================================================
 
-decl.{! _help_op($r: OPREF)
-#handler=
-"""
-  args match {
-    case Args(or: OperatorRef) =>
+decl.{! _help_op($r)
+  #handler=
+  """
+    def givehelp(name: String) = {
       // Give some help.
       val width = scala.tools.jline.TerminalFactory.create().getWidth()
+      val op = context.operatorLibrary(name)
       emitln(context.operatorLibrary.help(
-        new StringBuffer(), or, width).toString)
+        new StringBuffer(), op, width).toString)
       _no_show
-    case _ =>
-      as_is
-  }
-"""
-#description="Display detailed help for an operator."
-#detail="Display help text for the operator referenced by $r."
+    }
+    args match {
+      case Args(or: OperatorRef) =>
+        givehelp(or.name)
+      case Args(SymbolLiteral(_, sym)) =>
+        givehelp(sym.name)
+      case Args(StringLiteral(_, name)) =>
+        givehelp(name)
+      case _ =>
+        as_is
+    }
+  """
+  #description="Display detailed help for an operator."
+  #detail="Display help text for the operator referenced by $r."
 }
 
 decl.{! _help_all()
-#handler=
-"""
-  args match {
-    case Args() =>
-      // Give some help.
-      val width = scala.tools.jline.TerminalFactory.create().getWidth()
-      println("Elision Help\n")
-      emitln(context.operatorLibrary.help(new StringBuffer(), width).toString)
-      println("Use ! followed by a number to re-execute a " +
-        "line from the history.\n\nTo quit type :quit.\n")
-    case _ =>
-  }
-  _no_show
-"""
-#description="Display a list of known operators."
-#detail=
-"Display a list of known operators, along with a short description of each ".
-"one (if given).  Operators whose name begins with an underscore are ".
-"suppressed in this list."
+  #handler=
+  """
+    args match {
+      case Args() =>
+        // Give some help.
+        val width = scala.tools.jline.TerminalFactory.create().getWidth()
+        println("Elision Help\n")
+        emitln(context.operatorLibrary.help(new StringBuffer(), width).toString)
+        println("Use ! followed by a number to re-execute a " +
+          "line from the history.\n\nTo quit type :quit.\n")
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Display a list of known operators."
+  #detail=
+  "Display a list of known operators, along with a short description of each ".
+  "one (if given).  Operators whose name begins with an underscore are ".
+  "suppressed in this list."
 }
 
 decl.{ operator #name=help #cases
-      %($r:OPREF) -> _help_op($r), 
-      _help_all:OPREF
-#description="Get general help or help on an operator."
-#detail=
-"With no argument, list all operators.  If provided with an operator ".
-"reference, give detailed help on that operator."
+  %($r:OPREF) -> _help_op($$r), 
+  %($r:SYMBOL) -> _help_op($$r), 
+  %($r:STRING) -> _help_op($$r), 
+  %() -> _help_all.$$_
+  #description="Get general help or help on an operator."
+  #detail=
+  "With no argument, list all operators.  If provided with an operator ".
+  "reference, give detailed help on that operator."
 }
 
 //======================================================================
@@ -266,56 +293,56 @@ decl.{ operator #name=help #cases
 //======================================================================
 
 decl.{! read($filename: STRING)
-#handler=
-"""
-  args match {
-    case Args(StringLiteral(_, filename)) =>
-      val cfile = new java.io.BufferedReader(
-        new java.io.FileReader(filename))
-      if (cfile != null) {
-        var buf = new StringBuilder
-        var go = true
-        while (go) {
-          val line = cfile.readLine
-          if (line != null) buf.append(line).append('\n')
-          else go = false
+  #handler=
+  """
+    args match {
+      case Args(StringLiteral(_, filename)) =>
+        val cfile = new java.io.BufferedReader(
+          new java.io.FileReader(filename))
+        if (cfile != null) {
+          var buf = new StringBuilder
+          var go = true
+          while (go) {
+            val line = cfile.readLine
+            if (line != null) buf.append(line).append('\n')
+            else go = false
+          }
+          exec.parse(buf.toString)
+          cfile.close()
+        } else {
+          error("Unable to open file.")
         }
-        exec.parse(buf.toString)
-        cfile.close()
-      } else {
-        error("Unable to open file.")
-      }
-    case _ =>
-  }
-  _no_show
-"""
-#description="Read the content of the specified file."
-#detail=
-"Read the file specified by $filename, executing each line of the file as ".
-"though it were typed at the REPL prompt while quiet mode was in effect ".
-"(so most output is suppressed).  No numbered repl bindings are generated ".
-"from this action."
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Read the content of the specified file."
+  #detail=
+  "Read the file specified by $filename, executing each line of the file as ".
+  "though it were typed at the REPL prompt while quiet mode was in effect ".
+  "(so most output is suppressed).  No numbered repl bindings are generated ".
+  "from this action."
 }
 
 decl.{! write($filename: STRING)
-#handler=
-"""
-  args match {
-    case Args(StringLiteral(_, filename)) =>
-      val cfile = new java.io.FileWriter(filename)
-      if (cfile != null) {
-        cfile.write(context.toParseString)
-        cfile.flush()
-        cfile.close()
-      } else {
-        error("Unable to save context.")
-      }
-      _no_show
-    case _ => _no_show
-  }
-"""
-#description="Write the content of the current context to a file."
-#detail="Write the current context to the file specified by $filename."
+  #handler=
+  """
+    args match {
+      case Args(StringLiteral(_, filename)) =>
+        val cfile = new java.io.FileWriter(filename)
+        if (cfile != null) {
+          cfile.write(context.toParseString)
+          cfile.flush()
+          cfile.close()
+        } else {
+          error("Unable to save context.")
+        }
+        _no_show
+      case _ => _no_show
+    }
+  """
+  #description="Write the content of the current context to a file."
+  #detail="Write the current context to the file specified by $filename."
 }
 
 //======================================================================
@@ -323,53 +350,53 @@ decl.{! write($filename: STRING)
 //======================================================================
 
 decl.{! bind($v,$a)
-#handler=
-"""
-  args match {
-    case Args(from:Variable, to:BasicAtom) =>
-      // Bind the variable in this context.
-      context.bind(from.name, to)
-      emitln("Bound " + from.toParseString)
-      ApplyData._no_show
-    case _ => ApplyData._no_show
-  }
-"""
-#description="Bind a variable to an atom."
-#detail=
-"Bind the variable $v to the atom $a in the current context.  Variable ".
-"bindings are applied after an atom is parsed and constructed, but before ".
-"it is displayed by the REPL.  Variables can be arbitrarily re-bound."
+  #handler=
+  """
+    args match {
+      case Args(from:Variable, to:BasicAtom) =>
+        // Bind the variable in this context.
+        context.bind(from.name, to)
+        emitln("Bound " + from.toParseString)
+        ApplyData._no_show
+      case _ => ApplyData._no_show
+    }
+  """
+  #description="Bind a variable to an atom."
+  #detail=
+  "Bind the variable $v to the atom $a in the current context.  Variable ".
+  "bindings are applied after an atom is parsed and constructed, but before ".
+  "it is displayed by the REPL.  Variables can be arbitrarily re-bound."
 }
 
 decl.{! unbind($v)
-#handler=
-"""
-  args match {
-    case Args(from:Variable) =>
-      // Unbind the variable in this context.
-      context.unbind(from.name)
-      emitln("Unbound " + from.toParseString)
-    case _ =>
-  }
-  _no_show
-"""
-#description="Unbind a variable."
-#detail="Forget any binding for variable $v in the current context."
+  #handler=
+  """
+    args match {
+      case Args(from:Variable) =>
+        // Unbind the variable in this context.
+        context.unbind(from.name)
+        emitln("Unbound " + from.toParseString)
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Unbind a variable."
+  #detail="Forget any binding for variable $v in the current context."
 }
 
 decl.{! showbinds()
-#handler=
-"""
-  println(context.binds.filterKeys(!_.startsWith("_")).map {
-    pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
-  }.mkString("{ binds\n", ",\n", "\n}"))
-  _no_show
-"""
-#description="Show the bindings in the current context."
-#detail=
-"Show all the bindings present in the current context, except for bindings ".
-"to variables whose name starts with an underscore, as these are considered ".
-"\"private.\""
+  #handler=
+  """
+    println(context.binds.filterKeys(!_.startsWith("_")).map {
+      pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
+    }.mkString("{ binds\n", ",\n", "\n}"))
+    _no_show
+  """
+  #description="Show the bindings in the current context."
+  #detail=
+  "Show all the bindings present in the current context, except for bindings ".
+  "to variables whose name starts with an underscore, as these are considered ".
+  "\"private.\""
 }
 
 //======================================================================
@@ -377,63 +404,63 @@ decl.{! showbinds()
 //======================================================================
 
 decl.{! traceparse()
-#handler=
-"""
-  exec match {
-    case tp: TraceableParse =>
-      // Toggle tracing.
-      tp.trace = !tp.trace
-      emitln("Parser tracing is " + (if (tp.trace) "ON." else "OFF."))
-    case _ =>
-  }
-  _no_show
-"""
-#description="Toggle tracing of the parser."
-#detail=
-"Enable or disable tracing the parser.  This is really only useful if you ".
-"are trying to debug the parser, and want to know in extreme detail how ".
-"something parses.  It may generate a *lot* of output. ".
-"\n\n".
-"This is optional; if multiple parsers are present, some may not support ".
-"tracing."
+  #handler=
+  """
+    exec match {
+      case tp: TraceableParse =>
+        // Toggle tracing.
+        tp.trace = !tp.trace
+        emitln("Parser tracing is " + (if (tp.trace) "ON." else "OFF."))
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Toggle tracing of the parser."
+  #detail=
+  "Enable or disable tracing the parser.  This is really only useful if you ".
+  "are trying to debug the parser, and want to know in extreme detail how ".
+  "something parses.  It may generate a *lot* of output. ".
+  "\n\n".
+  "This is optional; if multiple parsers are present, some may not support ".
+  "tracing."
 }
 
 decl.{! tracematch()
-#handler=
-"""
-  args match {
-    case Args() =>
-      // Toggle tracing.
-      BasicAtom.traceMatching = !BasicAtom.traceMatching
-      emitln("Match tracing is " +
-          (if (BasicAtom.traceMatching) "ON." else "OFF."))
-      _no_show
-    case _ => _no_show
-  }
-"""
-#description="Toggle tracing of matching attempts."
-#detail=
-"Enable or disable tracing of match attempts.  This generates output from ".
-"the matcher as it attempts to match atoms.  The matcher is called for a ".
-"variety of reasons, so you may see some unexpected output here."
+  #handler=
+  """
+    args match {
+      case Args() =>
+        // Toggle tracing.
+        BasicAtom.traceMatching = !BasicAtom.traceMatching
+        emitln("Match tracing is " +
+            (if (BasicAtom.traceMatching) "ON." else "OFF."))
+        _no_show
+      case _ => _no_show
+    }
+  """
+  #description="Toggle tracing of matching attempts."
+  #detail=
+  "Enable or disable tracing of match attempts.  This generates output from ".
+  "the matcher as it attempts to match atoms.  The matcher is called for a ".
+  "variety of reasons, so you may see some unexpected output here."
 }
 
 decl.{! timing($f:BOOLEAN)
-#handler=
-"""
-  exec match {
-    case tm: Timeable =>
-      // Toggle timing.
-      tm.timing = !tm.timing
-      emitln("Timing is " + (if (tm.timing) "ON." else "OFF."))
-      _no_show
-    case _ => _no_show
-  }
-"""
-#description="Toggle showing the evaluation time."
-#detail=
-"Toggle showing the total elapsed \"wall clock\" time to evaluate an atom. ".
-"The result shows minutes, seconds, and milliseconds."
+  #handler=
+  """
+    exec match {
+      case tm: Timeable =>
+        // Toggle timing.
+        tm.timing = !tm.timing
+        emitln("Timing is " + (if (tm.timing) "ON." else "OFF."))
+        _no_show
+      case _ => _no_show
+    }
+  """
+  #description="Toggle showing the evaluation time."
+  #detail=
+  "Toggle showing the total elapsed \"wall clock\" time to evaluate an atom. ".
+  "The result shows minutes, seconds, and milliseconds."
 }
 
 //======================================================================
@@ -441,48 +468,48 @@ decl.{! timing($f:BOOLEAN)
 //======================================================================
 
 decl.{! quiet($level: INTEGER)
-#handler=
-"""
-  args match {
-    case Args(IntegerLiteral(_, level)) =>
-      if (level < 0) console.quiet = 0
-      else if (level > 4) console.quiet = 3
-      else console.quiet = level.toInt
-    case _ => as_is
-  }
-  emitln("Quiet is " + (if (console.quiet > 0) "enabled." else "disabled."))
-  _no_show
-"""
-#description="Set the quiet level."
-#detail=
-"Specify whether to suppress output.  There are several levels available.  ".
-"Level 0 enables all output, and is the usual mode.  Level 1 suppresses ".
-"all \"casual\" output.  Level 2 suppresses warnings.  Level 3 suppresses ".
-"errors.  Level 4 suppresses pretty much everything, and should be avoided ".
-"unless you have a good reason.  If you enter a level above 4, the system ".
-"will assume you don't know what you are doing and set the level to 3.  ".
-"If you enter a negative number, the system will assume 0."
+  #handler=
+  """
+    args match {
+      case Args(IntegerLiteral(_, level)) =>
+        if (level < 0) console.quiet = 0
+        else if (level > 4) console.quiet = 3
+        else console.quiet = level.toInt
+      case _ => as_is
+    }
+    emitln("Quiet is " + (if (console.quiet > 0) "enabled." else "disabled."))
+    _no_show
+  """
+  #description="Set the quiet level."
+  #detail=
+  "Specify whether to suppress output.  There are several levels available.  ".
+  "Level 0 enables all output, and is the usual mode.  Level 1 suppresses ".
+  "all \"casual\" output.  Level 2 suppresses warnings.  Level 3 suppresses ".
+  "errors.  Level 4 suppresses pretty much everything, and should be avoided ".
+  "unless you have a good reason.  If you enter a level above 4, the system ".
+  "will assume you don't know what you are doing and set the level to 3.  ".
+  "If you enter a negative number, the system will assume 0."
 }
 
 decl.{! history()
-#handler=
-"""
-  exec match {
-    case hh: HasHistory =>
-      // Show the history.
-      val it = hh.getHistoryIterator
-      while (it.hasNext) println(it.next)
-      println("Persistent history is found in: " + hh.getHistoryFilename)
-      _no_show
-    case _ =>
-      _no_show
-  }
-"""
-#description="Show the current history."
-#detail=
-"Show the current history of lines executed.  This history is numbered, and ".
-"numbered items in the history can be recalled later.  The history is saved ".
-"between sessions, if possible."
+  #handler=
+  """
+    exec match {
+      case hh: HasHistory =>
+        // Show the history.
+        val it = hh.getHistoryIterator
+        while (it.hasNext) println(it.next)
+        println("Persistent history is found in: " + hh.getHistoryFilename)
+        _no_show
+      case _ =>
+        _no_show
+    }
+  """
+  #description="Show the current history."
+  #detail=
+  "Show the current history of lines executed.  This history is numbered, and ".
+  "numbered items in the history can be recalled later.  The history is saved ".
+  "between sessions, if possible."
 }
 
 //======================================================================
@@ -490,10 +517,10 @@ decl.{! history()
 //======================================================================
 
 decl.{! fail()
-#handler=
-"""throw new VerifyError("core dump requested by user")"""
-#description="Generate a runtime exception."
-#detail=
-"Generate a runtime exception (a VerifyError).  This causes a core dump and ".
-"may be useful if you are trying to debug the system."
+  #handler=
+  """throw new VerifyError("core dump requested by user")"""
+  #description="Generate a runtime exception."
+  #detail=
+  "Generate a runtime exception (a VerifyError).  This causes a core dump and ".
+  "may be useful if you are trying to debug the system."
 }
