@@ -90,20 +90,37 @@ class ERepl extends Processor {
   private val _prop = new scala.sys.SystemProperties
   
   /** The user's home folder. */
-  private val _home = _prop("user.home")
+  private val _home = {
+	  val root = System.getenv("ELISION_ROOT")
+	  if (root != null) {
+	    root
+	  } else {
+	    _prop("user.home")
+	  }
+	}
   
   /** Figure out the location to store the history. */
-  private val _filename = {
-    val fname = (if (_prop("path.separator") == ":") ".elision.history.eli"
-      else "elision-history.eli")
-    _home + _prop("file.separator") + fname
-  }
+  protected val _filename = {
+	  val hce = System.getenv("ELISION_HISTORY")
+	  if (hce != null) {
+	    hce
+	  } else {
+      val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
+        else "elision-context.eli")
+      _home + _prop("file.separator") + fname
+	  }
+	}
   
   /** Figure out where to stash the context on exit. */
   protected val _lastcontext = {
-    val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
-      else "elision-context.eli")
-    _home + _prop("file.separator") + fname
+    val cce = System.getenv("ELISION_CONTEXT")
+    if (cce != null) {
+      cce
+    } else {
+      val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
+        else "elision-context.eli")
+      _home + _prop("file.separator") + fname
+    }
   }
   
   /** Figure out the startup file that is read after bootstrapping. */
