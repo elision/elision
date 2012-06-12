@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 
+import ornl.elision.repl.ReplActor
 
 /**
  *	RWTreeNode class
@@ -103,7 +104,7 @@ class RWTreeNode(val term : String) {
 	 */
 	
 	def addChild(node : RWTreeNode) : RWTreeNode = {
-			if(true || this.term != node.term) {
+		if(true || this.term != node.term) {
 			children += node
 			node
 		}
@@ -119,7 +120,7 @@ class RWTreeNode(val term : String) {
 	 */
 	
 	def addChild(label : String) : RWTreeNode = {
-			if(true || this.term != label) {
+		if(true || this.term != label) {
 			val node = new RWTreeNode(label)
 			children += node
 			node
@@ -154,11 +155,50 @@ object RWTree {
 	 */
 	var current : RWTreeNode = new RWTreeNode("")
 	
-	/** factory method */
-	def apply(atom : BasicAtom) : RWTreeNode = new RWTreeNode(atom)
-	
-	/** factory method */
-	def apply(term : String) : RWTreeNode = new RWTreeNode(term)
+    /** Adds a child node to some node if guiMode is on. */
+	def addChildToNode(node : RWTreeNode, child : RWTreeNode) : Unit = {
+        if(!ReplActor.guiMode || node == null || child == null) return
+        else node.addChild(child)
+    }
+    
+    /** Adds a child node representing an atom to some node if guiMode is on. */
+    def addChildToNode(node : RWTreeNode, child : BasicAtom) : Unit = {
+        if(!ReplActor.guiMode || node == null || child == null) return
+        else node.addChild(child)
+    }
+    
+    /** Adds a child comment node to some node if guiMode is on. */
+    def addChildToNode(node : RWTreeNode, child : String) : Unit = {
+        if(!ReplActor.guiMode || node == null || child == null) return
+        else node.addChild(child)
+    }
+    
+    /** Adds a child node to current if guiMode is on. */
+	def addChildToCurrent(child : RWTreeNode) : RWTreeNode = {
+        if(!ReplActor.guiMode|| child == null) null
+        else current.addChild(child)
+    }
+    
+    /** Adds a child node representing an atom to current if guiMode is on. */
+    def addChildToCurrent(child : BasicAtom) : RWTreeNode = {
+        if(!ReplActor.guiMode || child == null) null
+        else current.addChild(child)
+    }
+    
+    /** Adds a child comment node to current if guiMode is on. */
+    def addChildToCurrent(child : String) : RWTreeNode = {
+        if(!ReplActor.guiMode || child == null) null
+        else current.addChild(child)
+    }
+    
+    /** Creates a new root node for the current RWTree being constructed. */
+    def createNewRoot(label : String) : RWTreeNode = {
+        if(!ReplActor.guiMode || label == null) null
+        else {
+            current = new RWTreeNode(label)
+            current
+        }
+    }
 	
 }
 
