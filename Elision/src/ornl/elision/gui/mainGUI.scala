@@ -36,13 +36,22 @@
 ======================================================================*/
 
 package ornl.elision.gui
-
+/*
+import swing.SimpleSwingApplication
+import swing.MainFrame
+import swing.MenuBar
+import swing.Menu
+import swing.MenuItem
+import swing.Dialog
+import swing.BorderPanel
+import swing.*/
 import swing._
-import scala.swing.BorderPanel.Position._
-import scala.concurrent.ops._
+import swing.BorderPanel.Position._
+import concurrent.ops._
 import sys.process._
 import java.io._
-import java.awt.Graphics2D
+import java.awt.Color
+import java.awt.Dimension
 
 import sage2D._
 
@@ -184,17 +193,7 @@ object guiMenuBar extends MenuBar {
 		helpMenu.contents += aboutItem
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 	/** The dialog window for the "View > Set Decompression Depth" menu item */
 	class DepthDialog extends Dialog {
 		this.title = "Set Decompression Depth"

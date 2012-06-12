@@ -37,17 +37,14 @@
 
 package ornl.elision.gui
 
-import swing._
 import scala.swing.BorderPanel.Position._
 import scala.concurrent.ops._
 import sys.process._
 import java.io._
-import java.awt.Graphics2D
-import java.awt.Image
+import java.awt._
 import java.awt.image.BufferedImage
 import java.awt.image.VolatileImage
 import javax.swing.SwingWorker
-import java.beans.PropertyChangeListener
 
 import sage2D._
 
@@ -83,6 +80,10 @@ class TreeVisPanel extends GamePanel {
 	/** A variable used only by the loading screen animation. It's not important. */
 	var loadingThingAngle = 0
     
+    /** A SwingWorker thread used for concurrently rendering the panel's image. */
+    val renderThread = new TreeVisThread2(this,timer)
+    renderThread.execute
+    
     /** The Image containing the latest rendering of the visualization tree. */
     var renderedImage : Image = new BufferedImage(640,480, TreeVisPanel.imageType)
 	
@@ -97,7 +98,9 @@ class TreeVisPanel extends GamePanel {
             // if we're still processing a previous frame, just return.
             if(!timerLock) {
                 timerLock = true
-                (new TreeVisThread(this,gt)).execute
+            //    (new TreeVisThread(this,gt)).execute
+                renderThread._continue = true
+                
             }
             repaint
             
@@ -286,7 +289,7 @@ class TreeVisPanel extends GamePanel {
 	
 	// Once the panel is set up, start the timer.
 	// The timer will call timerLoop and repaint periodically
-	start(120)
+	start()
 }
 
 /** */
@@ -327,11 +330,7 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Swin
 		
 		//testPaint(g)
 		treeVis.treeSprite.render(g)
-		
-		// draw the panel's border (used for testing clipping techniques)
-	//	g.setColor(new Color(0xffaaaa))
-	//	g.drawRect(camera.xLeftEdge.toInt, camera.yTopEdge.toInt, camera.xRightEdge.toInt - camera.xLeftEdge.toInt, camera.yBottomEdge.toInt - camera.yTopEdge.toInt)
-		
+
 		// dispose of the graphics context
         g.dispose
         
@@ -355,11 +354,73 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Swin
             treeVis.timerLock = false
         }
     }
-
-
-
 }
 
+
+
+/** A swing worker thread to run the Tree Visualization interaction logic and rendering in */
+class TreeVisThread2(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Any, Any] {
+    
+    var _continue = false
+    
+    override def doInBackground : Any = {
+        
+        while(true) {
+            // block until the TreeVisPanel says it should render the next frame.
+            while(!_continue) {
+                Thread.sleep(1)
+            }
+            try {
+                // run the panel's logic before rendering it.
+                treeVis.timerLoop
+                
+                // Create the rendered image.
+                val image = render 
+                
+                // update the TreeVisPanel's image
+                treeVis.renderedImage = image
+            }
+            catch {
+                case _ =>
+            }
+            finally {
+                // update the frame rate counter
+                gt.updateFrameRateCounter
+                
+                // we're done, so unlock the TreeVisPanel
+                treeVis.timerLock = false
+                _continue = false
+            }
+
+        }
+        null
+    }
+    
+    def render : Image = {
+        val image = treeVis.peer.createVolatileImage(treeVis.size.width, treeVis.size.height) // new BufferedImage(treeVis.size.width, treeVis.size.height, TreeVisPanel.imageType)
+            
+        var g = image.createGraphics
+
+        // white background
+        g.setColor(new Color(0xffffff))
+        g.fillRect(0,0,treeVis.size.width, treeVis.size.height)
+        
+        // store affine transforms for later use
+		val camTrans = treeVis.camera.getTransform
+		
+		// apply the Camera transform
+		g.setTransform(camTrans)
+		
+		//testPaint(g)
+		treeVis.treeSprite.render(g)
+		
+		// dispose of the graphics context
+        g.dispose
+        
+        // return the completed image
+        image
+    }
+}
 
 
 
