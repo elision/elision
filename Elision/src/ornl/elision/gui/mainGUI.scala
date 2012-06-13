@@ -67,6 +67,7 @@ object mainGUI extends SimpleSwingApplication {
 	
 	/** Eva's configuration settings */
 	val config = new EvaConfig
+    ornl.elision.core.RWTree.maxDepth = config.maxTreeDepth
 	
 	/** The panel housing the onboard Elision REPL */
 	val consolePanel = new ConsolePanel
@@ -79,6 +80,8 @@ object mainGUI extends SimpleSwingApplication {
 	
 	GUIActor.start
 	
+    val guiMenuBar = new GuiMenuBar
+    
 	/** The window's Frame object */
 	def top = new MainFrame {
 		title = "Elision Visualization Assistant"
@@ -96,24 +99,18 @@ object mainGUI extends SimpleSwingApplication {
 		
 		
 	}
-	
-	
-	
-	
-	// treeVisPanel.requestFocusInWindow
-	// treeVisPanel.requestFocus
 }
 
 
 /**	This is the menu bar for the GUI */
-object guiMenuBar extends MenuBar {
+class GuiMenuBar extends MenuBar {
 	
 	// File menu
 	
 	val fileMenu = new Menu("File")
 	fileMenu.mnemonic = event.Key.F
 	this.contents += fileMenu
-		
+
 		// Open : opens an Elision script file to be immediately processed by the Repl as input.
 		
 		var openDirectory = mainGUI.config.lastOpenPath //"."
@@ -169,6 +166,30 @@ object guiMenuBar extends MenuBar {
 		} )
 		setMaxLinesItem.mnemonic = event.Key.L
 		viewMenu.contents += setMaxLinesItem
+        
+        // Set Maximum Tree Depth : 
+        
+        val setMaxDepthItem = new MenuItem(Action("Set Maximum Tree Depth") {
+			val maxDepthDia = new MaxDepthDialog
+		} )
+		setMaxDepthItem.mnemonic = event.Key.M
+		viewMenu.contents += setMaxDepthItem
+        
+        // Skip Comment Nodes : 
+        
+        val skipCommentsItem = new CheckMenuItem("Skip Comment Nodes")
+        skipCommentsItem.peer.setState(mainGUI.config.skipComments)
+        ornl.elision.core.RWTree.skipComments = skipCommentsItem.peer.getState
+        skipCommentsItem.listenTo(skipCommentsItem)
+        skipCommentsItem.reactions += {
+            case _ => 
+                ornl.elision.core.RWTree.skipComments = skipCommentsItem.peer.getState
+                mainGUI.config.skipComments = skipCommentsItem.peer.getState
+                mainGUI.config.save
+        }
+		skipCommentsItem.mnemonic = event.Key.C
+		viewMenu.contents += skipCommentsItem
+        
 	
 	// Help menu	
 		
@@ -301,6 +322,60 @@ object guiMenuBar extends MenuBar {
 		open
 	}
 	
+    
+    
+    /** The dialog window for the "View > Set Maximum Tree Depth" menu item */
+	class MaxDepthDialog extends Dialog {
+		this.title = "Set Maximum Tree Depth"
+		val inset = 3
+		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+		
+		val linesInput = new TextField(10) { 
+			listenTo(keys) 
+			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
+			text = "" + ornl.elision.core.RWTree.maxDepth
+		}
+		val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
+		val cancelBtn = new Button(Action("Cancel") { close } )
+		
+		contents = new BorderPanel {
+			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+			val minLines = ConsolePanel.infiniteMaxLines
+			layout( new GridPanel(2,1) { 
+						contents += new Label("Enter max depth: (integer >= " + minLines + ")")
+						contents += new Label("(< 0 will make there be no depth limit)") 
+					} ) = North
+			layout(linesInput) = Center
+			layout(new FlowPanel {
+				contents += okBtn
+				contents += cancelBtn
+			} ) = South
+		}
+		
+		
+		/** 
+		 * processes the input for the dialog when the user clicks OK or presses Enter 
+		 * @param input		The input string being evaluated as the new value for the REPL's maximum lines.
+		 */
+		private def enterInput(input : String) : Unit = {
+			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
+			// Otherwise, just close the dialog.
+			
+			try {
+				val fieldInt = input.toInt
+				ornl.elision.core.RWTree.maxDepth = fieldInt
+				mainGUI.config.maxTreeDepth = fieldInt
+				mainGUI.config.save
+				// close the dialog when we finish processing input
+				close
+			} catch {
+				case _ =>
+			}
+		}
+		
+		// open the dialog when it is finished setting up
+		open
+	}
 	
 	
 	

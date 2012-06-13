@@ -49,6 +49,12 @@ class EvaConfig extends Serializable {
 	
 	/** The last directory viewed with the File->Open dialog. */
 	var lastOpenPath = "."
+    
+    /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
+    var maxTreeDepth = -1
+    
+    /** Flag for skipping creation of comment nodes */
+    var skipComments = false
 	
 	
 	// try to read config information from Eva's config file (if it exists)
@@ -75,9 +81,13 @@ class EvaConfig extends Serializable {
 		
 		readObj match {
 			case config : Elem => 
-				decompDepth = (config \ "decompDepth").text.toInt
-				replMaxLines = (config \ "replMaxLines").text.toInt
-				lastOpenPath = (config \ "lastOpenPath").text
+                try {
+                    decompDepth = (config \ "decompDepth").text.toInt
+                    replMaxLines = (config \ "replMaxLines").text.toInt
+                    lastOpenPath = (config \ "lastOpenPath").text
+                    maxTreeDepth = (config \ "maxTreeDepth").text.toInt
+                    skipComments = (config \ "skipComments").text.toBoolean
+                } catch { case _ => }
 			case _ => restoreDefaults
 		}
 	} catch {
@@ -90,21 +100,30 @@ class EvaConfig extends Serializable {
 		decompDepth = 2
 		replMaxLines = 60
 		lastOpenPath = "."
+        maxTreeDepth = -1
+        skipComments = false
 	}
 	
 	/** Saves the configuration object to ".\EvaConfig.xml" */
 	def save : Unit = {
-		/*	
-		val fos = new FileOutputStream("EvaConfig.xml")
-		val oos = new ObjectOutputStream(fos)
-		oos.writeObject(this)
-		oos.close
-		fos.close
-		*/
-		var config = <Eva><decompDepth>{decompDepth}</decompDepth><replMaxLines>{replMaxLines}</replMaxLines><lastOpenPath>{lastOpenPath}</lastOpenPath></Eva>
 		
+	//	var config = <Eva><decompDepth>{decompDepth}</decompDepth><replMaxLines>{replMaxLines}</replMaxLines><lastOpenPath>{lastOpenPath}</lastOpenPath><maxTreeDepth>{maxTreeDepth}</maxTreeDepth></Eva>
+		val xmlString = 
+"""
+<Eva>
+    <decompDepth>""" + decompDepth + """</decompDepth>
+    <replMaxLines>""" + replMaxLines + """</replMaxLines>
+    <lastOpenPath>""" + lastOpenPath + """</lastOpenPath>
+    <maxTreeDepth>""" + maxTreeDepth + """</maxTreeDepth>
+    <skipComments>""" + skipComments + """</skipComments>
+</Eva>
+"""
+
+        val config = XML.loadString(xmlString)
+        
 		XML.save("EvaConfig.xml",config)
 	}
+     
 }
 
 

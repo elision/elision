@@ -426,7 +426,7 @@ object AtomParser {
 	    case None => 
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			rwNode.addChild("n/a")
+			RWTree.addTo(rwNode, "n/a") //rwNode.addChild("n/a")
 			None
 	    case Some(real) => Some(real.interpret)
 	  }
