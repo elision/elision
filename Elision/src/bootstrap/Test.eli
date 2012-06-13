@@ -1,0 +1,118 @@
+/*======================================================================
+ *       _ _     _
+ *   ___| (_)___(_) ___  _ __
+ *  / _ \ | / __| |/ _ \| '_ \
+ * |  __/ | \__ \ | (_) | | | |
+ *  \___|_|_|___/_|\___/|_| |_|
+ * The Elision Term Rewriter
+ * 
+ * Copyright (c) 2012 by UT-Battelle, LLC.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * Collection of administrative costs for redistribution of the source code or
+ * binary form is allowed. However, collection of a royalty or other fee in excess
+ * of good faith amount for cost recovery for such redistribution is prohibited.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER, THE DOE, OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+======================================================================*/
+
+println("Reading Test...")
+
+{! _declprop($name: STRING, $default, $description: STRING)
+   #description="Declare a property."
+   #detail="Declare a property.  The property name is $name, and the ".
+           "$description is a human-readable description of the property's ".
+           "purpose and use.  The default (initial) value is $default."
+   #handler="""
+     args match {
+       case Args(StringLiteral(_, name), value, StringLiteral(_, description)) =>
+         // Declare the property.
+         val realval = value match {
+           case StringLiteral(_, str) => str
+           case IntegerLiteral(_, ival) => ival
+           case BooleanLiteral(_, flag) => flag
+           case SymbolLiteral(_, sym) => sym
+         }
+         exec.declareProperty(name, description, realval)
+         console.emitln("Declared property "+toEString(name)+" with type "+
+           realval.getClass.getName+".")
+         _no_show
+       case _ => as_is
+     }"""
+}
+
+_declprop("_test_no", 0, "The current test number.")
+_declprop("_test_fails", 0, "The number of failures.")
+
+{! _test($trial, $gold)
+   #description="Perform a test."
+   #detail="Determine if $trial is equal to $gold.  The value for $trial is ".
+           "rewritten using the current rule library automatic rewrite ".
+           "settings.  If the values are not equal, then a failure is ".
+           "reported.  Otherwise the test succeeds (silently)."
+   #handler="""
+     args match {
+       case Args(trial, gold) =>
+         // Perform rewriting of trial.
+         val test = exec.getProperty[BigInt]("_test_no") + 1
+         exec.setProperty("_test_no", test)
+         val result = context.ruleLibrary.rewrite(trial)._1
+         if (result != gold) {
+           // Failure.  Bump the failure count and report the failure.
+           exec.setProperty("_test_fails",
+             exec.getProperty[BigInt]("_test_fails") + 1)
+           console.error("Test "+test+" FAILED.")
+           console.error("Expected: "+gold.toParseString)
+           console.error("Got     : "+result.toParseString)
+         }
+         _no_show
+       case _ => as_is
+     }"""
+}
+
+{! _test_init()
+   #description="Set up to perform testing."
+   #detail="Initialize the counters for testing, and prepare to run a series ".
+           "of tests and record the results.  Use _test to perform a single ".
+           "test, and use _test_status() to print information about the ".
+           "results."
+   #handler="""
+     exec.setProperty[BigInt]("_test_no", 0)
+     exec.setProperty[BigInt]("_test_fails", 0)
+     _no_show
+   """
+}
+
+{! _test_status()
+   #description="Conclude testing and print a summary of the results."
+   #detail="Print information about the current status of testing, including ".
+           "the number of failures found, and the number of tests run."
+   #handler="""
+     val tests = exec.getProperty[BigInt]("_test_no")
+     val fails = exec.getProperty[BigInt]("_test_fails")
+     console.sendln("Conducted "+tests+" tests and detected "+fails+" failures.")
+     var bind = Bindings()
+     bind += ("tests"->tests)
+     bind += ("fails"->fails)
+     bind
+   """
+}
