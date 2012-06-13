@@ -482,7 +482,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		
 		val startPt = g.getTransform.transform(new geom.Point2D.Double(0,box.y), null)
 		val endPt = g.getTransform.transform(new geom.Point2D.Double(box.width,box.y+box.height), null)
-		val isOnScreen = (startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0 && startPt.getY <= NodeSprite.camera.pHeight && endPt.getY >= 0)
+		val isOnScreen = (NodeSprite.camera.zoom > 0.01 && startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0 && startPt.getY <= NodeSprite.camera.pHeight && endPt.getY >= 0)
 		
 		if(isOnScreen) g.fill(box)
 		
@@ -647,6 +647,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	 */
 	private def drawEdges(g : Graphics2D) : Unit = {
 		import java.awt.geom.CubicCurve2D
+        import java.awt.geom.Line2D
 		import java.awt.geom.Rectangle2D
 		
 		// store the original transform
@@ -669,10 +670,17 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 			g.scale(child.expansion,child.expansion)
 			val startPt = g.getTransform.transform(new geom.Point2D.Double(0,0), null)
 			val endPt = g.getTransform.transform(new geom.Point2D.Double(endX,0), null)
+            
+            // skip drawing the edges if they're very small
+         /*   if(endPt.getX() - startPt.getX() < 2) {
+                g.setTransform(origTrans)
+                return
+            }*/
 			
 			if(startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0) {
 				// create the cubic curve shape for the edge. //  Then draw the edge.
 				val edge = new CubicCurve2D.Double(0, 0, ctrlX, 0, ctrlX, endY, endX, endY)
+                
 				if(child.expansion > 0.01) g.draw(edge)
 			}
 			

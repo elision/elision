@@ -11171,6 +11171,202 @@ This works as we want.
 \end_layout
 
 \begin_layout Section
+Summary: Case Operators
+\end_layout
+
+\begin_layout Standard
+We provide a quick summary of properties of case operators.
+\end_layout
+
+\begin_layout Itemize
+Cases are evaluated in order.
+\end_layout
+
+\begin_layout Itemize
+A case can be a strategy, such as a map pair.
+ If so, then the strategy is applied to the argument.
+ If it reports success, the result is the value of the operator (with substituti
+ons).
+ If the strategy reports failure, then subsequent cases are tried.
+\end_layout
+
+\begin_layout Itemize
+A case can be an applicable, such as an operator reference or a lambda.
+ If so, then the applicable is applied to the argument immediately and the
+ result is the value of the operator (with substitutions).
+ No further cases are tried.
+\end_layout
+
+\begin_layout Itemize
+A case can be any other atom, such as a literal.
+ If so, then that atom is the value of the operator (with substitutions).
+ No further cases are tried.
+\end_layout
+
+\begin_layout Itemize
+The variable 
+\family typewriter
+$_
+\family default
+ is replaced with the argument list.
+\end_layout
+
+\begin_layout Itemize
+The variable 
+\family typewriter
+$__
+\family default
+ is replaced with the operator.
+\end_layout
+
+\begin_layout Itemize
+If 
+\family typewriter
+_
+\family default
+ or 
+\family typewriter
+ANY
+\family default
+ is the value of the operator, then the result is the operator applied to
+ the arguments with no further expansion or modification.
+\end_layout
+
+\begin_layout Itemize
+If no case matches the argument, then an error is generated.
+\end_layout
+
+\begin_layout Itemize
+Case operators cannot have native handlers, but can use operators with native
+ handlers in the cases.
+\end_layout
+
+\begin_layout Standard
+It is possible to have unbounded recursion.
+ Note that using 
+\family typewriter
+_
+\family default
+ or 
+\family typewriter
+ANY
+\family default
+ as the result does not cause the operator to be re-evaluated, but using
+ 
+\family typewriter
+$__
+\family default
+ likely will.
+ A simple example is 
+\family typewriter
+{operator #name=recur #cases $$__.$$_}
+\family default
+.
+ This simply repeats the operator indefinitely.
+ Elision will trap this and report that it has detected unbounded recursion
+ (or at least recursion that exhausts the stack).
+\end_layout
+
+\begin_layout Standard
+Recursion can, of course, be quite useful.
+ The following shows how one can compute powers of two.
+ (Here we use one operator, but to be more safe, we would typically use
+ two: 
+\family typewriter
+pow2
+\family default
+ and 
+\family typewriter
+_pow2
+\family default
+.
+ The first would be the 
+\begin_inset Quotes eld
+\end_inset
+
+public
+\begin_inset Quotes erd
+\end_inset
+
+ operator that takes a single argument, and the second would be a hidden
+ operator with the cases that take two arguments.
+ We have to declare 
+\family typewriter
+_pow2
+\family default
+ first in this case, so we can refer to it from 
+\family typewriter
+pow2
+\family default
+.)
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> decl.{operator #name=pow2 #type=INTEGER #cases
+\end_layout
+
+\begin_layout Plain Layout
+
+  %($x: INTEGER) -> $$__.%($$x,1),
+\end_layout
+
+\begin_layout Plain Layout
+
+  %(0, $y: INTEGER) -> $$y,
+\end_layout
+
+\begin_layout Plain Layout
+
+  %($x: INTEGER, $y:INTEGER) -> $$__.%(add(-1,$$x),add($$y,$$y))}
+\end_layout
+
+\begin_layout Plain Layout
+
+Declared operator pow2.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> pow2(4)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl1 = 16
+\end_layout
+
+\begin_layout Plain Layout
+
+e> pow2(8)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl2 = 256
+\end_layout
+
+\begin_layout Plain Layout
+
+e> pow2(20)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl3 = 1048576 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
 \begin_inset CommandInset label
 LatexCommand label
 name "sec:Documenting-Operators"
@@ -12152,10 +12348,6 @@ L) } :}
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Plain Layout
 
 \end_layout
 
