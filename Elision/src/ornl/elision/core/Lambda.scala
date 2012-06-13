@@ -167,8 +167,8 @@ extends BasicAtom with Applicable {
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("Lambda rewrite: ")
-	val bodyNode = rwNode.addChild(body)
+	val rwNode = RWTree.addToCurrent("Lambda rewrite: ")
+	val bodyNode = RWTree.addTo(rwNode, body) // rwNode.addChild(body)
 	RWTree.current = bodyNode
 	
     // We test for a special case here.  If the bindings specify that we
@@ -179,7 +179,7 @@ extends BasicAtom with Applicable {
 	    case (newatom, changed) if changed => 
 			RWTree.current = rwNode
 			val newLambda = Lambda(lvar, newatom)
-			rwNode.addChild(newLambda)
+			RWTree.addTo(rwNode, newLambda) // rwNode.addChild(newLambda)
 			(newLambda, true)
 	    case _ => (this, false)
 	  }
@@ -202,9 +202,9 @@ extends BasicAtom with Applicable {
   //////////////////// GUI changes
   def doApply(atom: BasicAtom, bypass: Boolean) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("Lambda doApply: ")
-	val bodyNode = rwNode.addChild("body").addChild(body)
-	val atomNode = rwNode.addChild("match atom :?").addChild(atom)
+	val rwNode = RWTree.addToCurrent("Lambda doApply: ")
+	val bodyNode = RWTree.addTo(rwNode, "body", body) // rwNode.addChild("body").addChild(body)
+	val atomNode = RWTree.addTo(rwNode, "match atom :?", atom) //rwNode.addChild("match atom :?").addChild(atom)
 	RWTree.current = bodyNode
 	
     // Lambdas are very general; their application can lead to a stack overflow
@@ -221,11 +221,11 @@ extends BasicAtom with Applicable {
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
 		      val newbody = body.rewrite(binds)._1
-			  rwNode.addChild(newbody)
+			  RWTree.addTo(rwNode, newbody) //rwNode.addChild(newbody)
 			  newbody
 	      case Many(iter) =>
 	        val newbody = body.rewrite(iter.next)._1
-			rwNode.addChild(newbody)
+			RWTree.addTo(rwNode, newbody) //rwNode.addChild(newbody)
 			newbody
 	    }
     } catch {
@@ -233,7 +233,7 @@ extends BasicAtom with Applicable {
         // Trapped unbounded recursion.
 		val errorString = "Lambda application results in unbounded recursion: (" +
             this.toParseString + ").(" + atom.toParseString + ")"
-		rwNode.addChild(errorString)
+		RWTree.addTo(rwNode, errorString) //rwNode.addChild(errorString)
         throw new LambdaUnboundedRecursionException(errorString)
     }
   }
@@ -271,9 +271,9 @@ object Lambda {
    */
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("object Lamda apply: ")
-	val lvarNode = rwNode.addChild("parameter: ").addChild(lvar)
-	val bodyNode = rwNode.addChild("body: ").addChild(body)
+	val rwNode = RWTree.addToCurrent("object Lamda apply: ")
+	val lvarNode = RWTree.addTo(rwNode, "parameter: ", lvar) //rwNode.addChild("parameter: ").addChild(lvar)
+	val bodyNode = RWTree.addTo(rwNode, "body: ", body) //rwNode.addChild("body: ").addChild(body)
 	
     // Make and return the new lambda.
     if (useDeBruijnIndices) {
@@ -301,14 +301,14 @@ object Lambda {
         else
         	new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
       )
-		lvarNode.addChild(newvar)
+		RWTree.addTo(lvarNode, newvar) //lvarNode.addChild(newvar)
 		
 	    // Bind the old variable to the new one and rewrite the body.
 	    var binds = Bindings()
 	    binds += (lvar.name -> newvar)
 		RWTree.current = bodyNode
 	    val (newbody, notfixed) = body.rewrite(binds)
-		bodyNode.addChild(newbody)
+		RWTree.addTo(bodyNode, newbody) //bodyNode.addChild(newbody)
 	    
 	    // Compute the new lambda.
 	    if (notfixed)	new Lambda(newvar, newbody, false)

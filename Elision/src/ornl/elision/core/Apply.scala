@@ -81,17 +81,18 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   
   def rewrite(binds: Bindings) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("Apply rewrite: ")
+	val rwNode = RWTree.addToCurrent("Apply rewrite: ")
 
-	RWTree.current = rwNode.addChild("Operator: ").addChild(op)
+	RWTree.current = RWTree.addTo(rwNode, "Operator: ", op) // rwNode.addChild("Operator: ").addChild(op)
     val (nop, nof) = op.rewrite(binds)
 	
-	RWTree.current = rwNode.addChild("Argument: ").addChild(arg)
+	RWTree.current = RWTree.addTo(rwNode, "Argument: ", arg) // rwNode.addChild("Argument: ").addChild(arg)
     val (narg, naf) = arg.rewrite(binds)
 	
+    RWTree.current = rwNode
     if (nof || naf) {
 		val newApply = Apply(nop, narg)
-		rwNode.addChild(newApply)
+		RWTree.addTo(rwNode,newApply) // rwNode.addChild(newApply)
 		(newApply, true) 
 	} else (this, false)
   }
@@ -168,18 +169,19 @@ object Apply {
    */
   def apply(op: BasicAtom, arg: BasicAtom,
       bypass: Boolean = false): BasicAtom = {
+      
+    //////////////////// GUI changes
+    // get the node representing this atom that is being rewritten
+    val rwNode = RWTree.addToCurrent("object Apply apply: ") // RWTree.current.addChild("object Apply apply: ")
+    val opNode = RWTree.addTo(rwNode, "Operator: ", op) // rwNode.addChild("Operator: ").addChild(op)
+    val argNode = RWTree.addTo(rwNode, "Argument: ", arg) // rwNode.addChild("Argument: ").addChild(arg)
+    RWTree.current = opNode
+    //////////////////// end GUI changes
+        
     // Do not try to compute if metaterms are present.
     if (!op.evenMeta && !arg.isTerm) {
       SimpleApply(op, arg)
     } else {
-  		//////////////////// GUI changes
-  		// get the node representing this atom that is being rewritten
-  		val rwNode = RWTree.current.addChild("object Apply apply: ")
-  		val opNode = rwNode.addChild("Operator: ").addChild(op)
-  		val argNode = rwNode.addChild("Argument: ").addChild(arg)
-  		RWTree.current = opNode
-  		//////////////////// end GUI changes
-  		
       op match {
   		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
   		    // If the argument is also a string literal, then we want to simply
@@ -256,7 +258,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
     if (pair._2) {
 		RWTree.current = rwNode
 		val newApply = Apply(op, pair._1)
-		rwNode.addChild(newApply)
+		RWTree.addTo(rwNode, newApply) // rwNode.addChild(newApply)
 		(newApply, true) 
 	} else (this, false)
   }

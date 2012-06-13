@@ -203,15 +203,15 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("AtomSeq rewrite")
+	val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
 	
     // Rewrite the properties.
-	val propsNode = rwNode.addChild("Properties: ").addChild(props)
+	val propsNode = RWTree.addTo(rwNode, "Properties: ",props) // rwNode.addChild("Properties: ").addChild(props)
 	RWTree.current = propsNode
     val (newprop, pchanged) = props.rewrite(binds)
 	
     // We must rewrite every child atom, and collect them into a new sequence.
-	RWTree.current = rwNode.addChild("Atoms: ")
+	RWTree.current = RWTree.addTo(rwNode, "Atoms: ") // rwNode.addChild("Atoms: ")
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
 	
     // If anything changed, make a new sequence.

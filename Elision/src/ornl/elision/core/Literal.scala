@@ -219,13 +219,13 @@ extends Literal[BigInt](typ) {
   def rewrite(binds: Bindings) = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		RWTree.current = rwNode.addChild(theType)
+		RWTree.current = RWTree.addTo(rwNode,theType) //rwNode.addChild(theType)
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
 			RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			rwNode.addChild(newLit)
+			RWTree.addTo(rwNode, newLit) //rwNode.addChild(newLit)
 			(newLit, true)
 		  case _ =>
 			(this, false)
@@ -252,13 +252,13 @@ extends Literal[String](typ) {
   def rewrite(binds: Bindings) = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		RWTree.current = rwNode.addChild(theType)
+		RWTree.current = RWTree.addTo(rwNode, theType) //rwNode.addChild(theType)
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
 			RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			rwNode.addChild(newLit)
+			RWTree.addTo(rwNode,newLit) //rwNode.addChild(newLit)
 			(newLit, true)
 		  case _ =>
 			(this, false)
@@ -286,13 +286,13 @@ extends Literal[Symbol](typ) {
   def rewrite(binds: Bindings) = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		RWTree.current = rwNode.addChild(theType)
+		RWTree.current = RWTree.addTo(rwNode,theType) //rwNode.addChild(theType)
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
 			RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			rwNode.addChild(newLit)
+			RWTree.addTo(rwNode, newLit) // rwNode.addChild(newLit)
 			(newLit, true)
 		  case _ =>
 			(this, false)
@@ -327,13 +327,13 @@ extends Literal[Boolean](typ) {
   def rewrite(binds: Bindings) = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		RWTree.current = rwNode.addChild(theType)
+		RWTree.current = RWTree.addTo(rwNode,theType) //rwNode.addChild(theType)
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
 			RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			rwNode.addChild(newLit)
+			RWTree.addTo(rwNode, newLit) //rwNode.addChild(newLit)
 			(newLit, true)
 		  case _ =>
 			(this, false)
@@ -523,13 +523,13 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
   def rewrite(binds: Bindings) = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		RWTree.current = rwNode.addChild(theType)
+		RWTree.current = RWTree.addTo(rwNode, theType) //rwNode.addChild(theType)
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
 			RWTree.current = rwNode
 			val newLit = Literal(newtype, significand, exponent, radix)
-			rwNode.addChild(newLit)
+			RWTree.addTo(rwNode, newLit) //rwNode.addChild(newLit)
 			(newLit, true)
 		  case _ =>
 			(this, false)

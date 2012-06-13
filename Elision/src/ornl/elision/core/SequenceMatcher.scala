@@ -96,8 +96,8 @@ object SequenceMatcher {
    */
   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("object SequenceMatcher rewrite: ")
-	val seqNode = rwNode.addChild("sequence: ")
+	val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
+	val seqNode = RWTree.addTo(rwNode, "sequence: ") // rwNode.addChild("sequence: ")
 	
     var changed = false
     def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
@@ -106,7 +106,7 @@ object SequenceMatcher {
 		RWTree.current = headNode
         
 		val (newatom, change) = atoms.head.rewrite(binds)
-		headNode.addChild(newatom)
+		RWTree.addTo(headNode, newatom) //headNode.addChild(newatom)
 		
         changed |= change
         newatom +: doit(atoms.tail)
