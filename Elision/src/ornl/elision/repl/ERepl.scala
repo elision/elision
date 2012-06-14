@@ -366,7 +366,7 @@ class ERepl extends Processor {
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
-      ReplActor.disableGUIComs = false
+//      ReplActor.disableGUIComs = false
       ReplActor.start
     }
 	

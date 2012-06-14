@@ -206,7 +206,6 @@ with HasHistory {
 	//////////////////// GUI changes
 	
 	// send the completed rewrite tree to the GUI's actor
-	
 	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
 		ReplActor.guiActor ! treeRoot
 	

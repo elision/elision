@@ -56,28 +56,12 @@ class EvaConfig extends Serializable {
     /** Flag for skipping creation of comment nodes */
     var skipComments = false
 	
+    /** Flag for temporarilly disabling Eva tree construction in Elision */
+    var disableTree = false
 	
 	// try to read config information from Eva's config file (if it exists)
 	try {
-		/*
-		val fis = new FileInputStream("EvaConfig.xml")
-		val ois = new ObjectInputStream(fis)
-		val readObj = ois.readObject
-		ois.close
-		fis.close
-		*/
-		
 		val readObj = XML.loadFile("EvaConfig.xml")
-		
-		/*
-		readObj match {
-			case config : EvaConfig =>
-				decompDepth = config.decompDepth
-				replMaxLines = config.replMaxLines
-				lastOpenPath = config.lastOpenPath
-			case _ => restoreDefaults
-		}
-		*/
 		
 		readObj match {
 			case config : Elem => 
@@ -87,7 +71,8 @@ class EvaConfig extends Serializable {
                     lastOpenPath = (config \ "lastOpenPath").text
                     maxTreeDepth = (config \ "maxTreeDepth").text.toInt
                     skipComments = (config \ "skipComments").text.toBoolean
-                } catch { case _ => }
+                    disableTree = (config \ "disableTree").text.toBoolean
+                } catch { case _ => System.err.println("One or more configurations didn't load from EvaConfig, \nprobably because you just updated to a newer version of Eva with new shiny features.")}
 			case _ => restoreDefaults
 		}
 	} catch {
@@ -102,6 +87,7 @@ class EvaConfig extends Serializable {
 		lastOpenPath = "."
         maxTreeDepth = -1
         skipComments = false
+        disableTree = false
 	}
 	
 	/** Saves the configuration object to ".\EvaConfig.xml" */
@@ -116,6 +102,7 @@ class EvaConfig extends Serializable {
     <lastOpenPath>""" + lastOpenPath + """</lastOpenPath>
     <maxTreeDepth>""" + maxTreeDepth + """</maxTreeDepth>
     <skipComments>""" + skipComments + """</skipComments>
+    <disableTree>""" + disableTree + """</disableTree>
 </Eva>
 """
 

@@ -190,6 +190,21 @@ class GuiMenuBar extends MenuBar {
 		skipCommentsItem.mnemonic = event.Key.C
 		viewMenu.contents += skipCommentsItem
         
+        // Disable Tree Construction : 
+        
+        val disableTreeItem = new CheckMenuItem("Disable Tree Construction")
+        disableTreeItem.peer.setState(mainGUI.config.disableTree)
+        ornl.elision.repl.ReplActor.disableGUIComs = disableTreeItem.peer.getState
+        disableTreeItem.listenTo(disableTreeItem)
+        disableTreeItem.reactions += {
+            case _ => 
+                ornl.elision.repl.ReplActor.disableGUIComs = disableTreeItem.peer.getState
+                mainGUI.config.disableTree = disableTreeItem.peer.getState
+                mainGUI.config.save
+        }
+		disableTreeItem.mnemonic = event.Key.T
+		viewMenu.contents += disableTreeItem
+        
 	
 	// Help menu	
 		
