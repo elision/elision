@@ -11171,6 +11171,12 @@ This works as we want.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Summary:-Case-Operators"
+
+\end_inset
+
 Summary: Case Operators
 \end_layout
 
@@ -11313,17 +11319,17 @@ e> decl.{operator #name=pow2 #type=INTEGER #cases
 
 \begin_layout Plain Layout
 
-  %($x: INTEGER) -> $$__.%($$x,1),
+ > %($x: INTEGER) -> $$__.%($$x,1),
 \end_layout
 
 \begin_layout Plain Layout
 
-  %(0, $y: INTEGER) -> $$y,
+ > %(0, $y: INTEGER) -> $$y,
 \end_layout
 
 \begin_layout Plain Layout
 
-  %($x: INTEGER, $y:INTEGER) -> $$__.%(add(-1,$$x),add($$y,$$y))}
+ > %($x: INTEGER, $y:INTEGER) -> $$__.%(add(-1,$$x),add($$y,$$y))}
 \end_layout
 
 \begin_layout Plain Layout
@@ -11568,6 +11574,124 @@ This operator computes the polymorphic sum of its arguments.
 \end_inset
 
 
+\end_layout
+
+\begin_layout Section
+Closures
+\end_layout
+
+\begin_layout Standard
+Returning to the 
+\family typewriter
+pow2
+\family default
+ example given in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Summary:-Case-Operators"
+
+\end_inset
+
+, we try the following.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> decl.{operator #name=pow2 #type=INTEGER #cases
+\end_layout
+
+\begin_layout Plain Layout
+
+ > %(0, $y: INTEGER) -> $$y,
+\end_layout
+
+\begin_layout Plain Layout
+
+ > %($x: INTEGER, $y: INTEGER) -> $$__.%(add(-1,$$x),add($$y,$$y))}
+\end_layout
+
+\begin_layout Plain Layout
+
+Declared operator pow2.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> decl.{operator #name=pow2 #type=INTEGER #cases
+\end_layout
+
+\begin_layout Plain Layout
+
+ > %($x: INTEGER) -> pow2($$x,1)}
+\end_layout
+
+\begin_layout Plain Layout
+
+WARNING: Redefining operator pow2.
+\end_layout
+
+\begin_layout Plain Layout
+
+WARNING: Prior definition: {: operator:SYMBOL { binds name -> pow2:SYMBOL
+ type -> INTEGER
+\end_layout
+
+\begin_layout Plain Layout
+
+cases -> %((%(0, $y:INTEGER) -> $$y), (%($x:INTEGER, $y:INTEGER) -> ($$__.%((add:
+OPREF.%(-1, $$x)),
+\end_layout
+
+\begin_layout Plain Layout
+
+(add:OPREF.%($$y, $$y)))))) } :}
+\end_layout
+
+\begin_layout Plain Layout
+
+Declared operator pow2.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> pow2(8)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl1 = 256
+\end_layout
+
+\end_inset
+
+Here we define the two-argument version of the operator first, then re-define
+ the 
+\family typewriter
+pow2
+\family default
+ in what looks like a recursive form.
+ In fact what has happened is that the second definition uses the 
+\emph on
+first
+\emph default
+ definition.
+ When Elision creates a term using an operator reference, it captures and
+ stores the operator's definition in the term.
+ This means that re-defining known operators will not 
+\begin_inset Quotes eld
+\end_inset
+
+break
+\begin_inset Quotes erd
+\end_inset
+
+ the system.
+ In short, Elision creates a small closure for every operator reference.
 \end_layout
 
 \begin_layout Chapter
