@@ -41,15 +41,21 @@ object PrintConsole extends Console {
 
 /**
  * Provide communication with a console.  By default this uses the standard
- * output.  To modify this, override the `send` method.
+ * output.  To modify this, override the `write` method.
+ * 
+ * The console supports "quiet" levels.  These work with the methods to
+ * determine what will be written to the console.   
  */
 trait Console {
+  
+  /** Access to system properties. */
+  private val _prop = new scala.sys.SystemProperties
   
   /** Whether to suppress most output. */
   private var _quiet = 0
   
-  /** The end of line character.  TODO This should be set dynamically. */
-  private final val _ENDL = "\n"
+  /** The end of line character. */
+  private final val _ENDL = _prop("line.separator")
   
   /**
    * Specify whether to be quiet.  How quiet it determined by levels.
@@ -89,44 +95,129 @@ trait Console {
   private def writeln(text: String) { write(text) ; write(_ENDL) }
   
   /**
-   * Write a message, unless quiet is enabled.
+   * Write a message.  The message is only written if the quiet level is
+   * zero.
    * 
    * @param msg		The message.
    */
   def emit(msg: String) { if (_quiet < 1) write(msg) }
   
   /**
-   * Write a message, unless quiet is enabled.
+   * Write a message.  The message is only written if the quiet level is
+   * zero.
    * 
    * @param msg   The message.
    */
   def emitln(msg: String) { if (_quiet < 1) writeln(msg) }
   
   /**
-   * Emit a warning message, with the WARNING prefix.
+   * Write a message.  The message is only written if the quiet level is
+   * zero.
+   * 
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def emitf(form: String, args: Any*) {
+    if (_quiet < 1) {
+      writeln(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Emit a warning message, with the WARNING prefix.  This is only done
+   * if the quiet level is one or lower.
    *
    * @param msg   The message.
    */
   def warn(msg: String) { if (_quiet < 2) writeln("WARNING: " + msg) }
   
   /**
-   * Emit an error message, with the ERROR prefix.
+   * Emit a warning message, with the WARNING prefix.  This is only done
+   * if the quiet level is one or lower.  A newline is always written after
+   * the message.
+   *
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def warnf(form: String, args: Any*) {
+    if (_quiet < 2) {
+      warn(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Emit an error message, with the ERROR prefix.  This is only done if
+   * the quiet level is two or lower.
    * 
    * @param msg		The message.
    */
   def error(msg: String) { if (_quiet < 3) writeln("ERROR: " + msg) }
   
   /**
-   * Send explicitly requested output.
+   * Emit an error message, with the ERROR prefix.  This is only done if
+   * the quiet level is two or lower.  A newline is always written after
+   * the message.
+   *
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def errorf(form: String, args: Any*) {
+    if (_quiet < 3) {
+      error(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Send explicitly requested output.  This is only done if the quiet
+   * level is three or lower.
    * 
    * @param text  The text to send.
    */
   def send(text: String) { if (_quiet < 4) write(text) }
   
   /**
-   * Send explicitly requested output, followed by a newline.
+   * Send explicitly requested output, followed by a newline.  This is
+   * only done if the quiet level is three or lower.
    * 
    * @param text  The text to send.
    */
   def sendln(text: String) { if (_quiet < 4) writeln(text) }
+  
+  /**
+   * Send explicitly requested output, followed by a newline.  This is
+   * only done if the quiet level is three or lower.  A newline is always
+   * written after the message.
+   *
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def sendf(form: String, args: Any*) {
+    if (_quiet < 4) {
+      sendln(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Send output no matter what the quiet level.  Please do not abuse this.
+   * 
+   * @param text  The text to send.
+   */
+  def panic(text: String) { write(text) }
+  
+  /**
+   * Send output no matter what the quiet level.  Please do not abuse this.
+   * 
+   * @param text  The text to send.
+   */
+  def panicln(text: String) { writeln(text) }
+  
+  /**
+   * Send output no matter what the quiet level.  Please do not abuse this.
+   * 
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def panicf(form: String, args:  Any*) {
+    panic(form.format(args:_*))
+  }
 }
