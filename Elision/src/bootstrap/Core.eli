@@ -262,10 +262,12 @@ decl.{! _help_all()
       case Args() =>
         // Give some help.
         val width = scala.tools.jline.TerminalFactory.create().getWidth()
-        println("Elision Help\n")
-        emitln(context.operatorLibrary.help(new StringBuffer(), width).toString)
-        println("Use ! followed by a number to re-execute a " +
+        val buf = new StringBuffer()
+        buf.append("Elision Help\n\n")
+        context.operatorLibrary.help(buf, width)
+        buf.append("\nUse ! followed by a number to re-execute a " +
           "line from the history.\n\nTo quit type :quit.\n")
+        emitln(buf.toString)
       case _ =>
     }
     _no_show
@@ -387,7 +389,7 @@ decl.{! unbind($v)
 decl.{! showbinds()
   #handler=
   """
-    println(context.binds.filterKeys(!_.startsWith("_")).map {
+    emitln(context.binds.filterKeys(!_.startsWith("_")).map {
       pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
     }.mkString("{ binds\n", ",\n", "\n}"))
     _no_show
@@ -497,9 +499,11 @@ decl.{! history()
     exec match {
       case hh: HasHistory =>
         // Show the history.
+        val buf = new StringBuffer()
         val it = hh.getHistoryIterator
-        while (it.hasNext) println(it.next)
-        println("Persistent history is found in: " + hh.getHistoryFilename)
+        while (it.hasNext) buf.append(it.next + "\n")
+        buf.append("Persistent history is found in: " + hh.getHistoryFilename)
+        emitln(buf.toString())
         _no_show
       case _ =>
         _no_show

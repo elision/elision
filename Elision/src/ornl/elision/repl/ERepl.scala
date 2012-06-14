@@ -169,6 +169,8 @@ class ERepl extends Processor {
   //======================================================================
   
   declareProperty("showscala", "Show the Scala source for each atom.", false)
+  declareProperty("usepager",
+      "Use the pager when output is longer than the screen.", true)
   
   //======================================================================
   // Define the REPL control fields.
@@ -405,7 +407,19 @@ class ERepl extends Processor {
 				ReplActor.guiInput
 			} 
 			else {
-				cr.readLine(if (console.quiet > 0) p2 else p1)
+				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+				// Reset the terminal size now, if we can, and if the user wants to
+				// use the pager.
+				if (getProperty[Boolean]("usepager")) {
+          console.height_=(
+              scala.tools.jline.TerminalFactory.create().getHeight()-1)
+          console.width_=(
+              scala.tools.jline.TerminalFactory.create().getWidth())
+				} else {
+				  console.height_=(0)
+				  console.width_=(0)
+				}
+				line
 			} 
 		/////////////// end GUI changes
 		

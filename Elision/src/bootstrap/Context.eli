@@ -43,7 +43,7 @@ println("Reading Context...")
 
 decl.{! context()
 #handler="""
-  println(context.toParseString)
+  emitln(context.toParseString)
   _no_show"""
 #description="Show the content of the current context."
 #detail=
@@ -135,7 +135,7 @@ decl.{! showrules($atom)
     case Args(atom) =>
       // Get the rules, and print each one.
       for (rule <- context.ruleLibrary.getRules(atom)) {
-        println(rule.toParseString)
+        emitln(rule.toParseString)
       }
       _no_show
     case _ => _no_show

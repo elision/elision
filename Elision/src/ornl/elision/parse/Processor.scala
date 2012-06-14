@@ -79,6 +79,7 @@ with HasHistory {
   /** The parser to use. */
   private var _parser = new AtomParser(context, _toggle, _trace)
   
+  /** Specify the console.  We don't know the number of lines. */
   val console = PrintConsole
   
   /**
