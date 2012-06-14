@@ -244,7 +244,7 @@ decl.{! _help_op($r)
       // Give some help.
       val width = scala.tools.jline.TerminalFactory.create().getWidth()
       val op = context.operatorLibrary(name)
-      emitln(context.operatorLibrary.help(
+      sendln(context.operatorLibrary.help(
         new StringBuffer(), op, width).toString)
       _no_show
     }
@@ -275,7 +275,7 @@ decl.{! _help_all()
         context.operatorLibrary.help(buf, width)
         buf.append("\nUse ! followed by a number to re-execute a " +
           "line from the history.\n\nTo quit type :quit.\n")
-        emitln(buf.toString)
+        sendln(buf.toString)
       case _ =>
     }
     _no_show
@@ -397,7 +397,7 @@ decl.{! unbind($v)
 decl.{! showbinds()
   #handler=
   """
-    emitln(context.binds.filterKeys(!_.startsWith("_")).map {
+    sendln(context.binds.filterKeys(!_.startsWith("_")).map {
       pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
     }.mkString("{ binds\n", ",\n", "\n}"))
     _no_show
@@ -511,7 +511,7 @@ decl.{! history()
         val it = hh.getHistoryIterator
         while (it.hasNext) buf.append(it.next + "\n")
         buf.append("Persistent history is found in: " + hh.getHistoryFilename)
-        emitln(buf.toString())
+        sendln(buf.toString())
         _no_show
       case _ =>
         _no_show

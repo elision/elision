@@ -36,38 +36,13 @@
 ======================================================================*/
 
 // Notify the user.
-{! _() #handler=""" println("Bootstrapping...") ; _no_show """}.%()
+{! _() #handler=""" console.sendln("Bootstrapping...") ; _no_show """}.%()
 
-// First we bootstrap the def operator, so we can define other operators.
-// We do this by using the def operator to define itself.  This allows us
-// to define def the same way we define any other operator, except that
-// instead of wrapping it with a def, we use a lambda.
-\$def.($def.%($def)).{! def($op)
-#handler=
-"""
-  args match {
-    case Args(op: Operator) =>
-      // Add the operator to the library.
-      context.operatorLibrary.add(op)
-      console.emitln("Defined operator " + toESymbol(op.name) + ".")
-      ApplyData._no_show
-    case Args(op) =>
-      console.error("Atom is not a named operator: " + op.toParseString)
-      ApplyData._no_show
-    case _ =>
-      ApplyData._no_show
-  }
-"""
-#evenmeta=true
-#description="Add the named operator to the context."
-#detail=
-"This will add the operator op to the current context.  This makes ".
-"the operator available by name, or through an OPREF."
-}
-
-// Make the general-purpose decl operator.  This is a more accurately named
-// operator than def, and can in fact replace def.
-def({! _decl($item)
+// Define and declare the _decl operator, so we can declare other operators.
+// We do this by using the _decl operator to declare itself.  This allows us
+// to declare _decl the same way we declare any other operator, except that
+// instead of wrapping it with a _decl, we use a lambda.
+\$def.($def.%($def)).{! _decl($item)
 #handler=
 """
   args(0) match {
@@ -89,9 +64,10 @@ def({! _decl($item)
 "Given a rewrite rule, add the rewrite rule to the rule library in the ".
 "current context.  Given an operator, add the operator to the operator ".
 "library in the current context."
-})
+}
 
-def({operator
+// Declare the decl operator that allows us to use the notation decl.thing.
+_decl({operator
 #name=decl
 #evenmeta=true
 #description="Declare a rule or operator in the current context."
@@ -103,6 +79,31 @@ def({operator
   %($item) -> _decl($$item),
   $item -> _decl($$item)
 })
+
+// Preserve the old def operator, in case someone is still using it.
+decl.{! def($op)
+#handler=
+"""
+  console.warn("The def operator is deprecated.  Please use decl instead.")
+  args match {
+    case Args(op: Operator) =>
+      // Add the operator to the library.
+      context.operatorLibrary.add(op)
+      console.emitln("Defined operator " + toESymbol(op.name) + ".")
+      ApplyData._no_show
+    case Args(op) =>
+      console.error("Atom is not a named operator: " + op.toParseString)
+      ApplyData._no_show
+    case _ =>
+      ApplyData._no_show
+  }
+"""
+#evenmeta=true
+#description="Add the named operator to the context."
+#detail=
+"This will add the operator op to the current context.  This makes ".
+"the operator available by name, or through an OPREF."
+}
 
 // The next operator we need is inc so we can read the rest of the
 // bootstrap definitions.  Define inc next.  It expects to get access
@@ -126,7 +127,7 @@ decl.
         case proc: ornl.elision.parse.Processor =>
           if (!included.contains(filename)) {
             included += filename
-            proc.read(filename, console.quiet < 3)
+            proc.read(filename, console.quiet > 1)
           }
           // Silently ignore this.
         case _ =>
@@ -167,7 +168,7 @@ decl.
 #handler=
 """
   args match {
-    case Args(StringLiteral(_, str)) => println(str)
+    case Args(StringLiteral(_, str)) => console.sendln(str)
     case _ =>
   }
   _no_show
