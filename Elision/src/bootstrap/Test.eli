@@ -63,7 +63,7 @@ println("Reading Test...")
 _declprop("_test_no", 0, "The current test number.")
 _declprop("_test_fails", 0, "The number of failures.")
 
-{! _test($trial, $gold)
+{! _test($trial, $gold): BOOLEAN
    #description="Perform a test."
    #detail="Determine if $trial is equal to $gold.  The value for $trial is ".
            "rewritten using the current rule library automatic rewrite ".
@@ -83,8 +83,10 @@ _declprop("_test_fails", 0, "The number of failures.")
            console.error("Test "+test+" FAILED.")
            console.error("Expected: "+gold.toParseString)
            console.error("Got     : "+result.toParseString)
+           false
+         } else {
+           true
          }
-         _no_show
        case _ => as_is
      }"""
 }
