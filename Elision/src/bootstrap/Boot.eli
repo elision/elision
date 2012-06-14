@@ -126,8 +126,8 @@ decl.
       exec match {
         case proc: ornl.elision.parse.Processor =>
           if (!included.contains(filename)) {
-            included += filename
-            proc.read(filename, console.quiet > 1)
+            if (proc.read(filename, console.quiet > 1))
+              included += filename
           }
           // Silently ignore this.
         case _ =>
