@@ -173,14 +173,22 @@ decl.{! operator($name)
   """
 }
 
-decl.{! getop($x: OPREF)
+decl.{! getop($x)
   #handler=
   """
+    def getop(name: String) = context.operatorLibrary(name).operator
     args match {
       case Args(opref:OperatorRef) =>
         // Get the referenced operator.
         opref.operator
-      case _ => _no_show
+      case Args(op: Operator) =>
+      	op
+      case Args(SymbolLiteral(_, sym)) =>
+        getop(sym.name)
+      case Args(StringLiteral(_, name)) =>
+        getop(name)
+      case Args(v: Variable) =>
+        as_is
     }
   """
   #description="Given an operator reference, return the operator."
