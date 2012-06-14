@@ -197,7 +197,6 @@ with HasHistory {
 	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
 	val treeRoot = RWTree.createNewRoot(lline) //new RWTreeNode(lline)
-	//RWTree.current = treeRoot
 	
 	//////////////////// end GUI changes
 	
@@ -235,7 +234,8 @@ with HasHistory {
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
 				//////////////////// GUI changes
-                val lineNode = RWTree.addTo(rwNode, "line node") //rwNode.addChild("line node")
+                var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
+                val lineNode = RWTree.addTo(rwNode, nodeLabel) //rwNode.addChild("line node")
 				RWTree.current = lineNode
 				//////////////////// end GUI changes
 				
