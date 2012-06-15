@@ -191,6 +191,8 @@ bin, lib, and other folders.</echo>
 		</copy>
 		<copy file="${build.base}/etc/elision_configuration.dtd"
 			todir="${build.bin}" overwrite="yes"/>
+        <copy file="${build.base}/etc/EvaIcon.png"
+			todir="${build.bin}" overwrite="yes"/>
 		<copy file="${build.base}/etc/config.xml"
 			tofile="${build.bin}/configuration.xml" overwrite="yes">
 			<filterset>
