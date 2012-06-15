@@ -73,34 +73,55 @@ class AboutDialog extends Dialog {
 	val inset = 3
     background = new Color(0xBBBBff)
 	
-    contents = new BoxPanel(Orientation.Vertical) {
-        val infoPaneContents = 
+    val evaIconURL = this.getClass.getClassLoader.getResource("EvaIcon.png")
+    val evaIcon = java.awt.Toolkit.getDefaultToolkit.getImage(evaIconURL)
+    
+    
+    val infoPaneContents = 
 """<b><u>Elision Visualization Assistant</u></b><br/>
 Copyright (c) 2012 by UT-Battelle, LLC. <br/>
 All rights reserved. <br/>
 Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Version.web + """</a>
 """
-        
-        /** Contains a hypertext link that takes the user to the Elision web site via their default web browser. */
-        val infoPane = new EditorPane("text/html", infoPaneContents) {
+    
+    contents = new BoxPanel(Orientation.Vertical) {
+        /** Panel containing the EVA icon and version/build info. */
+        val infoPane = new BoxPanel(Orientation.Horizontal) {
             border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
             
-            import javax.swing.event.HyperlinkListener
-            import javax.swing.event.HyperlinkEvent
-            import java.awt.Desktop
-            class hyperlinkOpener extends HyperlinkListener {
-                def hyperlinkUpdate(event : HyperlinkEvent) : Unit = {
-                    if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
-                        try {
-                            Desktop.getDesktop.browse(new java.net.URI(ornl.elision.Version.web))
-                        } catch { case _ => }
-                    }
+            /** The panel containing the Eva graphical icon. */
+            contents += new FlowPanel {
+                // Wait for the icon's image to finish loading before setting this panel's size.
+                val mt = new java.awt.MediaTracker(this.peer)
+                mt.addImage(evaIcon,0)
+                mt.waitForAll
+                preferredSize = new Dimension(evaIcon.getWidth(null), evaIcon.getHeight(null))
+                override def paint(g : java.awt.Graphics2D) : Unit = {
+                    super.paint(g)
+                    g.drawImage(evaIcon,0,0,null)
                 }
             }
             
-            editable = false
-            opaque = false
-            peer.addHyperlinkListener(new hyperlinkOpener)
+            /** Panel containing the version/build information and things. */
+            contents += new EditorPane("text/html", infoPaneContents) {
+                border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+                import javax.swing.event.HyperlinkListener
+                import javax.swing.event.HyperlinkEvent
+                import java.awt.Desktop
+                class hyperlinkOpener extends HyperlinkListener {
+                    def hyperlinkUpdate(event : HyperlinkEvent) : Unit = {
+                        if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
+                            try {
+                                Desktop.getDesktop.browse(new java.net.URI(ornl.elision.Version.web))
+                            } catch { case _ => }
+                        }
+                    }
+                }
+                
+                editable = false
+                opaque = false
+                peer.addHyperlinkListener(new hyperlinkOpener)
+            }
         }
         
         val licensePane = new ScrollPane {
