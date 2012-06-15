@@ -110,22 +110,25 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 	
   def rewrite(binds: Bindings) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("BindingsAtom")
+	val rwNode = RWTree.addToCurrent("BindingsAtom")
 	
     var changed = false
     var newmap = Bindings()
     for ((key, value) <- mybinds) {	
-		val valNode = rwNode.addChild("key->value pair: ").addChild(key + " ->").addChild(value)
+		val valNode = RWTree.addTo(rwNode, key + " -> ", value) //rwNode.addChild("key->value pair: ").addChild(key + " ->").addChild(value)
 		RWTree.current = valNode
+        
       val (newvalue, valuechanged) = value.rewrite(binds)
-	  valNode.addChild(newvalue)
+      
+	  RWTree.addTo(valNode, newvalue) //valNode.addChild(newvalue)
+      
       changed |= valuechanged
       newmap += (key -> newvalue)
     } // Rewrite all bindings.
     if (changed) {
 		RWTree.current = rwNode
 		val newBA = BindingsAtom(newmap)
-		rwNode.addChild(newBA)
+		RWTree.addTo(rwNode, newBA) // rwNode.addChild(newBA)
 		(newBA, true) 
 	} else (this, false)
   }
@@ -161,8 +164,8 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   
   def doApply(atom: BasicAtom, bypass: Boolean) = {
 		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current.addChild("BindingsAtom doApply: ")
-		val atomNode = rwNode.addChild(atom)
+		val rwNode = RWTree.addToCurrent("BindingsAtom doApply: ") // RWTree.current.addChild("BindingsAtom doApply: ")
+		val atomNode = RWTree.addTo(rwNode, atom) // rwNode.addChild(atom)
 		
 		RWTree.current = atomNode
 		// Check the argument to see if it is a single symbol.
@@ -172,20 +175,20 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 			// then the answer is NONE.
 			mybinds.get(sym.name) match {
 			  case Some(oatom) => 
-				atomNode.addChild(oatom)
-				rwNode.addChild(oatom)
+				RWTree.addTo(atomNode, oatom) //atomNode.addChild(oatom)
+				RWTree.addTo(rwNode, oatom) //rwNode.addChild(oatom)
 				oatom
 			  case _ => 
-				atomNode.addChild(NONE)
-				rwNode.addChild(NONE)
+				RWTree.addTo(atomNode, NONE) //atomNode.addChild(NONE)
+				RWTree.addTo(rwNode, NONE) //rwNode.addChild(NONE)
 				NONE
 			}
 		  case _ =>
 			  // Try to rewrite the argument using the bindings and whatever we get
 			  // back is the result.
 			  val newatom = atom.rewrite(mybinds)._1
-			  atomNode.addChild(newatom)
-			  rwNode.addChild(newatom)
+			  RWTree.addTo(atomNode, newatom) //atomNode.addChild(newatom)
+			  RWTree.addTo(rwNode, newatom) //rwNode.addChild(newatom)
 			  newatom
 		}
 	}

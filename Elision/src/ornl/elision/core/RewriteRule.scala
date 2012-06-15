@@ -225,8 +225,8 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	//////////////////// GUI changes
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
 		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current.addChild("MapStrategy doRewrite: ")
-		val atomNode = rwNode.addChild(atom)
+		val rwNode = RWTree.addToCurrent("MapStrategy doRewrite: ")
+		val atomNode = RWTree.addTo(rwNode, atom) //rwNode.addChild(atom)
 		RWTree.current = atomNode
 	
 		atom match {
@@ -235,16 +235,16 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 		  case AtomSeq(props, atoms) =>
 			// All we can do is apply the lhs to each atom in the list.
 			val newAS = AtomSeq(props, atoms.map(Apply(lhs,_)))
-			atomNode.addChild(newAS)
+			RWTree.addTo(atomNode, newAS) // atomNode.addChild(newAS)
 			(newAS, true)
 		  case Apply(op, seq: AtomSeq) => op match {
 			case so: SymbolicOperator => 
 				val newApply = _apply(so, seq)
-				atomNode.addChild(newApply._1)
+				RWTree.addTo(atomNode, newApply._1) //atomNode.addChild(newApply._1)
 				newApply
 			case _ => 
 				val newApply = Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_))))
-				atomNode.addChild(newApply)
+				RWTree.addTo(atomNode, newApply) //atomNode.addChild(newApply)
 				(newApply, true)
 		  }
 		  case _ =>
@@ -517,11 +517,11 @@ class RewriteRule private (
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("RewriteRule doRewrite")
-	val atomNode = rwNode.addChild(atom)
+	val rwNode = RWTree.addToCurrent("RewriteRule doRewrite")
+	val atomNode = RWTree.addTo(rwNode, atom) //rwNode.addChild(atom)
 	RWTree.current = atomNode
     val rwResult = _tryRewrite(atom, binds, hint)
-	atomNode.addChild(rwResult._1)
+	RWTree.addTo(atomNode, rwResult._1) //atomNode.addChild(rwResult._1)
 	rwResult
   }
   //////////////////// end GUI changes

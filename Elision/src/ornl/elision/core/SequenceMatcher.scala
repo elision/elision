@@ -64,10 +64,15 @@ object SequenceMatcher {
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
       binds: Bindings = Bindings()): Outcome = {
     if (BasicAtom.traceMatching) {
-    	println("Sequence Matcher called: ")
-	    println("    Patterns: " + patterns.mkParseString("",",",""))
-    	println("    Subjects: " + subjects.mkParseString("",",",""))
-    	println("    Bindings: " + binds.toParseString)
+      if (BasicAtom.traceVerbose(this)) {
+        println("Sequence Matcher called: ")
+        println("    Patterns: " + patterns.mkParseString("",",",""))
+        println("    Subjects: " + subjects.mkParseString("",",",""))
+        println("    Bindings: " + binds.toParseString)
+      } else if (BasicAtom.traceTerse(this)) {
+        println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
+            subjects.mkParseString("(",",",") ") + binds.toParseString)
+      }
     }
     if (patterns.length != subjects.length)
       Fail("Sequences are not the same length.")
@@ -96,8 +101,8 @@ object SequenceMatcher {
    */
   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("object SequenceMatcher rewrite: ")
-	val seqNode = rwNode.addChild("sequence: ")
+	val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
+	val seqNode = RWTree.addTo(rwNode, "sequence: ") // rwNode.addChild("sequence: ")
 	
     var changed = false
     def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
@@ -106,7 +111,7 @@ object SequenceMatcher {
 		RWTree.current = headNode
         
 		val (newatom, change) = atoms.head.rewrite(binds)
-		headNode.addChild(newatom)
+		RWTree.addTo(headNode, newatom) //headNode.addChild(newatom)
 		
         changed |= change
         newatom +: doit(atoms.tail)

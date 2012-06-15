@@ -187,25 +187,25 @@ class Variable(typ: BasicAtom, val name: String,
 	  //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("Variable rewrite: ")
-	val typeNode = rwNode.addChild(theType)
+	val rwNode = RWTree.addToCurrent("Variable rewrite: ")
+	val typeNode = RWTree.addTo(rwNode, theType) //rwNode.addChild(theType)
 	
     // If this variable is bound in the provided bindings, replace it with the
     // bound value.
     binds.get(name) match {
       case Some(atom) =>
-        rwNode.addChild(atom)
+        RWTree.addTo(rwNode, atom) //rwNode.addChild(atom)
 		(atom, true)
       case None =>
 		RWTree.current = typeNode
         // While the atom is not bound, its type might have to be rewritten.
         theType.rewrite(binds) match {
           case (newtype, changed) =>
-			typeNode.addChild(newtype)
+			RWTree.addTo(typeNode, newtype) //typeNode.addChild(newtype)
             if (changed) { 
 				RWTree.current = rwNode
 				val newVar = Variable(newtype, name)
-				rwNode.addChild(newVar)
+				RWTree.addTo(rwNode, newVar) //rwNode.addChild(newVar)
 				(newVar, true) 
 			} else (this, false)
           case _ => (this, false)

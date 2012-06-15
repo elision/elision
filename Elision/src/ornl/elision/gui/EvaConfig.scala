@@ -49,35 +49,30 @@ class EvaConfig extends Serializable {
 	
 	/** The last directory viewed with the File->Open dialog. */
 	var lastOpenPath = "."
+    
+    /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
+    var maxTreeDepth = -1
+    
+    /** Flag for skipping creation of comment nodes */
+    var skipComments = false
 	
+    /** Flag for temporarilly disabling Eva tree construction in Elision */
+    var disableTree = false
 	
 	// try to read config information from Eva's config file (if it exists)
 	try {
-		/*
-		val fis = new FileInputStream("EvaConfig.xml")
-		val ois = new ObjectInputStream(fis)
-		val readObj = ois.readObject
-		ois.close
-		fis.close
-		*/
-		
 		val readObj = XML.loadFile("EvaConfig.xml")
-		
-		/*
-		readObj match {
-			case config : EvaConfig =>
-				decompDepth = config.decompDepth
-				replMaxLines = config.replMaxLines
-				lastOpenPath = config.lastOpenPath
-			case _ => restoreDefaults
-		}
-		*/
 		
 		readObj match {
 			case config : Elem => 
-				decompDepth = (config \ "decompDepth").text.toInt
-				replMaxLines = (config \ "replMaxLines").text.toInt
-				lastOpenPath = (config \ "lastOpenPath").text
+                try {
+                    decompDepth = (config \ "decompDepth").text.toInt
+                    replMaxLines = (config \ "replMaxLines").text.toInt
+                    lastOpenPath = (config \ "lastOpenPath").text
+                    maxTreeDepth = (config \ "maxTreeDepth").text.toInt
+                    skipComments = (config \ "skipComments").text.toBoolean
+                    disableTree = (config \ "disableTree").text.toBoolean
+                } catch { case _ => System.err.println("One or more configurations didn't load from EvaConfig, \nprobably because you just updated to a newer version of Eva with new shiny features.")}
 			case _ => restoreDefaults
 		}
 	} catch {
@@ -90,21 +85,32 @@ class EvaConfig extends Serializable {
 		decompDepth = 2
 		replMaxLines = 60
 		lastOpenPath = "."
+        maxTreeDepth = -1
+        skipComments = false
+        disableTree = false
 	}
 	
 	/** Saves the configuration object to ".\EvaConfig.xml" */
 	def save : Unit = {
-		/*	
-		val fos = new FileOutputStream("EvaConfig.xml")
-		val oos = new ObjectOutputStream(fos)
-		oos.writeObject(this)
-		oos.close
-		fos.close
-		*/
-		var config = <Eva><decompDepth>{decompDepth}</decompDepth><replMaxLines>{replMaxLines}</replMaxLines><lastOpenPath>{lastOpenPath}</lastOpenPath></Eva>
 		
+	//	var config = <Eva><decompDepth>{decompDepth}</decompDepth><replMaxLines>{replMaxLines}</replMaxLines><lastOpenPath>{lastOpenPath}</lastOpenPath><maxTreeDepth>{maxTreeDepth}</maxTreeDepth></Eva>
+		val xmlString = 
+"""
+<Eva>
+    <decompDepth>""" + decompDepth + """</decompDepth>
+    <replMaxLines>""" + replMaxLines + """</replMaxLines>
+    <lastOpenPath>""" + lastOpenPath + """</lastOpenPath>
+    <maxTreeDepth>""" + maxTreeDepth + """</maxTreeDepth>
+    <skipComments>""" + skipComments + """</skipComments>
+    <disableTree>""" + disableTree + """</disableTree>
+</Eva>
+"""
+
+        val config = XML.loadString(xmlString)
+        
 		XML.save("EvaConfig.xml",config)
 	}
+     
 }
 
 
