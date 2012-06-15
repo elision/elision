@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+Version 0.1 to Current
+----------------------
+* There is now a pager ("more") automatically used when output exceeds the
+  screen size.
+* Bug fixes for handling of "quiet."
+
 Version 0.0 to Version 0.1
 --------------------------
 * The old REPL has been replaced with the new REPL.  Startup times are much
