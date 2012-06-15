@@ -3253,6 +3253,106 @@ Many, many lines are omitted from the above.
  output that can be ignored.
 \end_layout
 
+\begin_layout Section
+Reading Files
+\end_layout
+
+\begin_layout Standard
+If you want to load several operator definitions and rules, you can put
+ these in a file and then tell Elision to read the file.
+ You do this via the 
+\family typewriter
+read(filename)
+\family default
+ operator, where 
+\family typewriter
+filename
+\family default
+ is the name of the file to load.
+ Elision reads the contents of the file, processing bindings, operator definitio
+ns, rules, etc.
+ Most output from this process is suppressed by first putting the REPL is
+ quiet mode and suspending creating 
+\family typewriter
+$_repl
+\family default
+ bindings.
+\end_layout
+
+\begin_layout Standard
+If the filename is absolute (that is, it fully specifies the location of
+ the file), then the file is simply read.
+ Otherwise Elision needs to 
+\emph on
+find
+\emph default
+ the file before it can read it.
+ It does this by checking a search path.
+ The path is specified by the 
+\family typewriter
+path
+\family default
+ property.
+ This is a string containing a list of folders to search.
+ On Windows the folders are separated by semicolons (
+\family typewriter
+;
+\family default
+), while on UNIX (including Mac OS X) and Linux they are separated by colons
+ (
+\family typewriter
+:
+\family default
+).
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Section
+Bootstrapping
+\end_layout
+
+\begin_layout Standard
+When the Elision REPL starts, it first reads its bootstrap files that declare
+ all the 
+\begin_inset Quotes eld
+\end_inset
+
+built in
+\begin_inset Quotes erd
+\end_inset
+
+ operators and rules.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+This includes declaring the operator 
+\family typewriter
+decl
+\family default
+ that is used to declare other operators and rules.
+ How this is done is explained in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "chap:Native-Handlers"
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+ It does this by locating and reading the file 
+\family typewriter
+Boot.eli
+\family default
+.
+\end_layout
+
 \begin_layout Chapter
 Basic Atoms
 \end_layout
