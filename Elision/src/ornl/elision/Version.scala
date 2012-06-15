@@ -111,9 +111,9 @@ object Version {
     
 	  // Open the file.  We expect to find config.xml in the classpath.
 	  val config_resource = getClass.getResource("/configuration.xml")
-	  val source = new org.xml.sax.InputSource(config_resource.toString)
 	  if (config_resource != null) {
 	    // Parse the file.
+	    val source = new org.xml.sax.InputSource(config_resource.toString)
 	    val config = scala.xml.XML.loadXML(source, parser)
 	    //val config = scala.xml.XML.load(config_resource)
 	    
