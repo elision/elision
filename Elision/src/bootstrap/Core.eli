@@ -149,13 +149,6 @@ decl.{! eval($atom)
   "operator."
 }
 
-decl.{ operator #name=typeof #cases %($x)->(\$y:$T.$T.$$x)
-  #description="Extract and show the type of the argument."
-  #detail=
-  "Given a single argument, extract the type $T of that argument $x and return ".
-  "the extracted type."
-}
-
 decl.{! operator($name)
   #description="Look up an operator."
   #detail=
