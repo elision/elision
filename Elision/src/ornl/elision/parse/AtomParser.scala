@@ -160,12 +160,10 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SimpleTypeNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "SimpleTypeNode.interpret") //rwNode.addChild("SimpleTypeNode.interpret")
 			RWTree.current = interpretNode
 			
-			interpretNode.addChild(TYPE)
-			
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, TYPE) //interpretNode.addChild(TYPE)
 			TYPE
 		}
 	}
@@ -177,12 +175,10 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("TypeUniverseNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "TypeUniverseNode.interpret") //rwNode.addChild("TypeUniverseNode.interpret")
 			RWTree.current = interpretNode
 			
-			interpretNode.addChild(TypeUniverse)
-			
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, TypeUniverse) //interpretNode.addChild(TypeUniverse)
 			TypeUniverse
 		}
 	}
@@ -200,13 +196,12 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("OperatorNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "OperatorNode.interpret") //rwNode.addChild("OperatorNode.interpret")
 			RWTree.current = interpretNode
 			
 			val result = lib(str)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -224,13 +219,12 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("RulesetNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "RulesetNode.interpret") //rwNode.addChild("RulesetNode.interpret")
 			RWTree.current = interpretNode
 			
 			val result = lib(str)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -250,9 +244,10 @@ object AtomParser {
 	  def interpret = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("ApplicationNode.interpret")
-		RWTree.current = interpretNode
-	  
+		val interpretNode = RWTree.addTo(rwNode, "ApplicationNode.interpret") //rwNode.addChild("ApplicationNode.interpret")
+        
+        val opNode = RWTree.addTo(interpretNode, "operator: ")
+        RWTree.current = opNode
 	    // If the operator is a naked symbol, we try to interpret it as an
 	    // operator.  Otherwise we just interpret it.
 	    val atom = op match {
@@ -260,13 +255,16 @@ object AtomParser {
 	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
 	      case _ => op.interpret
 	    }
+		RWTree.current = RWTree.addTo(opNode, atom) //interpretNode.addChild(atom)
 		
-		RWTree.current = interpretNode.addChild(atom)
+        val argNode = RWTree.addTo(interpretNode, "argument: ")
+        RWTree.current = argNode
+        val argInt = arg.interpret
+        
+        RWTree.current = interpretNode
+	    val result = Apply(atom, argInt)
 		
-	    val result = Apply(atom, arg.interpret)
-		
-		interpretNode.addChild(result)
-		RWTree.current = rwNode
+		RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 		result
 	  }
 	}
@@ -284,22 +282,21 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("LambdaNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "LambdaNode.interpret") // rwNode.addChild("LambdaNode.interpret")
 			RWTree.current = interpretNode
 
-			val paramNode = interpretNode.addChild("parameter: ")
+			val paramNode = RWTree.addTo(interpretNode, "parameter: ") // interpretNode.addChild("parameter: ")
 			RWTree.current = paramNode
 			val lvarInt = lvar.interpret
 			
-			val bodyNode = interpretNode.addChild("body: ")
+			val bodyNode = RWTree.addTo(interpretNode, "body: ") //interpretNode.addChild("body: ")
 			RWTree.current = bodyNode
 			val bodyInt = body.interpret
 			
 			RWTree.current = interpretNode
 			val result = Lambda(lvarInt, bodyInt)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -322,16 +319,17 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("AtomSeqNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "AtomSeqNode.interpret") //rwNode.addChild("AtomSeqNode.interpret")
 			RWTree.current = interpretNode
 			
-			val propsNode = interpretNode.addChild("properties: ")
+			val propsNode = RWTree.addTo(interpretNode, "properties: ") //interpretNode.addChild("properties: ")
 			RWTree.current = propsNode
 			val propsInt = props.interpret
 			
-			val listNode = interpretNode.addChild("atoms: ")
+			val listNode = RWTree.addTo(interpretNode, "atoms: ") //interpretNode.addChild("atoms: ")
 			RWTree.current = listNode
 			val ASList = list.toIndexedSeq[AstNode] map ( astAtom => {
+                    RWTree.current = listNode
 					val astAtomInt = astAtom.interpret
 					astAtomInt
 				}
@@ -340,8 +338,7 @@ object AtomParser {
 			RWTree.current = interpretNode
 			val result = AtomSeq(propsInt, ASList)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -355,13 +352,12 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("TrueNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "TrueNode.interpret") // rwNode.addChild("TrueNode.interpret")
 			RWTree.current = interpretNode
 			
 			val result = Literal.TRUE
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) // interpretNode.addChild(result)
 			result
 		}
 	}
@@ -371,13 +367,12 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("FalseNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "FalseNode.interpret") //rwNode.addChild("FalseNode.interpret")
 			RWTree.current = interpretNode
 			
 			val result = Literal.FALSE
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -431,7 +426,7 @@ object AtomParser {
 	    case None => 
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			rwNode.addChild("n/a")
+			RWTree.addTo(rwNode, "n/a") //rwNode.addChild("n/a")
 			None
 	    case Some(real) => Some(real.interpret)
 	  }
@@ -443,25 +438,24 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("AlgPropNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "AlgPropNode.interpret") // rwNode.addChild("AlgPropNode.interpret")
 			RWTree.current = interpretNode
 			
-			RWTree.current = interpretNode.addChild("associative: ")
+			RWTree.current = RWTree.addTo(interpretNode, "associative: ") //interpretNode.addChild("associative: ")
 			val assocInt = _interpret(isAssociative)
-			RWTree.current = interpretNode.addChild("commutative: ")
+			RWTree.current = RWTree.addTo(interpretNode, "commutative: ") //interpretNode.addChild("commutative: ")
 			val commuInt = _interpret(isCommutative)
-			RWTree.current = interpretNode.addChild("idempotent: ")
+			RWTree.current = RWTree.addTo(interpretNode, "idempotent: ") //interpretNode.addChild("idempotent: ")
 			val idempInt = _interpret(isIdempotent)
-			RWTree.current = interpretNode.addChild("absorber: ")
+			RWTree.current = RWTree.addTo(interpretNode, "absorber: ") //interpretNode.addChild("absorber: ")
 			val absorInt = _interpret(withAbsorber)
-			RWTree.current = interpretNode.addChild("identity: ")
+			RWTree.current = RWTree.addTo(interpretNode, "identity: ") //interpretNode.addChild("identity: ")
 			val identInt = _interpret(withIdentity)
 			
 			RWTree.current = interpretNode
 			val result = AlgProp(assocInt, commuInt, idempInt, absorInt, identInt)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		} 
 	}
@@ -493,12 +487,12 @@ object AtomParser {
 	  def interpret = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("BindingsNode.interpret")
+		val interpretNode = RWTree.addTo(rwNode, "BindingsNode.interpret") //rwNode.addChild("BindingsNode.interpret")
 		RWTree.current = interpretNode
 			
 	    var binds = Bindings()
 	    for ((str,node) <- map) {
-			val bindNode = interpretNode.addChild(str + " -> ")
+			val bindNode = RWTree.addTo(interpretNode, str + " -> ") //interpretNode.addChild(str + " -> ")
 			RWTree.current = bindNode
 			val nodeInt = node.interpret
 			binds += (str.str -> nodeInt)
@@ -507,8 +501,7 @@ object AtomParser {
 		RWTree.current = interpretNode
 	    val result = BindingsAtom(binds)
 		
-		interpretNode.addChild(result)
-		RWTree.current = rwNode
+		RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 		result
 	  }
 	}
@@ -527,22 +520,21 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("MapPairNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "MapPairNode.interpret") //rwNode.addChild("MapPairNode.interpret")
 			RWTree.current = interpretNode
 
-			val leftNode = interpretNode.addChild("left: ")
+			val leftNode = RWTree.addTo(interpretNode, "left: ") //interpretNode.addChild("left: ")
 			RWTree.current = leftNode
 			val leftInt = left.interpret
 			
-			val rightNode = interpretNode.addChild("right: ")
+			val rightNode = RWTree.addTo(interpretNode, "right: ") //interpretNode.addChild("right: ")
 			RWTree.current = rightNode
 			val rightInt = right.interpret
 			
 			RWTree.current = interpretNode
 			val result = MapPair(leftInt, rightInt)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -561,13 +553,12 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("NakedSymbolNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "NakedSymbolNode.interpret") //rwNode.addChild("NakedSymbolNode.interpret")
 			RWTree.current = interpretNode
 			
 			val result = SymbolLiteral(SYMBOL, Symbol(str))
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -582,16 +573,15 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SymbolNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "SymbolNode.interpret") //rwNode.addChild("SymbolNode.interpret")
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
-			interpretNode.addChild(typeInt)
+			RWTree.addTo(interpretNode, typeInt) //interpretNode.addChild(typeInt)
 			
 			val result = Literal(typeInt, name)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -601,13 +591,12 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("AnyNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "AnyNode.interpret") //rwNode.addChild("AnyNode.interpret")
 			RWTree.current = interpretNode
 			
 			val result = EANY
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -629,7 +618,7 @@ object AtomParser {
 	  def interpret: Variable = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("VariableNode.interpret")
+		val interpretNode = RWTree.addTo(rwNode, "VariableNode.interpret") //rwNode.addChild("VariableNode.interpret")
 		RWTree.current = interpretNode
 		
 		val typeInt = typ.interpret
@@ -638,19 +627,17 @@ object AtomParser {
 			case None => 
 				val result = Variable(typeInt, name, Literal.TRUE, labels)
 				
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 				result
 			case Some(guard) => 
-				val guardNode = interpretNode.addChild("guard: ")
+				val guardNode = RWTree.addTo(interpretNode, "guard: ") //interpretNode.addChild("guard: ")
 				RWTree.current = guardNode
 				val guardInt = guard.interpret
 				
 				RWTree.current = interpretNode
 				val result = Variable(typeInt, name, guardInt, labels)
 				
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 				result
 		}
 	  }
@@ -682,7 +669,7 @@ object AtomParser {
 	  override def interpret: MetaVariable = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("MetaVariableNode.interpret")
+		val interpretNode = RWTree.addTo(rwNode, "MetaVariableNode.interpret") // rwNode.addChild("MetaVariableNode.interpret")
 		RWTree.current = interpretNode
 		
 		val vxtypeInt = vx.typ.interpret
@@ -691,19 +678,17 @@ object AtomParser {
 			case None =>
 				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE, labels)
 			  
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 				result
 			case Some(guard) =>
-				val guardNode = interpretNode.addChild("guard: ")
+				val guardNode = RWTree.addTo(interpretNode, "guard: ") //interpretNode.addChild("guard: ")
 				RWTree.current = guardNode
 				val guardInt = guard.interpret
 				
 				RWTree.current = interpretNode
 				val result = MetaVariable(vxtypeInt, vx.name, guard.interpret, labels)
 			  
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 				result
 		}
 	  }
@@ -723,22 +708,21 @@ object AtomParser {
 	  override def interpret: BasicAtom = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SpecialFormNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "SpecialFormNode.interpret") //rwNode.addChild("SpecialFormNode.interpret")
 			RWTree.current = interpretNode
 			
-			val tagNode = interpretNode.addChild("tag: ")
+			val tagNode = RWTree.addTo(interpretNode, "tag: ") //interpretNode.addChild("tag: ")
 			RWTree.current = tagNode
 			val tagInt = tag.interpret
 			
-			val contentNode = interpretNode.addChild("content: ")
+			val contentNode = RWTree.addTo(interpretNode, "content: ") //interpretNode.addChild("content: ")
 			RWTree.current = contentNode
 			val contentInt = content.interpret
 			
 			RWTree.current = interpretNode
 			val result = SpecialForm(tagInt, contentInt)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -757,7 +741,7 @@ object AtomParser {
 	  def interpret: BasicAtom = {
 		// get the node representing this atom that is being rewritten
 		val rwNode = RWTree.current
-		val interpretNode = rwNode.addChild("SymbolLiteralNode.interpret")
+		val interpretNode = RWTree.addTo(rwNode, "SymbolLiteralNode.interpret") //rwNode.addChild("SymbolLiteralNode.interpret")
 		RWTree.current = interpretNode
 			
 	    // If there is no type, or the type is the type universe, then check the
@@ -767,42 +751,41 @@ object AtomParser {
 	      val lookup = (if (sym == "_") "ANY" else sym)
 	      NamedRootType.get(lookup) match {
 	        case Some(nrt) => 
-				interpretNode.addChild(nrt)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode,nrt) //interpretNode.addChild(nrt)
 				return nrt
 	        case _ =>
 	      }
 	    }
-	    
+        
+	    RWTree.current = interpretNode
 	    // There are interesting "untyped" cases.  Without type, true and false
 	    // should be made Booleans, and Nothing should have type ANY.
 	    if (typ == None) sym match {
 	      case "true" => 
-				interpretNode.addChild(Literal.TRUE)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, Literal.TRUE) // interpretNode.addChild(Literal.TRUE)
 				return Literal.TRUE
 	      case "false" => 
-				interpretNode.addChild(Literal.FALSE)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, Literal.FALSE) //interpretNode.addChild(Literal.FALSE)
 				return Literal.FALSE
-	      case _ => Literal(SYMBOL, Symbol(sym))
+	      case _ => 
+                val newLit = Literal(SYMBOL, Symbol(sym))
+                RWTree.addTo(interpretNode, newLit)
+                return newLit
 	    } else {
 	      typ.get.interpret match {
 	        case BOOLEAN if sym == "true" => 
-				interpretNode.addChild(Literal.TRUE)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, Literal.TRUE) //interpretNode.addChild(Literal.TRUE)
 				return Literal.TRUE
 	        case BOOLEAN if sym == "false" => 
-				interpretNode.addChild(Literal.FALSE)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, Literal.FALSE) //interpretNode.addChild(Literal.FALSE)
 				return Literal.FALSE
 	        case t:Any => 
-				interpretNode.addChild(t)
+				RWTree.addTo(interpretNode, t) //interpretNode.addChild(t)
 				
+                RWTree.current = interpretNode
 				val result = Literal(t, Symbol(sym))
 				
-				interpretNode.addChild(result)
-				RWTree.current = rwNode
+				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 				return result
 	      }
 	    }
@@ -819,15 +802,14 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("StringLiteralNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "StringLiteralNode.interpret") //rwNode.addChild("StringLiteralNode.interpret")
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, str)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	}
@@ -905,14 +887,14 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("UnsignedIntegerNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "UnsignedIntegerNode.interpret") //rwNode.addChild("UnsignedIntegerNode.interpret")
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, asInt)
 			
-			interpretNode.addChild(result)
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			RWTree.current = rwNode
 			result
 		}
@@ -935,15 +917,14 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("SignedIntegerNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "SignedIntegerNode.interpret") //rwNode.addChild("SignedIntegerNode.interpret")
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, asInt)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	  
@@ -1053,15 +1034,14 @@ object AtomParser {
 	  def interpret = {
 			// get the node representing this atom that is being rewritten
 			val rwNode = RWTree.current
-			val interpretNode = rwNode.addChild("FloatNode.interpret")
+			val interpretNode = RWTree.addTo(rwNode, "FloatNode.interpret") //rwNode.addChild("FloatNode.interpret")
 			RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, norm._1.asInt.toInt, norm._2.asInt.toInt, radix)
 			
-			interpretNode.addChild(result)
-			RWTree.current = rwNode
+			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
 			result
 		}
 	  

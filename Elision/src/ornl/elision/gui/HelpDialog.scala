@@ -57,7 +57,7 @@ class HelpDialog extends Dialog {
 		
 		val helpContents = new TextArea(HelpDialog.helpText,40,60) {
 			editable = false
-			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
 			font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
 		}
 		contents = helpContents
@@ -70,30 +70,84 @@ class HelpDialog extends Dialog {
 
 class AboutDialog extends Dialog {
 	title = "About"
+	val inset = 3
+    background = new Color(0xBBBBff)
 	
-	background = new Color(0xBBBBff)
-	
-	
-	
+    val evaIconURL = this.getClass.getClassLoader.getResource("EvaIcon.png")
+    val evaIcon = java.awt.Toolkit.getDefaultToolkit.getImage(evaIconURL)
+    
+    
+    val infoPaneContents = 
+"""<b><u>Elision Visualization Assistant</u></b><br/>
+Copyright (c) 2012 by UT-Battelle, LLC. <br/>
+All rights reserved. <br/>
+Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Version.web + """</a>
+"""
+    
+    contents = new BoxPanel(Orientation.Vertical) {
+        /** Panel containing the EVA icon and version/build info. */
+        val infoPane = new BoxPanel(Orientation.Horizontal) {
+            border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+            
+            /** The panel containing the Eva graphical icon. */
+            contents += new FlowPanel {
+                // Wait for the icon's image to finish loading before setting this panel's size.
+                val mt = new java.awt.MediaTracker(this.peer)
+                mt.addImage(evaIcon,0)
+                mt.waitForAll
+                preferredSize = new Dimension(evaIcon.getWidth(null), evaIcon.getHeight(null))
+                override def paint(g : java.awt.Graphics2D) : Unit = {
+                    super.paint(g)
+                    g.drawImage(evaIcon,0,0,null)
+                }
+            }
+            
+            /** Panel containing the version/build information and things. */
+            contents += new EditorPane("text/html", infoPaneContents) {
+                border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+                import javax.swing.event.HyperlinkListener
+                import javax.swing.event.HyperlinkEvent
+                import java.awt.Desktop
+                class hyperlinkOpener extends HyperlinkListener {
+                    def hyperlinkUpdate(event : HyperlinkEvent) : Unit = {
+                        if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
+                            try {
+                                Desktop.getDesktop.browse(new java.net.URI(ornl.elision.Version.web))
+                            } catch { case _ => }
+                        }
+                    }
+                }
+                
+                editable = false
+                opaque = false
+                peer.addHyperlinkListener(new hyperlinkOpener)
+            }
+        }
+        
+        val licensePane = new ScrollPane {
+            horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+            border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+            
+            val licenseContents = new TextArea(HelpDialog.licenseText,20,80) {
+                editable = false
+                border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
+                font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 10 )
+            }
+            contents = licenseContents
+        }
+
+        contents += infoPane
+        contents += licensePane
+	}
+    
 	open
 }
 
 /** Contains static text data used by HelpDialog */
 
 object HelpDialog {
-	val helpText = 
-"""
-      _ _     _
-  ___| (_)___(_) ___  _ __
- / _ \ | / __| |/ _ \| '_ \
-|  __/ | \__ \ | (_) | | | |
- \___|_|_|___/_|\___/|_| |_|
-The Elision Term Rewriter
-
-Copyright (c) 2012 by UT-Battelle, LLC.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
+	val licenseText = 
+"""Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
 1. Redistributions of source code must retain the above copyright notice, this
@@ -116,8 +170,21 @@ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
 OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."""
+    
+    val helpText = 
+"""
+      _ _     _
+  ___| (_)___(_) ___  _ __
+ / _ \ | / __| |/ _ \| '_ \
+|  __/ | \__ \ | (_) | | | |
+ \___|_|_|___/_|\___/|_| |_|
+The Elision Term Rewriter
 
+Copyright (c) 2012 by UT-Battelle, LLC.
+All rights reserved.
+
+""" + licenseText + """
 
 Contents
 ========

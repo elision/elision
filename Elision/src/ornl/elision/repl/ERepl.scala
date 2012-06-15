@@ -90,20 +90,37 @@ class ERepl extends Processor {
   private val _prop = new scala.sys.SystemProperties
   
   /** The user's home folder. */
-  private val _home = _prop("user.home")
+  private val _home = {
+	  val root = System.getenv("ELISION_ROOT")
+	  if (root != null) {
+	    root
+	  } else {
+	    _prop("user.home")
+	  }
+	}
   
   /** Figure out the location to store the history. */
-  private val _filename = {
-    val fname = (if (_prop("path.separator") == ":") ".elision.history.eli"
-      else "elision-history.eli")
-    _home + _prop("file.separator") + fname
-  }
+  protected val _filename = {
+	  val hce = System.getenv("ELISION_HISTORY")
+	  if (hce != null) {
+	    hce
+	  } else {
+      val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
+        else "elision-context.eli")
+      _home + _prop("file.separator") + fname
+	  }
+	}
   
   /** Figure out where to stash the context on exit. */
   protected val _lastcontext = {
-    val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
-      else "elision-context.eli")
-    _home + _prop("file.separator") + fname
+    val cce = System.getenv("ELISION_CONTEXT")
+    if (cce != null) {
+      cce
+    } else {
+      val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
+        else "elision-context.eli")
+      _home + _prop("file.separator") + fname
+    }
   }
   
   /** Figure out the startup file that is read after bootstrapping. */
@@ -152,6 +169,8 @@ class ERepl extends Processor {
   //======================================================================
   
   declareProperty("showscala", "Show the Scala source for each atom.", false)
+  declareProperty("usepager",
+      "Use the pager when output is longer than the screen.", true)
   
   //======================================================================
   // Define the REPL control fields.
@@ -349,7 +368,7 @@ class ERepl extends Processor {
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
-      ReplActor.disableGUIComs = false
+//      ReplActor.disableGUIComs = false
       ReplActor.start
     }
 	
@@ -388,7 +407,19 @@ class ERepl extends Processor {
 				ReplActor.guiInput
 			} 
 			else {
-				cr.readLine(if (console.quiet > 0) p2 else p1)
+				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+				// Reset the terminal size now, if we can, and if the user wants to
+				// use the pager.
+				if (getProperty[Boolean]("usepager")) {
+          console.height_=(
+              scala.tools.jline.TerminalFactory.create().getHeight()-1)
+          console.width_=(
+              scala.tools.jline.TerminalFactory.create().getWidth())
+				} else {
+				  console.height_=(0)
+				  console.width_=(0)
+				}
+				line
 			} 
 		/////////////// end GUI changes
 		

@@ -73,18 +73,18 @@ with Rewriter {
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("MapPair rewrite: ")
+	val rwNode = RWTree.addToCurrent("MapPair rewrite: ")
 	
-	RWTree.current = rwNode.addChild("left: ").addChild(left)
+	RWTree.current = RWTree.addTo(rwNode, "left: ", left) //rwNode.addChild("left: ").addChild(left)
     val newleft = left.rewrite(binds)
 	
-	RWTree.current = rwNode.addChild("right: ").addChild(right)
+	RWTree.current = RWTree.addTo(rwNode, "right: ", right) //rwNode.addChild("right: ").addChild(right)
     val newright = right.rewrite(binds)
 	
     if (newleft._2 || newright._2) {
 		RWTree.current = rwNode
 		val newMP = MapPair(newleft._1, newright._2)
-		rwNode.addChild(newMP)
+		RWTree.addTo(rwNode, newMP) //rwNode.addChild(newMP)
 		(newMP, true)
 	}
     else (this, false)
@@ -98,9 +98,9 @@ with Rewriter {
    */
   def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
 		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current.addChild("MapPair doRewrite: ").addChild(atom)
-		val leftNode = rwNode.addChild("left: ").addChild(left)
-		val rightNode = rwNode.addChild("right: ").addChild(right)
+		val rwNode = RWTree.addToCurrent("MapPair doRewrite: ", atom) // RWTree.current.addChild("MapPair doRewrite: ").addChild(atom)
+		val leftNode = RWTree.addTo(rwNode, "left: ", left) //rwNode.addChild("left: ").addChild(left)
+		val rightNode = RWTree.addTo(rwNode, "right: ", right) // rwNode.addChild("right: ").addChild(right)
 		RWTree.current = leftNode
 		
 		left.tryMatch(atom, Bindings(), hint) match {
@@ -108,12 +108,12 @@ with Rewriter {
 			case Match(binds) =>
 				RWTree.current = rightNode
 				val res = right.rewrite(binds)
-				rwNode.addChild("new right: ").addChild(res._1)
+				RWTree.addTo(rwNode, "new right: ", res._1) //rwNode.addChild("new right: ").addChild(res._1)
 				(res._1, true)
 			case Many(iter) =>
 				RWTree.current = rightNode
 				val res = right.rewrite(iter.next)
-				rwNode.addChild("new right: ").addChild(res._1)
+				RWTree.addTo(rwNode, "new right: ", res._1) //rwNode.addChild("new right: ").addChild(res._1)
 				(res._1, true)
 		  }
 	  }

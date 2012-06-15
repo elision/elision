@@ -149,13 +149,6 @@ decl.{! eval($atom)
   "operator."
 }
 
-decl.{ operator #name=typeof #cases %($x)->(\$y:$T.$T.$$x)
-  #description="Extract and show the type of the argument."
-  #detail=
-  "Given a single argument, extract the type $T of that argument $x and return ".
-  "the extracted type."
-}
-
 decl.{! operator($name)
   #description="Look up an operator."
   #detail=
@@ -173,14 +166,22 @@ decl.{! operator($name)
   """
 }
 
-decl.{! getop($x: OPREF)
+decl.{! getop($x)
   #handler=
   """
+    def getop(name: String) = context.operatorLibrary(name).operator
     args match {
       case Args(opref:OperatorRef) =>
         // Get the referenced operator.
         opref.operator
-      case _ => _no_show
+      case Args(op: Operator) =>
+      	op
+      case Args(SymbolLiteral(_, sym)) =>
+        getop(sym.name)
+      case Args(StringLiteral(_, name)) =>
+        getop(name)
+      case Args(v: Variable) =>
+        as_is
     }
   """
   #description="Given an operator reference, return the operator."
@@ -236,7 +237,7 @@ decl.{! _help_op($r)
       // Give some help.
       val width = scala.tools.jline.TerminalFactory.create().getWidth()
       val op = context.operatorLibrary(name)
-      emitln(context.operatorLibrary.help(
+      sendln(context.operatorLibrary.help(
         new StringBuffer(), op, width).toString)
       _no_show
     }
@@ -262,10 +263,12 @@ decl.{! _help_all()
       case Args() =>
         // Give some help.
         val width = scala.tools.jline.TerminalFactory.create().getWidth()
-        println("Elision Help\n")
-        emitln(context.operatorLibrary.help(new StringBuffer(), width).toString)
-        println("Use ! followed by a number to re-execute a " +
+        val buf = new StringBuffer()
+        buf.append("Elision Help\n\n")
+        context.operatorLibrary.help(buf, width)
+        buf.append("\nUse ! followed by a number to re-execute a " +
           "line from the history.\n\nTo quit type :quit.\n")
+        sendln(buf.toString)
       case _ =>
     }
     _no_show
@@ -387,7 +390,7 @@ decl.{! unbind($v)
 decl.{! showbinds()
   #handler=
   """
-    println(context.binds.filterKeys(!_.startsWith("_")).map {
+    sendln(context.binds.filterKeys(!_.startsWith("_")).map {
       pair => "  %10s -> %s".format(toESymbol(pair._1), pair._2.toParseString)
     }.mkString("{ binds\n", ",\n", "\n}"))
     _no_show
@@ -497,9 +500,11 @@ decl.{! history()
     exec match {
       case hh: HasHistory =>
         // Show the history.
+        val buf = new StringBuffer()
         val it = hh.getHistoryIterator
-        while (it.hasNext) println(it.next)
-        println("Persistent history is found in: " + hh.getHistoryFilename)
+        while (it.hasNext) buf.append(it.next + "\n")
+        buf.append("Persistent history is found in: " + hh.getHistoryFilename)
+        sendln(buf.toString())
         _no_show
       case _ =>
         _no_show

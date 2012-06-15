@@ -245,8 +245,8 @@ class AlgProp(
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("AlgProp doApply: ")
-	
+	val rwNode = RWTree.addToCurrent("AlgProp doApply: ")
+    
 	rhs match {
 		/* A Note to Maintainers
 		 * Remember that the "and" has the properties of the second override those
@@ -255,11 +255,11 @@ class AlgProp(
 		case ap: AlgProp => (ap and this)
 		case as: AtomSeq => 
 			val newAS = AtomSeq(as.props and this, as.atoms)
-			rwNode.addChild(newAS)
+			RWTree.addTo(rwNode, newAS) //rwNode.addChild(newAS)
 			newAS
 		case _ => 
 			val newSA = SimpleApply(this, rhs)
-			rwNode.addChild(newSA)
+			RWTree.addTo(rwNode, newSA) //rwNode.addChild(newSA)
 			newSA
 	}
   }
@@ -296,14 +296,16 @@ class AlgProp(
 	
 	opt match {
 		case None => 
-			rwNode.addChild("n/a")
+			RWTree.addTo(rwNode,"n/a") //rwNode.addChild("n/a")
 			(None, false)
 		case Some(atom) => {
-			val atomNode = rwNode.addChild(atom)
-			RWTree.current = atomNode
-			
-		  val newatom = atom.rewrite(binds)
-		  (Some(newatom._1), newatom._2)
+            val atomNode = RWTree.addTo(rwNode,atom)
+			RWTree.current =  atomNode
+            
+            val newatom = atom.rewrite(binds)
+            RWTree.addTo(atomNode,newatom._1)
+            
+            (Some(newatom._1), newatom._2)
 		}
 	}
   }
@@ -325,27 +327,27 @@ class AlgProp(
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
 	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current.addChild("AlgProp rewrite: ")
+	val rwNode = RWTree.addToCurrent("AlgProp rewrite: ") //RWTree.current.addChild("AlgProp rewrite: ")
 	
-	RWTree.current = rwNode.addChild("associative: ")
+	RWTree.current = RWTree.addTo(rwNode, "associative: ") //rwNode.addChild("associative: ")
     val assoc = _rewrite(associative, binds)
 	
-	RWTree.current = rwNode.addChild("commutative: ")
+	RWTree.current = RWTree.addTo(rwNode, "commutative: ")
     val commu = _rewrite(commutative, binds)
 	
-	RWTree.current = rwNode.addChild("idempotent: ")
+	RWTree.current = RWTree.addTo(rwNode, "idempotent: ")
 	val idemp = _rewrite(idempotent, binds)
 	
-	RWTree.current = rwNode.addChild("absorber: ")
+	RWTree.current = RWTree.addTo(rwNode, "absorber: ")
 	val absor = _rewrite(absorber, binds)
 	
-	RWTree.current = rwNode.addChild("identity: ")
+	RWTree.current = RWTree.addTo(rwNode, "identity: ")
 	val ident = _rewrite(identity, binds)
-	
+    
     if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
-		val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
-		rwNode.addChild(newAlgProp)
-		(newAlgProp, true)
+        val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
+        RWTree.addTo(rwNode, newAlgProp) //rwNode.addChild(newAlgProp)
+        (newAlgProp, true)
 	} else (this, false)
   }
   

@@ -79,6 +79,7 @@ with HasHistory {
   /** The parser to use. */
   private var _parser = new AtomParser(context, _toggle, _trace)
   
+  /** Specify the console.  We don't know the number of lines. */
   val console = PrintConsole
   
   /**
@@ -119,10 +120,9 @@ with HasHistory {
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
    * @param quiet       If true, do not emit any error messages.
-   * @throws	java.io.IOException
-   * 					The file cannot be found or cannot be read.
+   * @return  True if the file was found; false if it was not.
    */
-  def read(filename: String, quiet: Boolean) {
+  def read(filename: String, quiet: Boolean): Boolean = {
     // Make a resolver from the properties.  Is this costly to do every time
     // we want to read a file?  Probably not.
     val usePath = getProperty[Boolean]("usepath")
@@ -132,8 +132,10 @@ with HasHistory {
     resolver.find(filename) match {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
+        false
       case Some(reader) =>
         read(scala.io.Source.fromInputStream(reader))
+        true
     }
   }
   
@@ -196,8 +198,7 @@ with HasHistory {
 	//////////////////// GUI changes
 	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
-	val treeRoot = new RWTreeNode(lline)
-	RWTree.current = treeRoot
+	val treeRoot = RWTree.createNewRoot(lline) //new RWTreeNode(lline)
 	
 	//////////////////// end GUI changes
 	
@@ -206,7 +207,6 @@ with HasHistory {
 	//////////////////// GUI changes
 	
 	// send the completed rewrite tree to the GUI's actor
-	
 	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
 		ReplActor.guiActor ! treeRoot
 	
@@ -236,14 +236,18 @@ with HasHistory {
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
 				//////////////////// GUI changes
-				RWTree.current = rwNode.addChild("line node")
+                var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
+                val lineNode = RWTree.addTo(rwNode, nodeLabel) //rwNode.addChild("line node")
+				RWTree.current = lineNode
 				//////////////////// end GUI changes
 				
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
+                    RWTree.current = lineNode
   			        val atom = newnode.interpret
+                    RWTree.current = lineNode
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
@@ -297,12 +301,12 @@ with HasHistory {
 	// obtain the parent tree node from the stack
 	val rwNode = RWTree.current
 	// add this atom as a child to the root node
-	val atomNode = rwNode.addChild(atom)
-	RWTree.current = atomNode
+	val atomNode = RWTree.addTo(rwNode, atom) //rwNode.addChild(atom)
 	
 	//////////////////// end GUI changes
 	
     for (handler <- _queue) {
+      RWTree.current = atomNode // GUI change
       handler.handleAtom(theAtom) match {
         case None => return None
         case Some(alt) => theAtom = alt

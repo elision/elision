@@ -41,15 +41,62 @@ object PrintConsole extends Console {
 
 /**
  * Provide communication with a console.  By default this uses the standard
- * output.  To modify this, override the `send` method.
+ * output.  To modify this, override the `write` method.
+ * 
+ * The console supports "quiet" levels.  These work with the methods to
+ * determine what will be written to the console.   
  */
 trait Console {
+  
+  /** Access to system properties. */
+  private val _prop = new scala.sys.SystemProperties
   
   /** Whether to suppress most output. */
   private var _quiet = 0
   
-  /** The end of line character.  TODO This should be set dynamically. */
-  private final val _ENDL = "\n"
+  /** The end of line character. */
+  private final val _ENDL = _prop("line.separator")
+  
+  /** The default pause operation.  Wait for a user-entered character. */
+  def defaultPause() {
+    write("--More--")
+    val ch = Array[Char](2)
+    scala.io.Source.stdin.copyToArray(ch,1)
+    if (ch(0) != '\n') write(_ENDL)
+  }
+  
+  /** The pause closure to use. */
+  private var _pause: () => Unit = defaultPause _
+  
+  /** The number of lines to emit before invoking the pager.  Zero to disable. */
+  private var _height = 0
+  
+  /** The number of columns before wrapping is assumed.  Zero to disable. */
+  private var _width = 0
+  
+  /** Current column of output, as best we can tell. */
+  private var _column = 0
+  
+  /**
+   * Specify the length of a page of text.  If output (sent at one time)
+   * exceeds this, then the pager is invoked.
+   * 
+   * @param size  The number of lines on the screen, minus one.
+   */
+  def height_=(size: Int) { _height = size }
+  
+  /**
+   * Set the number of columns of output until wrapping is assumed.
+   */
+  def width_=(size: Int) { _width = size }
+  
+  /**
+   * Specify a closure to invoke when a screen has filled.  By default this is
+   * the pager specified by `defaultPause`.
+   * 
+   * @param pager The pager to invoke.
+   */
+  def pause_=(pager: () => Unit) { _pause = pager }
   
   /**
    * Specify whether to be quiet.  How quiet it determined by levels.
@@ -81,52 +128,182 @@ trait Console {
   protected def write(text: String): Unit
   
   /**
+   * Private method to emit text while checking the page size.
+   * 
+   * @param text  The text to emit.
+   */
+  private def writeText(text: String) {
+    if (_height <= 0) write(text)
+    else {
+      // Break the string into lines, first at the newlines.
+      val linesA = text.split("\n")
+      var lines = Seq[String]()
+      if (_width > 0) {
+        // Now further break the lines at their wrap points.
+        for (line <- linesA) {
+          var remain = line
+          if (remain.length == 0) lines :+= remain
+          else {
+            while (remain.length > _width) {
+              val pair = remain.splitAt(_width)
+              lines :+= pair._1
+              remain = pair._2
+            } // Break the lines at wrap points.
+            if (remain.length > 0) lines :+= remain
+          }
+        } // Divide up all the lines.
+      } else {
+        lines = linesA
+      }
+      // If the lines fit you must emit.
+      if (lines.length < _height) write(text)
+      else {
+        // The lines do not fit.  Emit lines, run the pager, and then continue.
+        var count = 0
+        for (line <- lines) {
+          write(line + "\n")
+          count += 1
+          if (count >= _height) {
+            count = 0
+            _pause()
+          }
+        } // Emit all lines.
+      } // Not a screenful case.
+    } // Not paging case.
+  }
+  
+  /**
    * Write followed by a newline.  This method is private, since there is no
    * use for it outside this class.
    * 
    * @param text  The text to send.
    */
-  private def writeln(text: String) { write(text) ; write(_ENDL) }
+  private def writeln(text: String) { writeText(text + _ENDL) }
   
   /**
-   * Write a message, unless quiet is enabled.
+   * Write a message.  The message is only written if the quiet level is
+   * zero.
    * 
    * @param msg		The message.
    */
-  def emit(msg: String) { if (_quiet < 1) write(msg) }
+  def emit(msg: String) { if (_quiet < 1) writeText(msg) }
   
   /**
-   * Write a message, unless quiet is enabled.
+   * Write a message.  The message is only written if the quiet level is
+   * zero.
    * 
    * @param msg   The message.
    */
   def emitln(msg: String) { if (_quiet < 1) writeln(msg) }
   
   /**
-   * Emit a warning message, with the WARNING prefix.
+   * Write a message.  The message is only written if the quiet level is
+   * zero.
+   * 
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def emitf(form: String, args: Any*) {
+    if (_quiet < 1) {
+      writeln(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Emit a warning message, with the WARNING prefix.  This is only done
+   * if the quiet level is one or lower.
    *
    * @param msg   The message.
    */
   def warn(msg: String) { if (_quiet < 2) writeln("WARNING: " + msg) }
   
   /**
-   * Emit an error message, with the ERROR prefix.
+   * Emit a warning message, with the WARNING prefix.  This is only done
+   * if the quiet level is one or lower.  A newline is always written after
+   * the message.
+   *
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def warnf(form: String, args: Any*) {
+    if (_quiet < 2) {
+      warn(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Emit an error message, with the ERROR prefix.  This is only done if
+   * the quiet level is two or lower.
    * 
    * @param msg		The message.
    */
   def error(msg: String) { if (_quiet < 3) writeln("ERROR: " + msg) }
   
   /**
-   * Send explicitly requested output.
+   * Emit an error message, with the ERROR prefix.  This is only done if
+   * the quiet level is two or lower.  A newline is always written after
+   * the message.
+   *
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def errorf(form: String, args: Any*) {
+    if (_quiet < 3) {
+      error(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Send explicitly requested output.  This is only done if the quiet
+   * level is three or lower.
    * 
    * @param text  The text to send.
    */
-  def send(text: String) { if (_quiet < 4) write(text) }
+  def send(text: String) { if (_quiet < 4) writeText(text) }
   
   /**
-   * Send explicitly requested output, followed by a newline.
+   * Send explicitly requested output, followed by a newline.  This is
+   * only done if the quiet level is three or lower.
    * 
    * @param text  The text to send.
    */
   def sendln(text: String) { if (_quiet < 4) writeln(text) }
+  
+  /**
+   * Send explicitly requested output, followed by a newline.  This is
+   * only done if the quiet level is three or lower.  A newline is always
+   * written after the message.
+   *
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def sendf(form: String, args: Any*) {
+    if (_quiet < 4) {
+      sendln(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Send output no matter what the quiet level.  Please do not abuse this.
+   * 
+   * @param text  The text to send.
+   */
+  def panic(text: String) { writeText(text) }
+  
+  /**
+   * Send output no matter what the quiet level.  Please do not abuse this.
+   * 
+   * @param text  The text to send.
+   */
+  def panicln(text: String) { writeln(text) }
+  
+  /**
+   * Send output no matter what the quiet level.  Please do not abuse this.
+   * 
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def panicf(form: String, args:  Any*) {
+    panic(form.format(args:_*))
+  }
 }

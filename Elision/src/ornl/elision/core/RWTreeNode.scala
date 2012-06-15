@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 
+import ornl.elision.repl.ReplActor
 
 /**
  *	RWTreeNode class
@@ -43,7 +44,7 @@ package ornl.elision.core
  *	Objects of this class are sent to the GUI in order to construct a visualization of the rewriting process. 
  */
  
-class RWTreeNode(val term : String) {
+class RWTreeNode(val term : String, var depth : Int = 0) {
 	
 	import scala.collection.mutable.ArrayBuffer
 	
@@ -101,14 +102,10 @@ class RWTreeNode(val term : String) {
 	 * @param		node is the child we are adding to this node. 
 	 * @return		node if successful. Otherwise returns this. 
 	 */
-	
 	def addChild(node : RWTreeNode) : RWTreeNode = {
-			if(true || this.term != node.term) {
-			children += node
-			node
-		}
-		else
-			this
+        children += node
+        node.depth = this.depth+1
+        node
 	}
 	
 	/**
@@ -117,15 +114,9 @@ class RWTreeNode(val term : String) {
 	 * @param		label is the String the child node will have. 
 	 * @return		a new label node if successful. Otherwise returns this. 
 	 */
-	
 	def addChild(label : String) : RWTreeNode = {
-			if(true || this.term != label) {
-			val node = new RWTreeNode(label)
-			children += node
-			node
-		}
-		else
-			this
+        val child = addChild(new RWTreeNode(label))
+        child
 	}
 	
 	/**
@@ -133,7 +124,6 @@ class RWTreeNode(val term : String) {
 	 * @param atom		The atom we are trying to add as a child to this node.
 	 * @return			The node representing atom if successful. Otherwise returns this. 
 	 */
-	
 	def addChild(atom : BasicAtom) : RWTreeNode = {
 		val child = addChild(new RWTreeNode(atom))
 		child
@@ -153,12 +143,95 @@ object RWTree {
 	 * to accomodate passing down RWTreeNodes to construct the rewrite tree structure during the rewrite process.
 	 */
 	var current : RWTreeNode = new RWTreeNode("")
-	
-	/** factory method */
-	def apply(atom : BasicAtom) : RWTreeNode = new RWTreeNode(atom)
-	
-	/** factory method */
-	def apply(term : String) : RWTreeNode = new RWTreeNode(term)
+    
+    /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
+    var maxDepth : Int = -1
+    
+    /** Flag for skipping creation of comment nodes */
+	var skipComments = false
+    
+    /** Adds a child node to some node if guiMode is on. */
+	def addTo(node : RWTreeNode, child : RWTreeNode) : RWTreeNode = {
+        if(!ReplActor.guiMode || node == null || child == null || isMaxDepth(node)) node
+        else node.addChild(child)
+    }
+    
+    /** Adds a child node representing an atom to some node if guiMode is on. */
+    def addTo(node : RWTreeNode, child : BasicAtom) : RWTreeNode = {
+        if(!ReplActor.guiMode || node == null || child == null || isMaxDepth(node)) node
+        else node.addChild(child)
+    }
+    
+    /** Adds a child comment node to some node if guiMode is on. */
+    def addTo(node : RWTreeNode, child : String) : RWTreeNode = {
+        if(!ReplActor.guiMode || skipComments || node == null || child == null || isMaxDepth(node)) node
+        else node.addChild(child)
+    }
+    
+    /** Adds a child comment node with its own child if guiMode is on. */
+    def addTo(node : RWTreeNode, comment : String, child : BasicAtom) : RWTreeNode = {
+        if(skipComments) addTo(node, child)
+        else if(!ReplActor.guiMode || node == null || comment == null || child == null || isMaxDepth(node)) node
+        else node.addChild(comment).addChild(child)
+    }
+    
+    /** Adds a child comment node with its own child if guiMode is on. */
+    def addTo(node : RWTreeNode, comment : String, child : RWTreeNode) : RWTreeNode = {
+        if(skipComments) addTo(node, child)
+        else if(!ReplActor.guiMode || node == null || comment == null || child == null || isMaxDepth(node)) node
+        else node.addChild(comment).addChild(child)
+    }
+    
+    // addToCurrent
+    
+    /** Adds a child node to current if guiMode is on. */
+	def addToCurrent(child : RWTreeNode) : RWTreeNode = {
+        if(!ReplActor.guiMode|| child == null || isMaxDepth(current)) current
+        else current.addChild(child)
+    }
+    
+    /** Adds a child node representing an atom to current if guiMode is on. */
+    def addToCurrent(child : BasicAtom) : RWTreeNode = {
+        if(!ReplActor.guiMode || child == null || isMaxDepth(current)) current
+        else current.addChild(child)
+    }
+    
+    /** Adds a child comment node to current if guiMode is on. */
+    def addToCurrent(child : String) : RWTreeNode = {
+        if(!ReplActor.guiMode || skipComments || child == null || isMaxDepth(current)) current
+        else current.addChild(child)
+    }
+    
+    /** Adds a child comment node with its own child if guiMode is on. */
+    def addToCurrent(comment : String, child : BasicAtom) : RWTreeNode = {
+        if(skipComments) addToCurrent(child)
+        else if(!ReplActor.guiMode || comment == null || child == null || isMaxDepth(current)) current
+        else current.addChild(comment).addChild(child)
+    }
+    
+    /** Adds a child comment node with its own child if guiMode is on. */
+    def addToCurrent(comment : String, child : RWTreeNode) : RWTreeNode = {
+        if(skipComments) addToCurrent(child)
+        else if(!ReplActor.guiMode || comment == null || child == null || isMaxDepth(current)) current
+        else current.addChild(comment).addChild(child)
+    }
+    
+    // createNewRoot
+    
+    /** Creates a new root node for the current RWTree being constructed. */
+    def createNewRoot(label : String) : RWTreeNode = {
+        if(!ReplActor.guiMode || label == null) current
+        else {
+            current = new RWTreeNode(label)
+            current
+        }
+    }
+    
+    /** Checks if a node is at the current maximum depth for the RWTrees. */
+    def isMaxDepth(node : RWTreeNode) : Boolean = {
+        if(maxDepth < 0) false
+        else (node.depth >= maxDepth )
+    }
 	
 }
 
