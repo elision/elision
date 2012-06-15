@@ -273,25 +273,25 @@ extends BasicAtom {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current.addChild("SpecialForm rewrite: ")
-		val tagNode = rwNode.addChild("Tag: ").addChild(tag)
-		val contentNode = rwNode.addChild("Content: ").addChild(content)
+    // get the node representing this atom that is being rewritten
+    val rwNode = RWTree.addToCurrent("SpecialForm rewrite: ")
+    val tagNode = RWTree.addTo(rwNode, "Tag: ", tag) //rwNode.addChild("Tag: ").addChild(tag)
+    val contentNode = RWTree.addTo(rwNode, "Content: ", content) //rwNode.addChild("Content: ").addChild(content)
 	
-		RWTree.current = tagNode
+	RWTree.current = tagNode
     val newtag = tag.rewrite(binds)
-    tagNode.addChild(newtag._1)
+    RWTree.addTo(tagNode, newtag._1) // tagNode.addChild(newtag._1)
 	
     RWTree.current = contentNode
     val newcontent = content.rewrite(binds)
-    contentNode.addChild(newcontent._1)
+    RWTree.addTo(contentNode, newcontent._1) //contentNode.addChild(newcontent._1)
 	
     if (newtag._2 || newcontent._2) {
-			RWTree.current = rwNode
-			val newSF = SpecialForm(newtag._1, newcontent._1)
-			rwNode.addChild(newSF)
-			(newSF, true)
-		} else (this, false)
+        RWTree.current = rwNode
+        val newSF = SpecialForm(newtag._1, newcontent._1)
+        RWTree.addTo(rwNode, newSF) //rwNode.addChild(newSF)
+        (newSF, true)
+    } else (this, false)
   }
 	//////////////////// end GUI changes
   

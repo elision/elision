@@ -471,7 +471,21 @@ extends Fickle with Mutable {
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
-  def rewrite(atom: BasicAtom) = doRewrite(atom, Set.empty)
+   
+ // def rewrite(atom: BasicAtom) = doRewrite(atom, Set.empty)
+    
+    //////////////////// GUI changes
+    
+    def rewrite(atom: BasicAtom) = {
+        val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+        RWTree.current = rwNode
+        val (newatom, flag) = doRewrite(atom, Set.empty)
+        RWTree.addTo(rwNode,newatom)
+        
+        (newatom, flag)
+    }
+    
+    //////////////////// end GUI changes
 
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active

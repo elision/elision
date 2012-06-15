@@ -55,6 +55,7 @@ class ConsolePanel extends ScrollPane {
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
+    horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
 	
 	/** The EditorPane containing the REPL */
 	val console = new EditorPane { //new TextArea("",20,ConsolePanel.maxCols) { // new EditorPane {
@@ -65,14 +66,9 @@ class ConsolePanel extends ScrollPane {
 		editorKit = new javax.swing.text.html.HTMLEditorKit
 		text = """<div style="font-family:Lucida Console;font-size:12pt">Booting up..."""
 	}
-	
 	ConsolePanel.textArea = console
 	
-	/** The REPL thread instance */
-	var repl = new ElisionREPLThread
 	contents = console
-	
-	horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
 
 	// execute the Elision REPL to run in another thread.
 	
@@ -88,6 +84,8 @@ class ConsolePanel extends ScrollPane {
 	java.lang.System.setOut(ps)
 //	java.lang.System.setErr(ps)
 	
+    /** The REPL thread instance */
+	var repl = new ElisionREPLThread
 	repl.start
 
 }
@@ -372,7 +370,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			// keyboard menu shortcuts
 			
 			if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
-				guiMenuBar.openItem.doClick
+				mainGUI.guiMenuBar.openItem.doClick
 			
 		}
 		case e : swing.event.KeyReleased => {
@@ -597,7 +595,7 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			// keyboard menu shortcuts
 			
 			if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
-				guiMenuBar.openItem.doClick
+				mainGUI.guiMenuBar.openItem.doClick
 			
 		}
 		case e : swing.event.KeyReleased => {
