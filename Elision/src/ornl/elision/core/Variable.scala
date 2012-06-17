@@ -219,13 +219,6 @@ class Variable(typ: BasicAtom, val name: String,
   		(if (theType != ANY) ":" + typ.toParseString else "") +
   		labels.map(" @" + toESymbol(_)).mkString("")
   
-  override def toString =
-    "Variable(" +
-    typ + "," +
-    toEString(name) + "," +
-    guard.toString + "," +
-    labels.map(toEString(_)).mkString("Set(", ",", ")") + ")"
-  
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   
   override def equals(varx: Any) = varx match {
@@ -257,7 +250,7 @@ object Variable {
    * @param vx	The variable.
    * @return	The type, name, guard, and labels.
    */
-  def unapply(vx: Variable) = Some(vx.theType, vx.name, vx.guard, vx.labels)
+  def unapply(vx: Variable) = Some((vx.theType, vx.name, vx.guard, vx.labels))
 }
 
 /**
@@ -286,12 +279,6 @@ class MetaVariable(typ: BasicAtom, name: String,
   override val isTerm = false
   /** Metavariable prefix. */
   override val prefix = "$$"
-  override def toString =
-    "MetaVariable(" +
-    typ + "," +
-    toEString(name) + "," +
-    guard.toString + "," +
-    labels.map(toEString(_)).mkString("Set(", ",", ")") + ")"
 }
 
 /**
@@ -316,5 +303,5 @@ object MetaVariable {
    * @param vx	The variable.
    * @return	The type, name, guard, and labels.
    */
-  def unapply(vx: MetaVariable) = Some(vx.theType, vx.name, vx.guard, vx.labels)
+  def unapply(vx: MetaVariable) = Some((vx.theType, vx.name, vx.guard, vx.labels))
 }

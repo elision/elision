@@ -294,8 +294,6 @@ extends BasicAtom {
     } else (this, false)
   }
 	//////////////////// end GUI changes
-  
-  override def toString = "SpecialForm(" + tag + ", " + content + ")"
 
   def toParseString(): String =
     "{: " + tag.toParseString + " " + content.toParseString + " :}"

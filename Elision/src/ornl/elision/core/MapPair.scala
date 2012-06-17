@@ -36,6 +36,26 @@
 ======================================================================*/
 package ornl.elision.core
 
+object MapPair {
+  /**
+   * Make a new instance.
+   * 
+   * @param left  The left atom.
+   * @param right The right atom.
+   * @return  The new map pair.
+   */
+  def apply(left: BasicAtom, right: BasicAtom) =
+    new MapPair(left, right)
+  
+  /**
+   * Extract the parts of a map pair.
+   * 
+   * @param pair  The map pair.
+   * @return  The left and right parts.
+   */
+  def unapply(pair: MapPair) = Some((pair.left, pair.right))
+}
+
 /**
  * Provide an ordered pair that also serves as a very simple kind of rewrite
  * rule.
@@ -50,7 +70,7 @@ package ornl.elision.core
  * of the left hand side is used immediately and unconditionally.  (Variable
  * guards are, of course, honored.)
  */
-case class MapPair(left: BasicAtom, right: BasicAtom) extends BasicAtom
+class MapPair(val left: BasicAtom, val right: BasicAtom) extends BasicAtom
 with Rewriter {
 	/** A map pair is actually a strategy. */
   val theType = STRATEGY
@@ -121,10 +141,4 @@ with Rewriter {
 
   def toParseString = "(" + left.toParseString + " -> " +
   		right.toParseString + ")"
-
-  /**
-   * Get the Scala code to create this instance.
-   */
-  override def toString = "MapPair(" + left.toString + ", " +
-  		right.toString + ")"
 }

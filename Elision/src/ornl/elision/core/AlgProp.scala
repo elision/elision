@@ -512,14 +512,6 @@ class AlgProp(
   }
 
   /**
-   * Generate Scala code to create an atom equal to this one.
-   * 
-   * @return	The Scala code.
-   */
-  override def toString = "AlgProp(" + associative + ", " + commutative + ", " +
-  		idempotent + ", " + absorber + ", " + identity + ")"
-
-  /**
    * Generate a parse string representation of the atom.
    * 
    * The short properties string uses abbreviations.

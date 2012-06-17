@@ -64,9 +64,6 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
   override protected def matchTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = tryMatchWithoutTypes(subject, binds, hints)
     
-  /** The type universe is known (in Scala) as `TypeUniverse`. */
-  override def toString = "TypeUniverse"
-    
   override def toParseString = "^TYPE"
     
   /**

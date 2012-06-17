@@ -194,8 +194,6 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
 
   def toParseString = toESymbol(operator.name) + ":OPREF"
 
-  override def toString = "OperatorRef(" + operator.toString + ")"
-
   /**
    * Operator references cannot be rewritten.  This is actually why they exist!
    */
@@ -306,7 +304,8 @@ object CaseOperator {
    * @param co	The case operator.
    * @return	A triple of the name, type, and cases.
    */
-  def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases))
+  def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases,
+      co.description, co.detail))
 }
 
 /**
@@ -417,7 +416,7 @@ object TypedSymbolicOperator {
       case cl: java.net.URLClassLoader => cl.getURLs.toList
       case _ => sys.error("classloader is not a URLClassLoader")
     }
-  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps) //(_urls.map(_.toString)).mkString(_ps)
+  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
 
   // Build a settings with the correct classpath.
   private val _settings = new scala.tools.nsc.Settings(println _) {
@@ -533,7 +532,8 @@ object TypedSymbolicOperator {
    * @param so	The operator.
    * @return	The triple of name, computed type, and parameters.
    */
-  def unapply(so: TypedSymbolicOperator) = Some((so.name, so.theType, so.params))
+  def unapply(so: TypedSymbolicOperator) =
+    Some((so.name, so.theType, so.params, so.description, so.detail))
 }
 
 /**

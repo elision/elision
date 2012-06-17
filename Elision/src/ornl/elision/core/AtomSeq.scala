@@ -236,12 +236,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * 					parse string is used for those atoms.
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
-
-  /**
-   * Make a Scala-parseable version of this atom.
-   */
-  override def toString = "AtomSeq(" + props + ", " +
-  		atoms.mkString("Vector(", ",", ")") + ")"
   
   override lazy val hashCode = atoms.hashCode
 

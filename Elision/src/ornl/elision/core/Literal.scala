@@ -265,8 +265,6 @@ extends Literal[String](typ) {
 		}
 	}
 	//////////////////// end GUI changes
-	
-  override def toString = "StringLiteral(" + typ + ", " + toEString(value) + ")"
   def toParseString = toEString(value) +
     (if (typ != STRING) ":" + typ.toParseString else "") 
 }
@@ -299,9 +297,6 @@ extends Literal[Symbol](typ) {
 		}
 	}
 	//////////////////// end GUI changes
-	
-  override def toString = "SymbolLiteral(" + typ +
-  		", Symbol(" + toEString(value.name) + "))"
   def toParseString = toESymbol(value.name) + ":" + typ.toParseString 
 }
 

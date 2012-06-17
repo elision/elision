@@ -101,11 +101,6 @@ class ElisionREPLThread extends Thread {
 		runNewRepl
 	}
 	
-	/** Begins running the old REPL */
-	def runOldRepl : Unit = {
-		ornl.elision.repl.Repl.run()
-	}
-	
 	/** Creates an instance of and begins running the new REPL */
 	def runNewRepl : Unit = {
 		val myRepl = new ornl.elision.repl.ERepl
@@ -423,7 +418,6 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 	 */
 	def sendToInputStream : Unit = {
 		import java.lang.System
-		import ornl.elision.repl.Repl
 		
 		try {
 		
@@ -650,7 +644,6 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 	
 	def sendToInputStream : Unit = {
 		import java.lang.System
-		import ornl.elision.repl.Repl
 		
 		try {
 			// get rid of the '\n' produced by pressing enter.

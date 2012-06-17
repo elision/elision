@@ -456,6 +456,13 @@ abstract class BasicAtom {
    * @return	The string.
    */
   def toParseString: String
+  
+  /**
+   * Make a string that can be used to re-generate this atom.
+   * 
+   * @return  The string.
+   */
+  override def toString = ScalaGenerator.apply(this, true).toString
 
   /**
    * Recursively match the types.  This is unbounded recursion; it is expected

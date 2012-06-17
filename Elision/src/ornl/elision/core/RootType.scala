@@ -87,10 +87,6 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
    * The root types cannot be rewritten, as they do not have children.
    */
   override def rewrite(binds: Bindings) = (this, false)
-
-  
-  /** Generate the Scala, and protect the string. */
-  override def toString = "NamedRootType(" + toEString(name) + ")"
   
   /** Generate the hash code. */
   override lazy val hashCode = name.hashCode()

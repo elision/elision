@@ -296,7 +296,4 @@ case class SimpleApply protected[core] (override val op: BasicAtom,
 	    op.toParseString + ":^TYPE"
     else op.toParseString) +
     "." + arg.toParseString + ")"
-    
-  override def toString =
-    "Apply(" + op.toParseString + "," + arg.toParseString + ")"
 }

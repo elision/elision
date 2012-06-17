@@ -380,10 +380,11 @@ object RewriteRule {
    * Break a rewrite rule into its parts.  The synthetic flag is not returned.
    * 
    * @param rule	The rewrite rule.
-   * @return	The pattern, rewrite, guards, and rulesets.
+   * @return	The pattern, rewrite, guards, rulesets, and whether the rule is
+   *          synthetic.
    */
   def unapply(rule: RewriteRule) = Some((rule.pattern, rule.rewrite,
-      rule.guards, rule.rulesets))
+      rule.guards, rule.rulesets, rule.synthetic))
       
   def apply(sfh: SpecialFormHolder): RewriteRule = {
     // A rewrite rule must be given with a binding.
@@ -493,14 +494,6 @@ class RewriteRule private (
         return (subject, false)
     }
   }
-  	
-  // To make a Scala parseable string we have to make the ruleset names into
-  // parseable strings.
-  override def toString = "RewriteRule(" +
-  	pattern.toString + ", " +
-  	rewrite.toString + ", " +
-  	guards.toString + ", " +
-  	rulesets.map(toEString(_)) + ")"
   	
   def doRewrite(atom: BasicAtom, hint: Option[Any]) =
     doRewrite(atom, Bindings(), hint)

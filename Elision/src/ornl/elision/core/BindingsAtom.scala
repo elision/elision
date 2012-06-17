@@ -144,16 +144,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   def toParseString() = "{ binds " + (mybinds.map(pair =>
     toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(" ") +
     " }"
-
-  /**
-   * Generate a Scala parseable representation of this atom.  This requires that
-   * the variables names be processed to make them strings.  The toString
-   * provided by the case class is insufficient.
-   * 
-   * @return	A Scala parseable string.
-   */
-  override def toString() = "BindingsAtom(" + mybinds.map(pair =>
-    toEString(pair._1) + " -> " + pair._2).mkString("Bindings(", ",", ")") + ")"
     
   override def equals(other: Any) = other match {
     case BindingsAtom(obinds) if (obinds == mybinds) => true
