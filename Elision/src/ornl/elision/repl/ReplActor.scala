@@ -68,6 +68,8 @@ object ReplActor extends Actor {
 	def act() = {
 		loop {
 			react {
+                case ("Eva", cmd : String, args : Any) =>
+                    guiActor ! ("Eva", cmd, args)
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false

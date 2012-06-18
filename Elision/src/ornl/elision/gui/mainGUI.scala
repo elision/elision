@@ -36,15 +36,7 @@
 ======================================================================*/
 
 package ornl.elision.gui
-/*
-import swing.SimpleSwingApplication
-import swing.MainFrame
-import swing.MenuBar
-import swing.Menu
-import swing.MenuItem
-import swing.Dialog
-import swing.BorderPanel
-import swing.*/
+
 import swing._
 import swing.BorderPanel.Position._
 import concurrent.ops._
@@ -399,56 +391,7 @@ class GuiMenuBar extends MenuBar {
 
 
 
-import scala.actors.Actor
 
-/** The Actor object used to receive and process communications from the REPL */
-object GUIActor extends Actor {
-	def act() = {
-		loop {
-			react {
-				case root : ornl.elision.core.RWTreeNode => {
-					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
-					
-					mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					mainGUI.treeVisPanel.treeSprite = TreeSprite.buildRWTree(root)
-					
-					// once the tree visualization is built, select its root node and center the camera on it.
-					
-					mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
-					mainGUI.treeVisPanel.camera.reset
-					
-					mainGUI.treeVisPanel.isLoading = false
-				}
-				case selFile : java.io.File => {
-					// The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-					mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					
-					// here we accumulate the text of the file into one big string.
-					
-					var str : String = ""
-					val br = new BufferedReader(new FileReader(selFile))
-					while(br.ready) {
-						str += br.readLine + "\n"
-					}
-					br.close
-					
-					// now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
-					println("Reading REPL input from file: " + selFile.getPath)
-					println()
-					ornl.elision.repl.ReplActor ! str
-				}
-				case "quit" => 
-					System.exit(0)
-				case ("replFormat", flag : Boolean) =>
-					mainGUI.consolePanel.tos.applyFormatting = flag
-					ornl.elision.repl.ReplActor ! ("wait", false)
-				case _ => // discard anything else that comes into the mailbox.
-			}
-		}
-	}
-}
 
 
 

@@ -244,8 +244,9 @@ class AlgProp(
    * then this will override the properties of the atom sequence.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("AlgProp doApply: ")
+	// construct the root for this subtree and create a new table for nodes in this scope.
+//    ReplActor ! ("Eva","pushTable", None)
+    val rwNode = RWTree.addToCurrent("AlgProp doApply: ") // ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) // 
     
 	rhs match {
 		/* A Note to Maintainers
@@ -255,11 +256,13 @@ class AlgProp(
 		case ap: AlgProp => (ap and this)
 		case as: AtomSeq => 
 			val newAS = AtomSeq(as.props and this, as.atoms)
-			RWTree.addTo(rwNode, newAS) //rwNode.addChild(newAS)
+			RWTree.addTo(rwNode, newAS) // ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // 
+ //           ReplActor ! ("Eva", "popTable", None)
 			newAS
 		case _ => 
 			val newSA = SimpleApply(this, rhs)
-			RWTree.addTo(rwNode, newSA) //rwNode.addChild(newSA)
+			RWTree.addTo(rwNode, newSA) // ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) // 
+//            ReplActor ! ("Eva", "popTable", None)
 			newSA
 	}
   }

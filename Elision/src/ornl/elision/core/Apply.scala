@@ -175,7 +175,7 @@ object Apply {
     val rwNode = RWTree.addToCurrent("object Apply apply: ") // RWTree.current.addChild("object Apply apply: ")
     val opNode = RWTree.addTo(rwNode, "Operator: ", op) // rwNode.addChild("Operator: ").addChild(op)
     val argNode = RWTree.addTo(rwNode, "Argument: ", arg) // rwNode.addChild("Argument: ").addChild(arg)
-    RWTree.current = opNode
+    RWTree.current = rwNode
     //////////////////// end GUI changes
         
     // Do not try to compute if metaterms are present.
