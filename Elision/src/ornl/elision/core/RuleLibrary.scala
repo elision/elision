@@ -799,12 +799,13 @@ extends Fickle with Mutable {
    */
   override def toString = {
     val buf = new StringBuilder
-    buf append "def _mkrulelib(rulelib: RuleLibrary) {\n"
+    buf append "def _mkrulelib(_context: Context) {\n"
+    buf append("  val rulelib = _context.ruleLibrary\n")
     for ((_,list) <- _kind2rules) {
-      buf append list.map("rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+      buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
     }
     for ((_,list) <- _op2rules) {
-      buf append list.map("rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+      buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
     }
     buf append "}\n"
     buf.toString()

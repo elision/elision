@@ -105,8 +105,8 @@ class ERepl extends Processor {
 	  if (hce != null) {
 	    hce
 	  } else {
-      val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
-        else "elision-context.eli")
+      val fname = (if (_prop("path.separator") == ":") ".elision-histry.eli"
+        else "elision-history.eli")
       _home + _prop("file.separator") + fname
 	  }
 	}

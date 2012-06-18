@@ -97,8 +97,9 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	override def toString = {
- 	  "def _mkoplib(oplib: OperatorLibrary) {\n" +
- 	  _nameToOperator.values.map("oplib.add(" + _.operator.toString +
+ 	  "def _mkoplib(_context: Context) {\n" +
+ 	  "  val oplib = _context.operatorLibrary\n" +
+ 	  _nameToOperator.values.map("  oplib.add(" + _.operator.toString +
  	      ".asInstanceOf[Operator])").
  	    mkString("","\n","\n") +
  	  "}\n"

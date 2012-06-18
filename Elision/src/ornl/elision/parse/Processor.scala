@@ -97,13 +97,13 @@ with HasHistory {
 					 |
 					 |Copyright (c) 2012 by UT-Battelle, LLC.
 					 |All rights reserved.""".stripMargin)
-    addHistoryLine("// New Session: " + new java.util.Date)
     if (loaded) {
+      addHistoryLine("// New Session: " + new java.util.Date +
+          " Running: " + major + "." + minor + ", build " + build)
     	console.emitln("Version " + major + "." + minor + ", build " + build)
     	console.emitln("Web " + web)
-    	addHistoryLine("// Running: " + major + "." + minor +
-    	    ", build " + build)
     } else {
+      addHistoryLine("// New Session: " + new java.util.Date)
       console.emitln("Failed to load version information.")
     }
   }

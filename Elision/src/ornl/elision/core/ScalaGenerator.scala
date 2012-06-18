@@ -66,7 +66,7 @@ object ScalaGenerator {
         case _ =>
           buf.append("SymbolLiteral(")
           apply(sl.typ, context, buf).append(",")
-          buf.append(toESymbol(sl.value.name)).append(")")
+          buf.append("Symbol("+toEString(sl.value.name)+")").append(")")
       }
         
       // Process other literals.
@@ -203,9 +203,12 @@ object ScalaGenerator {
         
       case BindingsAtom(binds) =>
         buf.append("Bindings(")
+        var tail = false
         binds foreach { pair =>
-          apply(pair._1, context, buf.append(",")).append(" -> ")
+          if (tail) buf.append(",")
+          buf.append(toEString(pair._1)).append(" -> ")
           apply(pair._2, context, buf)
+          tail = true
         }
         buf.append(")")
         
@@ -231,6 +234,7 @@ object ScalaGenerator {
         buf.append(toEString(mvari.name)).append(",")
         apply(mvari.guard, context, buf).append(",")
         buf.append(mvari.labels.map(toEString(_)).mkString("Set(", ",", ")"))
+        buf.append(")")
         
       case vari: Variable =>
         buf.append("Variable(")
@@ -238,6 +242,7 @@ object ScalaGenerator {
         buf.append(toEString(vari.name)).append(",")
         apply(vari.guard, context, buf).append(",")
         buf.append(vari.labels.map(toEString(_)).mkString("Set(", ",", ")"))
+        buf.append(")")
     }
     buf
   }
