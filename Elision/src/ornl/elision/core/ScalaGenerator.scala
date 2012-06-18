@@ -35,59 +35,66 @@ package ornl.elision.core
  */
 object ScalaGenerator {
   
-  def apply(atom: BasicAtom,
+  def gen(atom: Literal[_],
       context: Boolean,
-      buf: Appendable = new StringBuffer()): Appendable = {
+      buf: Appendable): Appendable = {
     atom match {
-      // Handle known constants and types.
-      case ANY => buf.append("ANY")
-      case BINDING => buf.append("BINDING")
-      case BOOLEAN => buf.append("BOOLEAN")
-      case FLOAT => buf.append("FLOAT")
-      case INTEGER => buf.append("INTEGER")
-      case NONE => buf.append("NONE")
-      case OPREF => buf.append("OPREF")
-      case RSREF => buf.append("RSREF")
-      case RULETYPE => buf.append("RULETYPE")
-      case STRATEGY => buf.append("STRATEGY")
-      case STRING => buf.append("STRING")
-      case SYMBOL => buf.append("SYMBOL")
-      
-      // Handle the type universe and named root types.
-      case TypeUniverse =>
-        buf.append("TypeUniverse")
-      case NamedRootType(name) =>
-        buf.append("NamedRootType(")
-        buf.append(toEString(name))
-        buf.append(")")
+      case sl: SymbolLiteral => sl match {
+        // Handle known constants and types.
+        case ANY => buf.append("ANY")
+        case BINDING => buf.append("BINDING")
+        case BOOLEAN => buf.append("BOOLEAN")
+        case FLOAT => buf.append("FLOAT")
+        case INTEGER => buf.append("INTEGER")
+        case NONE => buf.append("NONE")
+        case OPREF => buf.append("OPREF")
+        case RSREF => buf.append("RSREF")
+        case RULETYPE => buf.append("RULETYPE")
+        case STRATEGY => buf.append("STRATEGY")
+        case STRING => buf.append("STRING")
+        case SYMBOL => buf.append("SYMBOL")
         
-      // Process literals.
-      case lit: Literal[_] => lit match {
-        case IntegerLiteral(typ, value) =>
-          buf.append("IntegerLiteral(")
-          apply(typ, context, buf).append(",")
-          buf.append(value.toString).append(")")
-        case StringLiteral(typ, value) =>
-          buf.append("StringLiteral(")
-          apply(typ, context, buf).append(",")
-          buf.append(toEString(value)).append(")")
-        case SymbolLiteral(typ, value) =>
+        // Handle the type universe and named root types.
+        case TypeUniverse =>
+          buf.append("TypeUniverse")
+        case NamedRootType(name) =>
+          buf.append("NamedRootType(")
+          buf.append(toEString(name))
+          buf.append(")")
+          
+        // Handle anything else.
+        case _ =>
           buf.append("SymbolLiteral(")
-          apply(typ, context, buf).append(",")
-          buf.append(toESymbol(value.name)).append(")")
-        case BooleanLiteral(typ, value) =>
-          buf.append("BooleanLiteral(")
-          apply(typ, context, buf).append(",")
-          buf.append(value.toString).append(")")
-        case FloatLiteral(typ, significand, exponent, radix) =>
-          buf.append("FloatLiteral(")
-          apply(typ, context, buf).append(",")
-          buf.append(significand.toString).append(",")
-          buf.append(exponent.toString).append(",")
-          buf.append(radix.toString).append(")")
+          apply(sl.typ, context, buf).append(",")
+          buf.append(toESymbol(sl.value.name)).append(")")
       }
-      
-      // Process very basic algebraic properties.
+        
+      // Process other literals.
+      case IntegerLiteral(typ, value) =>
+        buf.append("IntegerLiteral(")
+        apply(typ, context, buf).append(",")
+        buf.append(value.toString).append(")")
+      case StringLiteral(typ, value) =>
+        buf.append("StringLiteral(")
+        apply(typ, context, buf).append(",")
+        buf.append(toEString(value)).append(")")
+      case BooleanLiteral(typ, value) =>
+        buf.append("BooleanLiteral(")
+        apply(typ, context, buf).append(",")
+        buf.append(value.toString).append(")")
+      case FloatLiteral(typ, significand, exponent, radix) =>
+        buf.append("FloatLiteral(")
+        apply(typ, context, buf).append(",")
+        buf.append(significand.toString).append(",")
+        buf.append(exponent.toString).append(",")
+        buf.append(radix.toString).append(")")
+    }
+  }
+  
+  def gen(atom: AlgProp,
+      context: Boolean,
+      buf: Appendable): Appendable = {
+    atom match {
       case Absorber(atom) =>
         buf.append("Absorber(")
         apply(atom, context, buf).append(")")
@@ -105,42 +112,67 @@ object ScalaGenerator {
         apply(atom, context, buf).append(")")
       case NoProps =>
         buf.append("NoProps")
+      case AlgProp(asso, comm, idem, abso, iden) =>
+        buf.append("AlgProp(")
+        option(asso, context, buf).append(",")
+        option(comm, context, buf).append(",")
+        option(idem, context, buf).append(",")
+        option(abso, context, buf).append(",")
+        option(iden, context, buf).append(")")        
+    }
+  }
+  
+  def gen(atom: SpecialForm,
+      context: Boolean,
+      buf: Appendable): Appendable = {
+    atom match {
+      case CaseOperator(name, typ, cases, description, detail) =>
+        buf.append("CaseOperator(")
+        buf.append(toEString(name)).append(",")
+        apply(typ, context, buf).append(",")
+        apply(cases, context, buf).append(",")
+        buf.append(toEString(description)).append(",")
+        buf.append(toEString(detail)).append(")")
+      case TypedSymbolicOperator(name, typ, params, description, detail) =>
+        buf.append("CaseOperator(")
+        buf.append(toEString(name)).append(",")
+        apply(typ, context, buf).append(",")
+        apply(params, context, buf).append(",")
+        buf.append(toEString(description)).append(",")
+        buf.append(toEString(detail)).append(")")
+      case RewriteRule(pat, rew, gua, rs, syn) =>
+        buf.append("RewriteRule(")
+        apply(pat, context, buf).append(",")
+        apply(rew, context, buf).append(",")
+        buf.append("Seq(")
+        var tail = false
+        gua foreach { guard =>
+          if (tail) buf.append(",")
+          apply(guard, context, buf)
+          tail = true
+        }
+        buf.append("),")
+        buf.append(rs.map(toEString(_)).toString).append(",")
+        buf.append(syn.toString).append(")")
+      case SpecialForm(tag, content) =>
+        buf.append("SpecialForm(")
+        apply(tag, context, buf).append(",")
+        apply(content, context, buf).append(")")
+    }
+  }
+  
+  def apply(atom: BasicAtom,
+      context: Boolean,
+      buf: Appendable = new StringBuffer()): Appendable = {
+    atom match {
+      // Process literals.
+      case lit: Literal[_] => gen(lit, context, buf)
+      
+      // Process algebraic properties.
+      case ap: AlgProp => gen(ap, context, buf)
         
       // Process special forms.
-      case sf: SpecialForm => sf match {
-        case CaseOperator(name, typ, cases, description, detail) =>
-          buf.append("CaseOperator(")
-          buf.append(toEString(name)).append(",")
-          apply(typ, context, buf).append(",")
-          apply(cases, context, buf).append(",")
-          buf.append(toEString(description)).append(",")
-          buf.append(toEString(detail)).append(")")
-        case TypedSymbolicOperator(name, typ, params, description, detail) =>
-          buf.append("CaseOperator(")
-          buf.append(toEString(name)).append(",")
-          apply(typ, context, buf).append(",")
-          apply(params, context, buf).append(",")
-          buf.append(toEString(description)).append(",")
-          buf.append(toEString(detail)).append(")")
-        case RewriteRule(pat, rew, gua, rs, syn) =>
-          buf.append("RewriteRule(")
-          apply(pat, context, buf).append(",")
-          apply(rew, context, buf).append(",")
-          buf.append("Seq(")
-          var tail = false
-          gua foreach { guard =>
-            if (tail) buf.append(",")
-            apply(guard, context, buf)
-            tail = true
-          }
-          buf.append("),")
-          buf.append(rs.map(toEString(_)).toString).append(",")
-          buf.append(syn.toString).append(")")
-        case SpecialForm(tag, content) =>
-          buf.append("SpecialForm(")
-          apply(tag, context, buf).append(",")
-          apply(content, context, buf).append(")")
-      }
+      case sf: SpecialForm => gen(sf, context, buf)
       
       // Process specialized operators.
       case OperatorRef(operator) =>
@@ -156,14 +188,6 @@ object ScalaGenerator {
         }
         
       // Process all atoms.
-      case AlgProp(asso, comm, idem, abso, iden) =>
-        buf.append("AlgProp(")
-        option(asso, context, buf).append(",")
-        option(comm, context, buf).append(",")
-        option(idem, context, buf).append(",")
-        option(abso, context, buf).append(",")
-        option(iden, context, buf).append(")")
-        
       case Apply(lhs, rhs) =>
         buf.append("Apply(")
         apply(lhs, context, buf).append(",")
@@ -201,19 +225,19 @@ object ScalaGenerator {
         buf.append(toEString(name))
         buf.append(")")
         
-      case MetaVariable(typ, name, guard, labels) =>
+      case mvari: MetaVariable =>
         buf.append("MetaVariable(")
-        apply(typ, context, buf).append(",")
-        buf.append(toEString(name)).append(",")
-        apply(guard, context, buf).append(",")
-        buf.append(labels.map(toEString(_)).mkString("Set(", ",", ")"))
+        apply(mvari.theType, context, buf).append(",")
+        buf.append(toEString(mvari.name)).append(",")
+        apply(mvari.guard, context, buf).append(",")
+        buf.append(mvari.labels.map(toEString(_)).mkString("Set(", ",", ")"))
         
-      case Variable(typ:BasicAtom, name:String, guard:Seq[_], labels:Set[_]) =>
+      case vari: Variable =>
         buf.append("Variable(")
-        apply(typ, context, buf).append(",")
-        buf.append(toEString(name)).append(",")
-        apply(guard, context, buf).append(",")
-        buf.append(labels.map(toEString(_)).mkString("Set(", ",", ")"))
+        apply(vari.theType, context, buf).append(",")
+        buf.append(toEString(vari.name)).append(",")
+        apply(vari.guard, context, buf).append(",")
+        buf.append(vari.labels.map(toEString(_)).mkString("Set(", ",", ")"))
     }
     buf
   }
