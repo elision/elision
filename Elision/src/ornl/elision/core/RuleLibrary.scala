@@ -549,7 +549,8 @@ extends Fickle with Mutable {
       case (newatom, false) =>
         return (newatom, bool)
       case (newatom, true) =>
-        return doRewrite(newatom, rulesets, true, limit-1)
+        return doRewrite(newatom, rulesets, true,
+            if(limit > 0) limit-1 else limit)
     }
   }
   

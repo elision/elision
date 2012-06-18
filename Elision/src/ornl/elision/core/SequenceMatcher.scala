@@ -64,10 +64,15 @@ object SequenceMatcher {
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
       binds: Bindings = Bindings()): Outcome = {
     if (BasicAtom.traceMatching) {
-    	println("Sequence Matcher called: ")
-	    println("    Patterns: " + patterns.mkParseString("",",",""))
-    	println("    Subjects: " + subjects.mkParseString("",",",""))
-    	println("    Bindings: " + binds.toParseString)
+      if (BasicAtom.traceVerbose(this)) {
+        println("Sequence Matcher called: ")
+        println("    Patterns: " + patterns.mkParseString("",",",""))
+        println("    Subjects: " + subjects.mkParseString("",",",""))
+        println("    Bindings: " + binds.toParseString)
+      } else if (BasicAtom.traceTerse(this)) {
+        println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
+            subjects.mkParseString("(",",",") ") + binds.toParseString)
+      }
     }
     if (patterns.length != subjects.length)
       Fail("Sequences are not the same length.")

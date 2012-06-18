@@ -177,6 +177,7 @@ decl.
 #detail="Print the provided string literal to the console."
 }
 
+inc("bootstrap/Type.eli")
 inc("bootstrap/Core.eli")
 inc("bootstrap/Context.eli")
 inc("bootstrap/Strategies.eli")

@@ -282,7 +282,13 @@ abstract class BasicAtom {
   def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
       hints: Option[Any] = None) = {
     // Determine whether tracing of the match is requested.
-    if (BasicAtom.traceMatching) traceMatch(subject, binds, hints)
+    if (BasicAtom.traceMatching) {
+      if (BasicAtom.traceVerbose(this))
+        traceVerbose(subject, binds, hints)
+      else if (BasicAtom.traceTerse(this))
+        traceTerse(subject, binds, hints)
+      else doMatch(subject, binds, hints)    
+    }
     else doMatch(subject, binds, hints)    
   }
   
@@ -298,12 +304,14 @@ abstract class BasicAtom {
    * @param hints		Optional hints.
    * @return	The matching outcome.
    */
-  private def traceMatch(subject: BasicAtom, binds: Bindings,
+  private def traceVerbose(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = {
     // We compute a hash code for this match.  This is used in the output to
     // associate lines referring to the match, since matches can be nested and
     // (potentially) interleaved.
     val what = this.hashCode * 31 + subject.hashCode
+    
+    // If terse matching is requested, write the short messages.
     
     // The match attempt is starting.  Write out information about the
     // attempted match.
@@ -325,6 +333,50 @@ abstract class BasicAtom {
       case many:Many =>
       	printf("SUCCESS (%x): ", what)
         println("  Many Matches")
+    }
+    
+    // The value is the outcome of the match.
+    outcome
+  }
+  
+  /**
+   * Attempt to match this atom, as a pattern, against the subject atom,
+   * observing the bindings, if any.  The type is checked prior to trying
+   * any matching.
+   * 
+   * Tracing information is printed as matching is performed.
+   * 
+   * @param subject The subject atom to match.
+   * @param binds   Any bindings that must be observed.
+   * @param hints   Optional hints.
+   * @return  The matching outcome.
+   */
+  private def traceTerse(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) = {
+    // We compute a hash code for this match.  This is used in the output to
+    // associate lines referring to the match, since matches can be nested and
+    // (potentially) interleaved.
+    val what = this.hashCode * 31 + subject.hashCode
+    
+    // If terse matching is requested, write the short messages.
+    
+    // The match attempt is starting.  Write out information about the
+    // attempted match.
+    printf("TRYING  (%x) in %s: ", what, this.getClass.getName())
+    println(this.toParseString + " ~> " +
+        subject.toParseString + " " + binds.toParseString)
+        
+    // Perform the match.
+    val outcome = doMatch(subject, binds, hints)
+    
+    // Write out information about the result of the match attempt.
+    outcome match {
+      case fail:Fail =>
+        printf("FAILURE (%x)\n", what)
+      case Match(bnd) =>
+        printf("SUCCESS (%x)\n", what)
+      case many:Many =>
+        printf("SUCCESS (%x) many\n", what)
     }
     
     // The value is the outcome of the match.
@@ -437,6 +489,34 @@ object BasicAtom {
   /** Enable (if true) or disable (if false) match tracing. */
   var traceMatching = false
   
+  /**
+   * Specify verbose tracing for certain objects during matching.
+   * 
+   * This is a closure that selects the objects to trace.  The closure must
+   * take an object (it will be the `this` object at runtime) and return a
+   * Boolean indicating whether matching should be traced for that object.
+   * This will only occur, of course, if `traceMatching` is set to true.  By
+   * default this value is set to `(obj: Any) => false)`, which traces
+   * nothing.
+   * 
+   * Note that full tracing takes precedence over terse tracing.
+   */
+  var traceVerbose: (Any) => Boolean = ((obj: Any) => false)
+  
+  /**
+   * Specify terse tracing for certain objects during matching.
+   * 
+   * This is a closure that selects the objects to trace.  The closure must
+   * take an object (it will be the `this` object at runtime) and return a
+   * Boolean indicating whether matching should be traced for that object.
+   * This will only occur, of course, if `traceMatching` is set to true.  By
+   * default this value is set to `(obj: Any) => true)`, which traces
+   * everything.
+   * 
+   * Note that full tracing takes precedence over terse tracing.
+   */
+  var traceTerse: (Any) => Boolean = ((obj: Any) => true)
+
   /**
    * Provide a convenience method to compute the constant pool map for an atom.
    * Invoke this with your top-level hash (probably your operator name or some
