@@ -110,7 +110,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 	//////////////////// GUI changes
 	
   def rewrite(binds: Bindings) = {
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "BindingsAtom rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom rewrite: ")) // val rwNode = RWTree.addToCurrent("BindingsAtom")
 	
@@ -131,10 +131,10 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
 		val newBA = BindingsAtom(newmap)
 		ReplActor ! ("Eva", "addTo", ("rwNode", "", newBA)) // RWTree.addTo(rwNode, newBA)
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "BindingsAtom rewrite")
 		(newBA, true) 
 	} else {
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "BindingsAtom rewrite")
         (this, false)
     }
   }
@@ -169,7 +169,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   //////////////////// GUI changes
   
   def doApply(atom: BasicAtom, bypass: Boolean) = {
-		ReplActor ! ("Eva", "pushTable", None)
+		ReplActor ! ("Eva", "pushTable", "BindingsAtom doApply")
         // top node of this subtree
 		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom doApply: ")) //val rwNode = RWTree.addToCurrent("BindingsAtom doApply: ") 
 		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) //val atomNode = RWTree.addTo(rwNode, atom) 
@@ -185,13 +185,13 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 				ReplActor ! ("Eva", "addTo", ("atom", "", oatom)) //RWTree.addTo(atomNode, oatom)
 				ReplActor ! ("Eva", "addTo", ("rwNode", "", oatom)) //RWTree.addTo(rwNode, oatom)
                 
-                ReplActor ! ("Eva", "popTable", None)
+                ReplActor ! ("Eva", "popTable", "BindingsAtom doApply")
 				oatom
 			  case _ => 
 				ReplActor ! ("Eva", "addTo", ("atom", "", NONE)) // RWTree.addTo(atomNode, NONE)
 				ReplActor ! ("Eva", "addTo", ("rwNode", "", NONE)) // RWTree.addTo(rwNode, NONE) 
 				
-                ReplActor ! ("Eva", "popTable", None)
+                ReplActor ! ("Eva", "popTable", "BindingsAtom doApply")
                 NONE
 			}
 		  case _ =>
@@ -201,7 +201,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 			  ReplActor ! ("Eva", "addTo", ("atom", "", newatom)) // RWTree.addTo(atomNode, newatom)
 			  ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode, newatom)
 			  
-              ReplActor ! ("Eva", "popTable", None)
+              ReplActor ! ("Eva", "popTable", "BindingsAtom doApply")
               newatom
 		}
 	}

@@ -104,8 +104,6 @@ class TreeVisPanel extends GamePanel {
             }
             repaint
             
-            
-            
             /*  // old code (Executes in the event dispatch thread and slows everything else down)
             if(!isLoading) {
                 // perform 1 or more iteration through the timer loop, depending on the skip rate.
