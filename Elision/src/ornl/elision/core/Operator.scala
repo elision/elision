@@ -853,19 +853,36 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // No native handler.
           return OpApply(OperatorRef(this), newargs, binds)
         }
-
-        // There are special cases to handle here.  First, if the argument list
-        // is empty, but there is an identity, return it.
-        if (newseq.length == 0) {
-          params.identity match {
-            case Some(ident) =>
-              // Return the identity.
-              return ident
-            case None =>
-              // No identity.  We're done.
-              //return handleApply(Bindings())
-            //		          return OpApply(OperatorRef(this), AtomSeq(params.props, newseq),
-            //		              Bindings())
+        
+        // Check the argument length versus the parameter length.
+        if (!assoc) {
+          // The number of arguments must exactly match the number of
+          // parameters.
+          if (newseq.length > params.length) {
+            throw new ArgumentListException(
+                "Too many arguments for non-associative operator " +
+                toESymbol(name) + ".  Expected " + params.length +
+                " but got " + newseq.length + ".")
+          } else if (newseq.length < params.length) {
+            throw new ArgumentListException(
+                "Too few arguments for non-associative operator " +
+                toESymbol(name) + ".  Expected " + params.length +
+                " but got " + newseq.length + ".")
+          }
+        } else {
+          // There are special cases to handle here.  First, if the argument
+          // list is empty, but there is an identity, return it.  Second, if
+          // the argument list is empty, but there is no identity, apply the
+          // operator to the empty list.
+          if (newseq.length == 0) {
+            params.identity match {
+              case Some(ident) =>
+                // Return the identity.
+                return ident
+              case None =>
+                // No identity.  We're done.
+                return handleApply(Bindings())
+            }
           }
         }
 
