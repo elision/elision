@@ -38,6 +38,7 @@ package ornl.elision.core
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
+import ornl.elision.repl.ReplActor
 
 /**
  * Encapsulate a set of bindings as an atom.
@@ -109,28 +110,33 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 	//////////////////// GUI changes
 	
   def rewrite(binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("BindingsAtom")
+	ReplActor ! ("Eva", "pushTable", None)
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom rewrite: ")) // val rwNode = RWTree.addToCurrent("BindingsAtom")
 	
     var changed = false
     var newmap = Bindings()
     for ((key, value) <- mybinds) {	
-		val valNode = RWTree.addTo(rwNode, key + " -> ", value) //rwNode.addChild("key->value pair: ").addChild(key + " ->").addChild(value)
-		RWTree.current = valNode
+	  ReplActor ! ("Eva", "addTo", ("rwNode", "val", key + " -> ", value)) //val valNode = RWTree.addTo(rwNode, key + " -> ", value) 
+	  ReplActor ! ("Eva", "setSubroot", "val") // RWTree.current = valNode
         
       val (newvalue, valuechanged) = value.rewrite(binds)
       
-	  RWTree.addTo(valNode, newvalue) //valNode.addChild(newvalue)
+	  ReplActor ! ("Eva", "addTo", ("val", "", newvalue)) // RWTree.addTo(valNode, newvalue)
       
       changed |= valuechanged
       newmap += (key -> newvalue)
     } // Rewrite all bindings.
     if (changed) {
-		RWTree.current = rwNode
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
 		val newBA = BindingsAtom(newmap)
-		RWTree.addTo(rwNode, newBA) // rwNode.addChild(newBA)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "", newBA)) // RWTree.addTo(rwNode, newBA)
+        ReplActor ! ("Eva", "popTable", None)
 		(newBA, true) 
-	} else (this, false)
+	} else {
+        ReplActor ! ("Eva", "popTable", None)
+        (this, false)
+    }
   }
   
   //////////////////// end GUI changes
@@ -163,11 +169,12 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   //////////////////// GUI changes
   
   def doApply(atom: BasicAtom, bypass: Boolean) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.addToCurrent("BindingsAtom doApply: ") // RWTree.current.addChild("BindingsAtom doApply: ")
-		val atomNode = RWTree.addTo(rwNode, atom) // rwNode.addChild(atom)
+		ReplActor ! ("Eva", "pushTable", None)
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom doApply: ")) //val rwNode = RWTree.addToCurrent("BindingsAtom doApply: ") 
+		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) //val atomNode = RWTree.addTo(rwNode, atom) 
 		
-		RWTree.current = atomNode
+		ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
 		// Check the argument to see if it is a single symbol.
 		atom match {
 		  case SymbolLiteral(SYMBOL, sym) =>
@@ -175,21 +182,27 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 			// then the answer is NONE.
 			mybinds.get(sym.name) match {
 			  case Some(oatom) => 
-				RWTree.addTo(atomNode, oatom) //atomNode.addChild(oatom)
-				RWTree.addTo(rwNode, oatom) //rwNode.addChild(oatom)
+				ReplActor ! ("Eva", "addTo", ("atom", "", oatom)) //RWTree.addTo(atomNode, oatom)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", oatom)) //RWTree.addTo(rwNode, oatom)
+                
+                ReplActor ! ("Eva", "popTable", None)
 				oatom
 			  case _ => 
-				RWTree.addTo(atomNode, NONE) //atomNode.addChild(NONE)
-				RWTree.addTo(rwNode, NONE) //rwNode.addChild(NONE)
-				NONE
+				ReplActor ! ("Eva", "addTo", ("atom", "", NONE)) // RWTree.addTo(atomNode, NONE)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", NONE)) // RWTree.addTo(rwNode, NONE) 
+				
+                ReplActor ! ("Eva", "popTable", None)
+                NONE
 			}
 		  case _ =>
 			  // Try to rewrite the argument using the bindings and whatever we get
 			  // back is the result.
 			  val newatom = atom.rewrite(mybinds)._1
-			  RWTree.addTo(atomNode, newatom) //atomNode.addChild(newatom)
-			  RWTree.addTo(rwNode, newatom) //rwNode.addChild(newatom)
-			  newatom
+			  ReplActor ! ("Eva", "addTo", ("atom", "", newatom)) // RWTree.addTo(atomNode, newatom)
+			  ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode, newatom)
+			  
+              ReplActor ! ("Eva", "popTable", None)
+              newatom
 		}
 	}
 	

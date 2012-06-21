@@ -75,10 +75,8 @@ class ERepl extends Processor {
   
   
 	//////////////////// GUI changes
-	
-	private var _disableGUIComs = true
-	ReplActor.disableGUIComs = true
-	
+    ReplActor.start
+	ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
   //======================================================================
@@ -368,8 +366,7 @@ class ERepl extends Processor {
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
-//      ReplActor.disableGUIComs = false
-      ReplActor.start
+        ReplActor ! ("disableGUIComs", false)
     }
 	
     //////////////////// end GUI changes

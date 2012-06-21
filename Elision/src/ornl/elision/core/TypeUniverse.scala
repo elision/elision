@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 
+import ornl.elision.repl.ReplActor
 /**
  * Define the unique type universe.
  * 

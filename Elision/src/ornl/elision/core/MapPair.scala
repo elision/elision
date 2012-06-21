@@ -36,6 +36,8 @@
 ======================================================================*/
 package ornl.elision.core
 
+import ornl.elision.repl.ReplActor
+
 /**
  * Provide an ordered pair that also serves as a very simple kind of rewrite
  * rule.
@@ -72,22 +74,29 @@ with Rewriter {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("MapPair rewrite: ")
+	ReplActor ! ("Eva","pushTable", None)
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair rewrite: ")) //val rwNode = RWTree.addToCurrent("MapPair rewrite: ")
 	
-	RWTree.current = RWTree.addTo(rwNode, "left: ", left) //rwNode.addChild("left: ").addChild(left)
+	ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left)) // RWTree.current = RWTree.addTo(rwNode, "left: ", left)
+    ReplActor ! ("Eva", "setSubroot", "left")
     val newleft = left.rewrite(binds)
 	
-	RWTree.current = RWTree.addTo(rwNode, "right: ", right) //rwNode.addChild("right: ").addChild(right)
+	ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) // RWTree.current = RWTree.addTo(rwNode, "right: ", right) 
+    ReplActor ! ("Eva", "setSubroot", "right")
     val newright = right.rewrite(binds)
 	
     if (newleft._2 || newright._2) {
-		RWTree.current = rwNode
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
 		val newMP = MapPair(newleft._1, newright._2)
-		RWTree.addTo(rwNode, newMP) //rwNode.addChild(newMP)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "", newMP)) // RWTree.addTo(rwNode, newMP)
+        ReplActor ! ("Eva", "popTable", None)
 		(newMP, true)
 	}
-    else (this, false)
+    else {
+        ReplActor ! ("Eva", "popTable", None)
+        (this, false)
+    }
   }
   //////////////////// end GUI changes
 	
@@ -97,23 +106,29 @@ with Rewriter {
    * The first match with the left-hand side is used to rewrite the right.
    */
   def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.addToCurrent("MapPair doRewrite: ", atom) // RWTree.current.addChild("MapPair doRewrite: ").addChild(atom)
-		val leftNode = RWTree.addTo(rwNode, "left: ", left) //rwNode.addChild("left: ").addChild(left)
-		val rightNode = RWTree.addTo(rwNode, "right: ", right) // rwNode.addChild("right: ").addChild(right)
-		RWTree.current = leftNode
+		ReplActor ! ("Eva","pushTable", None)
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair doRewrite: ", atom)) // val rwNode = RWTree.addToCurrent("MapPair doRewrite: ", atom)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left)) // val leftNode = RWTree.addTo(rwNode, "left: ", left)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) // val rightNode = RWTree.addTo(rwNode, "right: ", right)
+		ReplActor ! ("Eva", "setSubroot", "left") //RWTree.current = leftNode
 		
 		left.tryMatch(atom, Bindings(), hint) match {
-			case file:Fail => (atom, false)
+			case file:Fail => {
+                ReplActor ! ("Eva", "popTable", None)
+                (atom, false)
+            }
 			case Match(binds) =>
-				RWTree.current = rightNode
+				ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
 				val res = right.rewrite(binds)
-				RWTree.addTo(rwNode, "new right: ", res._1) //rwNode.addChild("new right: ").addChild(res._1)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1)) // RWTree.addTo(rwNode, "new right: ", res._1)
+                ReplActor ! ("Eva", "popTable", None)
 				(res._1, true)
 			case Many(iter) =>
-				RWTree.current = rightNode
+				ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
 				val res = right.rewrite(iter.next)
-				RWTree.addTo(rwNode, "new right: ", res._1) //rwNode.addChild("new right: ").addChild(res._1)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1)) // RWTree.addTo(rwNode, "new right: ", res._1)
+                ReplActor ! ("Eva", "popTable", None)
 				(res._1, true)
 		  }
 	  }
