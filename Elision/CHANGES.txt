@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+Version 0.2 to Version 0.1
+--------------------------
+* No significant changes.  The version number was bumped for the release
+  of FX2, which uses Elision.
+
 Version 0.1 to Current
 ----------------------
 * There is now a pager ("more") automatically used when output exceeds the
