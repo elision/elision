@@ -159,7 +159,9 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-  	_execute(_parser.parseAtoms(source)) 
+    
+    _execute(_parser.parseAtoms(source)) 
+    
   }
   
   /**
@@ -198,7 +200,7 @@ with HasHistory {
 	//////////////////// GUI changes
 	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
-	ReplActor ! ("Eva", "newTree", lline) // val treeRoot = RWTree.createNewRoot(lline) 
+//	ReplActor ! ("Eva", "newTree", lline) // val treeRoot = RWTree.createNewRoot(lline) 
 	
 	//////////////////// end GUI changes
 	
@@ -207,8 +209,8 @@ with HasHistory {
 	//////////////////// GUI changes
 	
 	// send the completed rewrite tree to the GUI's actor
-	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
-		ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
+//	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
+//		ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
 	
 	//////////////////// end GUI changes
   }
@@ -299,7 +301,7 @@ with HasHistory {
     var theAtom = atom
 	
 	//////////////////// GUI changes
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "_handleAtom")
 	// add this atom as a child to the root node
 	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) //val atomNode = RWTree.addTo(rwNode, atom)
 	
@@ -309,13 +311,13 @@ with HasHistory {
       ReplActor ! ("Eva", "setSubroot", "atomNode") //RWTree.current = atomNode // GUI change
       handler.handleAtom(theAtom) match {
         case None => 
-            ReplActor ! ("Eva", "popTable", None) // GUI change
+            ReplActor ! ("Eva", "popTable", "_handleAtom") // GUI change
             return None
         case Some(alt) => theAtom = alt
       }
     } // Perform all handlers.
     
-    ReplActor ! ("Eva", "popTable", None) // GUI change
+    ReplActor ! ("Eva", "popTable", "_handleAtom") // GUI change
     return Some(theAtom)
   }
   

@@ -102,7 +102,7 @@ object SequenceMatcher {
    * 					that is true if any rewrites succeeded.
    */
   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
-	ReplActor ! ("Eva","pushTable",None)
+	ReplActor ! ("Eva","pushTable","obj SequenceMatcher rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object SequenceMatcher rewrite: ")) // val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
 	ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
@@ -121,7 +121,7 @@ object SequenceMatcher {
       }
       
       val result = doit(subjects)
-      ReplActor ! ("Eva", "popTable", None)
+      ReplActor ! ("Eva", "popTable", "obj SequenceMatcher rewrite")
     (result, changed)
   }
   //////////////////// end GUI changes

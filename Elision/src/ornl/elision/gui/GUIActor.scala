@@ -63,7 +63,7 @@ object GUIActor extends Actor {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
                     if(!disableTreeBuilder) processTreeBuilderCommands(cmd, args)
-				case root : ornl.elision.core.RWTreeNode => {
+				/* case root : ornl.elision.core.RWTreeNode => 
 					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
 					
 					mainGUI.treeVisPanel.isLoading = true
@@ -76,10 +76,10 @@ object GUIActor extends Actor {
 					mainGUI.treeVisPanel.camera.reset
 					
 					mainGUI.treeVisPanel.isLoading = false
-				}
-				case selFile : java.io.File => {
+				*/
+				case selFile : java.io.File => 
 					// The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-					mainGUI.treeVisPanel.isLoading = true
+					if(!disableTreeBuilder) mainGUI.treeVisPanel.isLoading = true
 					Thread.sleep(100)
 					
 					// here we accumulate the text of the file into one big string.
@@ -95,7 +95,6 @@ object GUIActor extends Actor {
 					println("Reading REPL input from file: " + selFile.getPath)
 					println()
 					ornl.elision.repl.ReplActor ! str
-				}
 				case "quit" => 
 					System.exit(0)
 				case ("replFormat", flag : Boolean) =>
@@ -128,9 +127,9 @@ object GUIActor extends Actor {
                 
                 mainGUI.treeVisPanel.isLoading = false
             case "pushTable" => 
-                treeBuilder.pushTable
+                treeBuilder.pushTable(args)
             case "popTable" => 
-                treeBuilder.popTable
+                treeBuilder.popTable(args)
             case "setSubroot" =>
                 args match {
                     case id : String =>

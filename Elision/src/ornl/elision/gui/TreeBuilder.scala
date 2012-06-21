@@ -59,12 +59,16 @@ class TreeBuilder {
     /** Maximum Eva tree depth. If this is < 0, then there is assumed to be no maximum depth. */
     var treeMaxDepth = -1
     
+    /** If true, this flag makes the TreeBuilder skip all processing commands until it is given a finishTree command. */
+    var fatalError = false
+    
     /** Clears the TreeBuilder's members. */
     def clear : Unit = {
         root = null
         subroot = null
         curScope = null
         scopeStack.clear()
+        fatalError = false
     }
     
     /** 
@@ -73,12 +77,12 @@ class TreeBuilder {
      * @param rootLabel     The label for the root node of the new tree. This node will automatically be a comment node.
      */
     def newTree(rootLabel : String) : Unit = {
-    //    System.err.println("\nMaking a new tree")
+        System.err.println("\nMaking a new tree")
         
         clear
         root = new NodeSprite(rootLabel)
         root.properties = ""
-        pushTable
+        pushTable("root")
         curScope += ("root" -> root)
         setSubroot("root")
     }
@@ -88,7 +92,7 @@ class TreeBuilder {
      * @return      A TreeSprite corresponding to the structure of NodeSprites in the TreeBuilder with root as its root NodeSprite.
      */
     def finishTree : TreeSprite = {
-    //    System.err.println("Finishing current tree")
+        System.err.println("Finishing current tree")
         
         val treeSprite = new TreeSprite(0,0,root)
         clear
@@ -100,11 +104,15 @@ class TreeBuilder {
      * curScope is set to this new scope table. 
      * The new scope starts with one mapping: "subroot" -> the current subroot. 
      */
-    def pushTable : Unit = {
-    //    System.err.println("Pushing new table")
+    def pushTable(args : Any) : Unit = {
+        if(fatalError) return
+        
+        printIndent
+        System.err.println("Pushing new table - " + args)
         
         curScope = new HashMap[String, NodeSprite]
         scopeStack.push(curScope)
+        curScope += ("root" -> root)
         curScope += ("subroot" -> subroot)
     }
     
@@ -112,8 +120,11 @@ class TreeBuilder {
      * Pops and discards the current scope from scopeStack. 
      * curScope is set to the scopeStack's new top. 
      */
-    def popTable : Unit = {
-    //    System.err.println("Popping current table")
+    def popTable(args : Any) : Unit = {
+        if(fatalError || scopeStack.size == 1) return
+        
+        printIndent
+        System.err.println("Popping current table - " + args)
         
         // set the current subroot to the subroot currently in the table.
         subroot = curScope("subroot")
@@ -128,16 +139,20 @@ class TreeBuilder {
      * @param id        The key ID for our desired NodeSprite in the current scope table.
      */
     def setSubroot(id : String) : Unit = {
+        if(this.isMaxDepth || fatalError) return
+    //    printIndent
     //    System.err.println("Setting new subroot: " + id)
-        
-        if(this.isMaxDepth) return
-        
-        try {
-            subroot = curScope(id)
-            subrootID = id
-        } 
-        catch {
-            case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
+        var keepgoing = true
+        while(keepgoing) {
+            try {
+                subroot = curScope(id)
+                subrootID = id
+                keepgoing = false
+            } 
+            catch {
+                case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
+                    keepgoing = attemptStackRecovery
+            }
         }
     }
     
@@ -149,9 +164,10 @@ class TreeBuilder {
      * @param atom          The BasicAtom the new atom node is being constructed from 
      */
     def addToSubroot(id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-    //    System.err.println("addToSubroot: " + id)
+        if(this.isMaxDepth || fatalError) return
         
-        if(this.isMaxDepth) return
+    //    printIndent
+    //    System.err.println("addToSubroot: " + id)
         
         val parent = subroot
         val node = createCommentNode(comment, parent)
@@ -167,10 +183,10 @@ class TreeBuilder {
      * @param commentAtom   The String being used as the new node's label.
      */
     def addToSubroot(id : String, commentAtom : String) : Unit = {
+        if(this.isMaxDepth || fatalError) return
+    //    printIndent
     //    System.err.println("addToSubroot: " + id)
-        
-        if(this.isMaxDepth) return
-        
+
         val parent = subroot
         val node = createCommentNode(commentAtom, parent)
         if(id != "") curScope += (id -> node)
@@ -183,10 +199,10 @@ class TreeBuilder {
      * @param atom          The BasicAtom the new node is being constructed from.
      */
     def addToSubroot(id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+        if(this.isMaxDepth || fatalError) return
+    //    printIndent
     //    System.err.println("addToSubroot: " + id)
-        
-        if(this.isMaxDepth) return
-        
+
         val parent = subroot
         val node = createAtomNode(atom, parent)
         if(id != "") curScope += (id -> node)
@@ -201,18 +217,23 @@ class TreeBuilder {
      * @param atom          The BasicAtom the new atom node is being constructed from 
      */
     def addTo(parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+        if(this.isMaxDepth || fatalError) return
+    //    printIndent
     //    System.err.println("addTo: " + (parentID, id))
-        
-        if(this.isMaxDepth) return
-        
-        try {
-            val parent = curScope(parentID)
-            val node = createCommentNode(comment, parent)
-            val node2 = createAtomNode(atom, node)
-            if(id != "") curScope += (id -> node2)
-        } 
-        catch {
-            case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + parentID + "\" does not exist in current scope table.")
+
+        var keepgoing = true
+        while(keepgoing) {
+            try {
+                val parent = curScope(parentID)
+                val node = createCommentNode(comment, parent)
+                val node2 = createAtomNode(atom, node)
+                if(id != "") curScope += (id -> node2)
+                keepgoing = false
+            } 
+            catch {
+                case _ => System.err.println("TreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+                    keepgoing = attemptStackRecovery
+            }
         }
     }
     
@@ -225,17 +246,22 @@ class TreeBuilder {
      * @param commentAtom   The String being used as the new node's label.
      */
     def addTo(parentID : String, id : String, commentAtom : String) : Unit = {
+        if(this.isMaxDepth || fatalError) return
+    //    printIndent
     //    System.err.println("addTo: " + (parentID, id))
-        
-        if(this.isMaxDepth) return
-        
-        try {
-            val parent = curScope(parentID)
-            val node = createCommentNode(commentAtom, parent)
-            if(id != "") curScope += (id -> node)
-        } 
-        catch {
-            case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + parentID + "\" does not exist in current scope table.")
+
+        var keepgoing = true
+        while(keepgoing) {
+            try {
+                val parent = curScope(parentID)
+                val node = createCommentNode(commentAtom, parent)
+                if(id != "") curScope += (id -> node)
+                keepgoing = false
+            } 
+            catch {
+                case _ => System.err.println("TreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+                    keepgoing = attemptStackRecovery
+            }
         }
     }
     
@@ -247,17 +273,22 @@ class TreeBuilder {
      * @param atom          The BasicAtom the new node is being constructed from.
      */
     def addTo(parentID : String, id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+        if(this.isMaxDepth || fatalError) return
+    //    printIndent
     //    System.err.println("addTo: " + (parentID, id))
-        
-        if(this.isMaxDepth) return
-        
-        try {
-            val parent = curScope(parentID)
-            val node = createAtomNode(atom, parent)
-            if(id != "") curScope += (id -> node)
-        } 
-        catch {
-            case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + parentID + "\" does not exist in current scope table.")
+
+        var keepgoing = true
+        while(keepgoing) {
+            try {
+                val parent = curScope(parentID)
+                val node = createAtomNode(atom, parent)
+                if(id != "") curScope += (id -> node)
+                keepgoing = false
+            } 
+            catch {
+                case _ => System.err.println("TreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+                    keepgoing = attemptStackRecovery
+            }
         }
     }
     
@@ -309,6 +340,25 @@ class TreeBuilder {
         else (scopeStack.size >= treeMaxDepth)
     }
     
+    private def printIndent : Unit = {
+        for(i <- 0 until scopeStack.size) {
+            System.err.print(" ")
+        }
+        System.err.print(scopeStack.size + "")
+    }
+    
+    
+    private def attemptStackRecovery : Boolean = {
+        if(false && scopeStack.size > 1) {
+            popTable("n/a")
+            true
+        }
+        else {
+            System.err.println("Fatal error during TreeBuilder tree construction. \n\tI just don't know what went wrong!")
+            fatalError = true
+            false
+        }
+    }
 }
 
 

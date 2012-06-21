@@ -187,7 +187,7 @@ class Variable(typ: BasicAtom, val name: String,
   */
 	  //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-	ReplActor ! ("Eva","pushTable",None)
+	ReplActor ! ("Eva","pushTable","Variable rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: ")) // val rwNode = RWTree.addToCurrent("Variable rewrite: ")
 	ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType)) // val typeNode = RWTree.addTo(rwNode, theType)
@@ -198,7 +198,7 @@ class Variable(typ: BasicAtom, val name: String,
       case Some(atom) =>
         ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
         
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "Variable rewrite")
 		(atom, true)
       case None =>
 		ReplActor ! ("Eva", "setSubroot", "type") // RWTree.current = typeNode
@@ -211,14 +211,14 @@ class Variable(typ: BasicAtom, val name: String,
 				val newVar = Variable(newtype, name)
 				ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar)) // RWTree.addTo(rwNode, newVar) 
                 
-                ReplActor ! ("Eva", "popTable", None)
+                ReplActor ! ("Eva", "popTable", "Variable rewrite")
 				(newVar, true) 
 			} else {
-                ReplActor ! ("Eva", "popTable", None)
+                ReplActor ! ("Eva", "popTable", "Variable rewrite")
                 (this, false)
             }
           case _ => {
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "Variable rewrite")
             (this, false)
           }
         }

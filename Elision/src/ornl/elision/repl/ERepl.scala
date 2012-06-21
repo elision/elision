@@ -463,7 +463,20 @@ class ERepl extends Processor {
       
       // Run the line.
       try {
+        //////////////////// GUI changes
+	
+        // Create the root of our rewrite tree it contains a String of the REPL input.
+        ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
+        
+        //////////////////// end GUI changes
         execute(line)
+        //////////////////// GUI changes
+	
+        // send the completed rewrite tree to the GUI's actor
+        if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
+            ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
+
+        //////////////////// end GUI changes
       } catch {
         case ornl.elision.ElisionException(msg) =>
           console.error(msg)

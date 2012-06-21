@@ -478,7 +478,7 @@ extends Fickle with Mutable {
     //////////////////// GUI changes
     
     def rewrite(atom: BasicAtom) = {
-    ReplActor ! ("Eva","pushTable", None)
+    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
@@ -490,7 +490,7 @@ extends Fickle with Mutable {
     ReplActor.disableGUIComs = tempDisabled
     ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
     
-    ReplActor ! ("Eva", "popTable", None)
+    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
     (newatom, flag)
   }
     
@@ -507,7 +507,7 @@ extends Fickle with Mutable {
    *          applied.
    */
   def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
-    ReplActor ! ("Eva","pushTable", None)
+    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
@@ -519,7 +519,7 @@ extends Fickle with Mutable {
     ReplActor.disableGUIComs = tempDisabled
     ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
     
-    ReplActor ! ("Eva", "popTable", None)
+    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
     (newatom, flag)
   }
   //////////////////// end GUI changes

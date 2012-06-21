@@ -203,7 +203,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: ")) // val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
 	
@@ -223,11 +223,11 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 		val newAS = new AtomSeq(newprop, newseq)
 		ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // rwNode.addChild(newAS)
         
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
 		(newAS, true)
 	}
     else {
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
         (this, false)
     }
   }
