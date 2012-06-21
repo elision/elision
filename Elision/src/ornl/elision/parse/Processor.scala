@@ -198,7 +198,7 @@ with HasHistory {
 	//////////////////// GUI changes
 	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
-	val treeRoot = RWTree.createNewRoot(lline) //new RWTreeNode(lline)
+	ReplActor ! ("Eva", "newTree", lline) // val treeRoot = RWTree.createNewRoot(lline) 
 	
 	//////////////////// end GUI changes
 	
@@ -208,7 +208,7 @@ with HasHistory {
 	
 	// send the completed rewrite tree to the GUI's actor
 	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
-		ReplActor.guiActor ! treeRoot
+		ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
 	
 	//////////////////// end GUI changes
   }
@@ -224,10 +224,6 @@ with HasHistory {
     import ornl.elision.ElisionException
     startTimer
 	
-	//////////////////// GUI changes
-	val rwNode = RWTree.current
-	//////////////////// end GUI changes
-	
     try {
     	result match {
   			case Failure(err) => console.error(err)
@@ -237,25 +233,31 @@ with HasHistory {
   			  for (node <- nodes) {
 				//////////////////// GUI changes
                 var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
-                val lineNode = RWTree.addTo(rwNode, nodeLabel) //rwNode.addChild("line node")
-				RWTree.current = lineNode
-				//////////////////// end GUI changes
+                ReplActor ! ("Eva", "addTo", ("root", "lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
+				ReplActor ! ("Eva", "setSubroot", "lineNode") //RWTree.current = lineNode
+				
 				
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
-                    RWTree.current = lineNode
+                    ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
+                    ReplActor ! ("Eva", "setSubroot", "interpret") // RWTree.current = lineNode // GUI changes
   			        val atom = newnode.interpret
-                    RWTree.current = lineNode
+                    
+                    ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
+                    ReplActor ! ("Eva", "setSubroot", "handle")
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
+                        ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
+                        ReplActor ! ("Eva", "setSubroot", "result") //RWTree.current = lineNode
   			            // Hand off the node.
   			            _result(newatom)
   			        }
   			    }
   			  } // Process all the nodes.
+              //////////////////// end GUI changes
     	}
     } catch {
       case ElisionException(msg) =>
@@ -297,21 +299,23 @@ with HasHistory {
     var theAtom = atom
 	
 	//////////////////// GUI changes
-	
-	// obtain the parent tree node from the stack
-	val rwNode = RWTree.current
+	ReplActor ! ("Eva", "pushTable", None)
 	// add this atom as a child to the root node
-	val atomNode = RWTree.addTo(rwNode, atom) //rwNode.addChild(atom)
+	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) //val atomNode = RWTree.addTo(rwNode, atom)
 	
 	//////////////////// end GUI changes
 	
     for (handler <- _queue) {
-      RWTree.current = atomNode // GUI change
+      ReplActor ! ("Eva", "setSubroot", "atomNode") //RWTree.current = atomNode // GUI change
       handler.handleAtom(theAtom) match {
-        case None => return None
+        case None => 
+            ReplActor ! ("Eva", "popTable", None) // GUI change
+            return None
         case Some(alt) => theAtom = alt
       }
     } // Perform all handlers.
+    
+    ReplActor ! ("Eva", "popTable", None) // GUI change
     return Some(theAtom)
   }
   
