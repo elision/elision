@@ -518,6 +518,36 @@ decl.{! history()
 }
 
 //======================================================================
+// Atom information.
+//======================================================================
+
+decl.{! showtypes($a)
+  #handler="""
+    val showscala = exec.getProperty[Boolean]("showscala")
+    var here = args(0)
+    while (here != TypeUniverse) {
+      if (showscala) {
+        printf("--> %s  (%s)\n", here.toParseString, here.getClass.toString)
+      } else {
+        println("--> "+here.toParseString)
+      }
+      here = here.theType
+    }
+    if (showscala) {
+      printf("--> %s  (%s)\n", here.toParseString, here.getClass.toString)
+    } else {
+      println("--> "+here.toParseString)
+    }
+    _no_show
+  """
+  #description="Show the complete type information for an atom."
+  #detail="Show all type information for the atom $a.  The atom is ".
+  "printed, followed by its type, followed by the type's type, etc., ".
+  "until ^TYPE is reached.  If showscala is enabled, the Scala class ".
+  "is also printed."
+}
+
+//======================================================================
 // Error reporting.
 //======================================================================
 
