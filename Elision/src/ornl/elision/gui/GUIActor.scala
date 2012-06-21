@@ -55,15 +55,14 @@ object GUIActor extends Actor {
     val treeBuilder = new TreeBuilder
     var disableTreeBuilder = false
     
-    /** Maximum Eva tree depth. If this is < 0, then there is assumed to be no maximum depth. */
-    var treeMaxDepth = -1
+    
     
 	def act() = {
 		loop {
 			react {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
-                    processTreeBuilderCommands(cmd, args)
+                    if(!disableTreeBuilder) processTreeBuilderCommands(cmd, args)
 				case root : ornl.elision.core.RWTreeNode => {
 					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
 					
@@ -140,6 +139,8 @@ object GUIActor extends Actor {
                 }
             case "addToSubroot" =>
                 args match {
+                    case (id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
+                        treeBuilder.addToSubroot(id, comment, atom)
                     case (id : String, commentAtom : String) =>
                         treeBuilder.addToSubroot(id, commentAtom)
                     case (id : String, atom : ornl.elision.core.BasicAtom) =>
@@ -148,6 +149,8 @@ object GUIActor extends Actor {
                 }
             case "addTo" =>
                 args match {
+                    case (parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
+                        treeBuilder.addTo(parentID, id, comment, atom)
                     case (parentID : String, id : String, commentAtom : String) =>
                         treeBuilder.addTo(parentID, id, commentAtom)
                     case (parentID : String, id : String, atom : ornl.elision.core.BasicAtom) =>

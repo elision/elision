@@ -46,7 +46,7 @@ object ReplActor extends Actor {
 	var guiMode : Boolean = false 
 	
 	/** flag for temporarily disabling GUI communication. */
-	var disableGUIComs = false
+	var disableGUIComs = true
 
 	/** a flag used by the Repl object to determine whether the actor is waiting on input from a GUI */
 	var waitingForGuiInput : Boolean = false
@@ -59,6 +59,9 @@ object ReplActor extends Actor {
 	
 	/** a flag that tells the Actor to be verbose while waiting on the GUI. */
 	var verbose = false
+    
+    /** A flag that will skip GUI tree construction for RuleLibrary rewrites. */
+    var disableRuleLibraryVis = false
 	
 	/** 
 	 * The actor's act loop will wait to receive string input from the GUI. 
@@ -69,7 +72,9 @@ object ReplActor extends Actor {
 		loop {
 			react {
                 case ("Eva", cmd : String, args : Any) =>
-                    guiActor ! ("Eva", cmd, args)
+                    if(guiMode && !disableGUIComs) guiActor ! ("Eva", cmd, args)
+                case ("disableGUIComs", flag : Boolean) =>
+                    disableGUIComs = flag
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false

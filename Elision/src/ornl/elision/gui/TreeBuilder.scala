@@ -53,6 +53,11 @@ class TreeBuilder {
     
     /** A reference to the NodeSprite current being used as the subroot for an Elision method. */
     var subroot : NodeSprite = null
+    /** The current subroot's ID */
+    var subrootID : String = null
+    
+    /** Maximum Eva tree depth. If this is < 0, then there is assumed to be no maximum depth. */
+    var treeMaxDepth = -1
     
     /** Clears the TreeBuilder's members. */
     def clear : Unit = {
@@ -68,11 +73,14 @@ class TreeBuilder {
      * @param rootLabel     The label for the root node of the new tree. This node will automatically be a comment node.
      */
     def newTree(rootLabel : String) : Unit = {
+    //    System.err.println("\nMaking a new tree")
+        
         clear
         root = new NodeSprite(rootLabel)
         root.properties = ""
         pushTable
         curScope += ("root" -> root)
+        setSubroot("root")
     }
     
     /**
@@ -80,19 +88,35 @@ class TreeBuilder {
      * @return      A TreeSprite corresponding to the structure of NodeSprites in the TreeBuilder with root as its root NodeSprite.
      */
     def finishTree : TreeSprite = {
+    //    System.err.println("Finishing current tree")
+        
         val treeSprite = new TreeSprite(0,0,root)
         clear
         treeSprite
     }
     
-    /** Creates a new scope table and pushes it onto scopeStack. curScope is set to this new scope table. */
+    /** 
+     * Creates a new scope table and pushes it onto scopeStack. 
+     * curScope is set to this new scope table. 
+     * The new scope starts with one mapping: "subroot" -> the current subroot. 
+     */
     def pushTable : Unit = {
+    //    System.err.println("Pushing new table")
+        
         curScope = new HashMap[String, NodeSprite]
         scopeStack.push(curScope)
+        curScope += ("subroot" -> subroot)
     }
     
-    /** Pops and discards the current scope from scopeStack. curScope is set to the scopeStack's new top. */
+    /** 
+     * Pops and discards the current scope from scopeStack. 
+     * curScope is set to the scopeStack's new top. 
+     */
     def popTable : Unit = {
+    //    System.err.println("Popping current table")
+        
+        // set the current subroot to the subroot currently in the table.
+        subroot = curScope("subroot")
         // pop and discard the current scope.
         scopeStack.pop 
         // use whatever scope is on the top of the stack.
@@ -104,13 +128,37 @@ class TreeBuilder {
      * @param id        The key ID for our desired NodeSprite in the current scope table.
      */
     def setSubroot(id : String) : Unit = {
+    //    System.err.println("Setting new subroot: " + id)
+        
+        if(this.isMaxDepth) return
+        
         try {
             subroot = curScope(id)
+            subrootID = id
         } 
         catch {
             case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
         }
     }
+    
+    /**
+     * Adds a new comment and atom NodeSprite to the current subroot's children list.
+     * If an id is given, the new NodeSprite will be mapped from that id in the current scope table.
+     * @param id            Optional id that the new atom node will be mapped with in the current scope table. It won't be mapped if id == "".
+     * @param comment       The String being used as the new comment node's label.
+     * @param atom          The BasicAtom the new atom node is being constructed from 
+     */
+    def addToSubroot(id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+    //    System.err.println("addToSubroot: " + id)
+        
+        if(this.isMaxDepth) return
+        
+        val parent = subroot
+        val node = createCommentNode(comment, parent)
+        val node2 = createAtomNode(atom, node)
+        if(id != "") curScope += (id -> node2)
+    }
+    
     
     /** 
      * Adds a new comment NodeSprite to the current subroot's children list. 
@@ -119,6 +167,10 @@ class TreeBuilder {
      * @param commentAtom   The String being used as the new node's label.
      */
     def addToSubroot(id : String, commentAtom : String) : Unit = {
+    //    System.err.println("addToSubroot: " + id)
+        
+        if(this.isMaxDepth) return
+        
         val parent = subroot
         val node = createCommentNode(commentAtom, parent)
         if(id != "") curScope += (id -> node)
@@ -131,10 +183,39 @@ class TreeBuilder {
      * @param atom          The BasicAtom the new node is being constructed from.
      */
     def addToSubroot(id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+    //    System.err.println("addToSubroot: " + id)
+        
+        if(this.isMaxDepth) return
+        
         val parent = subroot
         val node = createAtomNode(atom, parent)
         if(id != "") curScope += (id -> node)
     }
+    
+    /**
+     * Adds a new comment and atom NodeSprite to another NodeSprite's children list.
+     * If an id is given, the new NodeSprite will be mapped from that id in the current scope table.
+     * @param parentID      The id key for the parent node in the current scope table.
+     * @param id            Optional id that the new atom node will be mapped with in the current scope table. It won't be mapped if id == "".
+     * @param comment       The String being used as the new comment node's label.
+     * @param atom          The BasicAtom the new atom node is being constructed from 
+     */
+    def addTo(parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+    //    System.err.println("addTo: " + (parentID, id))
+        
+        if(this.isMaxDepth) return
+        
+        try {
+            val parent = curScope(parentID)
+            val node = createCommentNode(comment, parent)
+            val node2 = createAtomNode(atom, node)
+            if(id != "") curScope += (id -> node2)
+        } 
+        catch {
+            case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + parentID + "\" does not exist in current scope table.")
+        }
+    }
+    
     
     /**
      * Adds a new comment NodeSprite to another NodeSprite's children list.
@@ -144,6 +225,10 @@ class TreeBuilder {
      * @param commentAtom   The String being used as the new node's label.
      */
     def addTo(parentID : String, id : String, commentAtom : String) : Unit = {
+    //    System.err.println("addTo: " + (parentID, id))
+        
+        if(this.isMaxDepth) return
+        
         try {
             val parent = curScope(parentID)
             val node = createCommentNode(commentAtom, parent)
@@ -162,6 +247,10 @@ class TreeBuilder {
      * @param atom          The BasicAtom the new node is being constructed from.
      */
     def addTo(parentID : String, id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
+    //    System.err.println("addTo: " + (parentID, id))
+        
+        if(this.isMaxDepth) return
+        
         try {
             val parent = curScope(parentID)
             val node = createAtomNode(atom, parent)
@@ -210,8 +299,18 @@ class TreeBuilder {
 			case _ => {}
 		}
         
-        parent.addChild(node)
+        if(parent != null) parent.addChild(node)
         node
     }
     
-}
+    
+    private def isMaxDepth : Boolean = {
+        if(treeMaxDepth < 0) false
+        else (scopeStack.size >= treeMaxDepth)
+    }
+    
+}
+
+
+
+

@@ -37,6 +37,7 @@
 package ornl.elision.core
 
 import scala.collection.mutable.ListBuffer
+import ornl.elision.repl.ReplActor
 
 /**
  * The common root for all application atoms.  This class represents the
@@ -80,21 +81,31 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   //////////////////// GUI changes
   
   def rewrite(binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("Apply rewrite: ")
+    ReplActor ! ("Eva", "pushTable", None)
+	// top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: ")) //val rwNode = RWTree.addToCurrent("Apply rewrite: ")
 
-	RWTree.current = RWTree.addTo(rwNode, "Operator: ", op) // rwNode.addChild("Operator: ").addChild(op)
+	ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ")) // RWTree.current = RWTree.addTo(rwNode, "Operator: ", op)
+    ReplActor ! ("Eva", "addTo", ("op", "op", op))
+    ReplActor ! ("Eva", "setSubroot", "op")
     val (nop, nof) = op.rewrite(binds)
 	
-	RWTree.current = RWTree.addTo(rwNode, "Argument: ", arg) // rwNode.addChild("Argument: ").addChild(arg)
+	ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ")) //RWTree.current = RWTree.addTo(rwNode, "Argument: ", arg)
+    ReplActor ! ("Eva", "addTo", ("arg", "arg", arg))
+    ReplActor ! ("Eva", "setSubroot", "arg")
     val (narg, naf) = arg.rewrite(binds)
 	
-    RWTree.current = rwNode
+    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
     if (nof || naf) {
 		val newApply = Apply(nop, narg)
-		RWTree.addTo(rwNode,newApply) // rwNode.addChild(newApply)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) // RWTree.addTo(rwNode,newApply)
+        
+        ReplActor ! ("Eva", "popTable", None)
 		(newApply, true) 
-	} else (this, false)
+	} else { 
+        ReplActor ! ("Eva", "popTable", None)
+        (this, false)
+    }
   }
   
   //////////////////// end GUI changes
@@ -171,11 +182,13 @@ object Apply {
       bypass: Boolean = false): BasicAtom = {
       
     //////////////////// GUI changes
-    // get the node representing this atom that is being rewritten
-    val rwNode = RWTree.addToCurrent("object Apply apply: ") // RWTree.current.addChild("object Apply apply: ")
-    val opNode = RWTree.addTo(rwNode, "Operator: ", op) // rwNode.addChild("Operator: ").addChild(op)
-    val argNode = RWTree.addTo(rwNode, "Argument: ", arg) // rwNode.addChild("Argument: ").addChild(arg)
-    RWTree.current = rwNode
+    ReplActor ! ("Eva","pushTable", None)
+    // top node of this subtree
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) // val rwNode = RWTree.addToCurrent("object Apply apply: ") 
+    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op)) // val opNode = RWTree.addTo(rwNode, "Operator: ", op) 
+    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) // val argNode = RWTree.addTo(rwNode, "Argument: ", arg) 
+    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+    ReplActor ! ("Eva", "popTable", None)
     //////////////////// end GUI changes
         
     // Do not try to compute if metaterms are present.
@@ -248,19 +261,25 @@ case class OpApply protected[core] (override val op: OperatorRef,
   
   //////////////////// GUI changes
   override def rewrite(binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current
+	ReplActor ! ("Eva", "pushTable", None)
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: ")) //val rwNode = RWTree.current
 	
     // Rewrite the argument, but not the operator.  In reality, operators
     // should protect their arguments using De Bruijn indices, but that's
     // not implemented just yet.
     val pair = arg.rewrite(binds)
     if (pair._2) {
-		RWTree.current = rwNode
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
 		val newApply = Apply(op, pair._1)
-		RWTree.addTo(rwNode, newApply) // rwNode.addChild(newApply)
-		(newApply, true) 
-	} else (this, false)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) //RWTree.addTo(rwNode, newApply)
+		
+        ReplActor ! ("Eva", "popTable", None)
+        (newApply, true) 
+	} else {
+        ReplActor ! ("Eva", "popTable", None)
+        (this, false)
+    }
   }
   //////////////////// end GUI changes
 }
