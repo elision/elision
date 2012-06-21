@@ -316,43 +316,6 @@ object TreeSprite {
 		parent.addChild(node)
 		node
 	}
-	
-	/**
-	 * Constructs a TreeSprite from an Elision rewrite tree structure. 
-	 * @param rwRoot	The root node of the rewrite tree to be constructed as a TreeSprite.
-	 * @return			The completed TreeSprite constructed from rwRoot
-	 */
-	def buildRWTree(rwRoot : ornl.elision.core.RWTreeNode) : TreeSprite = {
-		val root = new NodeSprite(rwRoot.term)
-		root.properties = rwRoot.properties
-		
-		for(child <- rwRoot.children) {
-			buildRWTreeRec(child, root)
-		}
-		
-		val tree = new TreeSprite(0,0,root)
-		tree.selectNode(root,2)
-		tree
-	}
-	
-	/**
-	 * Used by the buildRWTree method to recursively build a TreeSprite. 
-	 * @param rwRoot	The root node of the current rewrite subtree.
-	 * @param parent	rwRoot's immediate parent.
-	 */
-	private def buildRWTreeRec(rwNode : ornl.elision.core.RWTreeNode, parent : NodeSprite) : Unit = {
-		val node = new NodeSprite(rwNode.term, parent, rwNode.isComment)
-		node.properties = rwNode.properties
-		parent.addChild(node)
-
-		node.isStringAtom = rwNode.isStringAtom
-		
-		for(child <- rwNode.children) {
-			buildRWTreeRec(child, node)
-		}
-	}
-	
-	
 }
 
 
