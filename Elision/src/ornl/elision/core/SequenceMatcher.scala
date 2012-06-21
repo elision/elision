@@ -36,6 +36,8 @@
 ======================================================================*/
 package ornl.elision.core
 
+import ornl.elision.repl.ReplActor
+
 /**
  * Match two sequences of atoms.
  * 
@@ -100,23 +102,27 @@ object SequenceMatcher {
    * 					that is true if any rewrites succeeded.
    */
   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
-	val seqNode = RWTree.addTo(rwNode, "sequence: ") // rwNode.addChild("sequence: ")
+	ReplActor ! ("Eva","pushTable",None)
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object SequenceMatcher rewrite: ")) // val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
 	
     var changed = false
     def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
       if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
-		val headNode = seqNode.addChild(atoms.head)
-		RWTree.current = headNode
+		ReplActor ! ("Eva", "addTo", ("seq", "head", atoms.head)) // val headNode = seqNode.addChild(atoms.head)
+		ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
         
 		val (newatom, change) = atoms.head.rewrite(binds)
-		RWTree.addTo(headNode, newatom) //headNode.addChild(newatom)
+		ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
 		
         changed |= change
         newatom +: doit(atoms.tail)
       }
-    (doit(subjects), changed)
+      
+      val result = doit(subjects)
+      ReplActor ! ("Eva", "popTable", None)
+    (result, changed)
   }
   //////////////////// end GUI changes
 
