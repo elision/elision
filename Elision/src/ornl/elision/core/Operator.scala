@@ -121,8 +121,20 @@ abstract class Operator(
   val detail: String,
   override val evenMeta: Boolean = false)
   extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+  /**
+   * Apply the operator to the given sequence of basic atoms as arguments.
+   * 
+   * @param atoms   The arguments, in order.
+   * @return  The constructed atom.
+   */
   def apply(atoms: BasicAtom*): BasicAtom
-  override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
+  
+  /**
+   * Proxy to the parent match method, but turn this operator into an operator
+   * reference in the process.
+   */
+  override def tryMatchWithoutTypes(
+      subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
     super.tryMatchWithoutTypes(subject, binds, Some(OperatorRef(this)))
 }
 
@@ -778,6 +790,13 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     }
   }
 
+  /**
+   * All symbolic operator applications arrive here to get resolved.
+   * 
+   * @param rhs     The right-hand side (arguments).
+   * @param bypass  If true, bypass any native handler.
+   * @return  The constructed atom.
+   */
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
     rhs match {
       case args: AtomSeq =>
@@ -844,7 +863,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               return ident
             case None =>
               // No identity.  We're done.
-              return handleApply(Bindings())
+              //return handleApply(Bindings())
             //		          return OpApply(OperatorRef(this), AtomSeq(params.props, newseq),
             //		              Bindings())
           }
