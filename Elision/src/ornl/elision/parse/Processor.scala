@@ -159,9 +159,11 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-    
+    ReplActor ! ("Eva", "pushTable", "Processor read")
+    ReplActor ! ("Eva", "addToSubroot", ("read", "Reading: " + filename))
+    ReplActor ! ("Eva", "setSubroot", "read")
     _execute(_parser.parseAtoms(source)) 
-    
+    ReplActor ! ("Eva", "popTable", "Processor read")
   }
   
   /**
@@ -226,6 +228,8 @@ with HasHistory {
     import ornl.elision.ElisionException
     startTimer
 	
+    ReplActor ! ("Eva","pushTable","Processor _execute")
+    
     try {
     	result match {
   			case Failure(err) => console.error(err)
@@ -234,8 +238,9 @@ with HasHistory {
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
 				//////////////////// GUI changes
+                ReplActor ! ("Eva", "setSubroot", "subroot")
                 var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
-                ReplActor ! ("Eva", "addTo", ("root", "lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
+                ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
 				ReplActor ! ("Eva", "setSubroot", "lineNode") //RWTree.current = lineNode
 				
 				
@@ -280,6 +285,9 @@ with HasHistory {
         if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
         coredump("Internal error.", Some(th))
     }
+    
+    ReplActor ! ("Eva","popTable","Processor _execute")
+    
     stopTimer
     showElapsed
   }

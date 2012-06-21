@@ -40,8 +40,10 @@ package ornl.elision.gui
 import collection.mutable.ArrayStack
 import collection.mutable.HashMap
 
+import scala.actors.Actor
+
 /** A factory class used to contruct TreeSprites. */
-class TreeBuilder {
+class TreeBuilder extends Thread {
     /** Maintains a stack of id->NodeSprite tables used to obtain the local NodeSprite variables for a particular method scope during Elision's process. */
     val scopeStack = new ArrayStack[HashMap[String, NodeSprite]]
     
@@ -62,6 +64,9 @@ class TreeBuilder {
     /** If true, this flag makes the TreeBuilder skip all processing commands until it is given a finishTree command. */
     var fatalError = false
     
+    /** A reference for the TreeBuilder's actor. All operations with the TreeBuilder should be done through this actor to ensure concurrency. */
+    val tbActor = new TreeBuilderActor(this)
+    
     /** Clears the TreeBuilder's members. */
     def clear : Unit = {
         root = null
@@ -77,13 +82,14 @@ class TreeBuilder {
      * @param rootLabel     The label for the root node of the new tree. This node will automatically be a comment node.
      */
     def newTree(rootLabel : String) : Unit = {
-        System.err.println("\nMaking a new tree")
+//        System.err.println("\nMaking a new tree")
         
         clear
         root = new NodeSprite(rootLabel)
         root.properties = ""
         pushTable("root")
         curScope += ("root" -> root)
+        curScope += ("subroot" -> root)
         setSubroot("root")
     }
     
@@ -92,7 +98,7 @@ class TreeBuilder {
      * @return      A TreeSprite corresponding to the structure of NodeSprites in the TreeBuilder with root as its root NodeSprite.
      */
     def finishTree : TreeSprite = {
-        System.err.println("Finishing current tree")
+//        System.err.println("Finishing current tree")
         
         val treeSprite = new TreeSprite(0,0,root)
         clear
@@ -107,8 +113,7 @@ class TreeBuilder {
     def pushTable(args : Any) : Unit = {
         if(fatalError) return
         
-        printIndent
-        System.err.println("Pushing new table - " + args)
+//        printIndent("Pushing new table - " + args)
         
         curScope = new HashMap[String, NodeSprite]
         scopeStack.push(curScope)
@@ -123,8 +128,7 @@ class TreeBuilder {
     def popTable(args : Any) : Unit = {
         if(fatalError || scopeStack.size == 1) return
         
-        printIndent
-        System.err.println("Popping current table - " + args)
+//        printIndent("Popping current table - " + args)
         
         // set the current subroot to the subroot currently in the table.
         subroot = curScope("subroot")
@@ -140,8 +144,7 @@ class TreeBuilder {
      */
     def setSubroot(id : String) : Unit = {
         if(this.isMaxDepth || fatalError) return
-    //    printIndent
-    //    System.err.println("Setting new subroot: " + id)
+    //    printIndent("Setting new subroot: " + id)
         var keepgoing = true
         while(keepgoing) {
             try {
@@ -166,8 +169,7 @@ class TreeBuilder {
     def addToSubroot(id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
         if(this.isMaxDepth || fatalError) return
         
-    //    printIndent
-    //    System.err.println("addToSubroot: " + id)
+    //    printIndent("addToSubroot: " + id)
         
         val parent = subroot
         val node = createCommentNode(comment, parent)
@@ -184,8 +186,8 @@ class TreeBuilder {
      */
     def addToSubroot(id : String, commentAtom : String) : Unit = {
         if(this.isMaxDepth || fatalError) return
-    //    printIndent
-    //    System.err.println("addToSubroot: " + id)
+
+    //    printIndent("addToSubroot: " + id)
 
         val parent = subroot
         val node = createCommentNode(commentAtom, parent)
@@ -200,8 +202,8 @@ class TreeBuilder {
      */
     def addToSubroot(id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
         if(this.isMaxDepth || fatalError) return
-    //    printIndent
-    //    System.err.println("addToSubroot: " + id)
+
+    //    printIndent("addToSubroot: " + id)
 
         val parent = subroot
         val node = createAtomNode(atom, parent)
@@ -218,8 +220,8 @@ class TreeBuilder {
      */
     def addTo(parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
         if(this.isMaxDepth || fatalError) return
-    //    printIndent
-    //    System.err.println("addTo: " + (parentID, id))
+
+    //    printIndent("addTo: " + (parentID, id))
 
         var keepgoing = true
         while(keepgoing) {
@@ -247,8 +249,8 @@ class TreeBuilder {
      */
     def addTo(parentID : String, id : String, commentAtom : String) : Unit = {
         if(this.isMaxDepth || fatalError) return
-    //    printIndent
-    //    System.err.println("addTo: " + (parentID, id))
+
+    //    printIndent("addTo: " + (parentID, id))
 
         var keepgoing = true
         while(keepgoing) {
@@ -274,8 +276,8 @@ class TreeBuilder {
      */
     def addTo(parentID : String, id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
         if(this.isMaxDepth || fatalError) return
-    //    printIndent
-    //    System.err.println("addTo: " + (parentID, id))
+
+    //    printIndent("addTo: " + (parentID, id))
 
         var keepgoing = true
         while(keepgoing) {
@@ -334,33 +336,113 @@ class TreeBuilder {
         node
     }
     
-    
+    /** Helper method checks to if we've reached our depth limit for tree building. */
     private def isMaxDepth : Boolean = {
         if(treeMaxDepth < 0) false
         else (scopeStack.size >= treeMaxDepth)
     }
     
-    private def printIndent : Unit = {
+    /** A handy deubgging helper method that prefixes a number of spaces to a message equal to the current size of the scopeStack. */
+    private def printIndent(str : String) : Unit = {
         for(i <- 0 until scopeStack.size) {
             System.err.print(" ")
         }
         System.err.print(scopeStack.size + "")
+        System.err.println(str)
     }
     
-    
+    /** A helper method that was used to try recover the TreeBuilder's scope if for some reason a popTable command was forgotten somewhere. 
+    Now it just halts further tree construction until Elision is done processing its current input. */
     private def attemptStackRecovery : Boolean = {
         if(false && scopeStack.size > 1) {
             popTable("n/a")
             true
         }
         else {
+            addTo("root", "", "Fatal error during TreeBuilder tree construction. \n\tI just don't know what went wrong!")
             System.err.println("Fatal error during TreeBuilder tree construction. \n\tI just don't know what went wrong!")
             fatalError = true
             false
         }
     }
+    
+    
+    
+    /** Starts a new thread in which the TreeBuilder will run in. */
+	override def run : Unit = {
+		tbActor.start
+        
+        while(true) {}
+	}
+    
 }
 
 
+/** An actor object for doing concurrent operations with a TreeBuilder. */
+class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
+
+    def act() = {
+		loop {
+			receive {
+                case ("Eva", cmd : String, args : Any) => 
+                    // process a TreeBuilder command received from the Elision.
+                    processTreeBuilderCommands(cmd, args)
+                case cmd => System.err.println("Bad tree builder command: " + cmd)
+            }
+        }
+    }
+    
+    /** Called by act when the actor receives a valid TreeBuilder command. Here we actually invoke the methods of the TreeBuilder corresponding to the commands that the actor receives. */
+    def processTreeBuilderCommands(cmd :String, args : Any) : Unit = {
+        cmd match {
+            case "newTree" =>
+                args match {
+                    case label : String =>
+                        treeBuilder.newTree(label)
+                    case _ => System.err.println("TreeBuilder.newTree received incorrect arguments: " + args)
+                }
+            case "finishTree" => // FINISH HIM. FATALITY. KO!
+                mainGUI.treeVisPanel.isLoading = true
+                mainGUI.treeVisPanel.treeSprite = treeBuilder.finishTree
+                
+                // once the tree visualization is built, select its root node and center the camera on it.
+                mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
+                mainGUI.treeVisPanel.camera.reset
+                
+                mainGUI.treeVisPanel.isLoading = false
+            case "pushTable" => 
+                treeBuilder.pushTable(args)
+            case "popTable" => 
+                treeBuilder.popTable(args)
+            case "setSubroot" =>
+                args match {
+                    case id : String =>
+                        treeBuilder.setSubroot(id)
+                    case _ => System.err.println("TreeBuilder.setSubroot received incorrect arguments: " + args)
+                }
+            case "addToSubroot" =>
+                args match {
+                    case (id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
+                        treeBuilder.addToSubroot(id, comment, atom)
+                    case (id : String, commentAtom : String) =>
+                        treeBuilder.addToSubroot(id, commentAtom)
+                    case (id : String, atom : ornl.elision.core.BasicAtom) =>
+                        treeBuilder.addToSubroot(id, atom)
+                    case _ => System.err.println("TreeBuilder.addToSubroot received incorrect arguments: " + args)
+                }
+            case "addTo" =>
+                args match {
+                    case (parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
+                        treeBuilder.addTo(parentID, id, comment, atom)
+                    case (parentID : String, id : String, commentAtom : String) =>
+                        treeBuilder.addTo(parentID, id, commentAtom)
+                    case (parentID : String, id : String, atom : ornl.elision.core.BasicAtom) =>
+                        treeBuilder.addTo(parentID, id, atom)
+                    case _ => System.err.println("TreeBuilder.addTo received incorrect arguments: " + args)
+                }
+            case _ => System.err.println("GUIActor received bad TreeBuilder command: " + cmd)
+        }
+    }
+}
 
 

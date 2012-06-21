@@ -452,9 +452,9 @@ class ERepl extends Processor {
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
 		//////////////////// GUI changes
-		if(ReplActor.guiActor != null)  ReplActor.guiActor ! "quit"
+		if(ReplActor.guiMode)  ReplActor.guiActor ! "quit"
+        ReplActor ! ":quit"
 		//////////////////// end GUI changes
-		
         return
       }
       

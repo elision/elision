@@ -53,6 +53,7 @@ import scala.actors.Actor
 object GUIActor extends Actor {
     
     val treeBuilder = new TreeBuilder
+    treeBuilder.start
     var disableTreeBuilder = false
     
     
@@ -62,7 +63,7 @@ object GUIActor extends Actor {
 			react {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
-                    if(!disableTreeBuilder) processTreeBuilderCommands(cmd, args)
+                    if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args) // processTreeBuilderCommands(cmd, args)
 				/* case root : ornl.elision.core.RWTreeNode => 
 					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
 					
@@ -104,60 +105,4 @@ object GUIActor extends Actor {
 			}
 		}
 	}
-    
-    
-    def processTreeBuilderCommands(cmd :String, args : Any) : Unit = {
-        // skip all this if we've disabled tree visualization.
-        if(disableTreeBuilder) return
-        
-        cmd match {
-            case "newTree" =>
-                args match {
-                    case label : String =>
-                        treeBuilder.newTree(label)
-                    case _ => System.err.println("TreeBuilder.newTree received incorrect arguments: " + args)
-                }
-            case "finishTree" => // FINISH HIM. FATALITY. KO!
-                mainGUI.treeVisPanel.isLoading = true
-                mainGUI.treeVisPanel.treeSprite = treeBuilder.finishTree
-                
-                // once the tree visualization is built, select its root node and center the camera on it.
-                mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
-                mainGUI.treeVisPanel.camera.reset
-                
-                mainGUI.treeVisPanel.isLoading = false
-            case "pushTable" => 
-                treeBuilder.pushTable(args)
-            case "popTable" => 
-                treeBuilder.popTable(args)
-            case "setSubroot" =>
-                args match {
-                    case id : String =>
-                        treeBuilder.setSubroot(id)
-                    case _ => System.err.println("TreeBuilder.setSubroot received incorrect arguments: " + args)
-                }
-            case "addToSubroot" =>
-                args match {
-                    case (id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addToSubroot(id, comment, atom)
-                    case (id : String, commentAtom : String) =>
-                        treeBuilder.addToSubroot(id, commentAtom)
-                    case (id : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addToSubroot(id, atom)
-                    case _ => System.err.println("TreeBuilder.addToSubroot received incorrect arguments: " + args)
-                }
-            case "addTo" =>
-                args match {
-                    case (parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addTo(parentID, id, comment, atom)
-                    case (parentID : String, id : String, commentAtom : String) =>
-                        treeBuilder.addTo(parentID, id, commentAtom)
-                    case (parentID : String, id : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addTo(parentID, id, atom)
-                    case _ => System.err.println("TreeBuilder.addTo received incorrect arguments: " + args)
-                }
-            case _ => System.err.println("GUIActor received bad TreeBuilder command: " + cmd)
-        }
-    }
-    
 }
