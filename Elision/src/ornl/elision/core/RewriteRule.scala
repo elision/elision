@@ -208,7 +208,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	*/
 	//////////////////// GUI changes
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable",None)
+		ReplActor ! ("Eva","pushTable","MapStrategy doRewrite")
         // top node of this subtree
 		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapStrategy doRewrite: ")) // val rwNode = RWTree.addToCurrent("MapStrategy doRewrite: ")
 		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
@@ -221,23 +221,23 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 			// All we can do is apply the lhs to each atom in the list.
 			val newAS = AtomSeq(props, atoms.map(Apply(lhs,_)))
 			ReplActor ! ("Eva", "addTo", ("atom", "", newAS)) // RWTree.addTo(atomNode, newAS)
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 			(newAS, true)
 		  case Apply(op, seq: AtomSeq) => op match {
 			case so: SymbolicOperator => 
 				val newApply = _apply(so, seq)
 				ReplActor ! ("Eva", "addTo", ("atom", "", newApply._1)) // RWTree.addTo(atomNode, newApply._1)
-                ReplActor ! ("Eva", "popTable", None)
+                ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 				newApply
 			case _ => 
 				val newApply = Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_))))
 				ReplActor ! ("Eva", "addTo", ("atom", "", newApply)) // RWTree.addTo(atomNode, newApply)
-                ReplActor ! ("Eva", "popTable", None)
+                ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 				(newApply, true)
 		  }
 		  case _ =>
 			// Do nothing in this case.
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 			(atom, false)
 		}
 	}
@@ -505,14 +505,14 @@ class RewriteRule private (
   def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
-	ReplActor ! ("Eva","pushTable",None)
+	ReplActor ! ("Eva","pushTable","RewriteRule doRewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RewriteRule doRewrite: ")) // val rwNode = RWTree.addToCurrent("RewriteRule doRewrite: ")
 	ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
 	ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
     val rwResult = _tryRewrite(atom, binds, hint)
 	ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1)) // RWTree.addTo(atomNode, rwResult._1)
-    ReplActor ! ("Eva", "popTable", None)
+    ReplActor ! ("Eva", "popTable", "RewriteRule doRewrite")
 	rwResult
   }
   //////////////////// end GUI changes

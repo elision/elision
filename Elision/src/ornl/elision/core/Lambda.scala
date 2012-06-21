@@ -167,7 +167,7 @@ extends BasicAtom with Applicable {
 
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "Lambda rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda rewrite: ")) // val rwNode = RWTree.addToCurrent("Lambda rewrite: ")
 	
@@ -183,10 +183,10 @@ extends BasicAtom with Applicable {
 			// RWTree.current = rwNode
 			val newLambda = Lambda(lvar, newatom)
 			ReplActor ! ("Eva", "addTo", ("rwNode", "", newLambda)) // RWTree.addTo(rwNode, newLambda) 
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "Lambda rewrite")
 			(newLambda, true)
 	    case _ => 
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "Lambda rewrite")
             (this, false)
 	  }
   }
@@ -207,7 +207,7 @@ extends BasicAtom with Applicable {
   
   //////////////////// GUI changes
   def doApply(atom: BasicAtom, bypass: Boolean) = {
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "Lambda doApply")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda doApply: ")) // val rwNode = RWTree.addToCurrent("Lambda doApply: ")
 	
@@ -224,19 +224,19 @@ extends BasicAtom with Applicable {
 	    // types, use a bind.
 	    lvar.tryMatch(atom) match {
 	      case fail:Fail =>
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "Lambda doApply")
 	        throw new LambdaVariableMismatchException(
 	            "Lambda argument does not match parameter: " + fail.theReason)
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
 		      val newbody = body.rewrite(binds)._1
 			  ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) // RWTree.addTo(rwNode, newbody)
-              ReplActor ! ("Eva", "popTable", None)
+              ReplActor ! ("Eva", "popTable", "Lambda doApply")
 			  newbody
 	      case Many(iter) =>
 	        val newbody = body.rewrite(iter.next)._1
 			ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) // RWTree.addTo(rwNode, newbody)
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "Lambda doApply")
 			newbody
 	    }
     } catch {
@@ -245,7 +245,7 @@ extends BasicAtom with Applicable {
 		val errorString = "Lambda application results in unbounded recursion: (" +
             this.toParseString + ").(" + atom.toParseString + ")"
 		ReplActor ! ("Eva", "addTo", ("rwNode", "", errorString)) // RWTree.addTo(rwNode, errorString)
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "Lambda doApply")
         throw new LambdaUnboundedRecursionException(errorString)
     }
   }
@@ -282,7 +282,7 @@ object Lambda {
    * @param body	The lambda body.
    */
   def apply(lvar: Variable, body: BasicAtom): Lambda = {
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "obj Lambda apply")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Lamda apply: ")) // val rwNode = RWTree.addToCurrent("object Lamda apply: ")
 	
@@ -326,16 +326,16 @@ object Lambda {
 	    
 	    // Compute the new lambda.
 	    if (notfixed)	{
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "obj Lambda apply")
             new Lambda(newvar, newbody, false)
         }
 	    else {
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "obj Lambda apply")
             new Lambda(newvar, body, true)
         }
     }
     else {
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "obj Lambda apply")
         new Lambda(lvar, body, false)
     }
   }

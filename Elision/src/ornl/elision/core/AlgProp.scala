@@ -246,7 +246,7 @@ class AlgProp(
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
 	// construct the root for this subtree and create a new table for nodes in this scope.
-    ReplActor ! ("Eva","pushTable", None) //val rwNode = RWTree.current
+    ReplActor ! ("Eva","pushTable", "AlgProp doApply") //val rwNode = RWTree.current
     ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) // RWTree.addToCurrent("AlgProp doApply: ") // 
     
 	rhs match {
@@ -258,12 +258,12 @@ class AlgProp(
 		case as: AtomSeq => 
 			val newAS = AtomSeq(as.props and this, as.atoms)
 			ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // RWTree.addTo(rwNode, newAS) // 
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "AlgProp doApply")
 			newAS
 		case _ => 
 			val newSA = SimpleApply(this, rhs)
 			ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) // RWTree.addTo(rwNode, newSA) // 
-            ReplActor ! ("Eva", "popTable", None)
+            ReplActor ! ("Eva", "popTable", "AlgProp doApply")
 			newSA
 	}
   }
@@ -295,12 +295,12 @@ class AlgProp(
    */
   
   private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable",None) //val rwNode = RWTree.current
+    ReplActor ! ("Eva","pushTable","AlgProp _rewrite") //val rwNode = RWTree.current
 	
 	opt match {
 		case None => 
 			ReplActor ! ("Eva","addToSubroot",("","n/a")) // RWTree.addTo(rwNode,"n/a")
-            ReplActor ! ("Eva","popTable",None)
+            ReplActor ! ("Eva","popTable","AlgProp _rewrite")
 			(None, false)
 		case Some(atom) => {
             ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) // val atomNode = RWTree.addTo(rwNode,atom)
@@ -310,7 +310,7 @@ class AlgProp(
             val newatom = atom.rewrite(binds)
             ReplActor ! ("Eva", "addTo", ("atomNode", "", newatom._1)) //RWTree.addTo(atomNode,newatom._1)
             
-            ReplActor ! ("Eva","popTable",None)
+            ReplActor ! ("Eva","popTable","AlgProp _rewrite")
             (Some(newatom._1), newatom._2)
 		}
 	}
@@ -332,7 +332,7 @@ class AlgProp(
   //////////////////// GUI changes
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
-	ReplActor ! ("Eva","pushTable",None)
+	ReplActor ! ("Eva","pushTable","AlgProp rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: ")) // val rwNode = RWTree.addToCurrent("AlgProp rewrite: ")
 	
@@ -360,10 +360,10 @@ class AlgProp(
         val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
         ReplActor ! ("Eva", "addTo", ("rwNode", "", newAlgProp)) // RWTree.addTo(rwNode, newAlgProp)
         
-        ReplActor ! ("Eva","popTable",None)
+        ReplActor ! ("Eva","popTable","AlgProp rewrite")
         (newAlgProp, true)
 	} else {
-        ReplActor ! ("Eva","popTable",None)
+        ReplActor ! ("Eva","popTable","AlgProp rewrite")
         (this, false)
     }
   }

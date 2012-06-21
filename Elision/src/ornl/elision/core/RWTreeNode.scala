@@ -39,11 +39,13 @@ package ornl.elision.core
 import ornl.elision.repl.ReplActor
 
 /**
+ * DEPRECATED: This object was used for Eva tree building before the concurrent messaging scheme was implemented. 
  *	RWTreeNode class
  *	Used to represent a rewritten Elision term in a tree structure representing the rewrite process. 
  *	Objects of this class are sent to the GUI in order to construct a visualization of the rewriting process. 
  */
  
+
 class RWTreeNode(val term : String, var depth : Int = 0) {
 	
 	import scala.collection.mutable.ArrayBuffer
@@ -131,7 +133,8 @@ class RWTreeNode(val term : String, var depth : Int = 0) {
 }
 
 /**
- * Utilities for aiding in the construction of a rewrite tree structure.
+ * DEPRECATED: This object was used for Eva tree building before the concurrent messaging scheme was implemented. 
+ * Utilities for aiding in the construction of a rewrite tree structure. 
  */
 object RWTree {
 	
