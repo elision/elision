@@ -275,7 +275,7 @@ extends BasicAtom {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable",None)
+    ReplActor ! ("Eva","pushTable","SpecialForm rewrite")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SpecialForm rewrite: ")) // val rwNode = RWTree.addToCurrent("SpecialForm rewrite: ")
     ReplActor ! ("Eva", "addTo", ("rwNode", "tag", "Tag: ", tag)) // val tagNode = RWTree.addTo(rwNode, "Tag: ", tag)
@@ -294,10 +294,10 @@ extends BasicAtom {
         val newSF = SpecialForm(newtag._1, newcontent._1)
         ReplActor ! ("Eva", "addTo", ("rwNode", "", newSF)) //RWTree.addTo(rwNode, newSF) 
         
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "SpecialForm rewrite")
         (newSF, true)
     } else {
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "SpecialForm rewrite")
         (this, false)
     }
   }

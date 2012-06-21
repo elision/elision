@@ -81,7 +81,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   //////////////////// GUI changes
   
   def rewrite(binds: Bindings) = {
-    ReplActor ! ("Eva", "pushTable", None)
+    ReplActor ! ("Eva", "pushTable", "Apply rewrite")
 	// top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: ")) //val rwNode = RWTree.addToCurrent("Apply rewrite: ")
 
@@ -100,10 +100,10 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
 		val newApply = Apply(nop, narg)
 		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) // RWTree.addTo(rwNode,newApply)
         
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "Apply rewrite")
 		(newApply, true) 
 	} else { 
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "Apply rewrite")
         (this, false)
     }
   }
@@ -182,32 +182,39 @@ object Apply {
       bypass: Boolean = false): BasicAtom = {
       
     //////////////////// GUI changes
-    ReplActor ! ("Eva","pushTable", None)
+    ReplActor ! ("Eva","pushTable", "object Apply apply")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) // val rwNode = RWTree.addToCurrent("object Apply apply: ") 
     ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op)) // val opNode = RWTree.addTo(rwNode, "Operator: ", op) 
     ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) // val argNode = RWTree.addTo(rwNode, "Argument: ", arg) 
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
-    ReplActor ! ("Eva", "popTable", None)
+    
     //////////////////// end GUI changes
         
     // Do not try to compute if metaterms are present.
     if (!op.evenMeta && !arg.isTerm) {
-      SimpleApply(op, arg)
+        val result = SimpleApply(op, arg)
+        ReplActor ! ("Eva", "popTable", "object Apply apply")
+        result
     } else {
       op match {
   		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
   		    // If the argument is also a string literal, then we want to simply
   		    // concatenate them.
-  		    StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
+  		    val result = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
+            ReplActor ! ("Eva", "popTable", "object Apply apply")
+            result
   	    case app:Applicable =>
   	      try {
   		      // The lhs is applicable; invoke its apply method.  This will
   		      // return some atom, and that atom is the overall result.
-  		      app.doApply(arg, bypass)
+  		      val result = app.doApply(arg, bypass)
+              ReplActor ! ("Eva", "popTable", "object Apply apply")
+              result
   	      } catch {
   	        case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
+                ReplActor ! ("Eva", "popTable", "object Apply apply")
   		        throw new LambdaUnboundedRecursionException(
   		            "Application results in unbounded recursion: (" +
   		            op.toParseString + ").(" + arg.toParseString + ")")
@@ -216,14 +223,18 @@ object Apply {
   	      // The lhs is a rewriter; invoke its rewrite method.  This will return
   	      // a pair.  We need to convert the pair to a binding.
   	      val (r_atom, r_flag) = rew.doRewrite(arg)
-  	      BindingsAtom(Bindings() +
+  	      val result = BindingsAtom(Bindings() +
   	          ("atom" -> r_atom) +
   	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
+          ReplActor ! ("Eva", "popTable", "object Apply apply")
+          result
   	    case _ =>
   	      // The lhs is something else.  It may be a variable or some other
   	      // expression that we have yet to evaluate.  Just build a simple
   	      // apply of the lhs and rhs.
-  	      SimpleApply(op, arg)
+  	      val result = SimpleApply(op, arg)
+          ReplActor ! ("Eva", "popTable", "object Apply apply")
+          result
 	    }
     }
   }
@@ -261,7 +272,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
   
   //////////////////// GUI changes
   override def rewrite(binds: Bindings) = {
-	ReplActor ! ("Eva", "pushTable", None)
+	ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: ")) //val rwNode = RWTree.current
 	
@@ -274,10 +285,10 @@ case class OpApply protected[core] (override val op: OperatorRef,
 		val newApply = Apply(op, pair._1)
 		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) //RWTree.addTo(rwNode, newApply)
 		
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "OpApply rewrite")
         (newApply, true) 
 	} else {
-        ReplActor ! ("Eva", "popTable", None)
+        ReplActor ! ("Eva", "popTable", "OpApply rewrite")
         (this, false)
     }
   }
