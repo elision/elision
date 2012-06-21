@@ -389,7 +389,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	if(allLines.size > termLines.size) termLines += "..."
 	
 	/** Flag for drawing the node's label with syntax coloring. */
-	var syntaxColoring = true
+	var syntaxColoring = !mainGUI.config.disableNodeSyntaxColoring
 	
 	/** The node's width */
 	private val boxWidth = longestLine.length * NodeSprite.font.getSize * 0.66 + 5

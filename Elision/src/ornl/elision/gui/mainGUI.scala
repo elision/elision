@@ -182,6 +182,19 @@ class GuiMenuBar extends MenuBar {
 		disableTreeItem.mnemonic = event.Key.T
 		viewMenu.contents += disableTreeItem
         
+        // Disable Node Syntax Coloring : 
+        
+        val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
+        disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
+        
+        disableNodeColoringItem.listenTo(disableNodeColoringItem)
+        disableNodeColoringItem.reactions += {
+            case _ => 
+                mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
+                mainGUI.config.save
+        }
+		disableNodeColoringItem.mnemonic = event.Key.N
+		viewMenu.contents += disableNodeColoringItem
 	
 	// Help menu	
 		
