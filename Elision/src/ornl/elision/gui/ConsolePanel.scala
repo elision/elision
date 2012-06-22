@@ -221,7 +221,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 					result += """</font>"""
 					fontStartCount -= 1
 				}
-				result += """..."""
+				result += """...<br/>"""
 				return result
 			}
 			

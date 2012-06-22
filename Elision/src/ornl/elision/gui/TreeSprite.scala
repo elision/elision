@@ -389,7 +389,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	if(allLines.size > termLines.size) termLines += "..."
 	
 	/** Flag for drawing the node's label with syntax coloring. */
-	var syntaxColoring = true
+	var syntaxColoring = !mainGUI.config.disableNodeSyntaxColoring
 	
 	/** The node's width */
 	private val boxWidth = longestLine.length * NodeSprite.font.getSize * 0.66 + 5
@@ -670,6 +670,13 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		children += node
 	}
 	
+    
+    /** Removes the last child of this NodeSprite. */
+    def remLastChild : Boolean = {
+        if(children.size == 0) return false
+        children.remove(children.size - 1)
+        true
+    }
 	
 	/**
 	 * Obtains the position of a child node relative to this node.

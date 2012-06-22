@@ -237,134 +237,7 @@ extends Fickle with Mutable {
   }
   */
   
-	//////////////////// GUI changes
-//  /**
-//   * Rewrite the provided atom once, if possible.  Children may be rewritten,
-//   * depending on whether descent is enabled.
-//   * 
-//   * @param atom	The atom to rewrite.
-//   * @return	The rewritten atom, and true iff any rules were successfully
-//   * 					applied.
-//   */
-//   
-//  def rewriteOnce(atom: BasicAtom): (BasicAtom, Boolean) = {
-//	// get the node representing this atom that is being rewritten
-//	val rwNode = RWTree.current // it should still be atom from doRewrite
-//	
-//    var (newtop, appliedtop) = rewriteTop(atom)
-//	val topNode = rwNode.addChild(newtop)
-//	RWTree.current = topNode
-//	
-//    if (_descend) {
-//	    var (newatom, applied) = rewriteChildren(newtop)
-//	    rwNode.addChild(newatom)
-//		(newatom, appliedtop || applied)
-//    } else {
-//      (newtop, appliedtop)
-//    }
-//  }
-//  //////////////////// end GUI changes
-//  
-//  /**
-//   * Rewrite the atom at the top level, once.
-//   * 
-//   * @param atom	The atom to rewrite.
-//   * @return	The rewritten atom, and true iff any rules were successfully
-//   * 					applied.
-//   */
-//  def rewriteTop(atom: BasicAtom): (BasicAtom, Boolean) = {
-//	// get the node representing this atom that is being rewritten
-//	val rwNode = RWTree.current // it should still be newTop from rewriteOnce
-//	
-//    // Get the rules.
-//    val rules = getRules(atom)
-//	val rulesNode = rwNode.addChild("rules: ")
-//	
-//	if(rules.isEmpty)	rulesNode.addChild("Empty")
-//	
-//    // Now try every rule until one applies.
-//    for (rule <- rules) {
-//		val ruleNode = rulesNode.addChild(rule)
-//		RWTree.current = ruleNode
-//      val (newatom, applied) = rule.doRewrite(atom)
-//	  ruleNode.addChild(newatom)
-//      if (applied) {
-//			rwNode.addChild(newatom)
-//			return (newatom, applied)
-//		}
-//    }
-//    return (atom, false)
-//  }
-//  
-//  //////////////////// GUI changes
-//  /**
-//   * Recursively rewrite the atom and its children.
-//   * 
-//   * @param atom	The atom to rewrite.
-//   * @return	The rewritten atom, and true iff any rules were successfully
-//   * 					applied.
-//   */
-//  def rewriteChildren(atom: BasicAtom): (BasicAtom, Boolean) = {
-//		// get the node representing this atom that is being rewritten
-//		val rwNode = RWTree.current // it should still be newTop from rewriteOnce
-//		val childrenNode = rwNode.addChild("Children: ")
-//		RWTree.current = childrenNode
-//		
-//		atom match {
-//		  case AtomSeq(props, atoms) =>
-//			var flag = false
-//			val newAtoms = atoms.map { 
-//				atom =>
-//					val childatomNode = childrenNode.addChild(atom)
-//					RWTree.current = childatomNode
-//				  val (newatom, applied) = rewriteOnce(atom)
-//					childatomNode.addChild(newatom)
-//				  flag ||= applied
-//				  newatom
-//			}
-//			RWTree.current = childrenNode
-//			val newAS = AtomSeq(props, newAtoms)
-//			rwNode.addChild(newAS)
-//			(newAS, flag)
-//		  case Apply(op, AtomSeq(props, atoms)) =>
-//			var flag = false
-//			
-//			val newAtoms = atoms.map { 
-//				atom =>
-//					val childatomNode = childrenNode.addChild(atom)
-//					RWTree.current = childatomNode
-//				  val (newatom, applied) = rewriteOnce(atom)
-//					childatomNode.addChild(newatom)
-//				  flag ||= applied
-//				  newatom
-//			}
-//			
-//			RWTree.current = childrenNode
-//			val newAS = AtomSeq(props, newAtoms)
-//			
-//			RWTree.current = childrenNode
-//			val newApply = Apply(op, newAS)
-//			
-//			rwNode.addChild(newApply).addChild(newAS)
-//			(newApply, flag)
-//		  case Apply(lhs, rhs) =>
-//			val leftNode = childrenNode.addChild("left: ").addChild(lhs)
-//			RWTree.current = leftNode
-//			val newlhs = rewriteOnce(lhs)
-//			
-//			val rightNode = childrenNode.addChild("right: ").addChild(rhs)
-//			RWTree.current = rightNode
-//			val newrhs = rewriteOnce(rhs)
-//			
-//			val newApply = Apply(newlhs._1, newrhs._1)
-//			rwNode.addChild(newApply)
-//			(newApply, newlhs._2 || newrhs._2)
-//		  case _ =>
-//			// Do nothing in this case.
-//			(atom, false)
-//	  }
-//  }
-//  //////////////////// end GUI changes
+
   
   /**
    * Rewrite the provided atom once, if possible.  Children may be rewritten,
@@ -488,7 +361,7 @@ extends Fickle with Mutable {
     if(ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
     val (newatom, flag) = doRewrite(atom, Set.empty)
     ReplActor.disableGUIComs = tempDisabled
-    ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+    if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
     
     ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
     (newatom, flag)
@@ -523,36 +396,6 @@ extends Fickle with Mutable {
     (newatom, flag)
   }
   //////////////////// end GUI changes
-
-//	//////////////////// GUI changes
-//  /**
-//   * Rewrite the given atom, repeatedly applying the rules of the active
-//   * rulesets.  This is limited by the rewrite limit.
-//   * 
-//   * @param atom	The atom to rewrite.
-//   * @param bool	Flag used for tracking whether any rules have succeeded.
-//   * @param limit	The remaining rewrite limit.
-//   */
-//  private def doRewrite(atom: BasicAtom, bool: Boolean = false,
-//      limit: BigInt = _limit): (BasicAtom, Boolean) = {
-//	// get the node representing this atom that is being rewritten
-//	val rwNode = RWTree.current.addChild("RuleLibrary doRewrite: ")
-//	val atomNode = rwNode.addChild(atom)
-//	RWTree.current = atomNode
-//	  
-//    if (limit <= 0) return (atom, bool)
-//    else rewriteOnce(atom) match {
-//      case (newatom, false) =>
-//		atomNode.addChild(newatom)
-//        (newatom, bool)
-//      case (newatom, true) =>
-//		atomNode.addChild(newatom)
-//        val result = doRewrite(newatom, true, limit-1)
-//		atomNode.addChild(result._1)
-//		result
-//    }
-//  }
-//  //////////////////// end GUI changes
 
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
