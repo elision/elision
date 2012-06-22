@@ -36,6 +36,8 @@
 ======================================================================*/
 package ornl.elision.core
 
+import ornl.elision.repl.ReplActor
+
 /**
  * Provide a very simple implementation of `RootType`.  This is a trivial root
  * type with a specified name and the type universe as its type.

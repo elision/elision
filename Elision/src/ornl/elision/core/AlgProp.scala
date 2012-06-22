@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 import ornl.elision.ElisionException
+import ornl.elision.repl.ReplActor
 
 /**
  * Indicate a properties specification is illegal.
@@ -244,8 +245,9 @@ class AlgProp(
    * then this will override the properties of the atom sequence.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("AlgProp doApply: ")
+	// construct the root for this subtree and create a new table for nodes in this scope.
+    ReplActor ! ("Eva","pushTable", "AlgProp doApply") //val rwNode = RWTree.current
+    ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) // RWTree.addToCurrent("AlgProp doApply: ") // 
     
 	rhs match {
 		/* A Note to Maintainers
@@ -255,11 +257,13 @@ class AlgProp(
 		case ap: AlgProp => (ap and this)
 		case as: AtomSeq => 
 			val newAS = AtomSeq(as.props and this, as.atoms)
-			RWTree.addTo(rwNode, newAS) //rwNode.addChild(newAS)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // RWTree.addTo(rwNode, newAS) // 
+            ReplActor ! ("Eva", "popTable", "AlgProp doApply")
 			newAS
 		case _ => 
 			val newSA = SimpleApply(this, rhs)
-			RWTree.addTo(rwNode, newSA) //rwNode.addChild(newSA)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) // RWTree.addTo(rwNode, newSA) // 
+            ReplActor ! ("Eva", "popTable", "AlgProp doApply")
 			newSA
 	}
   }
@@ -291,20 +295,22 @@ class AlgProp(
    */
   
   private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.current
+    ReplActor ! ("Eva","pushTable","AlgProp _rewrite") //val rwNode = RWTree.current
 	
 	opt match {
 		case None => 
-			RWTree.addTo(rwNode,"n/a") //rwNode.addChild("n/a")
+			ReplActor ! ("Eva","addToSubroot",("","n/a")) // RWTree.addTo(rwNode,"n/a")
+            ReplActor ! ("Eva","popTable","AlgProp _rewrite")
 			(None, false)
 		case Some(atom) => {
-            val atomNode = RWTree.addTo(rwNode,atom)
-			RWTree.current =  atomNode
+            ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) // val atomNode = RWTree.addTo(rwNode,atom)
+			
             
+            ReplActor ! ("Eva", "setSubroot", "atomNode") // RWTree.current =  atomNode
             val newatom = atom.rewrite(binds)
-            RWTree.addTo(atomNode,newatom._1)
+            ReplActor ! ("Eva", "addTo", ("atomNode", "", newatom._1)) //RWTree.addTo(atomNode,newatom._1)
             
+            ReplActor ! ("Eva","popTable","AlgProp _rewrite")
             (Some(newatom._1), newatom._2)
 		}
 	}
@@ -326,29 +332,40 @@ class AlgProp(
   //////////////////// GUI changes
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("AlgProp rewrite: ") //RWTree.current.addChild("AlgProp rewrite: ")
+	ReplActor ! ("Eva","pushTable","AlgProp rewrite")
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: ")) // val rwNode = RWTree.addToCurrent("AlgProp rewrite: ")
 	
-	RWTree.current = RWTree.addTo(rwNode, "associative: ") //rwNode.addChild("associative: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: ")) // RWTree.current = RWTree.addTo(rwNode, "associative: ")
+    ReplActor ! ("Eva", "setSubroot", "A")
     val assoc = _rewrite(associative, binds)
 	
-	RWTree.current = RWTree.addTo(rwNode, "commutative: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: ")) // RWTree.current = RWTree.addTo(rwNode, "commutative: ")
+    ReplActor ! ("Eva", "setSubroot", "C")
     val commu = _rewrite(commutative, binds)
 	
-	RWTree.current = RWTree.addTo(rwNode, "idempotent: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: ")) // RWTree.current = RWTree.addTo(rwNode, "idempotent: ")
+    ReplActor ! ("Eva", "setSubroot", "I")
 	val idemp = _rewrite(idempotent, binds)
 	
-	RWTree.current = RWTree.addTo(rwNode, "absorber: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: ")) // RWTree.current = RWTree.addTo(rwNode, "absorber: ")
+    ReplActor ! ("Eva", "setSubroot", "B")
 	val absor = _rewrite(absorber, binds)
 	
-	RWTree.current = RWTree.addTo(rwNode, "identity: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: ")) // RWTree.current = RWTree.addTo(rwNode, "identity: ")
+    ReplActor ! ("Eva", "setSubroot", "D")
 	val ident = _rewrite(identity, binds)
     
     if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
         val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
-        RWTree.addTo(rwNode, newAlgProp) //rwNode.addChild(newAlgProp)
+        ReplActor ! ("Eva", "addTo", ("rwNode", "", newAlgProp)) // RWTree.addTo(rwNode, newAlgProp)
+        
+        ReplActor ! ("Eva","popTable","AlgProp rewrite")
         (newAlgProp, true)
-	} else (this, false)
+	} else {
+        ReplActor ! ("Eva","popTable","AlgProp rewrite")
+        (this, false)
+    }
   }
   
   //////////////////// end GUI changes

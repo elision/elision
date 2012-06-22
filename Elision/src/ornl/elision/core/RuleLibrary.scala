@@ -39,6 +39,7 @@ package ornl.elision.core
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
 import ornl.elision.ElisionException
+import ornl.elision.repl.ReplActor
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -475,16 +476,25 @@ extends Fickle with Mutable {
     //////////////////// GUI changes
     
     def rewrite(atom: BasicAtom) = {
-        val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-        RWTree.current = rwNode
-        val (newatom, flag) = doRewrite(atom, Set.empty)
-        RWTree.addTo(rwNode,newatom)
-        
-        (newatom, flag)
-    }
+    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+    // top node of this subtree
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+    
+    val tempDisabled = ReplActor.disableGUIComs
+    
+    if(ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+    val (newatom, flag) = doRewrite(atom, Set.empty)
+    ReplActor.disableGUIComs = tempDisabled
+    ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+    
+    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+    (newatom, flag)
+  }
     
     //////////////////// end GUI changes
 
+    //////////////////// GUI changes
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
    * rulesets.  This is limited by the rewrite limit.
@@ -494,8 +504,23 @@ extends Fickle with Mutable {
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
-  def rewrite(atom: BasicAtom, rulesets: Set[String]) =
-    doRewrite(atom, rulesets)
+  def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
+    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+    // top node of this subtree
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+    
+    val tempDisabled = ReplActor.disableGUIComs
+    
+    if(ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+    val (newatom, flag) = doRewrite(atom, rulesets)
+    ReplActor.disableGUIComs = tempDisabled
+    ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+    
+    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+    (newatom, flag)
+  }
+  //////////////////// end GUI changes
 
 //	//////////////////// GUI changes
 //  /**

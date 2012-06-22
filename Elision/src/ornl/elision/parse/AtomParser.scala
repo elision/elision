@@ -44,6 +44,7 @@ import scala.collection.mutable.LinkedList
 import ornl.elision.core._
 import ornl.elision.core.{ ANY => EANY }
 import ornl.elision.ElisionException
+import ornl.elision.repl.ReplActor
 
 /**
  * A special form was incorrectly formatted.
@@ -158,12 +159,13 @@ object AtomParser {
 	 */
 	case class SimpleTypeNode(TYPE: NamedRootType) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "SimpleTypeNode.interpret") //rwNode.addChild("SimpleTypeNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","SimpleTypeNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SimpleTypeNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "SimpleTypeNode.interpret")
+			// RWTree.current = interpretNode
 			
-			RWTree.addTo(interpretNode, TYPE) //interpretNode.addChild(TYPE)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", TYPE)) // RWTree.addTo(interpretNode, TYPE)
+            ReplActor ! ("Eva", "popTable", "SimpleTypeNode")
 			TYPE
 		}
 	}
@@ -173,12 +175,13 @@ object AtomParser {
 	 */
 	case class TypeUniverseNode() extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "TypeUniverseNode.interpret") //rwNode.addChild("TypeUniverseNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","TypeUniverseNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "TypeUniverseNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "TypeUniverseNode.interpret")
+			//RWTree.current = interpretNode
 			
-			RWTree.addTo(interpretNode, TypeUniverse) //interpretNode.addChild(TypeUniverse)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", TypeUniverse)) //RWTree.addTo(interpretNode, TypeUniverse)
+            ReplActor ! ("Eva", "popTable", "TypeUniverseNode")
 			TypeUniverse
 		}
 	}
@@ -194,14 +197,15 @@ object AtomParser {
 	 */
 	case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "OperatorNode.interpret") //rwNode.addChild("OperatorNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","OperatorNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OperatorNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "OperatorNode.interpret")
 			
+            ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = interpretNode
 			val result = lib(str)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) //RWTree.addTo(interpretNode, result) 
+            ReplActor ! ("Eva", "popTable", "OperatorNode")
 			result
 		}
 	}
@@ -217,14 +221,15 @@ object AtomParser {
 	 */
 	case class RulesetNode(str: String, lib: RuleLibrary) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "RulesetNode.interpret") //rwNode.addChild("RulesetNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","RulesetNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RulesetNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "RulesetNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 			val result = lib(str)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "rwNode", result) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "RulesetNode")
 			result
 		}
 	}
@@ -242,12 +247,13 @@ object AtomParser {
 	case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
 	extends AstNode {
 	  def interpret = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = RWTree.addTo(rwNode, "ApplicationNode.interpret") //rwNode.addChild("ApplicationNode.interpret")
+		ReplActor ! ("Eva","pushTable","ApplicationNode")
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "ApplicationNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "ApplicationNode.interpret")
         
-        val opNode = RWTree.addTo(interpretNode, "operator: ")
-        RWTree.current = opNode
+        ReplActor ! ("Eva", "addTo", ("rwNode", "op", "operator: ")) // val opNode = RWTree.addTo(interpretNode, "operator: ")
+        ReplActor ! ("Eva", "setSubroot", "op") //RWTree.current = opNode
+
 	    // If the operator is a naked symbol, we try to interpret it as an
 	    // operator.  Otherwise we just interpret it.
 	    val atom = op match {
@@ -255,16 +261,17 @@ object AtomParser {
 	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
 	      case _ => op.interpret
 	    }
-		RWTree.current = RWTree.addTo(opNode, atom) //interpretNode.addChild(atom)
-		
-        val argNode = RWTree.addTo(interpretNode, "argument: ")
-        RWTree.current = argNode
+		ReplActor ! ("Eva", "addTo", ("op", "oprw", atom)) // RWTree.current = RWTree.addTo(opNode, atom) 
+        
+        ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "argument: ")) // val argNode = RWTree.addTo(interpretNode, "argument: ")
+        ReplActor ! ("Eva", "setSubroot", "arg") // RWTree.current = argNode
         val argInt = arg.interpret
         
-        RWTree.current = interpretNode
-	    val result = Apply(atom, argInt)
-		
-		RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+        ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = interpretNode
+        val result = Apply(atom, argInt)
+        
+        ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result) 
+        ReplActor ! ("Eva", "popTable", "ApplicationNode")
 		result
 	  }
 	}
@@ -280,23 +287,24 @@ object AtomParser {
 	 */
 	case class LambdaNode(lvar: VariableNode, body: AstNode) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "LambdaNode.interpret") // rwNode.addChild("LambdaNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","LambdaNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "LambdaNode.interpret")) // val interpretNode = RWTree.addTo(rwNode, "LambdaNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = interpretNode
 
-			val paramNode = RWTree.addTo(interpretNode, "parameter: ") // interpretNode.addChild("parameter: ")
-			RWTree.current = paramNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "param", "parameter: ")) // val paramNode = RWTree.addTo(interpretNode, "parameter: ")
+			ReplActor ! ("Eva", "setSubroot", "param") // RWTree.current = paramNode
 			val lvarInt = lvar.interpret
 			
-			val bodyNode = RWTree.addTo(interpretNode, "body: ") //interpretNode.addChild("body: ")
-			RWTree.current = bodyNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "body", "body: ")) //val bodyNode = RWTree.addTo(interpretNode, "body: ")
+			ReplActor ! ("Eva", "setSubroot", "body") // RWTree.current = bodyNode
 			val bodyInt = body.interpret
 			
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			val result = Lambda(lvarInt, bodyInt)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "LambdaNode")
 			result
 		}
 	}
@@ -317,28 +325,29 @@ object AtomParser {
 	   * Properties of this list, if known.
 	   */
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "AtomSeqNode.interpret") //rwNode.addChild("AtomSeqNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","AtomSeqNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeqNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "AtomSeqNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
-			val propsNode = RWTree.addTo(interpretNode, "properties: ") //interpretNode.addChild("properties: ")
-			RWTree.current = propsNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "props", "properties: ")) //val propsNode = RWTree.addTo(interpretNode, "properties: ") 
+			ReplActor ! ("Eva", "setSubroot", "props")// RWTree.current = propsNode
 			val propsInt = props.interpret
 			
-			val listNode = RWTree.addTo(interpretNode, "atoms: ") //interpretNode.addChild("atoms: ")
-			RWTree.current = listNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "list", "atoms: ")) // val listNode = RWTree.addTo(interpretNode, "atoms: ")
+			// Repl ! ("Eva", "setSubroot", "list") // RWTree.current = listNode
 			val ASList = list.toIndexedSeq[AstNode] map ( astAtom => {
-                    RWTree.current = listNode
+                    ReplActor ! ("Eva", "setSubroot", "list") // RWTree.current = listNode
 					val astAtomInt = astAtom.interpret
 					astAtomInt
 				}
 			)
 			
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			val result = AtomSeq(propsInt, ASList)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "AtomSeqNode")
 			result
 		}
 	}
@@ -350,14 +359,15 @@ object AtomParser {
 	/** A true node for fast access. */
 	case object TrueNode extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "TrueNode.interpret") // rwNode.addChild("TrueNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","TrueNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "TrueNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "TrueNode.interpret")
+            // RWTree.current = interpretNode
 			
 			val result = Literal.TRUE
 			
-			RWTree.addTo(interpretNode, result) // interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "TrueNode")
 			result
 		}
 	}
@@ -365,14 +375,15 @@ object AtomParser {
 	/** A false node for fast access. */
 	case object FalseNode extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "FalseNode.interpret") //rwNode.addChild("FalseNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","FalseNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "FalseNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "FalseNode.interpret")
+			// RWTree.current = interpretNode
 			
 			val result = Literal.FALSE
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "FalseNode")
 			result
 		}
 	}
@@ -424,9 +435,10 @@ object AtomParser {
 	  
 	  private def _interpret(atom: Option[AstNode]) = atom match {
 	    case None => 
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			RWTree.addTo(rwNode, "n/a") //rwNode.addChild("n/a")
+			ReplActor ! ("Eva","pushTable","_AlgPropNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("", "n/a")) // RWTree.addTo(rwNode, "n/a") 
+            ReplActor ! ("Eva", "popTable", "_AlgPropNode")
 			None
 	    case Some(real) => Some(real.interpret)
 	  }
@@ -436,26 +448,35 @@ object AtomParser {
 	   * @return	The operator properties object.
 	   */
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "AlgPropNode.interpret") // rwNode.addChild("AlgPropNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","AlgPropNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgPropNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "AlgPropNode.interpret")
 			
-			RWTree.current = RWTree.addTo(interpretNode, "associative: ") //interpretNode.addChild("associative: ")
+			ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: ")) // RWTree.current = RWTree.addTo(interpretNode, "associative: ") 
+            ReplActor ! ("Eva", "setSubroot", "A")
 			val assocInt = _interpret(isAssociative)
-			RWTree.current = RWTree.addTo(interpretNode, "commutative: ") //interpretNode.addChild("commutative: ")
+			
+            ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: ")) // RWTree.current = RWTree.addTo(interpretNode, "commutative: ")
+            ReplActor ! ("Eva", "setSubroot", "C")
 			val commuInt = _interpret(isCommutative)
-			RWTree.current = RWTree.addTo(interpretNode, "idempotent: ") //interpretNode.addChild("idempotent: ")
+			
+            ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: ")) // RWTree.current = RWTree.addTo(interpretNode, "idempotent: ") 
+            ReplActor ! ("Eva", "setSubroot", "I")
 			val idempInt = _interpret(isIdempotent)
-			RWTree.current = RWTree.addTo(interpretNode, "absorber: ") //interpretNode.addChild("absorber: ")
+			
+            ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: ")) // RWTree.current = RWTree.addTo(interpretNode, "absorber: ")
+            ReplActor ! ("Eva", "setSubroot", "B")
 			val absorInt = _interpret(withAbsorber)
-			RWTree.current = RWTree.addTo(interpretNode, "identity: ") //interpretNode.addChild("identity: ")
+			
+            ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: ")) // RWTree.current = RWTree.addTo(interpretNode, "identity: ")
+            ReplActor ! ("Eva", "setSubroot", "D")
 			val identInt = _interpret(withIdentity)
 			
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			val result = AlgProp(assocInt, commuInt, idempInt, absorInt, identInt)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "AlgPropNode")
 			result
 		} 
 	}
@@ -485,23 +506,24 @@ object AtomParser {
 	 */
 	case class BindingsNode(map: List[(NakedSymbolNode,AstNode)]) extends AstNode {
 	  def interpret = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = RWTree.addTo(rwNode, "BindingsNode.interpret") //rwNode.addChild("BindingsNode.interpret")
-		RWTree.current = interpretNode
+		ReplActor ! ("Eva","pushTable","BindingsNode")
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "BindingsNode.interpret")
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 	    var binds = Bindings()
 	    for ((str,node) <- map) {
-			val bindNode = RWTree.addTo(interpretNode, str + " -> ") //interpretNode.addChild(str + " -> ")
-			RWTree.current = bindNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "bind", str + " -> ")) // val bindNode = RWTree.addTo(interpretNode, str + " -> ")
+			ReplActor ! ("Eva", "setSubroot", "bind") // RWTree.current = bindNode
 			val nodeInt = node.interpret
 			binds += (str.str -> nodeInt)
 	    }
 		
-		RWTree.current = interpretNode
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 	    val result = BindingsAtom(binds)
 		
-		RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+        ReplActor ! ("Eva", "popTable", "BindingsNode")
 		result
 	  }
 	}
@@ -518,23 +540,23 @@ object AtomParser {
 	 */
 	case class MapPairNode(left: AstNode, right: AstNode) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "MapPairNode.interpret") //rwNode.addChild("MapPairNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","MapPairNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPairNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "MapPairNode.interpret")
 
-			val leftNode = RWTree.addTo(interpretNode, "left: ") //interpretNode.addChild("left: ")
-			RWTree.current = leftNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ")) // val leftNode = RWTree.addTo(interpretNode, "left: ") 
+			ReplActor ! ("Eva", "setSubroot", "left") // RWTree.current = leftNode
 			val leftInt = left.interpret
 			
-			val rightNode = RWTree.addTo(interpretNode, "right: ") //interpretNode.addChild("right: ")
-			RWTree.current = rightNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ")) // val rightNode = RWTree.addTo(interpretNode, "right: ")
+			ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
 			val rightInt = right.interpret
 			
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			val result = MapPair(leftInt, rightInt)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "MapPairNode")
 			result
 		}
 	}
@@ -551,14 +573,15 @@ object AtomParser {
 	 */
 	case class NakedSymbolNode(str: String) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "NakedSymbolNode.interpret") //rwNode.addChild("NakedSymbolNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","NakedSymbolNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "NakedSymbolNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "NakedSymbolNode.interpret") 
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 			val result = SymbolLiteral(SYMBOL, Symbol(str))
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "NakedSymbolNode")
 			result
 		}
 	}
@@ -571,17 +594,18 @@ object AtomParser {
 	 */
 	case class SymbolNode(typ: AstNode, name: String) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "SymbolNode.interpret") //rwNode.addChild("SymbolNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","SymbolNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SymbolNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "SymbolNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode" ) // RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
-			RWTree.addTo(interpretNode, typeInt) //interpretNode.addChild(typeInt)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", typeInt)) // RWTree.addTo(interpretNode, typeInt) 
 			
 			val result = Literal(typeInt, name)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "SymbolNode")
 			result
 		}
 	}
@@ -589,14 +613,14 @@ object AtomParser {
 	/** A node representing ANY. */
 	object AnyNode extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "AnyNode.interpret") //rwNode.addChild("AnyNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","AnyNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AnyNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "AnyNode.interpret")
 			
 			val result = EANY
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result) 
+            ReplActor ! ("Eva", "popTable", "AnyNode")
 			result
 		}
 	}
@@ -616,10 +640,10 @@ object AtomParser {
 	class VariableNode(val typ: AstNode, val name: String,
 	    val grd: Option[AstNode], val labels: Set[String]) extends AstNode {
 	  def interpret: Variable = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = RWTree.addTo(rwNode, "VariableNode.interpret") //rwNode.addChild("VariableNode.interpret")
-		RWTree.current = interpretNode
+		ReplActor ! ("Eva","pushTable","VariableNode")
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "VariableNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "VariableNode.interpret")
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 		
 		val typeInt = typ.interpret
 		
@@ -627,17 +651,19 @@ object AtomParser {
 			case None => 
 				val result = Variable(typeInt, name, Literal.TRUE, labels)
 				
-				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+                ReplActor ! ("Eva", "popTable", "VariableNode")
 				result
 			case Some(guard) => 
-				val guardNode = RWTree.addTo(interpretNode, "guard: ") //interpretNode.addChild("guard: ")
-				RWTree.current = guardNode
+				ReplActor ! ("Eva", "addTo", ("rwNode", "guard", "guard: ")) // val guardNode = RWTree.addTo(interpretNode, "guard: ")
+				ReplActor ! ("Eva", "setSubroot", "guard") // RWTree.current = guardNode
 				val guardInt = guard.interpret
 				
-				RWTree.current = interpretNode
+				ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 				val result = Variable(typeInt, name, guardInt, labels)
 				
-				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+                ReplActor ! ("Eva", "popTable", "VariableNode")
 				result
 		}
 	  }
@@ -667,10 +693,10 @@ object AtomParser {
 	case class MetaVariableNode(vx: VariableNode)
 	extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels) {
 	  override def interpret: MetaVariable = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = RWTree.addTo(rwNode, "MetaVariableNode.interpret") // rwNode.addChild("MetaVariableNode.interpret")
-		RWTree.current = interpretNode
+		ReplActor ! ("Eva","pushTable","MetaVariableNode")
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MetaVariableNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "MetaVariableNode.interpret")
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 		
 		val vxtypeInt = vx.typ.interpret
 		
@@ -678,17 +704,19 @@ object AtomParser {
 			case None =>
 				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE, labels)
 			  
-				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+                ReplActor ! ("Eva", "popTable", "MetaVariableNode")
 				result
 			case Some(guard) =>
-				val guardNode = RWTree.addTo(interpretNode, "guard: ") //interpretNode.addChild("guard: ")
-				RWTree.current = guardNode
+				ReplActor ! ("Eva", "addTo", ("rwNode", "guard", "guard: ")) //val guardNode = RWTree.addTo(interpretNode, "guard: ")
+				ReplActor ! ("Eva", "setSubroot", "guard") // RWTree.current = guardNode
 				val guardInt = guard.interpret
 				
-				RWTree.current = interpretNode
-				val result = MetaVariable(vxtypeInt, vx.name, guard.interpret, labels)
+				ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
+				val result = MetaVariable(vxtypeInt, vx.name, guardInt, labels)
 			  
-				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+                ReplActor ! ("Eva", "popTable", "MetaVariableNode")
 				result
 		}
 	  }
@@ -706,23 +734,23 @@ object AtomParser {
 	 */
 	case class SpecialFormNode(tag: AstNode, content: AstNode) extends AstNode {
 	  override def interpret: BasicAtom = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "SpecialFormNode.interpret") //rwNode.addChild("SpecialFormNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","SpecialFormNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SpecialFormNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "SpecialFormNode.interpret")
 			
-			val tagNode = RWTree.addTo(interpretNode, "tag: ") //interpretNode.addChild("tag: ")
-			RWTree.current = tagNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "tag", "tag: ")) // val tagNode = RWTree.addTo(interpretNode, "tag: ") 
+			ReplActor ! ("Eva", "setSubroot", "tag") // RWTree.current = tagNode
 			val tagInt = tag.interpret
 			
-			val contentNode = RWTree.addTo(interpretNode, "content: ") //interpretNode.addChild("content: ")
-			RWTree.current = contentNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "content", "content: ")) //val contentNode = RWTree.addTo(interpretNode, "content: ")
+			ReplActor ! ("Eva", "setSubroot", "content") // RWTree.current = contentNode
 			val contentInt = content.interpret
 			
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			val result = SpecialForm(tagInt, contentInt)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result) 
+            ReplActor ! ("Eva", "popTable", "SpecialFormNode")
 			result
 		}
 	}
@@ -739,10 +767,10 @@ object AtomParser {
 	 */
 	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
 	  def interpret: BasicAtom = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		val interpretNode = RWTree.addTo(rwNode, "SymbolLiteralNode.interpret") //rwNode.addChild("SymbolLiteralNode.interpret")
-		RWTree.current = interpretNode
+		ReplActor ! ("Eva","pushTable","SymbolLiteralNode")
+        // top node of this subtree
+		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SymbolLiteralNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "SymbolLiteralNode.interpret")
+		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 	    // If there is no type, or the type is the type universe, then check the
 	    // symbol to see if it is a known root type.  This is also where the
@@ -751,41 +779,48 @@ object AtomParser {
 	      val lookup = (if (sym == "_") "ANY" else sym)
 	      NamedRootType.get(lookup) match {
 	        case Some(nrt) => 
-				RWTree.addTo(interpretNode,nrt) //interpretNode.addChild(nrt)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", nrt)) // RWTree.addTo(interpretNode,nrt)
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
 				return nrt
 	        case _ =>
 	      }
 	    }
         
-	    RWTree.current = interpretNode
+	    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 	    // There are interesting "untyped" cases.  Without type, true and false
 	    // should be made Booleans, and Nothing should have type ANY.
 	    if (typ == None) sym match {
 	      case "true" => 
-				RWTree.addTo(interpretNode, Literal.TRUE) // interpretNode.addChild(Literal.TRUE)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.TRUE)) // RWTree.addTo(interpretNode, Literal.TRUE)
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
 				return Literal.TRUE
 	      case "false" => 
-				RWTree.addTo(interpretNode, Literal.FALSE) //interpretNode.addChild(Literal.FALSE)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.FALSE)) // RWTree.addTo(interpretNode, Literal.FALSE)
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
 				return Literal.FALSE
 	      case _ => 
                 val newLit = Literal(SYMBOL, Symbol(sym))
-                RWTree.addTo(interpretNode, newLit)
+                ReplActor ! ("Eva", "addTo", ("rwNode", "", newLit)) // RWTree.addTo(interpretNode, newLit)
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
                 return newLit
 	    } else {
 	      typ.get.interpret match {
 	        case BOOLEAN if sym == "true" => 
-				RWTree.addTo(interpretNode, Literal.TRUE) //interpretNode.addChild(Literal.TRUE)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.TRUE)) // RWTree.addTo(interpretNode, Literal.TRUE) 
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
 				return Literal.TRUE
 	        case BOOLEAN if sym == "false" => 
-				RWTree.addTo(interpretNode, Literal.FALSE) //interpretNode.addChild(Literal.FALSE)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.FALSE)) // RWTree.addTo(interpretNode, Literal.FALSE)
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
 				return Literal.FALSE
 	        case t:Any => 
-				RWTree.addTo(interpretNode, t) //interpretNode.addChild(t)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", t)) // RWTree.addTo(interpretNode, t)
 				
-                RWTree.current = interpretNode
+                ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 				val result = Literal(t, Symbol(sym))
 				
-				RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+                ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
 				return result
 	      }
 	    }
@@ -800,16 +835,17 @@ object AtomParser {
 	 */
 	case class StringLiteralNode(typ: AstNode, str: String) extends AstNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "StringLiteralNode.interpret") //rwNode.addChild("StringLiteralNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","StringLiteralNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "StringLiteralNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "StringLiteralNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, str)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "StringLiteralNode")
 			result
 		}
 	}
@@ -885,17 +921,17 @@ object AtomParser {
 	case class UnsignedIntegerNode(digits: String, radix: Int,
 	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "UnsignedIntegerNode.interpret") //rwNode.addChild("UnsignedIntegerNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","UnsignedIntegerNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "UnsignedIntegerNode.interpret: ")) // val interpretNode = RWTree.addTo(rwNode, "UnsignedIntegerNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode")// RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, asInt)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
-			RWTree.current = rwNode
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+			ReplActor ! ("Eva", "popTable", "UnsignedIntegerNode")
 			result
 		}
 	  
@@ -915,16 +951,17 @@ object AtomParser {
 	case class SignedIntegerNode(sign: Boolean, digits: String, radix: Int,
 	    typ: AstNode = SimpleTypeNode(INTEGER)) extends NumberNode {
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "SignedIntegerNode.interpret") //rwNode.addChild("SignedIntegerNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","SignedIntegerNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SignedIntegerNode.interpret")) // val interpretNode = RWTree.addTo(rwNode, "SignedIntegerNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, asInt)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "SignedIntegerNode")
 			result
 		}
 	  
@@ -1032,16 +1069,17 @@ object AtomParser {
 	  lazy val asFloat = norm._1.asInt * BigInt(radix).pow(norm._2.asInt.toInt)
 	  
 	  def interpret = {
-			// get the node representing this atom that is being rewritten
-			val rwNode = RWTree.current
-			val interpretNode = RWTree.addTo(rwNode, "FloatNode.interpret") //rwNode.addChild("FloatNode.interpret")
-			RWTree.current = interpretNode
+			ReplActor ! ("Eva","pushTable","FloatNode")
+            // top node of this subtree
+			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "FloatNode.interpret")) // val interpretNode = RWTree.addTo(rwNode, "FloatNode.interpret")
+			ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = interpretNode
 			
 			val typeInt = typ.interpret
 			
 			val result = Literal(typeInt, norm._1.asInt.toInt, norm._2.asInt.toInt, radix)
 			
-			RWTree.addTo(interpretNode, result) //interpretNode.addChild(result)
+			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) // RWTree.addTo(interpretNode, result)
+            ReplActor ! ("Eva", "popTable", "FloatNode")
 			result
 		}
 	  

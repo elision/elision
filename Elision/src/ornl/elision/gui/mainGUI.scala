@@ -36,15 +36,7 @@
 ======================================================================*/
 
 package ornl.elision.gui
-/*
-import swing.SimpleSwingApplication
-import swing.MainFrame
-import swing.MenuBar
-import swing.Menu
-import swing.MenuItem
-import swing.Dialog
-import swing.BorderPanel
-import swing.*/
+
 import swing._
 import swing.BorderPanel.Position._
 import concurrent.ops._
@@ -67,7 +59,7 @@ object mainGUI extends SimpleSwingApplication {
 	
 	/** Eva's configuration settings */
 	val config = new EvaConfig
-    ornl.elision.core.RWTree.maxDepth = config.maxTreeDepth
+    GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
 	
 	/** The panel housing the onboard Elision REPL */
 	val consolePanel = new ConsolePanel
@@ -117,9 +109,9 @@ class GuiMenuBar extends MenuBar {
 		
 		val openItem = new MenuItem(Action("Open      Ctrl+ O") {
 			val fc = new FileChooser(new File(openDirectory))
-			fc.showOpenDialog(null)
+			val result = fc.showOpenDialog(null)
 			val selFile = fc.selectedFile
-			if(selFile != null) {
+			if(selFile != null && result == FileChooser.Result.Approve) {
 				openDirectory = selFile.getParent
 				mainGUI.config.lastOpenPath = openDirectory
 				mainGUI.config.save
@@ -175,30 +167,15 @@ class GuiMenuBar extends MenuBar {
 		setMaxDepthItem.mnemonic = event.Key.M
 		viewMenu.contents += setMaxDepthItem
         
-        // Skip Comment Nodes : 
-        
-        val skipCommentsItem = new CheckMenuItem("Skip Comment Nodes")
-        skipCommentsItem.peer.setState(mainGUI.config.skipComments)
-        ornl.elision.core.RWTree.skipComments = skipCommentsItem.peer.getState
-        skipCommentsItem.listenTo(skipCommentsItem)
-        skipCommentsItem.reactions += {
-            case _ => 
-                ornl.elision.core.RWTree.skipComments = skipCommentsItem.peer.getState
-                mainGUI.config.skipComments = skipCommentsItem.peer.getState
-                mainGUI.config.save
-        }
-		skipCommentsItem.mnemonic = event.Key.C
-		viewMenu.contents += skipCommentsItem
-        
         // Disable Tree Construction : 
         
         val disableTreeItem = new CheckMenuItem("Disable Tree Construction")
         disableTreeItem.peer.setState(mainGUI.config.disableTree)
-        ornl.elision.repl.ReplActor.disableGUIComs = disableTreeItem.peer.getState
+        GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
         disableTreeItem.listenTo(disableTreeItem)
         disableTreeItem.reactions += {
             case _ => 
-                ornl.elision.repl.ReplActor.disableGUIComs = disableTreeItem.peer.getState
+                GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
                 mainGUI.config.disableTree = disableTreeItem.peer.getState
                 mainGUI.config.save
         }
@@ -348,7 +325,7 @@ class GuiMenuBar extends MenuBar {
 		val linesInput = new TextField(10) { 
 			listenTo(keys) 
 			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-			text = "" + ornl.elision.core.RWTree.maxDepth
+			text = "" + GUIActor.treeBuilder.treeMaxDepth
 		}
 		val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
 		val cancelBtn = new Button(Action("Cancel") { close } )
@@ -357,7 +334,7 @@ class GuiMenuBar extends MenuBar {
 			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 			val minLines = ConsolePanel.infiniteMaxLines
 			layout( new GridPanel(2,1) { 
-						contents += new Label("Enter max depth: (integer >= " + minLines + ")")
+						contents += new Label("Enter max depth: (integer)")
 						contents += new Label("(< 0 will make there be no depth limit)") 
 					} ) = North
 			layout(linesInput) = Center
@@ -378,7 +355,7 @@ class GuiMenuBar extends MenuBar {
 			
 			try {
 				val fieldInt = input.toInt
-				ornl.elision.core.RWTree.maxDepth = fieldInt
+				GUIActor.treeBuilder.treeMaxDepth = fieldInt
 				mainGUI.config.maxTreeDepth = fieldInt
 				mainGUI.config.save
 				// close the dialog when we finish processing input
@@ -399,56 +376,7 @@ class GuiMenuBar extends MenuBar {
 
 
 
-import scala.actors.Actor
 
-/** The Actor object used to receive and process communications from the REPL */
-object GUIActor extends Actor {
-	def act() = {
-		loop {
-			react {
-				case root : ornl.elision.core.RWTreeNode => {
-					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
-					
-					mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					mainGUI.treeVisPanel.treeSprite = TreeSprite.buildRWTree(root)
-					
-					// once the tree visualization is built, select its root node and center the camera on it.
-					
-					mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
-					mainGUI.treeVisPanel.camera.reset
-					
-					mainGUI.treeVisPanel.isLoading = false
-				}
-				case selFile : java.io.File => {
-					// The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-					mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					
-					// here we accumulate the text of the file into one big string.
-					
-					var str : String = ""
-					val br = new BufferedReader(new FileReader(selFile))
-					while(br.ready) {
-						str += br.readLine + "\n"
-					}
-					br.close
-					
-					// now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
-					println("Reading REPL input from file: " + selFile.getPath)
-					println()
-					ornl.elision.repl.ReplActor ! str
-				}
-				case "quit" => 
-					System.exit(0)
-				case ("replFormat", flag : Boolean) =>
-					mainGUI.consolePanel.tos.applyFormatting = flag
-					ornl.elision.repl.ReplActor ! ("wait", false)
-				case _ => // discard anything else that comes into the mailbox.
-			}
-		}
-	}
-}
 
 
 

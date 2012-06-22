@@ -37,6 +37,7 @@
 package ornl.elision.core
 
 import scala.collection.immutable.HashMap
+import ornl.elision.repl.ReplActor
 
 /**
  * Represent a literal.  This is the common root class for all literals.
@@ -217,17 +218,21 @@ extends Literal[BigInt](typ) {
   
   //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		RWTree.current = RWTree.addTo(rwNode,theType) //rwNode.addChild(theType)
+		ReplActor ! ("Eva", "pushTable", "IntegerLiteral rewrite")
+        // top node of this subtree
+		// val rwNode = RWTree.current
+		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
+        ReplActor ! ("Eva", "setSubroot", "type")
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-			RWTree.current = rwNode
+			ReplActor ! ("Eva", "setSubroot", "subroot") // RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			RWTree.addTo(rwNode, newLit) //rwNode.addChild(newLit)
+			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit)) // RWTree.addTo(rwNode, newLit)
+            ReplActor ! ("Eva", "popTable", "IntegerLiteral rewrite")
 			(newLit, true)
 		  case _ =>
+            ReplActor ! ("Eva", "popTable", "IntegerLiteral rewrite")
 			(this, false)
 		}
 	}
@@ -250,17 +255,21 @@ extends Literal[String](typ) {
   
   //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		RWTree.current = RWTree.addTo(rwNode, theType) //rwNode.addChild(theType)
+		ReplActor ! ("Eva", "pushTable", "StringLiteral rewrite")
+        // top node of this subtree
+		//val rwNode = RWTree.current
+		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
+        ReplActor ! ("Eva", "setSubroot", "type")
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-			RWTree.current = rwNode
+			ReplActor ! ("Eva", "setSubroot", "subroot") // RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			RWTree.addTo(rwNode,newLit) //rwNode.addChild(newLit)
+			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit)) // RWTree.addTo(rwNode, newLit)
+            ReplActor ! ("Eva", "popTable", "StringLiteral rewrite")
 			(newLit, true)
 		  case _ =>
+            ReplActor ! ("Eva", "popTable", "StringLiteral rewrite")
 			(this, false)
 		}
 	}
@@ -282,17 +291,21 @@ extends Literal[Symbol](typ) {
   
   //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		RWTree.current = RWTree.addTo(rwNode,theType) //rwNode.addChild(theType)
+		ReplActor ! ("Eva", "pushTable", "SymbolLiteral rewrite")
+        // top node of this subtree
+		//val rwNode = RWTree.current
+		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
+        ReplActor ! ("Eva", "setSubroot", "type")
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-			RWTree.current = rwNode
+			ReplActor ! ("Eva", "setSubroot", "subroot") // RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			RWTree.addTo(rwNode, newLit) // rwNode.addChild(newLit)
+			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit)) // RWTree.addTo(rwNode, newLit)
+            ReplActor ! ("Eva", "popTable", "SymbolLiteral rewrite")
 			(newLit, true)
 		  case _ =>
+            ReplActor ! ("Eva", "popTable", "SymbolLiteral rewrite")
 			(this, false)
 		}
 	}
@@ -320,17 +333,21 @@ extends Literal[Boolean](typ) {
   
   //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		RWTree.current = RWTree.addTo(rwNode,theType) //rwNode.addChild(theType)
+		ReplActor ! ("Eva", "pushTable", "BooleanLiteral rewrite")
+        // top node of this subtree
+		//val rwNode = RWTree.current
+		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
+        ReplActor ! ("Eva", "setSubroot", "type")
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-			RWTree.current = rwNode
+			ReplActor ! ("Eva", "setSubroot", "subroot") // RWTree.current = rwNode
 			val newLit = Literal(newtype, value)
-			RWTree.addTo(rwNode, newLit) //rwNode.addChild(newLit)
+			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit)) // RWTree.addTo(rwNode, newLit)
+            ReplActor ! ("Eva", "popTable", "BooleanLiteral rewrite")
 			(newLit, true)
 		  case _ =>
+            ReplActor ! ("Eva", "popTable", "BooleanLiteral rewrite")
 			(this, false)
 		}
 	}
@@ -516,17 +533,21 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-		// get the node representing this atom that is being rewritten
-		val rwNode = RWTree.current
-		RWTree.current = RWTree.addTo(rwNode, theType) //rwNode.addChild(theType)
+		ReplActor ! ("Eva", "pushTable", "FloatLiteral rewrite")
+        // top node of this subtree
+		// val rwNode = RWTree.current
+		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode, theType)
+        ReplActor ! ("Eva", "setSubroot", "type")
 		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-			RWTree.current = rwNode
+			ReplActor ! ("Eva", "setSubroot", "subroot") // RWTree.current = rwNode
 			val newLit = Literal(newtype, significand, exponent, radix)
-			RWTree.addTo(rwNode, newLit) //rwNode.addChild(newLit)
+			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit)) // RWTree.addTo(rwNode, newLit)
+            ReplActor ! ("Eva", "popTable", "FloatLiteral rewrite")
 			(newLit, true)
 		  case _ =>
+            ReplActor ! ("Eva", "popTable", "FloatLiteral rewrite")
 			(this, false)
 		}
 	}

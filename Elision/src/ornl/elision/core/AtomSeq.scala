@@ -38,6 +38,7 @@ package ornl.elision.core
 
 import scala.collection.IndexedSeq
 import ornl.elision.core.matcher._
+import ornl.elision.repl.ReplActor
 
 /**
  * Fast access to an untyped empty sequence.
@@ -202,26 +203,33 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 	
 	//////////////////// GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
+	ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: ")) // val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
 	
     // Rewrite the properties.
-	val propsNode = RWTree.addTo(rwNode, "Properties: ",props) // rwNode.addChild("Properties: ").addChild(props)
-	RWTree.current = propsNode
+	ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))  // val propsNode = RWTree.addTo(rwNode, "Properties: ",props)
+	ReplActor ! ("Eva", "setSubroot", "props")    //RWTree.current = propsNode
     val (newprop, pchanged) = props.rewrite(binds)
 	
     // We must rewrite every child atom, and collect them into a new sequence.
-	RWTree.current = RWTree.addTo(rwNode, "Atoms: ") // rwNode.addChild("Atoms: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: ")) // RWTree.current = RWTree.addTo(rwNode, "Atoms: ")
+    ReplActor ! ("Eva", "setSubroot", "atoms")
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
 	
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-		RWTree.current = rwNode
+		ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = rwNode
 		val newAS = new AtomSeq(newprop, newseq)
-		rwNode.addChild(newAS)
+		ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // rwNode.addChild(newAS)
+        
+        ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
 		(newAS, true)
 	}
-    else (this, false)
+    else {
+        ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
+        (this, false)
+    }
   }
   //////////////////// end GUI changes
 

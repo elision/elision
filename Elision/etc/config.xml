@@ -44,7 +44,7 @@
 		 process; do not modify it here. -->
 	<version
 		major="0"
-		minor="1"
+		minor="2"
 		trivial="0"
 		status="alpha"
 		build="@DSTAMP@@TSTAMP@">

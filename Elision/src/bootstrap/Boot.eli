@@ -180,5 +180,3 @@ decl.
 inc("bootstrap/Type.eli")
 inc("bootstrap/Core.eli")
 inc("bootstrap/Context.eli")
-inc("bootstrap/Strategies.eli")
-inc("bootstrap/Math.eli")

@@ -37,6 +37,7 @@
 package ornl.elision.core
 
 import scala.collection.mutable.HashMap
+import ornl.elision.repl.ReplActor
 
 /**
  * Represent a variable.
@@ -186,29 +187,40 @@ class Variable(typ: BasicAtom, val name: String,
   */
 	  //////////////////// GUI changes
   def rewrite(binds: Bindings) = {
-	// get the node representing this atom that is being rewritten
-	val rwNode = RWTree.addToCurrent("Variable rewrite: ")
-	val typeNode = RWTree.addTo(rwNode, theType) //rwNode.addChild(theType)
+	ReplActor ! ("Eva","pushTable","Variable rewrite")
+    // top node of this subtree
+	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: ")) // val rwNode = RWTree.addToCurrent("Variable rewrite: ")
+	ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType)) // val typeNode = RWTree.addTo(rwNode, theType)
 	
     // If this variable is bound in the provided bindings, replace it with the
     // bound value.
     binds.get(name) match {
       case Some(atom) =>
-        RWTree.addTo(rwNode, atom) //rwNode.addChild(atom)
+        ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
+        
+        ReplActor ! ("Eva", "popTable", "Variable rewrite")
 		(atom, true)
       case None =>
-		RWTree.current = typeNode
+		ReplActor ! ("Eva", "setSubroot", "type") // RWTree.current = typeNode
         // While the atom is not bound, its type might have to be rewritten.
         theType.rewrite(binds) match {
           case (newtype, changed) =>
-			RWTree.addTo(typeNode, newtype) //typeNode.addChild(newtype)
+			ReplActor ! ("Eva", "addTo", ("type", "", newtype)) // RWTree.addTo(typeNode, newtype)
             if (changed) { 
-				RWTree.current = rwNode
+				ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
 				val newVar = Variable(newtype, name)
-				RWTree.addTo(rwNode, newVar) //rwNode.addChild(newVar)
+				ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar)) // RWTree.addTo(rwNode, newVar) 
+                
+                ReplActor ! ("Eva", "popTable", "Variable rewrite")
 				(newVar, true) 
-			} else (this, false)
-          case _ => (this, false)
+			} else {
+                ReplActor ! ("Eva", "popTable", "Variable rewrite")
+                (this, false)
+            }
+          case _ => {
+            ReplActor ! ("Eva", "popTable", "Variable rewrite")
+            (this, false)
+          }
         }
     }
   }

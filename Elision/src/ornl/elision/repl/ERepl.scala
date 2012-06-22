@@ -75,10 +75,8 @@ class ERepl extends Processor {
   
   
 	//////////////////// GUI changes
-	
-	private var _disableGUIComs = true
-	ReplActor.disableGUIComs = true
-	
+    ReplActor.start
+	ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
   //======================================================================
@@ -105,7 +103,7 @@ class ERepl extends Processor {
 	  if (hce != null) {
 	    hce
 	  } else {
-      val fname = (if (_prop("path.separator") == ":") ".elision-histry.eli"
+      val fname = (if (_prop("path.separator") == ":") ".elision-history.eli"
         else "elision-history.eli")
       _home + _prop("file.separator") + fname
 	  }
@@ -368,8 +366,7 @@ class ERepl extends Processor {
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
-//      ReplActor.disableGUIComs = false
-      ReplActor.start
+        ReplActor ! ("disableGUIComs", false)
     }
 	
     //////////////////// end GUI changes
@@ -455,9 +452,9 @@ class ERepl extends Processor {
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
 		//////////////////// GUI changes
-		if(ReplActor.guiActor != null)  ReplActor.guiActor ! "quit"
+		if(ReplActor.guiMode)  ReplActor.guiActor ! "quit"
+        ReplActor ! ":quit"
 		//////////////////// end GUI changes
-		
         return
       }
       
@@ -466,7 +463,20 @@ class ERepl extends Processor {
       
       // Run the line.
       try {
+        //////////////////// GUI changes
+	
+        // Create the root of our rewrite tree it contains a String of the REPL input.
+        ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
+        
+        //////////////////// end GUI changes
         execute(line)
+        //////////////////// GUI changes
+	
+        // send the completed rewrite tree to the GUI's actor
+        if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
+            ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
+
+        //////////////////// end GUI changes
       } catch {
         case ornl.elision.ElisionException(msg) =>
           console.error(msg)
