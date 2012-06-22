@@ -195,6 +195,14 @@ class GuiMenuBar extends MenuBar {
         }
 		disableNodeColoringItem.mnemonic = event.Key.N
 		viewMenu.contents += disableNodeColoringItem
+        
+        // Set Node Limit : 
+        
+        val setNodeLimitItem = new MenuItem(Action("Set Node Limit") {
+			val dia = new NodeLimitDialog
+		} )
+		setNodeLimitItem.mnemonic = event.Key.O
+		viewMenu.contents += setNodeLimitItem
 	
 	// Help menu	
 		
@@ -345,7 +353,6 @@ class GuiMenuBar extends MenuBar {
 		
 		contents = new BorderPanel {
 			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			val minLines = ConsolePanel.infiniteMaxLines
 			layout( new GridPanel(2,1) { 
 						contents += new Label("Enter max depth: (integer)")
 						contents += new Label("(< 0 will make there be no depth limit)") 
@@ -360,7 +367,7 @@ class GuiMenuBar extends MenuBar {
 		
 		/** 
 		 * processes the input for the dialog when the user clicks OK or presses Enter 
-		 * @param input		The input string being evaluated as the new value for the REPL's maximum lines.
+		 * @param input		The input string being evaluated as the new value for the maximum tree depth.
 		 */
 		private def enterInput(input : String) : Unit = {
 			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
@@ -370,6 +377,57 @@ class GuiMenuBar extends MenuBar {
 				val fieldInt = input.toInt
 				GUIActor.treeBuilder.treeMaxDepth = fieldInt
 				mainGUI.config.maxTreeDepth = fieldInt
+				mainGUI.config.save
+				// close the dialog when we finish processing input
+				close
+			} catch {
+				case _ =>
+			}
+		}
+		
+		// open the dialog when it is finished setting up
+		open
+	}
+    
+    
+    
+    
+    /** The dialog window for the "View > Set Node Limit" menu item */
+	class NodeLimitDialog extends Dialog {
+		this.title = "Set Node Limit"
+		val inset = 3
+		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+		
+		val linesInput = new TextField(10) { 
+			listenTo(keys) 
+			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
+			text = "" + mainGUI.config.nodeLimit
+		}
+		val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
+		val cancelBtn = new Button(Action("Cancel") { close } )
+		
+		contents = new BorderPanel {
+			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+			layout( new GridPanel(2,1) { 
+						contents += new Label("Enter node limit: (integer)")
+						contents += new Label("(< 2 will make there be no node limit)") 
+					} ) = North
+			layout(linesInput) = Center
+			layout(new FlowPanel {
+				contents += okBtn
+				contents += cancelBtn
+			} ) = South
+		}
+		
+		
+		/** 
+		 * processes the input for the dialog when the user clicks OK or presses Enter 
+		 * @param input		The input string being evaluated as the new value for the node limit.
+		 */
+		private def enterInput(input : String) : Unit = {
+			try {
+				val fieldInt = input.toInt
+				mainGUI.config.nodeLimit = fieldInt
 				mainGUI.config.save
 				// close the dialog when we finish processing input
 				close

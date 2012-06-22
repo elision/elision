@@ -670,6 +670,13 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 		children += node
 	}
 	
+    
+    /** Removes the last child of this NodeSprite. */
+    def remLastChild : Boolean = {
+        if(children.size == 0) return false
+        children.remove(children.size - 1)
+        true
+    }
 	
 	/**
 	 * Obtains the position of a child node relative to this node.
