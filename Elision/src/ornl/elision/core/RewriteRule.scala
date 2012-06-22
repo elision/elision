@@ -506,12 +506,19 @@ class RewriteRule private (
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
 	ReplActor ! ("Eva","pushTable","RewriteRule doRewrite")
+    ReplActor ! ("Eva", "saveNodeCount", "RewriteRule doRewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RewriteRule doRewrite: ")) // val rwNode = RWTree.addToCurrent("RewriteRule doRewrite: ")
 	ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
 	ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
     val rwResult = _tryRewrite(atom, binds, hint)
-	ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1)) // RWTree.addTo(atomNode, rwResult._1)
+	
+    if(rwResult._2) {
+        ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1)) // RWTree.addTo(atomNode, rwResult._1)
+    }
+    else ReplActor ! ("Eva", "remLastChild", "subroot")
+    
+    ReplActor ! ("Eva", "restoreNodeCount", !rwResult._2)
     ReplActor ! ("Eva", "popTable", "RewriteRule doRewrite")
 	rwResult
   }
