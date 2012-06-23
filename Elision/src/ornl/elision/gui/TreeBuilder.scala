@@ -67,6 +67,15 @@ class TreeBuilder extends Thread {
     /** A reference for the TreeBuilder's actor. All operations with the TreeBuilder should be done through this actor to ensure concurrency. */
     val tbActor = new TreeBuilderActor(this)
     
+    /** A count of the nodes currently in the tree. */
+    var nodeCount = 0
+    
+    /** Used by saveNodeCount and restoreNodeCount allow removal of subtrees while maintaining the correct nodeCount for this tree. */
+    val savedNodeCount = new ArrayStack[Int]
+    
+    /** A flag that causes the treeBuilder to ignore most commands. */
+    var ignoreCmds = false
+    
     /** Clears the TreeBuilder's members. */
     def clear : Unit = {
         root = null
@@ -74,6 +83,9 @@ class TreeBuilder extends Thread {
         curScope = null
         scopeStack.clear()
         fatalError = false
+        nodeCount = 0
+        savedNodeCount.clear()
+        ignoreCmds = false
     }
     
     /** 
@@ -91,6 +103,8 @@ class TreeBuilder extends Thread {
         curScope += ("root" -> root)
         curScope += ("subroot" -> root)
         setSubroot("root")
+        nodeCount = 1
+        
     }
     
     /**
@@ -111,7 +125,7 @@ class TreeBuilder extends Thread {
      * The new scope starts with one mapping: "subroot" -> the current subroot. 
      */
     def pushTable(args : Any) : Unit = {
-        if(fatalError) return
+        if(fatalError || ignoreCmds) return
         
 //        printIndent("Pushing new table - " + args)
         
@@ -126,7 +140,7 @@ class TreeBuilder extends Thread {
      * curScope is set to the scopeStack's new top. 
      */
     def popTable(args : Any) : Unit = {
-        if(fatalError || scopeStack.size == 1) return
+        if(fatalError || ignoreCmds || scopeStack.size == 1) return
         
 //        printIndent("Popping current table - " + args)
         
@@ -143,7 +157,7 @@ class TreeBuilder extends Thread {
      * @param id        The key ID for our desired NodeSprite in the current scope table.
      */
     def setSubroot(id : String) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
     //    printIndent("Setting new subroot: " + id)
         var keepgoing = true
         while(keepgoing) {
@@ -167,7 +181,7 @@ class TreeBuilder extends Thread {
      * @param atom          The BasicAtom the new atom node is being constructed from 
      */
     def addToSubroot(id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
         
     //    printIndent("addToSubroot: " + id)
         
@@ -185,7 +199,7 @@ class TreeBuilder extends Thread {
      * @param commentAtom   The String being used as the new node's label.
      */
     def addToSubroot(id : String, commentAtom : String) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
 
     //    printIndent("addToSubroot: " + id)
 
@@ -201,7 +215,7 @@ class TreeBuilder extends Thread {
      * @param atom          The BasicAtom the new node is being constructed from.
      */
     def addToSubroot(id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
 
     //    printIndent("addToSubroot: " + id)
 
@@ -219,7 +233,7 @@ class TreeBuilder extends Thread {
      * @param atom          The BasicAtom the new atom node is being constructed from 
      */
     def addTo(parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
 
     //    printIndent("addTo: " + (parentID, id))
 
@@ -248,7 +262,7 @@ class TreeBuilder extends Thread {
      * @param commentAtom   The String being used as the new node's label.
      */
     def addTo(parentID : String, id : String, commentAtom : String) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
 
     //    printIndent("addTo: " + (parentID, id))
 
@@ -275,7 +289,7 @@ class TreeBuilder extends Thread {
      * @param atom          The BasicAtom the new node is being constructed from.
      */
     def addTo(parentID : String, id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-        if(this.isMaxDepth || fatalError) return
+        if(this.isMaxDepth || fatalError || ignoreCmds) return
 
     //    printIndent("addTo: " + (parentID, id))
 
@@ -296,13 +310,58 @@ class TreeBuilder extends Thread {
     
     
     
+    /**
+     * Removes the last child of a NodeSprite
+     * @param parentID      The id key for the parent node we are removing the last child from.
+     */
+     def remLastChild(parentID : String) : Unit = {
+        if(fatalError || ignoreCmds) return
+        
+        var keepgoing = true
+        while(keepgoing) {
+            try {
+                val parent = curScope(parentID)
+                parent.remLastChild
+                keepgoing = false
+            } 
+            catch {
+                case _ => System.err.println("TreeBuilder.remLastChild error: key \"" + parentID + "\" does not exist in current scope table.")
+                    keepgoing = attemptStackRecovery
+            }
+        }
+     }
     
+    /**
+     * Saves the current node count.
+     */
+    def saveNodeCount : Unit = {
+        if(fatalError || ignoreCmds) return
+        savedNodeCount.push(nodeCount)
+    }
+    
+    /**
+     * Sets the current node count to the top value of savedNodeCount. This is useful for restoring the correct node count for the tree when a subtree is removed.
+     */
+    def restoreNodeCount(flag : Boolean) : Unit = {
+        if(fatalError || ignoreCmds) return
+        if(flag) nodeCount = savedNodeCount.pop
+        else savedNodeCount.pop
+    }
+    
+    
+    /** Toggles the ignoreCmds flag */
+    def toggleIgnore(flag : Boolean) : Unit = {
+        if(fatalError) return
+        ignoreCmds = flag
+    }
     
     
     /** Helper method used to create a comment NodeSprite */
     private def createCommentNode(commentAtom : String, parent : NodeSprite) : NodeSprite = {
         val node = new NodeSprite(commentAtom, parent, true)
         parent.addChild(node)
+        nodeCount += 1
+        enforceNodeLimit
         node
     }
     
@@ -333,6 +392,8 @@ class TreeBuilder extends Thread {
 		}
         
         if(parent != null) parent.addChild(node)
+        nodeCount += 1
+        enforceNodeLimit
         node
     }
     
@@ -367,15 +428,31 @@ class TreeBuilder extends Thread {
     }
     
     
+    /** Enforces the node limit by causing a fatal error when we've reached our node limit. */
+    private def enforceNodeLimit : Boolean = {
+        if(nodeCount >= mainGUI.config.nodeLimit && mainGUI.config.nodeLimit > 1) {
+            val node = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , root, true)
+            System.err.println("Fatal error during TreeBuilder tree construction. \n\tEva tree node limit " + mainGUI.config.nodeLimit + " has been reached!")
+            root.addChild(node)
+            val node2 = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , root, true)
+            subroot.addChild(node2)
+            fatalError = true
+            true
+        }
+        false
+    }
+    
     
     /** Starts a new thread in which the TreeBuilder will run in. */
 	override def run : Unit = {
 		tbActor.start
         
+        fatalError
         while(true) {}
 	}
     
 }
+
 
 
 /** An actor object for doing concurrent operations with a TreeBuilder. */
@@ -439,6 +516,26 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     case (parentID : String, id : String, atom : ornl.elision.core.BasicAtom) =>
                         treeBuilder.addTo(parentID, id, atom)
                     case _ => System.err.println("TreeBuilder.addTo received incorrect arguments: " + args)
+                }
+            case "remLastChild" =>
+                args match {
+                    case parentID : String =>
+                        treeBuilder.remLastChild(parentID)
+                    case _ => System.err.println("TreeBuilder.remLastChild received incorrect arguments: " + args)
+                }
+            case "saveNodeCount" => 
+                treeBuilder.saveNodeCount
+            case "restoreNodeCount" =>
+                args match {
+                    case flag : Boolean =>
+                        treeBuilder.restoreNodeCount(flag)
+                    case _ => System.err.println("TreeBuilder.restoreNodeCount received incorrect arguments: " + args)
+                }
+            case "toggleIgnore" =>
+                args match {
+                    case flag : Boolean =>
+                        treeBuilder.toggleIgnore(flag)
+                    case _ => System.err.println("TreeBuilder.toggleIgnore received incorrect arguments: " + args)
                 }
             case _ => System.err.println("GUIActor received bad TreeBuilder command: " + cmd)
         }

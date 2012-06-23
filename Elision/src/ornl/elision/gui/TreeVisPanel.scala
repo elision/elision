@@ -270,9 +270,9 @@ class TreeVisPanel extends GamePanel {
 			camera.startDrag(mouseIn.position)
 		}
 		if(mouseIn.wheel == -1)
-			camera.zoomAtScreen(1.25, mouseIn.position)
+			camera.zoomAtScreen(10.0/7.0, mouseIn.position) // camera.zoomAtScreen(1.25, mouseIn.position)
 		if(mouseIn.wheel == 1)
-			camera.zoomAtScreen(0.8, mouseIn.position)
+			camera.zoomAtScreen(7.0/10.0, mouseIn.position) // camera.zoomAtScreen(0.8, mouseIn.position)
 		
 		// update the camera's transform based on its new state.
 		camera.pWidth = this.size.width

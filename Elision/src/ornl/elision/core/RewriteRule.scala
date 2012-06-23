@@ -483,6 +483,39 @@ class RewriteRule private (
         return (subject, false)
     }
   }
+  
+  
+  /**
+   * Checks to see if the RewriteRule will be applied to an atom without actually applying it.
+   */
+  private def _prodRewrite(subject: BasicAtom, binds: Bindings = Bindings(),
+      hint: Option[Any] = None): Boolean = {
+    // Local function to check the guards.
+    def checkGuards(candidate: Bindings): Boolean = {
+      for (guard <- guards) {
+        val (newguard, _) = guard.rewrite(candidate)
+        if (!newguard.isTrue) return false
+      }
+      true
+    }
+    
+    // First we try to match the given atom against the pattern.
+    pattern.tryMatch(subject, binds, hint) match {
+      case fail:Fail => return false
+      case Match(newbinds) =>
+        // We got a match.  Check the guards.
+        if (checkGuards(newbinds)) return true
+        else return false
+      case Many(iter) =>
+        // We might have many matches.  We search through them until we find
+        // one that satisfies the guards, or until we run out of candidates.
+        for (newbinds <- iter) {
+          if (checkGuards(newbinds)) return true
+        }
+        return false
+    }
+  }
+  
   	
   def doRewrite(atom: BasicAtom, hint: Option[Any]) =
     doRewrite(atom, Bindings(), hint)
@@ -498,15 +531,36 @@ class RewriteRule private (
   def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
-	ReplActor ! ("Eva","pushTable","RewriteRule doRewrite")
-    // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RewriteRule doRewrite: ")) // val rwNode = RWTree.addToCurrent("RewriteRule doRewrite: ")
-	ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
-	ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
-    val rwResult = _tryRewrite(atom, binds, hint)
-	ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1)) // RWTree.addTo(atomNode, rwResult._1)
-    ReplActor ! ("Eva", "popTable", "RewriteRule doRewrite")
-	rwResult
+    
+    // first, check to see if a rule rewrite will even happen before actually applying the rewrite.
+    // Tell the GUI to ignore tree construction messages while doing this.
+    ReplActor ! ("Eva", "toggleIgnore", true)
+    if(!_prodRewrite(atom,binds,hint)) {
+        ReplActor ! ("Eva", "toggleIgnore", false)
+        (atom, false)
+    }
+    else {
+        ReplActor ! ("Eva", "toggleIgnore", false)
+        
+        // proceed with applying the rewrite rule.
+        ReplActor ! ("Eva","pushTable","RewriteRule doRewrite")
+        ReplActor ! ("Eva", "saveNodeCount", "RewriteRule doRewrite")
+        // top node of this subtree
+        ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RewriteRule doRewrite: ")) // val rwNode = RWTree.addToCurrent("RewriteRule doRewrite: ")
+        ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
+        ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
+        val rwResult = _tryRewrite(atom, binds, hint)
+        
+        // if the rewrite rule was not fruitful, discard its subtree and restore the GUI's node count.
+        if(rwResult._2) {
+            ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1)) // RWTree.addTo(atomNode, rwResult._1)
+        }
+        else ReplActor ! ("Eva", "remLastChild", "subroot")
+        
+        ReplActor ! ("Eva", "restoreNodeCount", !rwResult._2)
+        ReplActor ! ("Eva", "popTable", "RewriteRule doRewrite")
+        rwResult
+    }
   }
   //////////////////// end GUI changes
 }

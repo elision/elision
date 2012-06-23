@@ -52,12 +52,15 @@ class EvaConfig extends Serializable {
     
     /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
     var maxTreeDepth = -1
-    
-    /** Flag for skipping creation of comment nodes */
-    var skipComments = false
 	
     /** Flag for temporarilly disabling Eva tree construction in Elision */
     var disableTree = false
+    
+    /** Flag for disabling syntax coloring in NodeSprites. */
+    var disableNodeSyntaxColoring = false
+    
+    /** The maximum nodes that Eva will include in a tree visualization. */
+    var nodeLimit = 10000
 	
 	// try to read config information from Eva's config file (if it exists)
 	try {
@@ -70,8 +73,9 @@ class EvaConfig extends Serializable {
                     replMaxLines = (config \ "replMaxLines").text.toInt
                     lastOpenPath = (config \ "lastOpenPath").text
                     maxTreeDepth = (config \ "maxTreeDepth").text.toInt
-                    skipComments = (config \ "skipComments").text.toBoolean
                     disableTree = (config \ "disableTree").text.toBoolean
+                    disableNodeSyntaxColoring = (config \ "disableNodeSyntaxColoring").text.toBoolean
+                    nodeLimit = (config \ "nodeLimit").text.toInt
                 } catch { case _ => System.err.println("One or more configurations didn't load from EvaConfig, \nprobably because you just updated to a newer version of Eva with new shiny features.")}
 			case _ => restoreDefaults
 		}
@@ -86,8 +90,9 @@ class EvaConfig extends Serializable {
 		replMaxLines = 60
 		lastOpenPath = "."
         maxTreeDepth = -1
-        skipComments = false
         disableTree = false
+        disableNodeSyntaxColoring = false
+        nodeLimit = 10000
 	}
 	
 	/** Saves the configuration object to ".\EvaConfig.xml" */
@@ -101,8 +106,9 @@ class EvaConfig extends Serializable {
     <replMaxLines>""" + replMaxLines + """</replMaxLines>
     <lastOpenPath>""" + lastOpenPath + """</lastOpenPath>
     <maxTreeDepth>""" + maxTreeDepth + """</maxTreeDepth>
-    <skipComments>""" + skipComments + """</skipComments>
     <disableTree>""" + disableTree + """</disableTree>
+    <disableNodeSyntaxColoring>""" + disableNodeSyntaxColoring + """</disableNodeSyntaxColoring>
+    <nodeLimit>""" + nodeLimit + """</nodeLimit>
 </Eva>
 """
 
