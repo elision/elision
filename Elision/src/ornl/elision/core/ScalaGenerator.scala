@@ -31,10 +31,25 @@ package ornl.elision.core
 
 /**
  * Generate the Scala code to create an atom.
- *
+ * 
+ * To use this, simply pass an atom to the `apply` method along with an
+ * optional appendable to get the result.
+ * 
+ * The result is assumed to be in an environment where
+ * `import ornl.elision.core._` has been executed.
  */
 object ScalaGenerator {
   
+  /**
+   * Generate the Scala code required to create a literal.  Certain well-known
+   * root types are handled directly and simply.
+   * 
+   * @param atom    The atom.
+   * @param context If true, a context named `_context` is available.  If false,
+   *                it is not, and any context must be generated in place.
+   * @param buf     The buffer to get the result.
+   * @return        The result.
+   */
   def gen(atom: Literal[_],
       context: Boolean,
       buf: Appendable): Appendable = {
@@ -91,6 +106,16 @@ object ScalaGenerator {
     }
   }
   
+  /**
+   * Generate the Scala code required to create an `AlgProp`.  Certain
+   * well-known properties are handled directly and simply.
+   * 
+   * @param atom    The atom.
+   * @param context If true, a context named `_context` is available.  If false,
+   *                it is not, and any context must be generated in place.
+   * @param buf     The buffer to get the result.
+   * @return        The result.
+   */
   def gen(atom: AlgProp,
       context: Boolean,
       buf: Appendable): Appendable = {
@@ -122,6 +147,16 @@ object ScalaGenerator {
     }
   }
   
+  /**
+   * Generate the Scala code required to create a special form.  Certain
+   * special forms get specialized processing.
+   * 
+   * @param atom    The atom.
+   * @param context If true, a context named `_context` is available.  If false,
+   *                it is not, and any context must be generated in place.
+   * @param buf     The buffer to get the result.
+   * @return        The result.
+   */
   def gen(atom: SpecialForm,
       context: Boolean,
       buf: Appendable): Appendable = {
@@ -140,6 +175,7 @@ object ScalaGenerator {
         apply(params, context, buf).append(",")
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(")")
+        // TODO Handlers are not handled!
       case RewriteRule(pat, rew, gua, rs, syn) =>
         buf.append("RewriteRule(")
         apply(pat, context, buf).append(",")
@@ -161,6 +197,17 @@ object ScalaGenerator {
     }
   }
   
+  /**
+   * Generate the Scala code required to create a literal.  Certain well-known
+   * root types are handled directly and simply.
+   * 
+   * @param atom    The atom.
+   * @param context If true, a context named `_context` is available.  If false,
+   *                it is not, and any context must be generated in place.
+   * @param buf     The buffer to get the result.  If not provided, one is
+   *                created.
+   * @return        The result.
+   */
   def apply(atom: BasicAtom,
       context: Boolean,
       buf: Appendable = new StringBuffer()): Appendable = {

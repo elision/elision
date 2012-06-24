@@ -599,7 +599,7 @@ object SymbolicOperator {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
       ("type" -> typ) + ("description" -> Literal(description)) +
-      ("detail" -> Literal(detail) + "evenmeta" -> Literal(evenMeta))
+      ("detail" -> Literal(detail)) + ("evenmeta" -> Literal(evenMeta))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
     return new SymbolicOperator(sfh, name, typ, params, description,
       detail, evenMeta)
