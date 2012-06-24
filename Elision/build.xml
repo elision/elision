@@ -177,6 +177,7 @@ bin, lib, and other folders.</echo>
 		<javac
 			destdir		="${build.bin}"
 			classpathref	="build.classpath"
+			includeantruntime ="false"
 			deprecation	="on">
 			<src path="${build.src}"/>
 		</javac>

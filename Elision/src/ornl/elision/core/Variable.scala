@@ -56,15 +56,15 @@ import ornl.elision.repl.ReplActor
  * 
  * In fact, the variable "guard" is more.  The guard is specified as an atom
  * in curly braces after the variable name and before any type information.
- * For proposed binding of variable $x to value v, with guard g, we do the
+ * For proposed binding of variable `$``x` to value `v`, with guard `g`, we do the
  * following.
  * 
- * - If g is a [[ornl.elision.core.Rewritable]], then g.a is computed and
- *   if the flag is true, $x is bound to the resulting atom.
- * - If g is a [[ornl.elision.core.Applicable]], then g.a is computed and
- *   $x is bound the result.
- * - Otherwise g is assumed to be a predicate, and is rewritten with the
- *   potential bindings.  If the result is true, then $x is bound to v.
+ * - If `g` is a [[ornl.elision.core.Rewritable]], then `g.a` is computed and
+ *   if the flag is true, `$``x` is bound to the resulting atom.
+ * - If `g` is a [[ornl.elision.core.Applicable]], then `g.a` is computed and
+ *   `$``x` is bound the result.
+ * - Otherwise `g` is assumed to be a predicate, and is rewritten with the
+ *   potential bindings.  If the result is true, then `$``x` is bound to `v`.
  * 
  * In all other cases the binding attempt is rejected.
  * 
@@ -273,10 +273,10 @@ object Variable {
  * any metavariables in an atom make that atom a meta atom, and meta atoms
  * block evaluation in an apply.
  * 
- * For example, consider {{{is_bindable($x)}}}.  This will immediately
- * evaluate to `true` since {{{$x}}} is bindable.  If we wanted to use this
+ * For example, consider `is_bindable(``$``x)`.  This will immediately
+ * evaluate to `true` since `$``x` is bindable.  If we wanted to use this
  * as a guard for a variable, however, this won't work.  Instead we write
- * {{{is_bindable($$x)}}} using the metavariable, and evaluation is
+ * `is_bindable($``$``x)` using the metavariable, and evaluation is
  * deferred until the atom is rewritten.
  * 
  * @param typ			The variable type.
