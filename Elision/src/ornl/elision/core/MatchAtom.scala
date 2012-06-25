@@ -47,14 +47,14 @@ package ornl.elision.core
  * 
  * == Rules ==
  * This is almost a rewrite rule.  Consider the following rule.
- * {{{
- * { rule $x:INTEGER -> 0 #if equal($$x,5) }
- * }}}
+ * 
+ * `{ rule ``$``x:INTEGER -> 0 #if equal(``$``$``x,5) }`
+ * 
  * We can ''almost'' write this as follows, provided we are very careful with
  * metavariables.
- * {{{
- * \$$x.(({match $$x:INTEGER #if equal($$x,5)}.$$x).0)
- * }}}
+ * 
+ * `\``$``$``x.(({match ``$``$``x:INTEGER #if equal(``$``$``x,5)}.``$``$``x).0)`
+ * 
  * The reason the above two are not the same is that in the second case
  * we might get `NONE` as the result from the match and this will not
  * get "digested" by the applicative dot.
