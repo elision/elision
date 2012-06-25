@@ -260,12 +260,12 @@ class OperatorLibrary(
  	  op match {
  	    case so:SymbolicOperator =>
 		 	  app.append("  ").append(toESymbol(op.name))
-		 	  app.append(so.params.mkParseString("(", ", ", ")"))
+		 	  app.append(so.params.mkParseString("(", ", ", "): "))
 		 	  app.append(so.theType.toParseString).append('\n')
 		 	  app.append("  ").append(so.params.props.toHumaneString).append('\n')
  	    case co:CaseOperator =>
       	app.append("  ").append(toESymbol(op.name))
-      	app.append(" #type=").append(co.theType.toParseString)
+      	app.append(" . (cases) : ").append(co.theType.toParseString)
       	app.append("\n\nCases:\n")
  	      for (cse <- co.cases) {
  	        app.append("  ").append(cse.toParseString).append('\n')
