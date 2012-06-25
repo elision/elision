@@ -259,18 +259,18 @@ bin, lib, and other folders.</echo>
 		<mkdir dir="${build.latest}"/>
 		<mkdir dir="${build.base}/${DSTAMP}"/>
 		<jar
-			filesetmanifest	="mergewithoutmain"
+			filesetmanifest	="skip"
 			destfile		="${build.latest}/${build.jar}"
 			index			="true">
 			<fileset dir="${build.bin}"/>
 			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="ornl.elision.repl.ReplMain"/>
+				<attribute name="Main-Class" value="ornl.elision.Main"/>
 			</manifest>
 		</jar>
 		<jar
-			filesetmanifest	="skip"
+			filesetmanifest ="skip"
 			destfile		="${build.latest}/elision-all.jar"
 			index			="true">
 			<fileset dir="${build.bin}"/>
@@ -279,11 +279,11 @@ bin, lib, and other folders.</echo>
 			<zipgroupfileset dir="${env.SCALA_HOME}/lib" includes="scala-compiler.jar"/>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="ornl.elision.repl.ReplMain"/>
+				<attribute name="Main-Class" value="ornl.elision.Main"/>
 			</manifest>
 		</jar>
         <jar
-			filesetmanifest	="mergewithoutmain"
+			filesetmanifest	="skip"
 			destfile		="${build.latest}/elision-eva.jar"
 			index			="true">
 			<fileset dir="${build.bin}"/>

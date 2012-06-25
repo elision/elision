@@ -36,7 +36,7 @@
 -->
 <!-- Define the structure of the configuration file, including which members
 	 are actually required, and what their legal values are. -->
-<!ELEMENT configuration (version,ANY*)>
+<!ELEMENT configuration (version,main*,ANY*)>
 <!ATTLIST configuration name CDATA #REQUIRED>
 <!ATTLIST configuration maintainer CDATA #REQUIRED>
 <!ATTLIST configuration web CDATA #REQUIRED>
@@ -46,3 +46,8 @@
 <!ATTLIST version build CDATA #REQUIRED>
 <!ATTLIST version trivial CDATA "0">
 <!ATTLIST version status (alpha|beta|rc|final) "alpha">
+<!ELEMENT main (ANY*)>
+<!ATTLIST main name CDATA #REQUIRED>
+<!ATTLIST main class CDATA #REQUIRED>
+<!ATTLIST main description CDATA #REQUIRED>
+<!ATTLIST main gui (true|false) #REQUIRED>
