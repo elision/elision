@@ -322,26 +322,20 @@ decl.{ operator #name=help #cases
 decl.{! read($filename: STRING)
   #handler=
   """
-    args match {
-      case Args(StringLiteral(_, filename)) =>
-        val cfile = new java.io.BufferedReader(
-          new java.io.FileReader(filename))
-        if (cfile != null) {
-          var buf = new StringBuilder
-          var go = true
-          while (go) {
-            val line = cfile.readLine
-            if (line != null) buf.append(line).append('\n')
-            else go = false
-          }
-          exec.parse(buf.toString)
-          cfile.close()
-        } else {
-          error("Unable to open file.")
-        }
-      case _ =>
-    }
-    _no_show
+  args match {
+    case Args(StringLiteral(_, filename)) =>
+      exec match {
+        case proc: ornl.elision.parse.Processor =>
+          proc.read(filename, console.quiet > 1)
+          _no_show
+        case _ =>
+          console.error("The read operator is not supported.")
+          false
+      }
+    case _ =>
+      // Not a string literal, so preserve it.
+      as_is
+  }
   """
   #description="Read the content of the specified file."
   #detail=
