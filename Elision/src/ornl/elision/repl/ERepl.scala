@@ -355,11 +355,13 @@ class ERepl extends Processor {
     if (!read("bootstrap/Boot.eli", false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load bootstrap/Boot.eli.  Cannot continue.")
+      ReplActor ! ":quit"
       return
     }
     console.quiet = 0
     if (console.errors > 0) {
       console.error("Errors were detected during bootstrap.  Cannot continue.")
+      ReplActor ! ":quit"
       return
     }
     
@@ -371,6 +373,7 @@ class ERepl extends Processor {
       if (console.errors > 0) {
         console.error("Errors were detected processing " + _rc +
             ".  Cannot continue.")
+        ReplActor ! ":quit"
         return
       }
     }
@@ -470,7 +473,6 @@ class ERepl extends Processor {
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
 		//////////////////// GUI changes
-		if(ReplActor.guiMode)  ReplActor.guiActor ! "quit"
         ReplActor ! ":quit"
 		//////////////////// end GUI changes
         return
