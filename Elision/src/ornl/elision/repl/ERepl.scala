@@ -350,12 +350,30 @@ class ERepl extends Processor {
     startTimer
 
     // Load all the startup definitions, etc.
+    console.reset
     console.quiet = 1
-    // Bootstrap.
-    read("bootstrap/Boot.eli", false)
+    if (!read("bootstrap/Boot.eli", false)) {
+      // Failed to find bootstrap file.  Stop.
+      console.error("Unable to load bootstrap/Boot.eli.  Cannot continue.")
+      return
+    }
+    console.quiet = 0
+    if (console.errors > 0) {
+      console.error("Errors were detected during bootstrap.  Cannot continue.")
+      return
+    }
+    
     // User stuff.
+    console.reset
+    console.quiet = 1
     console.emitln("Reading " + _rc + " if present...")
-    read(_rc, true)
+    if (read(_rc, true)) {
+      if (console.errors > 0) {
+        console.error("Errors were detected processing " + _rc +
+            ".  Cannot continue.")
+        return
+      }
+    }
     console.quiet = 0
     
     // Report startup time.

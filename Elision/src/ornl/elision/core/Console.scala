@@ -54,6 +54,12 @@ trait Console {
   /** Whether to suppress most output. */
   private var _quiet = 0
   
+  /** Total number of errors. */
+  private var _errors = 0
+  
+  /** Total number of warnings. */
+  private var _warnings = 0
+  
   /** The end of line character. */
   private final val _ENDL = _prop("line.separator")
   
@@ -76,6 +82,19 @@ trait Console {
   
   /** Current column of output, as best we can tell. */
   private var _column = 0
+  
+  /** Get the error count. */
+  def errors = _errors
+  
+  /** Get the warning count. */
+  def warnings = _warnings
+  
+  /** Reset the error and warnings counts to zero. */
+  def reset = {
+    _errors = 0
+    _warnings = 0
+    this
+  }
   
   /**
    * Specify the length of a page of text.  If output (sent at one time)
@@ -211,16 +230,20 @@ trait Console {
   
   /**
    * Emit a warning message, with the WARNING prefix.  This is only done
-   * if the quiet level is one or lower.
+   * if the quiet level is one or lower.  Suppressed warnings are still
+   * counted.
    *
    * @param msg   The message.
    */
-  def warn(msg: String) { if (_quiet < 2) writeln("WARNING: " + msg) }
+  def warn(msg: String) {
+    _warnings += 1
+    if (_quiet < 2) writeln("WARNING: " + msg)
+  }
   
   /**
    * Emit a warning message, with the WARNING prefix.  This is only done
    * if the quiet level is one or lower.  A newline is always written after
-   * the message.
+   * the message.  Suppressed warnings are still counted.
    *
    * @param form  The format string.
    * @param args  The arguments required by the format string.
@@ -233,16 +256,19 @@ trait Console {
   
   /**
    * Emit an error message, with the ERROR prefix.  This is only done if
-   * the quiet level is two or lower.
+   * the quiet level is two or lower.  Suppressed errors are still counted.
    * 
    * @param msg		The message.
    */
-  def error(msg: String) { if (_quiet < 3) writeln("ERROR: " + msg) }
+  def error(msg: String) {
+    _errors += 1
+    if (_quiet < 3) writeln("ERROR: " + msg)
+  }
   
   /**
    * Emit an error message, with the ERROR prefix.  This is only done if
    * the quiet level is two or lower.  A newline is always written after
-   * the message.
+   * the message.  Suppressed errors are still counted.
    *
    * @param form  The format string.
    * @param args  The arguments required by the format string.
