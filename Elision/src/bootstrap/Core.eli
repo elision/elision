@@ -280,6 +280,30 @@ decl.{! _help_all()
   "suppressed in this list."
 }
 
+decl.{! apropos($str:STRING)
+  #handler=
+  """
+    args match {
+      case Args(StringLiteral(_,apropos)) =>
+        // Give some help.
+        val width = scala.tools.jline.TerminalFactory.create().getWidth()
+        val buf = new StringBuffer()
+        buf.append("Elision Help\n\n")
+        context.operatorLibrary.help(buf, width, apropos)
+        buf.append("\nUse ! followed by a number to re-execute a " +
+          "line from the history.\n\nTo quit type :quit.\n")
+        sendln(buf.toString)
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Display a list of known operators."
+  #detail=
+  "Display a list of known operators, along with a short description of each ".
+  "one (if given).  Operators whose name begins with an underscore are ".
+  "suppressed in this list."
+}
+
 decl.{ operator #name=help #cases
   %($r:OPREF) -> _help_op($$r), 
   %($r:SYMBOL) -> _help_op($$r), 
