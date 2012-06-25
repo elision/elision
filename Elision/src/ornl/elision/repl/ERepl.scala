@@ -355,13 +355,13 @@ class ERepl extends Processor {
     if (!read("bootstrap/Boot.eli", false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load bootstrap/Boot.eli.  Cannot continue.")
-      ReplActor ! ":quit"
+    //  ReplActor ! ":quit"
       return
     }
     console.quiet = 0
     if (console.errors > 0) {
       console.error("Errors were detected during bootstrap.  Cannot continue.")
-      ReplActor ! ":quit"
+     // ReplActor ! ":quit"
       return
     }
     
@@ -373,7 +373,7 @@ class ERepl extends Processor {
       if (console.errors > 0) {
         console.error("Errors were detected processing " + _rc +
             ".  Cannot continue.")
-        ReplActor ! ":quit"
+        //ReplActor ! ":quit"
         return
       }
     }
