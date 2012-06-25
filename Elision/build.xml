@@ -260,8 +260,7 @@ bin, lib, and other folders.</echo>
 		<mkdir dir="${build.base}/${DSTAMP}"/>
 		<jar
 			filesetmanifest	="skip"
-			destfile		="${build.latest}/${build.jar}"
-			index			="true">
+			destfile		="${build.latest}/${build.jar}">
 			<fileset dir="${build.bin}"/>
 			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
 			<manifest>
@@ -271,8 +270,7 @@ bin, lib, and other folders.</echo>
 		</jar>
 		<jar
 			filesetmanifest ="skip"
-			destfile		="${build.latest}/elision-all.jar"
-			index			="true">
+			destfile		="${build.latest}/elision-all.jar">
 			<fileset dir="${build.bin}"/>
 			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
 			<zipgroupfileset dir="${env.SCALA_HOME}/lib" includes="scala-library.jar"/>
@@ -284,8 +282,7 @@ bin, lib, and other folders.</echo>
 		</jar>
         <jar
 			filesetmanifest	="skip"
-			destfile		="${build.latest}/elision-eva.jar"
-			index			="true">
+			destfile		="${build.latest}/elision-eva.jar">
 			<fileset dir="${build.bin}"/>
 			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
 			<manifest>
