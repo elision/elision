@@ -39,7 +39,7 @@
 <configuration
 	name="Elision"
 	maintainer="Stacy Prowell (sprowell@gmail.com)"
-	web="http://stacyprowell.com/elision/">
+	web="http://elision.github.com/">
 	<!-- Build information.  The build attribute is filled in by the build
 		 process; do not modify it here. -->
 	<version

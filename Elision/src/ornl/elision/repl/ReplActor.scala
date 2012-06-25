@@ -76,6 +76,7 @@ object ReplActor extends Actor {
                 case ("disableGUIComs", flag : Boolean) =>
                     disableGUIComs = flag
                 case ":quit" =>
+                    if(guiMode)  guiActor ! "quit"
                     exit
 				case str : String =>
 					guiInput = str
