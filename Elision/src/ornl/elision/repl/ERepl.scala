@@ -190,7 +190,8 @@ class ERepl extends Processor {
 	//////////////////// GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",true)
-	, "formatting on")
+	, "formatting on") 
+//    ReplActor ! ("guiReplFormat", true, "formatting on")
 	//////////////////// end GUI changes
 	
     console.emitln(prefix + atom.toParseString)
@@ -198,7 +199,8 @@ class ERepl extends Processor {
 	//////////////////// GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",false)
-	, "formatting off")
+	, "formatting off") 
+//    ReplActor ! ("guiReplFormat", false, "formatting off")
 	//////////////////// end GUI changes
   }
   
@@ -361,7 +363,7 @@ class ERepl extends Processor {
     console.quiet = 0
     if (console.errors > 0) {
       console.error("Errors were detected during bootstrap.  Cannot continue.")
-     // ReplActor ! ":quit"
+    //  ReplActor ! ":quit"
       return
     }
     
@@ -373,7 +375,7 @@ class ERepl extends Processor {
       if (console.errors > 0) {
         console.error("Errors were detected processing " + _rc +
             ".  Cannot continue.")
-        //ReplActor ! ":quit"
+    //    ReplActor ! ":quit"
         return
       }
     }
@@ -417,6 +419,7 @@ class ERepl extends Processor {
       def fetchline(p1: String, p2: String): Boolean = {
       	//////////////////// GUI changes
 		segment = 	if (ReplActor.guiMode) {  
+                println()
 				print("" + (if (console.quiet > 0) p2 else p1))
 				
 				// make the Repl wait for GUI Input

@@ -50,8 +50,6 @@ object GUIActor extends Actor {
     treeBuilder.start
     var disableTreeBuilder = false
     
-    
-    
 	def act() = {
 		loop {
 			react {
@@ -81,6 +79,9 @@ object GUIActor extends Actor {
 				case ("replFormat", flag : Boolean) =>
 					mainGUI.consolePanel.tos.applyFormatting = flag
 					ornl.elision.repl.ReplActor ! ("wait", false)
+                case("replReduceLines", flag : Boolean) =>
+                    mainGUI.consolePanel.tos.reduceLines = flag
+                    ornl.elision.repl.ReplActor ! ("wait", false)
 				case msg => System.err.println("GUIActor received invalid message: " + msg) // discard anything else that comes into the mailbox.
 			}
 		}

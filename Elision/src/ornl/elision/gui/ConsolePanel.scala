@@ -62,13 +62,22 @@ class ConsolePanel extends ScrollPane {
 	//	wordWrap = true
 	//	lineWrap = true
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
+		font = ConsolePanel.font
 		editorKit = new javax.swing.text.html.HTMLEditorKit
 		text = """<div style="font-family:Lucida Console;font-size:12pt">Booting up..."""
 	}
 	ConsolePanel.textArea = console
 	
 	contents = console
+    
+    listenTo(this)
+    reactions += {
+        case re : event.UIElementResized =>
+            ConsolePanel.maxCols = (re.source.size.getWidth/ConsolePanel.charWidth).toInt - 3
+            ornl.elision.repl.ReplActor ! ("guiColumns", ConsolePanel.maxCols - 1)
+            //System.err.println("Console has been resized!" + ConsolePanel.maxCols)
+    }
+    
 
 	// execute the Elision REPL to run in another thread.
 	
@@ -89,6 +98,48 @@ class ConsolePanel extends ScrollPane {
 	repl.start
 
 }
+
+/** Contains some helpful constants used by the ConsolePanel, EditorPaneOutputStream, and EditorPaneInputStream. */
+object ConsolePanel {
+	/** If the Repl panel's maximum lines is set below this, then it will not enforce a maximum on the lines it retains.*/
+	val infiniteMaxLines = 10
+	
+	/** The maximum number of columns to enforce in the EditorPane*/
+	var maxCols = 80
+    
+    /** The maximum number of rows a single print command is allowed before being truncated. */
+    val printMaxRows = 20
+	
+	/** Just a reference to the ConsolePanel's EditorPane */
+	var textArea : EditorPane = null
+	
+	/** The maximum number of input strings to retain in the ConsolePanel's history. */
+	val MAX_HISTORY : Int = 20
+    
+    /** The console's font. */
+    val font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
+    
+    /** A constant for the width of a Lucida Console font character. */
+    val charWidth = {
+        val bi = new java.awt.image.BufferedImage(100,100, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        val gfx = bi.createGraphics
+        gfx.setFont(font)
+        val fm = gfx.getFontMetrics
+        fm.charWidth('m')
+    }
+	
+	/** gets the text of the EditorPane */
+	def getText() : String = {
+		val doc = textArea.peer.getDocument
+		doc.getText(0,doc.getLength)
+	}
+	
+	/** gets the length of the EditorPane's text. */
+	def getLength() : Int = {
+		textArea.peer.getDocument.getLength
+	}
+}
+
 
 /** A thread to run the REPL in */
 
@@ -122,6 +173,9 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	
 	/** flag for applying Elision formatting to output */
 	var applyFormatting = false
+    
+    /** flag for enforcing a maximum number of lines of output to be printed at one time. */
+    var reduceLines = true
 	
 	/** The position of the last output character in textArea. */
 	var anchorPos : Int = 0
@@ -170,7 +224,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 				if(applyFormatting) newTxt = EliSyntaxFormatting.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
 				else newTxt = EliSyntaxFormatting.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
 				newTxt = replaceWithHTML(newTxt)
-				if(applyFormatting) newTxt = reduceTo9Lines(newTxt)
+				if(applyFormatting && reduceLines) newTxt = reduceTo9Lines(newTxt)
 			}
 			
 			// append our processed new text to our previous output.
@@ -210,7 +264,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	def reduceTo9Lines(txt : String) : String = {
 		var lineBreakCount = 1
 		for(myMatch <- EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).matchData) {
-			if(lineBreakCount == 9) {
+			if(lineBreakCount == ConsolePanel.printMaxRows) {
 				var result = txt.take(myMatch.end)
 				var fontStartCount = EliSyntaxFormatting.htmlFontStartRegex.findAllIn(result).size
 				val fontEndCount = EliSyntaxFormatting.htmlFontEndRegex.findAllIn(result).size
@@ -263,7 +317,6 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		
 		result = result.replaceAllLiterally(" ","""&nbsp;""")
 		result = result.replaceAllLiterally("\t","""&nbsp;&nbsp;&nbsp;""")
-		//result = result.replaceAllLiterally("\n","""<br/>""")
 		
 		result
 	}
@@ -291,31 +344,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	}
 }
 
-/** Contains some helpful constants used by the ConsolePanel, EditorPaneOutputStream, and EditorPaneInputStream. */
-object ConsolePanel {
-	/** If the Repl panel's maximum lines is set below this, then it will not enforce a maximum on the lines it retains.*/
-	val infiniteMaxLines = 10
-	
-	/** The maximum number of columns to enforce in the EditorPane*/
-	val maxCols = 80
-	
-	/** Just a reference to the ConsolePanel's EditorPane */
-	var textArea : EditorPane = null
-	
-	/** The maximum number of input strings to retain in the ConsolePanel's history. */
-	val MAX_HISTORY : Int = 20
-	
-	/** gets the text of the EditorPane */
-	def getText() : String = {
-		val doc = textArea.peer.getDocument
-		doc.getText(0,doc.getLength)
-	}
-	
-	/** gets the length of the EditorPane's text. */
-	def getLength() : Int = {
-		textArea.peer.getDocument.getLength
-	}
-}
+
 
 
 /** 
@@ -667,12 +696,6 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 			// send the input String to the Repl's actor
 			println()
 			ornl.elision.repl.ReplActor ! inputString
-			
-		//	java.lang.System.in.read(inputString.getBytes,0,inputString.length)
-		
-		//	val isr = new InputStreamReader(bais)
-		//	val br = new BufferedReader(isr)
-		//	br.readLine
 		} catch {
 			case _ =>
 		}
