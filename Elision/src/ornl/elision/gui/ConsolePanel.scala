@@ -73,7 +73,7 @@ class ConsolePanel extends ScrollPane {
     listenTo(this)
     reactions += {
         case re : event.UIElementResized =>
-            ConsolePanel.maxCols = (re.source.size.getWidth/ConsolePanel.charWidth).toInt - 3
+            ConsolePanel.maxCols = (re.source.size.getWidth/ConsolePanel.charWidth).toInt - 4
             ornl.elision.repl.ReplActor ! ("guiColumns", ConsolePanel.maxCols - 1)
             //System.err.println("Console has been resized!" + ConsolePanel.maxCols)
     }
@@ -191,7 +191,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		try {
 			_write(new String(ba))
 		} catch {
-			case ioe : Exception => ioe.printStackTrace
+			case ioe : Throwable => ioe.printStackTrace
 		}
 	}
 	
@@ -205,7 +205,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		try {
 			_write(new String(ba,off,len))
 		} catch {
-			case ioe : Exception => ioe.printStackTrace
+			case ioe : Throwable => ioe.printStackTrace
 		}
 	}
 	
@@ -233,10 +233,11 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			
 			// apply a constant-width font to our entire EditorPane.
 			textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + readOnlyOutput
-			
+            
 			// update our anchor point and caret position.
 			anchorPos = ConsolePanel.getLength // readOnlyOutput.size // 
 			textArea.caret.position = anchorPos // textArea.text.length
+            
 		} catch {
 			case ioe : Exception => ioe.printStackTrace
 		}
@@ -469,9 +470,10 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			taos.anchorPos = ConsolePanel.getLength
 			
 			// store the input string in the history list.
-			
-			history.prepend(inputString) //.dropRight(1))
-			if(history.size > ConsolePanel.MAX_HISTORY) 	history.trimEnd(1)
+			if(inputString != "") {
+                history.prepend(inputString) //.dropRight(1))
+                if(history.size > ConsolePanel.MAX_HISTORY) 	history.trimEnd(1)
+            }
 			historyIndex = -1
 			
 			// send the input String to the Repl's actor

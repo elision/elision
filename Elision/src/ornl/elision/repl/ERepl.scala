@@ -76,6 +76,7 @@ class ERepl extends Processor {
   
 	//////////////////// GUI changes
     ReplActor.start
+    ReplActor.console = console
 	ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
