@@ -189,10 +189,11 @@ class OperatorLibrary(
  	 * description.  Operators whose name starts with an underscore are
  	 * skipped.
  	 * 
- 	 * @param app		The destination of the text.
- 	 * @param width	Width of the field.
+ 	 * @param app     The destination of the text.
+ 	 * @param width	  Width of the field.
+ 	 * @param apropos Only return operators whose description contains this string.
  	 */
- 	def help(app: Appendable, width: Int): Appendable = {
+ 	def help(app: Appendable, width: Int, apropos: String = ""): Appendable = {
  	  // Iterate over the operators and compute the longest description.
  	  val dlength =
  	    _nameToOperator.values.foldLeft(0)(_ max _.operator.description.length)
@@ -210,18 +211,21 @@ class OperatorLibrary(
  	    filter(!_.startsWith("_"))
  	  
  	  // Okay, now write details for each operator.
+ 	  val APROPOS = apropos.toUpperCase()
  	  keyorder.foreach {
  	    key =>
  	      val op = _nameToOperator(key).operator
- 	      app.append(' ').append(op.name).append(' ')
- 	      val pos = op.name.length + 2
- 	      if (pos >= dstart) {
- 	        app.append("\n  ")
- 	        app.append("."*(dstart-2))
- 	      } else {
- 	        app.append("."*(dstart-pos))
+ 	      if (op.description.toUpperCase().indexOf(APROPOS) >= 0) {
+   	      app.append(' ').append(op.name).append(' ')
+   	      val pos = op.name.length + 2
+   	      if (pos >= dstart) {
+   	        app.append("\n  ")
+   	        app.append("."*(dstart-2))
+   	      } else {
+   	        app.append("."*(dstart-pos))
+   	      }
+   	      app.append(' ').append(op.description).append('\n')
  	      }
- 	      app.append(' ').append(op.description).append('\n')
  	  }
  	  
  	  // Done.  The appendable is the value.
@@ -256,11 +260,13 @@ class OperatorLibrary(
  	  op match {
  	    case so:SymbolicOperator =>
 		 	  app.append("  ").append(toESymbol(op.name))
-		 	  app.append(so.params.mkParseString("(", ", ", ")")).append('\n')
+		 	  app.append(so.params.mkParseString("(", ", ", "): "))
+		 	  app.append(so.theType.toParseString).append('\n')
 		 	  app.append("  ").append(so.params.props.toHumaneString).append('\n')
  	    case co:CaseOperator =>
       	app.append("  ").append(toESymbol(op.name))
-      	app.append(" . (case)\n\nCases:\n")
+      	app.append(" . (cases) : ").append(co.theType.toParseString)
+      	app.append("\n\nCases:\n")
  	      for (cse <- co.cases) {
  	        app.append("  ").append(cse.toParseString).append('\n')
  	      } // Write cases.
