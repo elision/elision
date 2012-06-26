@@ -62,6 +62,13 @@ object ReplActor extends Actor {
     
     /** A flag that will skip GUI tree construction for RuleLibrary rewrites. */
     var disableRuleLibraryVis = false
+    
+    /** The current character width for the GUI repl, if a gui is being used. */
+    var guiColumns = 80
+    var guiRows = 20
+    
+    /** A reference to Elision's Console. */
+    var console : ornl.elision.core.Console = null
 	
 	/** 
 	 * The actor's act loop will wait to receive string input from the GUI. 
@@ -83,6 +90,10 @@ object ReplActor extends Actor {
 					waitingForGuiInput = false
 				case ("wait", flag : Boolean) =>
 					waitingForGuiInput = flag
+                case ("guiColumns", x : Int) =>
+                    guiColumns = x
+                    console.width_=(guiColumns)
+                    console.height_=(guiRows-1)
 				case _ => {}
 			}
 		}

@@ -37,15 +37,9 @@
 
 package ornl.elision.gui
 
-import swing._
-import swing.BorderPanel.Position._
 import concurrent.ops._
 import sys.process._
 import java.io._
-import java.awt.Color
-import java.awt.Dimension
-
-import sage2D._
 
 import scala.actors.Actor
 
@@ -56,28 +50,12 @@ object GUIActor extends Actor {
     treeBuilder.start
     var disableTreeBuilder = false
     
-    
-    
 	def act() = {
 		loop {
 			react {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
                     if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args) // processTreeBuilderCommands(cmd, args)
-				/* case root : ornl.elision.core.RWTreeNode => 
-					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
-					
-					mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					mainGUI.treeVisPanel.treeSprite = TreeSprite.buildRWTree(root)
-					
-					// once the tree visualization is built, select its root node and center the camera on it.
-					
-					mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
-					mainGUI.treeVisPanel.camera.reset
-					
-					mainGUI.treeVisPanel.isLoading = false
-				*/
 				case selFile : java.io.File => 
 					// The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
 					if(!disableTreeBuilder) mainGUI.treeVisPanel.isLoading = true
@@ -101,6 +79,9 @@ object GUIActor extends Actor {
 				case ("replFormat", flag : Boolean) =>
 					mainGUI.consolePanel.tos.applyFormatting = flag
 					ornl.elision.repl.ReplActor ! ("wait", false)
+                case("replReduceLines", flag : Boolean) =>
+                    mainGUI.consolePanel.tos.reduceLines = flag
+                    ornl.elision.repl.ReplActor ! ("wait", false)
 				case msg => System.err.println("GUIActor received invalid message: " + msg) // discard anything else that comes into the mailbox.
 			}
 		}

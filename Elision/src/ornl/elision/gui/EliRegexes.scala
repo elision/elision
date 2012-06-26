@@ -466,9 +466,10 @@ object EliSyntaxFormatting {
 	 * @param text					The parse string to which we are applying HTML tags for Elision formatting.
 	 * @param disableHighlight		Disables coloring tags if true.
 	 * @param maxCols				The character width of the component the parse string is going to be displayed in. 
+     * @param applyTabs             A flag for inserting indentations. Some REPL output is already indented. This should be false for that kind of text.
 	 * @return						The parse string with HTML tags inserted for Elision formatting.
 	 */
-	def applyHTMLHighlight(text : String, disableHighlight : Boolean = true, maxCols : Int = 50) : String = {
+	def applyHTMLHighlight(text : String, disableHighlight : Boolean = true, maxCols : Int = 50, applyTabs : Boolean = true) : String = {
 		var result = text
 		
 		// inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
@@ -486,7 +487,7 @@ object EliSyntaxFormatting {
 			applyElisionRegexes(text, 0, starts, colors, ends)
 			
 			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-			val (breaks, tabs) = enforceLineWrap(text,maxCols)
+			val (breaks, tabs) = if(applyTabs) enforceLineWrap(text,maxCols) else (enforceLineWrapWithNoTabs(text,maxCols), new ListBuffer[Int])
 			
 			// insert all of our <font></font> and <br/> tags in their appropriate places.
 			while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty || !tabs.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
@@ -539,7 +540,7 @@ object EliSyntaxFormatting {
 			}
 		} else { // we still need to enforce line breaks even if we're not highlighting anything.
 			// obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-			val (breaks, tabs) = enforceLineWrap(text,maxCols)
+			val (breaks, tabs) = if(applyTabs) enforceLineWrap(text,maxCols) else (enforceLineWrapWithNoTabs(text,maxCols), new ListBuffer[Int])
 			
 			// insert the line breaks.
 			while(!breaks.isEmpty || !tabs.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
@@ -587,7 +588,7 @@ object EliSyntaxFormatting {
 	
 	
 	/** 
-	 * Only replaces < > with &lt; &gt; respectively. 
+	 * Only replaces < > with &lt; &gt; respectively. Also does lines breaks. 
 	 * @param text		The parse string we are converting to be HTML-friendly.
      * @param maxCols	The character width of the component the parse string is going to be displayed in. 
 	 * @return 			The parse string with < > characters replaced with &lt; &gt; respectively. 
