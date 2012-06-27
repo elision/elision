@@ -119,6 +119,9 @@ object ConsolePanel {
     /** The console's font. */
     val font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
     
+    /** Holds the Elision Repl's response for the ConsolePanel's last getHistory message. */
+    var reGetHistory : Any = None
+    
     /** A constant for the width of a Lucida Console font character. */
     val charWidth = {
         val bi = new java.awt.image.BufferedImage(100,100, java.awt.image.BufferedImage.TYPE_INT_ARGB)
@@ -361,7 +364,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 	val history = new scala.collection.mutable.ListBuffer[String]
 	
 	/** The current index into the history collection. -1 means we aren't using anything from history as input. */
-	var historyIndex : Int = -1
+	var historyIndex : Int = 0
 	
 	textArea.listenTo(textArea.keys)
 	textArea.reactions += {
@@ -377,10 +380,10 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 		case e : swing.event.KeyPressed => {
 			// the up/down arrow keys can be used to cycle through the input history.
 			if(e.key == swing.event.Key.Up) {
-				getHistory(1)
+				getHistory(-1)
 			}
 			if(e.key == swing.event.Key.Down) {
-				getHistory(-1)
+				getHistory(1)
 			}
 			// prevent the user from moving the caret past the prompt string
 			if(e.key == swing.event.Key.Left) {
@@ -427,15 +430,39 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 	 * @param index		An integer in range [-1,1] telling the history which direction to cycle. 1 means go back 1, -1 means go forward 1.
 	 */
 	def getHistory(index : Int) : Unit = {
-		val i = index/math.abs(index) // normalize i so that we can only increment by magnitudes of 1 at a time.
-	
-		historyIndex += i
+		val i = if(index != 0) index/math.abs(index) else 0// normalize i so that we can only increment by magnitudes of 1 at a time.
+	//	historyIndex += i
+	//	historyIndex = math.max(-1, historyIndex) //math.max(-1, math.min(history.size - 1, historyIndex))
 		
-		var newInput = ""
-		
-		historyIndex = math.max(-1, math.min(history.size - 1, historyIndex))
-		if(historyIndex >= 0)
-			newInput = EliSyntaxFormatting.applyMinHTML(history(historyIndex))
+        var newInput = ""
+        
+    /*    //newInput = history(historyIndex)
+        GUIActor.waitOnREPL(() => 
+            GUIActor ! ("Repl",("getHistory", historyIndex))
+        , "requesting history index " + historyIndex + " from REPL.")
+        
+        ConsolePanel.reGetHistory match {
+            case (None, histSize : Int) =>
+                if(historyIndex >= histSize) historyIndex = 0
+                if(historyIndex < 0) {
+                    historyIndex = math.max(0,histSize)
+                    getHistory(0)
+                    return
+                }
+            case (str : String, histSize : Int) =>
+                newInput = str
+        }*/
+        
+        GUIActor.waitOnREPL(() => 
+            GUIActor ! ("Repl",("getHistory", i))
+        , "requesting history from REPL.")
+        
+        ConsolePanel.reGetHistory match {
+            case (None, histSize : Int) =>
+            case (str : String, histSize : Int) =>
+                newInput = str
+        }
+        
 		
 		textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + taos.readOnlyOutput + newInput
 		textArea.caret.visible = false
@@ -471,10 +498,11 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			
 			// store the input string in the history list.
 			if(inputString != "") {
-                history.prepend(inputString) //.dropRight(1))
-                if(history.size > ConsolePanel.MAX_HISTORY) 	history.trimEnd(1)
+                // history.prepend(inputString) //.dropRight(1))
+                //if(history.size > ConsolePanel.MAX_HISTORY) 	history.trimEnd(1)
+                GUIActor ! ("Repl", ("addHistory", inputString))
             }
-			historyIndex = -1
+			historyIndex = 0
 			
 			// send the input String to the Repl's actor
 			println()
@@ -659,9 +687,13 @@ class TextAreaInputStream( var taos : TextAreaOutputStream) {
 		
 		var newInput = ""
 		
-		historyIndex = math.max(-1, math.min(history.size - 1, historyIndex))
-		if(historyIndex >= 0)
-			newInput = history(historyIndex)
+		historyIndex = math.max(-1, historyIndex) //math.max(-1, math.min(history.size - 1, historyIndex))
+		if(historyIndex >= 0) {
+			//newInput = history(historyIndex)
+            
+            GUIActor ! ("Repl",("getHistory",historyIndex))
+            
+        }
 		
 		textArea.text = taos.readOnlyOutput + newInput
 		textArea.caret.visible = false
