@@ -76,7 +76,7 @@ class ERepl extends Processor {
   
 	//////////////////// GUI changes
     ReplActor.start
-    ReplActor.console = console
+    ReplActor.peer = this
 	ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
@@ -155,9 +155,14 @@ class ERepl extends Processor {
   }
   
   override def getHistoryEntry(index: Int) = {
-    _hist.get(index) match {
-      case null => None
-      case x:Any => Some(x.toString)
+    try { 
+        _hist.get(index) match {
+            case null => None
+            case x:Any => Some(x.toString)
+        }
+    }
+    catch {
+        case _ => None
     }
   }
   
