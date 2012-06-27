@@ -44,7 +44,7 @@ import util.matching._
 object EliRegexes {
 	val multilineComment = new Regex("""(/\*(\n|.)+?\*/)""",
 		"all")
-	val singlelineComment = new Regex("""(//.*\n)""",
+	val singlelineComment = new Regex("""(//.*(\n|))""",
 		"all")
 	val verbatim = new Regex("""((\"\"\"(\n|.)*?\"\"\"))""",				
 		"all")

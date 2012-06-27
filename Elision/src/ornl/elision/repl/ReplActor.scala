@@ -67,8 +67,8 @@ object ReplActor extends Actor {
     var guiColumns = 80
     var guiRows = 20
     
-    /** A reference to Elision's Console. */
-    var console : ornl.elision.core.Console = null
+    /** A reference to Elision's REPL. */
+    var peer : ornl.elision.repl.ERepl = null
 	
 	/** 
 	 * The actor's act loop will wait to receive string input from the GUI. 
@@ -92,14 +92,29 @@ object ReplActor extends Actor {
 					waitingForGuiInput = flag
                 case ("guiColumns", x : Int) =>
                     guiColumns = x
-                    console.width_=(guiColumns)
-                    console.height_=(guiRows-1)
+                    peer.console.width_=(guiColumns)
+                    peer.console.height_=(guiRows-1)
+                case ("getHistory", index : Int) =>
+                /*    peer.getHistoryEntry(index) match {
+                        case None => guiActor ! ("reGetHistory", None, peer._hist.getCurrentIndex)
+                        case Some(str : String) => guiActor ! ("reGetHistory", str, peer._hist.getCurrentIndex)
+                        case _ =>
+                    }
+                    */
+                    if(index == -1) peer._hist.previous
+                    if(index == 1) peer._hist.next
+                    peer._hist.current match {
+                        case str : String => guiActor ! ("reGetHistory", str, peer._hist.size)
+                        case _ => guiActor ! ("reGetHistory", None, peer._hist.size)
+                    }
+                case ("addHistory", str : String) =>
+                    peer.addHistoryLine(str)
 				case _ => {}
 			}
 		}
 	}
 	
-	/** forces the current thread to wait for the GUI to finish doing something. */
+	/** forces the calling thread to wait for the GUI to finish doing something. */
 	def waitOnGUI(doStuff : () => Unit = null, msg : String = null) : Unit = {
 		waitingForGuiInput = true
 		if(doStuff != null) doStuff()

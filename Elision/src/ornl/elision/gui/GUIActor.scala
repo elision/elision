@@ -46,13 +46,28 @@ import scala.actors.Actor
 /** The Actor object used to receive and process communications from the REPL */
 object GUIActor extends Actor {
     
+    /** A reference to the GUI's TreeBuilder. */
     val treeBuilder = new TreeBuilder
     treeBuilder.start
+    
+    /** Flag for temporarily disabling the TreeBuilder. */
     var disableTreeBuilder = false
+    
+    /** A flag used by the GUI to determine if this actor is awaiting some sort of response from the REPL. Be careful with this. */
+    var waitingForReplInput = false
+    
+    /** Flag for telling waitOnREPL to display messages about what it's waiting on. */
+    var verbose = false
     
 	def act() = {
 		loop {
 			react {
+                case ("Repl", args : Any) => 
+                    // forward a message to the REPL
+                    ornl.elision.repl.ReplActor ! args
+                case ("reGetHistory", result : Any, histSize : Int) =>
+                    ConsolePanel.reGetHistory = (result, histSize)
+                    waitingForReplInput = false
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
                     if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args) // processTreeBuilderCommands(cmd, args)
@@ -84,6 +99,17 @@ object GUIActor extends Actor {
                     ornl.elision.repl.ReplActor ! ("wait", false)
 				case msg => System.err.println("GUIActor received invalid message: " + msg) // discard anything else that comes into the mailbox.
 			}
+		}
+	}
+    
+    
+    /** forces the calling thread to wait for the REPL to finish doing something. */
+	def waitOnREPL(doStuff : () => Unit = null, msg : String = null) : Unit = {
+		waitingForReplInput = true
+		if(doStuff != null) doStuff()
+		while(waitingForReplInput) {
+			if(verbose && msg != null) System.err.println("waiting on the REPL: " + msg)
+			Thread.sleep(20) // sleep until the GUI receives input from the REPL
 		}
 	}
 }
