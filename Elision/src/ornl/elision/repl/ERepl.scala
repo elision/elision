@@ -76,6 +76,7 @@ class ERepl extends Processor {
   
 	//////////////////// GUI changes
     ReplActor.start
+    ReplActor.peer = this
 	ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
@@ -154,9 +155,14 @@ class ERepl extends Processor {
   }
   
   override def getHistoryEntry(index: Int) = {
-    _hist.get(index) match {
-      case null => None
-      case x:Any => Some(x.toString)
+    try { 
+        _hist.get(index) match {
+            case null => None
+            case x:Any => Some(x.toString)
+        }
+    }
+    catch {
+        case _ => None
     }
   }
   
@@ -190,7 +196,8 @@ class ERepl extends Processor {
 	//////////////////// GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",true)
-	, "formatting on")
+	, "formatting on") 
+//    ReplActor ! ("guiReplFormat", true, "formatting on")
 	//////////////////// end GUI changes
 	
     console.emitln(prefix + atom.toParseString)
@@ -198,7 +205,8 @@ class ERepl extends Processor {
 	//////////////////// GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",false)
-	, "formatting off")
+	, "formatting off") 
+//    ReplActor ! ("guiReplFormat", false, "formatting off")
 	//////////////////// end GUI changes
   }
   
@@ -441,6 +449,7 @@ class ERepl extends Processor {
       def fetchline(p1: String, p2: String): Boolean = {
       	//////////////////// GUI changes
 		segment = 	if (ReplActor.guiMode) {  
+                println()
 				print("" + (if (console.quiet > 0) p2 else p1))
 				
 				// make the Repl wait for GUI Input

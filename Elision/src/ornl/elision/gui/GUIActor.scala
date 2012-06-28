@@ -37,47 +37,40 @@
 
 package ornl.elision.gui
 
-import swing._
-import swing.BorderPanel.Position._
 import concurrent.ops._
 import sys.process._
 import java.io._
-import java.awt.Color
-import java.awt.Dimension
-
-import sage2D._
 
 import scala.actors.Actor
 
 /** The Actor object used to receive and process communications from the REPL */
 object GUIActor extends Actor {
     
+    /** A reference to the GUI's TreeBuilder. */
     val treeBuilder = new TreeBuilder
     treeBuilder.start
+    
+    /** Flag for temporarily disabling the TreeBuilder. */
     var disableTreeBuilder = false
     
+    /** A flag used by the GUI to determine if this actor is awaiting some sort of response from the REPL. Be careful with this. */
+    var waitingForReplInput = false
     
+    /** Flag for telling waitOnREPL to display messages about what it's waiting on. */
+    var verbose = false
     
 	def act() = {
 		loop {
 			react {
+                case ("Repl", args : Any) => 
+                    // forward a message to the REPL
+                    ornl.elision.repl.ReplActor ! args
+                case ("reGetHistory", result : Any, histSize : Int) =>
+                    ConsolePanel.reGetHistory = (result, histSize)
+                    waitingForReplInput = false
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
                     if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args) // processTreeBuilderCommands(cmd, args)
-				/* case root : ornl.elision.core.RWTreeNode => 
-					// The actor reacts to RWTreeNodes by constructing a tree visualization of it in the TreeVisPanel.
-					
-					mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					mainGUI.treeVisPanel.treeSprite = TreeSprite.buildRWTree(root)
-					
-					// once the tree visualization is built, select its root node and center the camera on it.
-					
-					mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
-					mainGUI.treeVisPanel.camera.reset
-					
-					mainGUI.treeVisPanel.isLoading = false
-				*/
 				case selFile : java.io.File => 
 					// The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
 					if(!disableTreeBuilder) mainGUI.treeVisPanel.isLoading = true
@@ -101,8 +94,22 @@ object GUIActor extends Actor {
 				case ("replFormat", flag : Boolean) =>
 					mainGUI.consolePanel.tos.applyFormatting = flag
 					ornl.elision.repl.ReplActor ! ("wait", false)
+                case("replReduceLines", flag : Boolean) =>
+                    mainGUI.consolePanel.tos.reduceLines = flag
+                    ornl.elision.repl.ReplActor ! ("wait", false)
 				case msg => System.err.println("GUIActor received invalid message: " + msg) // discard anything else that comes into the mailbox.
 			}
+		}
+	}
+    
+    
+    /** forces the calling thread to wait for the REPL to finish doing something. */
+	def waitOnREPL(doStuff : () => Unit = null, msg : String = null) : Unit = {
+		waitingForReplInput = true
+		if(doStuff != null) doStuff()
+		while(waitingForReplInput) {
+			if(verbose && msg != null) System.err.println("waiting on the REPL: " + msg)
+			Thread.sleep(20) // sleep until the GUI receives input from the REPL
 		}
 	}
 }
