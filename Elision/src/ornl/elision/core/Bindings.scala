@@ -77,6 +77,9 @@ extends HashMap[String, BasicAtom] with Mutable {
   
   /** This is a cache used during associative / commutative matching. */
   private var _subcache: OmitSeq[BasicAtom] = null
+
+  /** Construct an empty binding. */
+  def this() = this(HashMap[String,BasicAtom]())
   
   /**
    * Cache a list of patterns and subjects here.  This is useful during the

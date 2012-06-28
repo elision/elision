@@ -1,13 +1,17 @@
 CHANGES
 =======
 
-Version 0.2 to Version 0.1
+Version 0.2 to Version 0.3
+--------------------------
+* The system now supports specifying commands to execute on startup through the
+  new ornl.elision.Main class.  The commands must be defined in the system's
+  configuration.xml file, and can be abbreviated.
+* Elision now includes the kryo library for serializing and reloading contexts.
+
+Version 0.1 to Version 0.2
 --------------------------
 * No significant changes.  The version number was bumped for the release
   of FX2, which uses Elision.
-
-Version 0.1 to Current
-----------------------
 * There is now a pager ("more") automatically used when output exceeds the
   screen size.
 * Bug fixes for handling of "quiet."

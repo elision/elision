@@ -44,11 +44,10 @@ dir=`dirname $0`
 val=`for file in \`find $dir/lib -name '*.jar'\` ; do \
   echo -n $file":"; \
   done`"$dir/bin"
+if [ ! -z $CLASSPATH ] ; then val="${val}:$CLASSPATH" ; fi
 
 # Now start a Scala interpreter with the classpath.
-scala \
-	-i \
-	-cp $val
+env CLASSPATH="$val" scala -i
 
 # Done.  We exit with the exit value from the scala command.
 exit $?

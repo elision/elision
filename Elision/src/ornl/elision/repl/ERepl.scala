@@ -342,6 +342,57 @@ class ERepl extends Processor {
   // Methods.
   //======================================================================
   
+  /**
+   * The file to load during bootstrapping.  This is the file loaded first
+   * by `bootstrap` and must define everything needed by subsequent files
+   * (most notably the operator and rule declaration operators, any I/O
+   * operators, and any operators for including other files).
+   */
+  val bootstrapFile = "bootstrap/Boot.eli"
+  
+  /**
+   * Perform bootstrapping.  This loads the file specified by `bootstrapFile`
+   * and then tries to load the user's `.elisionrc` file (or another file,
+   * depending on environment variables).
+   * 
+   * @param quiet   Quiet level when loading files.  This is 1 by default.
+   * @return  True on success, and false when a failure is reported.
+   */
+  def bootstrap(quiet: Int = 1): Boolean = {
+    // Load all the startup definitions, etc.
+    console.reset
+    console.quiet = quiet
+    if (!read("bootstrap/Boot.eli", false)) {
+      // Failed to find bootstrap file.  Stop.
+      console.error("Unable to load bootstrap/Boot.eli.  Cannot continue.")
+    //  ReplActor ! ":quit"
+      return false
+    }
+    console.quiet = 0
+    if (console.errors > 0) {
+      console.error("Errors were detected during bootstrap.  Cannot continue.")
+     // ReplActor ! ":quit"
+      return false
+    }
+    
+    // User stuff.
+    console.reset
+    console.quiet = quiet
+    console.emitln("Reading " + _rc + " if present...")
+    if (read(_rc, true)) {
+      if (console.errors > 0) {
+        console.error("Errors were detected processing " + _rc +
+            ".  Cannot continue.")
+        //ReplActor ! ":quit"
+        return false
+      }
+    }
+    console.quiet = 0
+    
+    // No reported errors.
+    return true
+  }
+  
   def run() {
     // Display the banner.
     banner()
@@ -350,34 +401,7 @@ class ERepl extends Processor {
     startTimer
 
     // Load all the startup definitions, etc.
-    console.reset
-    console.quiet = 1
-    if (!read("bootstrap/Boot.eli", false)) {
-      // Failed to find bootstrap file.  Stop.
-      console.error("Unable to load bootstrap/Boot.eli.  Cannot continue.")
-    //  ReplActor ! ":quit"
-      return
-    }
-    console.quiet = 0
-    if (console.errors > 0) {
-      console.error("Errors were detected during bootstrap.  Cannot continue.")
-     // ReplActor ! ":quit"
-      return
-    }
-    
-    // User stuff.
-    console.reset
-    console.quiet = 1
-    console.emitln("Reading " + _rc + " if present...")
-    if (read(_rc, true)) {
-      if (console.errors > 0) {
-        console.error("Errors were detected processing " + _rc +
-            ".  Cannot continue.")
-        //ReplActor ! ":quit"
-        return
-      }
-    }
-    console.quiet = 0
+    if (!bootstrap()) return
     
     // Report startup time.
     stopTimer
