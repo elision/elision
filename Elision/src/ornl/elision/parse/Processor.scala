@@ -84,9 +84,12 @@ with HasHistory {
   
   /**
    * Display the banner, version, and build information on the current
-   * console using the `emitln` method of the console.
+   * console using the `emitln` method of the console.  This will also
+   * record session information in the history file, if enabled.
+   * 
+   * @param history If true (default), log the start of the session.
    */
-  protected def banner() {
+  def banner(history: Boolean = true) {
     import ornl.elision.Version._
     console.emitln(
         """|      _ _     _
@@ -98,12 +101,14 @@ with HasHistory {
 					 |Copyright (c) 2012 by UT-Battelle, LLC.
 					 |All rights reserved.""".stripMargin)
     if (loaded) {
-      addHistoryLine("// New Session: " + new java.util.Date +
-          " Running: " + major + "." + minor + ", build " + build)
+      if (history)
+        addHistoryLine("// New Session: " + new java.util.Date +
+            " Running: " + major + "." + minor + ", build " + build)
     	console.emitln("Version " + major + "." + minor + ", build " + build)
     	console.emitln("Web " + web)
     } else {
-      addHistoryLine("// New Session: " + new java.util.Date)
+      if (history)
+        addHistoryLine("// New Session: " + new java.util.Date)
       console.emitln("Failed to load version information.")
     }
   }
