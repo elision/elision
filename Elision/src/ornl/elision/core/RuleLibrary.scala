@@ -606,6 +606,8 @@ extends Fickle with Mutable {
   private def getRuleList(atom: BasicAtom) = atom match {
     case Apply(op:Operator, _) =>
       _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
+    case Apply(OperatorRef(op), _) =>
+      _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
     case _ =>
 	    _kind2rules.getOrElseUpdate(atom.getClass(),
 	        ListBuffer[(BitSet, RewriteRule)]())
