@@ -447,6 +447,8 @@ class ERepl extends Processor {
       // A little function to prompt for, and read, the next segment.  The
       // segment is accumulated into the line. 
       def fetchline(p1: String, p2: String): Boolean = {
+        Processor.fileReadStack.clear
+        Processor.fileReadStack.push("Console")
       	//////////////////// GUI changes
 		segment = 	if (ReplActor.guiMode) {  
                 println()

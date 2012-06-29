@@ -139,7 +139,9 @@ with HasHistory {
         if (!quiet) console.error("File not found: " + filename)
         false
       case Some(reader) =>
-        read(scala.io.Source.fromInputStream(reader))
+        Processor.fileReadStack.push(filename)
+        read(scala.io.Source.fromInputStream(reader), filename)
+        Processor.fileReadStack.pop
         true
     }
   }
@@ -205,20 +207,16 @@ with HasHistory {
     }
 	
 	//////////////////// GUI changes
-	
 	// Create the root of our rewrite tree it contains a String of the REPL input.
 //	ReplActor ! ("Eva", "newTree", lline) // val treeRoot = RWTree.createNewRoot(lline) 
-	
 	//////////////////// end GUI changes
 	
     _execute(_parser.parseAtoms(lline))
 	
 	//////////////////// GUI changes
-	
 	// send the completed rewrite tree to the GUI's actor
 //	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
 //		ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
-	
 	//////////////////// end GUI changes
   }
   
@@ -493,4 +491,12 @@ object Processor {
      */
     def result(atom: BasicAtom) {}
   }
+  
+  /** 
+   * A stack used to keep track of the current file we are loading operators from. 
+   * We use a stack here since we might access another file using operators such as inc(). 
+   * So this allows us to revert back to our previous file once we finish with an inc() instruction.
+   */
+  val fileReadStack = new collection.mutable.ArrayStack[String]
+  fileReadStack.push("Console")
 }
