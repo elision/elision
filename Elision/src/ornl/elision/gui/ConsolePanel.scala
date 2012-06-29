@@ -318,6 +318,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		
 		result = result.replaceAllLiterally(" ","""&nbsp;""")
 		result = result.replaceAllLiterally("\t","""&nbsp;&nbsp;&nbsp;""")
+     //   result = result.replaceAllLiterally("\n","""<BR/>""")
 		
 		result
 	}
