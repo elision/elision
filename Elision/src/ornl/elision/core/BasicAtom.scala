@@ -363,8 +363,12 @@ abstract class BasicAtom {
     // The match attempt is starting.  Write out information about the
     // attempted match.
     printf("TRYING  (%x) in %s: ", what, this.getClass.getName())
-    println(this.toParseString + " ~> " +
+    print(this.toParseString + " ~> " +
         subject.toParseString + " " + binds.toParseString)
+    if (hints != None) {
+      print(" HINT:"+hints)
+    }
+    println()
         
     // Perform the match.
     val outcome = doMatch(subject, binds, hints)

@@ -82,29 +82,29 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   
   def rewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "Apply rewrite")
-	// top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: ")) //val rwNode = RWTree.addToCurrent("Apply rewrite: ")
+    // top node of this subtree
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: ")) //val rwNode = RWTree.addToCurrent("Apply rewrite: ")
 
-	ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ")) // RWTree.current = RWTree.addTo(rwNode, "Operator: ", op)
+    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ")) // RWTree.current = RWTree.addTo(rwNode, "Operator: ", op)
     ReplActor ! ("Eva", "addTo", ("op", "op", op))
     ReplActor ! ("Eva", "setSubroot", "op")
     val (nop, nof) = op.rewrite(binds)
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ")) //RWTree.current = RWTree.addTo(rwNode, "Argument: ", arg)
+    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ")) //RWTree.current = RWTree.addTo(rwNode, "Argument: ", arg)
     ReplActor ! ("Eva", "addTo", ("arg", "arg", arg))
     ReplActor ! ("Eva", "setSubroot", "arg")
     val (narg, naf) = arg.rewrite(binds)
 	
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
     if (nof || naf) {
-		val newApply = Apply(nop, narg)
-		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) // RWTree.addTo(rwNode,newApply)
-        
-        ReplActor ! ("Eva", "popTable", "Apply rewrite")
-		(newApply, true) 
-	} else { 
-        ReplActor ! ("Eva", "popTable", "Apply rewrite")
-        (this, false)
+  		val newApply = Apply(nop, narg)
+  		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) // RWTree.addTo(rwNode,newApply)
+          
+  		ReplActor ! ("Eva", "popTable", "Apply rewrite")
+  		(newApply, true) 
+  	} else { 
+      ReplActor ! ("Eva", "popTable", "Apply rewrite")
+      (this, false)
     }
   }
   

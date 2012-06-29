@@ -56,7 +56,7 @@ import ornl.elision.core._
  * @param op				The operator, if known.
  */
 class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
-    op: Option[Operator]) extends Iterator[OmitSeq[BasicAtom]] {
+    op: Option[OperatorRef]) extends Iterator[OmitSeq[BasicAtom]] {
   /** Whether this iterator is exhausted. */
   private var _exhausted = false
   
