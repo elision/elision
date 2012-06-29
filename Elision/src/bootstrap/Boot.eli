@@ -158,9 +158,9 @@ decl.
   }
   _no_show
 """
-#description="Print the given string and a newline."
+#description="Print the given string."
 #detail=
-"Print the provided string literal to the console followed by a newline."
+"Print the provided string literal to the console."
 }
 
 decl.
@@ -173,8 +173,8 @@ decl.
   }
   _no_show
 """
-#description="Print the given string."
-#detail="Print the provided string literal to the console."
+#description="Print the given string and a newline."
+#detail="Print the provided string literal to the console followed by a newline."
 }
 
 inc("bootstrap/Type.eli")
