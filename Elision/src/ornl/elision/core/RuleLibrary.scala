@@ -49,6 +49,13 @@ import ornl.elision.repl.ReplActor
 class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 
 /**
+ * Indicate an attempt to add an identity rule.
+ * 
+ * @param msg   A human-readable message.
+ */
+class IdentityRuleException(msg: String) extends ElisionException(msg)
+
+/**
  * A ruleset reference.
  */
 abstract class RulesetRef extends BasicAtom with Rewriter {
@@ -586,6 +593,11 @@ extends Fickle with Mutable {
    * 					and undeclared rulesets are not allowed.
    */
   private def doAdd(rule: RewriteRule) = {
+    // Make sure the rule is not (or does not appear to be) an identity.
+    if (rule.pattern == rule.rewrite) {
+      throw new IdentityRuleException("The rule " + rule.toParseString +
+          " appears to be an identity.  It cannot be added to the system.")
+    }
     // Figure out what rulesets this rule is in.  We build the bitset here.
     val bits = new BitSet()
     for (rs <- rule.rulesets) bits += getRulesetBit(rs)
