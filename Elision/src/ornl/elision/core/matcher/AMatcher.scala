@@ -53,7 +53,7 @@ object AMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
-      op: Option[Operator]): Outcome = {
+      op: Option[OperatorRef]): Outcome = {
     // Check the length.
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
@@ -68,7 +68,14 @@ object AMatcher {
       
     // If there is exactly one pattern then match it immediately.
     if (plist.atoms.length == 1) {
-      return plist.atoms(0).tryMatch(slist, binds)
+      // If there is an operator, apply it to the subjects, then try to match
+      // the single pattern against the result.
+      return plist.atoms(0).tryMatch(op match {
+        case Some(opref) =>
+          Apply(opref, slist)
+        case None =>
+          slist
+      }, binds)
     }
       
     // We need to group the atoms so there is the same number of patterns and
@@ -151,7 +158,7 @@ object AMatcher {
    * @param binds			Bindings to honor.
    */
   private class AMatchIterator(patterns: AtomSeq, subjects: AtomSeq,
-      binds: Bindings, op: Option[Operator]) extends MatchIterator {
+      binds: Bindings, op: Option[OperatorRef]) extends MatchIterator {
     /** An iterator over all groupings of the subjects. */
     private val _groups = new GroupingIterator(patterns, subjects, op)
     

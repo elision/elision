@@ -17,6 +17,15 @@
       margin: 0;
     }
   </style>
+<script>
+  function ShowHideContent(elem,contentId){
+    var con = document.getElementById(contentId);
+    var isHidden = ( con.style.display == "none" );
+    this.innerHTML = (isHidden)?"Hide Content":"Show Content";
+    con.style.display = (isHidden)?"block":"none";
+    con=null;
+  }
+</script>
     <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"><title>Elision</title>
     
     <meta content="SJP" name="author">
@@ -68,6 +77,8 @@ documentation, please check the <a href="https://github.com/elision/elision/issu
         licenses for structure101.</p>
 
     <hr style="width: 100%; height: 2px;">
+<span onclick="ShowHideContent(this, 'gg');"><p><b>Latest Activity on Google Group elision-dev</b> (Click to show/hide.)</p></span>
+<div id="gg" style="display:none">
 <iframe id="forum_embed"
   src="javascript:void(0)"
   scrolling="no"
@@ -81,11 +92,15 @@ documentation, please check the <a href="https://github.com/elision/elision/issu
      + '&showsearch=true&showpopout=true&showtabs=false'
      + '&parenturl=' + encodeURIComponent(window.location.href);
 </script> 
+</div>
     <hr style="width: 100%; height: 2px;">
-<p><b>Most Recent Commits on GitHub</b> (Takes a few seconds to load...)</a>
+<span onclick="ShowHideContent(this,'github');"><p><b>Most Recent Commits on GitHub</b> (Click to show/hide.)</a></span>
+<div id="github" style="display:none">
+<p>Latest Commits on GitHub elision/elision.  (Takes a few seconds to load...)</p>
 <script src='http://gitlive.com/githublive.min.js'></script>
 <script>var GithubPush = {num_old:5,nodes:['elision/elision']}</script>
 <div id='commits'></div>
+</div>
     <hr style="width: 100%; height: 2px;">
     <p><small>Elision is Copyright © @YEAR@ by UT-Battelle, LLC,
         all rights reserved.&nbsp; Elision is distributed
