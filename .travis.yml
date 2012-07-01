@@ -5,5 +5,5 @@ scala:
 jdk:
   - openjdk7
   - openjdk6
-script: "cd Elision ; ant all"
+script: "cd Elision ; env SCALA_HOME=scala -e 'println(sys.props(\"scala.home\"))' ant all"
 
