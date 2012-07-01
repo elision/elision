@@ -54,7 +54,7 @@ object ACMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
-      op: Option[Operator]): Outcome = {
+      op: Option[OperatorRef]): Outcome = {
     // Check the length.
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
@@ -76,7 +76,14 @@ object ACMatcher {
       
     // If there is exactly one pattern then match it immediately.
     if (plist.length == 1) {
-      return plist.atoms(0).tryMatch(slist, binds)
+      // If there is an operator, apply it to the subjects, then try to match
+      // the single pattern against the result.
+      return plist.atoms(0).tryMatch(op match {
+        case Some(opref) =>
+          Apply(opref, slist)
+        case None =>
+          slist
+      }, binds)
     }
       
     // Step one is to perform constant elimination.  Any constants must match
@@ -119,7 +126,7 @@ object ACMatcher {
    */
   
   private class ACMatchIterator(patterns: AtomSeq, subjects: AtomSeq,
-      binds: Bindings, op: Option[Operator]) extends MatchIterator {
+      binds: Bindings, op: Option[OperatorRef]) extends MatchIterator {
     /** An iterator over all permutations of the subjects. */
     private val _perms = subjects.atoms.permutations
 

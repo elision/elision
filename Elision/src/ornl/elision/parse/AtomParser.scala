@@ -1129,12 +1129,12 @@ class AtomParser(val context: Context, val trace: Boolean = false,
     	val tr =
     			if (trace) TracingParseRunner(AtomSeq)
     			else ReportingParseRunner(AtomSeq)
-		val parsingResult = tr.run(line)
-		parsingResult.result match {
-		case Some(nodes) => Success(nodes)
-		case None => Failure("Invalid MPL2 source:\n" +
-				ErrorUtils.printParseErrors(parsingResult))
-		}
+  		val parsingResult = tr.run(line)
+  		parsingResult.result match {
+    		case Some(nodes) => Success(nodes)
+    		case None => Failure("Invalid MPL2 source:\n" +
+    				ErrorUtils.printParseErrors(parsingResult))
+  		}
     }
   }
     
