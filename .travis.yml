@@ -1,5 +1,8 @@
 
 language: scala
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install scala
 scala:
   - 2.9.2
 jdk:
