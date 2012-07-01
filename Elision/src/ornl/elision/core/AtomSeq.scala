@@ -159,8 +159,8 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     // the "obvious" way to do it doesn't work because of type erasure.  Boo!
     val operator = hints match {
       case Some(value) => value match {
-        case oper: Operator => Some(oper)
-        case oper: OperatorRef => Some(oper.operator)
+        case oper: Operator => Some(OperatorRef(oper))
+        case oper: OperatorRef => Some(oper)
         case _ => None
       }
       case _ => None
