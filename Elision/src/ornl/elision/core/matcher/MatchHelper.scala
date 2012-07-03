@@ -59,7 +59,6 @@ object MatchHelper {
           return (patterns, subjects, Some(Fail("Element " + pindex +
             " not found in subject list.", plist, slist)))
         case Some(sindex) =>
-          println("Omitting " + pat.toParseString)
           patterns = patterns.omit(pindex)
           subjects = subjects.omit(sindex)
       }
