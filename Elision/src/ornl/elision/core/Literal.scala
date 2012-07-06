@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import scala.collection.immutable.HashMap
@@ -144,58 +145,58 @@ extends BasicAtom {
  */
 object Literal {
   /** Make an integer literal from a big integer. */
-	def apply(value: BigInt): IntegerLiteral = new IntegerLiteral(value)
-	/** Make an integer literal from a Scala integer value. */
-	def apply(value: Int): IntegerLiteral = new IntegerLiteral(value)
-	/** Make a string literal from a Scala string value. */
-	def apply(value: String): StringLiteral = new StringLiteral(value)
-	/** Make a symbol literal from a Scala symbol value. */
-	def apply(value: Symbol): SymbolLiteral = new SymbolLiteral(value)
-	/**
-	 * Get the appropriate Boolean literal for a Scala Boolean value.
-	 */
-	def apply(value: Boolean): BooleanLiteral = if (value) TRUE else FALSE
-	/**
-	 * Make a floating point literal.
-	 * 
-	 * @param significand		The significand.
-	 * @param exponent			The exponent.
-	 * @param radix					The radix, which must be 2, 8, 10, or 16.
-	 */
-	def apply(significand: BigInt, exponent: Int, radix: Int): FloatLiteral =
-	  new FloatLiteral(significand, exponent, radix)
-	/** Make an integer literal from a big integer, and override the type. */
-	def apply(typ: BasicAtom, value: BigInt): IntegerLiteral =
-	  IntegerLiteral(typ, value)
-	/** Make an integer literal from a Scala integer value and override the type. */
-	def apply(typ: BasicAtom, value: Int): IntegerLiteral =
-	  IntegerLiteral(typ, value)
-	/** Make an string literal from a Scala string value and override the type. */
-	def apply(typ: BasicAtom, value: String): StringLiteral =
-	  StringLiteral(typ, value)
-	/** Make an symbol literal from a Scala symbol value and override the type. */
-	def apply(typ: BasicAtom, value: Symbol): SymbolLiteral =
-	  SymbolLiteral(typ, value)
-	/**
-	 * Get the appropriate Boolean literal for a Scala Boolean value, and
-	 * override the type.
-	 */
-	def apply(typ: BasicAtom, value: Boolean): BooleanLiteral =
-	  BooleanLiteral(typ, value)
-	/**
-	 * Make a floating point literal, and override the default type.
-	 *
-	 * @param typ						The type to use.
-	 * @param significand		The significand.
-	 * @param exponent			The exponent.
-	 * @param radix					The radix, which must be 2, 8, 10, or 16.
-	 */
-	def apply(typ: BasicAtom, significand: BigInt, exponent: Int,
+  def apply(value: BigInt): IntegerLiteral = new IntegerLiteral(value)
+  /** Make an integer literal from a Scala integer value. */
+  def apply(value: Int): IntegerLiteral = new IntegerLiteral(value)
+  /** Make a string literal from a Scala string value. */
+  def apply(value: String): StringLiteral = new StringLiteral(value)
+  /** Make a symbol literal from a Scala symbol value. */
+  def apply(value: Symbol): SymbolLiteral = new SymbolLiteral(value)
+  /**
+   * Get the appropriate Boolean literal for a Scala Boolean value.
+   */
+  def apply(value: Boolean): BooleanLiteral = if (value) TRUE else FALSE
+  /**
+   * Make a floating point literal.
+   * 
+   * @param significand		The significand.
+   * @param exponent			The exponent.
+   * @param radix					The radix, which must be 2, 8, 10, or 16.
+   */
+  def apply(significand: BigInt, exponent: Int, radix: Int): FloatLiteral =
+    new FloatLiteral(significand, exponent, radix)
+  /** Make an integer literal from a big integer, and override the type. */
+  def apply(typ: BasicAtom, value: BigInt): IntegerLiteral =
+    IntegerLiteral(typ, value)
+  /** Make an integer literal from a Scala integer value and override the type. */
+  def apply(typ: BasicAtom, value: Int): IntegerLiteral =
+    IntegerLiteral(typ, value)
+  /** Make an string literal from a Scala string value and override the type. */
+  def apply(typ: BasicAtom, value: String): StringLiteral =
+    StringLiteral(typ, value)
+  /** Make an symbol literal from a Scala symbol value and override the type. */
+  def apply(typ: BasicAtom, value: Symbol): SymbolLiteral =
+    SymbolLiteral(typ, value)
+  /**
+   * Get the appropriate Boolean literal for a Scala Boolean value, and
+   * override the type.
+   */
+  def apply(typ: BasicAtom, value: Boolean): BooleanLiteral =
+    BooleanLiteral(typ, value)
+  /**
+   * Make a floating point literal, and override the default type.
+   *
+   * @param typ						The type to use.
+   * @param significand		The significand.
+   * @param exponent			The exponent.
+   * @param radix					The radix, which must be 2, 8, 10, or 16.
+   */
+  def apply(typ: BasicAtom, significand: BigInt, exponent: Int,
 	    radix: Int): FloatLiteral = FloatLiteral(typ, significand, exponent, radix)
-	/** Boolean true literal. */
-	val TRUE = new BooleanLiteral(BOOLEAN, true)
-	/** Boolean false literal. */
-	val FALSE = new BooleanLiteral(BOOLEAN, false)
+  /** Boolean true literal. */
+  val TRUE = new BooleanLiteral(BOOLEAN, true)
+  /** Boolean false literal. */
+  val FALSE = new BooleanLiteral(BOOLEAN, false)  
 }
 
 /**
@@ -239,7 +240,7 @@ extends Literal[BigInt](typ) {
 	//////////////////// end GUI changes
 	
   def toParseString = value.toString +
-    (if (typ != INTEGER) ":" + typ.toParseString else "") 
+    (if ((typ != INTEGER) && BasicAtom.printTypeInfo) ":" + typ.toParseString else "") 
 }
 
 /**

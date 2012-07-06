@@ -326,29 +326,18 @@ Installation
 This chapter explains how to build the Elision rewriter.
  Information about the rewriter can be obtained by visiting 
 \begin_inset Flex URL
-status collapsed
+status open
 
 \begin_layout Plain Layout
 
-http://stacyprowell.com/wiki/doku.php?id=elision
+http://elision.github.com/
 \end_layout
 
 \end_inset
 
 .
  This page contains a frequently updated version, along with documentation
- links and a link to Elision's github page at 
-\begin_inset Flex URL
-status collapsed
-
-\begin_layout Plain Layout
-
-https://github.com/sprowell/elision
-\end_layout
-
-\end_inset
-
-.
+ links and a link to Elision's source.
 \end_layout
 
 \begin_layout Standard
@@ -3304,10 +3293,6 @@ path
 :
 \family default
 ).
-\end_layout
-
-\begin_layout Standard
-
 \end_layout
 
 \begin_layout Section

@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core.matcher
 import ornl.elision.core._
 
@@ -53,8 +54,10 @@ object AMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
-      op: Option[OperatorRef]): Outcome = {
+               op: Option[OperatorRef]): Outcome = {
+
     // Check the length.
+    //println("** AMatcher...")
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -175,25 +178,25 @@ object AMatcher {
         _local = null
         if (_groups.hasNext)
           SequenceMatcher.tryMatch(patterns.atoms, _groups.next, binds) match {
-          case fail:Fail =>
-            // We ignore this case.  We only fail if we exhaust all attempts.
-            if (BasicAtom.traceMatching) println(fail)
+            case fail:Fail =>
+              // We ignore this case.  We only fail if we exhaust all attempts.
+              if (BasicAtom.traceMatching) println(fail)
             findNext
-	        case Match(binds) =>
-	          // This case we care about.  Save the bindings as the current match.
-	          _current = binds
-	          if (BasicAtom.traceMatching) println("A Found.")
-	        case Many(iter) =>
-	          // We've potentially found many matches.  We save this as a local
-	          // iterator and then use it in the future.
-	          _local = iter
-	          findNext
-	      } else {
-	        // We have exhausted the permutations.  We have exhausted this
-	        // iterator.
-	        _exhausted = true
-	        if (BasicAtom.traceMatching) println("A Exhausted.")
-	      }
+	    case Match(binds) =>
+	      // This case we care about.  Save the bindings as the current match.
+	      _current = binds
+	    if (BasicAtom.traceMatching) println("A Found.")
+	    case Many(iter) =>
+	      // We've potentially found many matches.  We save this as a local
+	      // iterator and then use it in the future.
+	      _local = iter
+	    findNext
+	  } else {
+	    // We have exhausted the permutations.  We have exhausted this
+	    // iterator.
+	    _exhausted = true
+	    if (BasicAtom.traceMatching) println("A Exhausted.")
+	  }
       }
     }
   }

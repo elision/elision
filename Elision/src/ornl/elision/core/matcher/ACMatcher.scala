@@ -58,6 +58,8 @@ object ACMatcher {
                op: Option[OperatorRef]): Outcome = {
 
     // Check the length.
+    //println("** ACMatcher...")
+    //println("** original bindings = " + binds)
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -102,24 +104,37 @@ object ACMatcher {
     
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
+
       // Get the patterns and subjects that remain.
       val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
       val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
       
-	    // If there is exactly one pattern then match it immediately.
-	    if (pats.atoms.length == 1) {
-              return pats.atoms(0).tryMatch(op match {
-                case Some(opref) =>
-                  Apply(opref, subs)
-                case None =>
-                  subs
-              }, binds)
-              //return pats.atoms(0).tryMatch(subs,binds)
-	    }
+      // If there is exactly one pattern then match it immediately.
+      if (pats.atoms.length == 1) {
+        //println("** bindings = " + bindings)
+        //println("** binds = " + binds)
+        //println("** patterns = " + patterns)
+        //println("** pats = " + pats)
+        //println("** subjects = " + subjects)
+        //println("** subs = " + subs)
+        return pats.atoms(0).tryMatch(op match {
+          case Some(opref) =>
+            Apply(opref, subs)
+          case None =>
+            subs
+        }, (bindings ++ binds))
+        //return pats.atoms(0).tryMatch(subs,binds)
+      }
       
       // If there are no patterns, there is nothing to do.
-      if (pats.atoms.length == 0) MatchIterator(bindings)
-      else new ACMatchIterator(pats, subs, bindings, op)
+      if (pats.atoms.length == 0) {
+        //println("** new bindings (1) = " + bindings)
+        MatchIterator(bindings ++ binds)
+      }
+      else {
+        //println("** new bindings (2) = " + bindings)
+        new ACMatchIterator(pats, subs, (bindings ++ binds), op)
+      }
     })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)

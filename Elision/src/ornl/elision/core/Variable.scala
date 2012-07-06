@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import scala.collection.mutable.HashMap
@@ -228,7 +229,7 @@ class Variable(typ: BasicAtom, val name: String,
 
   def toParseString = prefix + toESymbol(name) +
   		(if (guard != Literal.TRUE) "{" + guard.toParseString + "}" else "") +
-  		(if (theType != ANY) ":" + typ.toParseString else "") +
+  		(if ((theType != ANY) && BasicAtom.printTypeInfo) ":" + typ.toParseString else "") +
   		labels.map(" @" + toESymbol(_)).mkString("")
   
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
@@ -243,7 +244,7 @@ class Variable(typ: BasicAtom, val name: String,
 /**
  * Simplified creation and matching of variables.
  */
-object Variable {
+object Variable extends {
   /**
    * Make a new variable instance.
    * 

@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core.matcher
 import ornl.elision.core._
 
@@ -53,6 +54,8 @@ object CMatcher {
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings): Outcome = {
     // Check the length.
+    //println("** CMatcher...")
+    //println("** original bindings = " + binds)
     if (plist.length != slist.length)
       return Fail("Lists are different sizes, so no match is possible.",
           plist, slist)
@@ -82,8 +85,14 @@ object CMatcher {
       val subs = bindings.subjects.getOrElse(subjects)
       
       // If there are no patterns, there is nothing to do.
-      if (pats.length == 0) MatchIterator(bindings)
-      else new CMatchIterator(pats, subs, bindings)
+      if (pats.length == 0) {
+        //println("** new bindings (1) = " + (bindings ++ binds))
+        MatchIterator(bindings ++ binds)
+      }
+      else {
+        //println("** new bindings (2) = " + (bindings ++ binds))
+        new CMatchIterator(pats, subs, (bindings ++ binds))
+      }
     })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
@@ -123,27 +132,28 @@ object CMatcher {
       if (_local != null && _local.hasNext) _current = _local.next
       else {
         _local = null
-	      if (_perms.hasNext)
-	        SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
-	        case fail:Fail =>
-	          // We ignore this case.  We only fail if we exhaust all attempts.
-            if (BasicAtom.traceMatching) println(fail)
-	          findNext
-	        case Match(binds) =>
-	          // This case we care about.  Save the bindings as the current match.
-	          _current = binds
-	          if (BasicAtom.traceMatching) println("C Found.")
-	        case Many(iter) =>
-	          // We've potentially found many matches.  We save this as a local
-	          // iterator and then use it in the future.
-	          _local = iter
-	          findNext
-	      } else {
-	        // We have exhausted the permutations.  We have exhausted this
-	        // iterator.
-	        _exhausted = true
-	        if (BasicAtom.traceMatching) println("C Exhausted.")
-	      }
+	if (_perms.hasNext)
+	  SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
+	    case fail:Fail =>
+	      // We ignore this case.  We only fail if we exhaust all attempts.
+              if (BasicAtom.traceMatching) println(fail)
+	    findNext
+	    case Match(binds) => {
+	      // This case we care about.  Save the bindings as the current match.
+	      _current = binds
+            }
+	    if (BasicAtom.traceMatching) println("C Found.")
+	    case Many(iter) =>
+	      // We've potentially found many matches.  We save this as a local
+	      // iterator and then use it in the future.
+	      _local = iter
+	    findNext
+	  } else {
+	    // We have exhausted the permutations.  We have exhausted this
+	    // iterator.
+	    _exhausted = true
+	    if (BasicAtom.traceMatching) println("C Exhausted.")
+	  }
       }
     }
   }

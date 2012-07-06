@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import ornl.elision.repl.ReplActor
@@ -69,7 +70,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
   }).toSet
   
   
-//  //////////////////// GUI changes
+//  ***************** GUI changes
 //  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
 //	// get the node representing this atom that is being rewritten
 //	val rwNode = RWTree.current.addChild("RulesetStrategy doRewrite: ")
@@ -101,9 +102,10 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 //	    return (atom, false)
 //    }
 //  }
-//  //////////////////// end GUI changes
+//  ***************** end GUI changes
 
-  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+
+ def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
     // If this is not concrete, do not execute.
     if (!_conc) {
       return (SimpleApply(this, atom), false)
@@ -206,7 +208,7 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	    (atom, false)
 	}
 	*/
-	//////////////////// GUI changes
+	// ***************** GUI changes
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
 		ReplActor ! ("Eva","pushTable","MapStrategy doRewrite")
         // top node of this subtree
@@ -241,15 +243,15 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 			(atom, false)
 		}
 	}
-	//////////////////// end GUI changes
+	// ***************** end GUI changes
   
   private def _apply(op: SymbolicOperator, args: AtomSeq): (BasicAtom, Boolean) = {
     val plen = op.params.length
-  	def getP(index: Int) = op.params(if (index > plen) plen-1 else index)
-  	// If there are no parameters, we can't do anything.
-  	if (plen == 0) {
+    def getP(index: Int) = op.params(if (index > plen) plen-1 else index)
+    // If there are no parameters, we can't do anything.
+    if (plen == 0) {
       return (Apply(op, AtomSeq(args.props, args.map(Apply(lhs,_)))), true)
-  	}
+    }
     // We examine each argument and look at the labels (if any) on the
     // corresponding parameter.  If any label is in the exclude set, then
     // we exclude the argument.  Next if the include set is not empty and
@@ -456,20 +458,33 @@ class RewriteRule private (
       hint: Option[Any] = None): (BasicAtom, Boolean) = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
+      //println("** Checking guards with bindings '" + candidate + "'")
       for (guard <- guards) {
         val (newguard, _) = guard.rewrite(candidate)
-        if (!newguard.isTrue) return false
+        val (newguard1, _) = knownExecutor.context.ruleLibrary.rewrite(newguard)
+        //println("** guard '" + guard.toParseString + "' " +
+        //        " == '" + newguard1.toParseString + "'")
+        if (!newguard1.isTrue) return false
       }
       true
     }
     
     // Local function to perform the rewrite if the rule fires.  We return
     // true in the pair no matter what, since the rule fired.
-    def doRuleRewrite(candidate: Bindings) = (rewrite.rewrite(candidate)._1, true)
+    def doRuleRewrite(candidate: Bindings) = {
+      if (BasicAtom.traceRules) {
+        println("Applied rule '" + this.toParseString + "' to '" + candidate.toParseString + "'")
+      }
+      (rewrite.rewrite(candidate)._1, true)
+    }
     
     // First we try to match the given atom against the pattern.
+    //println("Trying to apply rule '" + this.toParseString + "'...")
     pattern.tryMatch(subject, binds, hint) match {
-      case fail:Fail => return (subject, false)
+      case fail:Fail => {
+        //println("Application of rule '" + this.toParseString + "' failed.")
+        return (subject, false)
+      }
       case Match(newbinds) =>
         // We got a match.  Check the guards.
         if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
@@ -492,16 +507,24 @@ class RewriteRule private (
       hint: Option[Any] = None): Boolean = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
+      //println("** (_prod) Checking guards with bindings '" + candidate + "'")
       for (guard <- guards) {
         val (newguard, _) = guard.rewrite(candidate)
-        if (!newguard.isTrue) return false
+        val (newguard1, _) = knownExecutor.context.ruleLibrary.rewrite(newguard)
+        //println("** (_prod) guard '" + guard.toParseString + "' " +
+        //        " == '" + newguard1.toParseString + "'")
+        if (!newguard1.isTrue) return false
       }
       true
     }
     
     // First we try to match the given atom against the pattern.
+    //println("(_prod) Trying to apply rule '" + this.toParseString + "'...")
     pattern.tryMatch(subject, binds, hint) match {
-      case fail:Fail => return false
+      case fail:Fail => { 
+        //println("(_prod) Application of rule '" + this.toParseString + "' failed.")
+        return false
+      }
       case Match(newbinds) =>
         // We got a match.  Check the guards.
         if (checkGuards(newbinds)) return true
@@ -526,9 +549,12 @@ class RewriteRule private (
     //println("Rewriting with rule.")
     _tryRewrite(atom, binds, hint)
   }
-  */
-  //////////////////// GUI changes
-  def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
+
+* */
+
+  // ***************** GUI changes
+
+ def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
     // Try to apply the rewrite rule.  Whatever we get back is the result.
     //println("Rewriting with rule.")
     
@@ -562,5 +588,5 @@ class RewriteRule private (
         rwResult
     }
   }
-  //////////////////// end GUI changes
+  //  ***************** end GUI changes
 }
