@@ -649,11 +649,22 @@ with HasHistory {
             cfile.close
             console.emitln("\nCore dump reload results printed to coreReloadResults.txt.")
             
-            /*
+            // reload the history (caution: this will change the contents of your elision history file.)
             console.emitln("Reloading history...")
             val hist = (coreXML \ "history").text
-            console.emitln(hist)
-            */
+            val histTokens = hist.split("\n")
+            try {
+                for(token <- histTokens) {
+                    val histLine = token.drop(token.indexOf(':') + 2)
+                    addHistoryLine(histLine)
+                }
+                console.emitln("Successfully reloaded history.")
+            }
+            catch {
+                case _ => 
+                    console.emitln("Failed to reload the history")
+            }
+            
         }
         catch {
             case fnfe : FileNotFoundException =>
