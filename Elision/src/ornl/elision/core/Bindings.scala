@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 import scala.collection.immutable.HashMap
 
@@ -70,6 +71,7 @@ extends HashMap[String, BasicAtom] with Mutable {
   override def get(key: String): Option[BasicAtom] = self get key
   override def iterator: Iterator[(String, BasicAtom)] = self.iterator
   def +(kv: (String, BasicAtom)): Bindings = new Bindings(self + kv)
+  def ++(other: Bindings): Bindings = new Bindings(self ++ other.self)
   override def -(key: String): Bindings = new Bindings(self - key)
   
   /** This is a cache used during associative / commutative matching. */

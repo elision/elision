@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 import scala.collection.immutable.HashMap
 
@@ -422,7 +423,10 @@ abstract class BasicAtom {
       // the match.  First we try to match the types.  If this succeeds, then
       // we invoke the implementation of tryMatchWithoutTypes.
       matchTypes(subject, binds, hints) match {
-	      case fail: Fail => fail
+	      case fail: Fail => {
+                //println("Type matching failed.")
+                fail
+              }
 	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
 	      case Many(submatches) =>
 	        Many(MatchIterator(tryMatchWithoutTypes(subject, _, hints),
@@ -500,6 +504,12 @@ object BasicAtom {
   /** Enable (if true) or disable (if false) match tracing. */
   var traceMatching = false
   
+  /** Whether or not to provide type information in toParseString(). */
+  var printTypeInfo = false
+
+  /** Whether or not to print out information about rule applications. */
+  var traceRules = false
+
   /**
    * Specify verbose tracing for certain objects during matching.
    * 

@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core.matcher
 import ornl.elision.core._
 
@@ -59,7 +60,6 @@ object MatchHelper {
           return (patterns, subjects, Some(Fail("Element " + pindex +
             " not found in subject list.", plist, slist)))
         case Some(sindex) =>
-          println("Omitting " + pat.toParseString)
           patterns = patterns.omit(pindex)
           subjects = subjects.omit(sindex)
       }

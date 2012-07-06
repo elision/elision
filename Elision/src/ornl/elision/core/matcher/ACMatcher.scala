@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core.matcher
 import ornl.elision.core._
 
@@ -54,8 +55,11 @@ object ACMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
-      op: Option[OperatorRef]): Outcome = {
+               op: Option[OperatorRef]): Outcome = {
+
     // Check the length.
+    //println("** ACMatcher...")
+    //println("** original bindings = " + binds)
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -71,8 +75,9 @@ object ACMatcher {
           
     // If there are the same number, then this is a simple case of commutative
     // matching.
-    if (plist.length == slist.length)
+    if (plist.length == slist.length) {
       return CMatcher.tryMatch(plist, slist, binds)
+    }
       
     // If there is exactly one pattern then match it immediately.
     if (plist.length == 1) {
@@ -99,18 +104,37 @@ object ACMatcher {
     
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
+
       // Get the patterns and subjects that remain.
       val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
       val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
       
-	    // If there is exactly one pattern then match it immediately.
-	    if (pats.atoms.length == 1) {
-	      return pats.atoms(0).tryMatch(subs, binds)
-	    }
+      // If there is exactly one pattern then match it immediately.
+      if (pats.atoms.length == 1) {
+        //println("** bindings = " + bindings)
+        //println("** binds = " + binds)
+        //println("** patterns = " + patterns)
+        //println("** pats = " + pats)
+        //println("** subjects = " + subjects)
+        //println("** subs = " + subs)
+        return pats.atoms(0).tryMatch(op match {
+          case Some(opref) =>
+            Apply(opref, subs)
+          case None =>
+            subs
+        }, (bindings ++ binds))
+        //return pats.atoms(0).tryMatch(subs,binds)
+      }
       
       // If there are no patterns, there is nothing to do.
-      if (pats.atoms.length == 0) MatchIterator(bindings)
-      else new ACMatchIterator(pats, subs, bindings, op)
+      if (pats.atoms.length == 0) {
+        //println("** new bindings (1) = " + bindings)
+        MatchIterator(bindings ++ binds)
+      }
+      else {
+        //println("** new bindings (2) = " + bindings)
+        new ACMatchIterator(pats, subs, (bindings ++ binds), op)
+      }
     })
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
@@ -141,28 +165,28 @@ object ACMatcher {
       if (_local != null && _local.hasNext) _current = _local.next
       else {
         _local = null
-	      if (_perms.hasNext)
-	        AMatcher.tryMatch(patterns, AtomSeq(subjects.props, _perms.next),
-	            binds, op) match {
-	        case fail:Fail =>
-	          // We ignore this case.  We only fail if we exhaust all attempts.
-            if (BasicAtom.traceMatching) println(fail)
-	          findNext
-	        case Match(binds) =>
-	          // This case we care about.  Save the bindings as the current match.
-	          _current = binds
-	          if (BasicAtom.traceMatching) println("AC Found.")
-	        case Many(iter) =>
-	          // We've potentially found many matches.  We save this as a local
-	          // iterator and then use it in the future.
-	          _local = iter
-	          findNext
-	      } else {
-	        // We have exhausted the permutations.  We have exhausted this
-	        // iterator.
-	        _exhausted = true
-	        if (BasicAtom.traceMatching) println("AC Exhausted.")
-	      }
+	if (_perms.hasNext)
+	  AMatcher.tryMatch(patterns, AtomSeq(subjects.props, _perms.next),
+	                    binds, op) match {
+	    case fail:Fail =>
+	      // We ignore this case.  We only fail if we exhaust all attempts.
+              if (BasicAtom.traceMatching) println(fail)
+	    findNext
+	    case Match(binds) =>
+	      // This case we care about.  Save the bindings as the current match.
+	      _current = binds
+	    if (BasicAtom.traceMatching) println("AC Found.")
+	    case Many(iter) =>
+	      // We've potentially found many matches.  We save this as a local
+	      // iterator and then use it in the future.
+	      _local = iter
+	    findNext
+	  } else {
+	    // We have exhausted the permutations.  We have exhausted this
+	    // iterator.
+	    _exhausted = true
+	    if (BasicAtom.traceMatching) println("AC Exhausted.")
+	  }
       }
     }
   }
