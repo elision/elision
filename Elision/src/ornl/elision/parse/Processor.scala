@@ -424,6 +424,242 @@ with HasHistory {
       console.warn("Unable to save core dump.")
     }
   } 
+  
+  
+  /**  
+   * Reloads a core dump created with fail().
+   * 
+   * @param corePath    The path to the core dump file.
+   */
+   def loadCoredump(corePath : String) = {
+        import java.io._
+        import xml._
+        
+        try {
+            val cfile = new java.io.PrintWriter("coreReloadResults.txt")
+            
+            def corePrint(str : String) {
+                cfile.println(str)
+                console.emitln(str)
+            }
+            
+            // Extract the XML from the core dump file.
+            val coreFile = new File(corePath)
+            val coreXML = XML.loadFile(coreFile)
+            
+            // Display the core dump's error information
+            val err = coreXML \ "error"
+            val errMsg = err \ "@message"
+            corePrint("Core dump error message: " + errMsg)
+            
+            val stackTrace = (err \\ "item").map(_.text).mkString("\n") 
+            corePrint(stackTrace)
+            
+            corePrint("Reloading context...")
+            
+            val ops = (coreXML \ "operator-library").text
+            val binds = (coreXML \ "binds").text
+            val rules = (coreXML \ "rule-library").text
+            
+            // In the reloading process, it's likely that the operators, bindings, and rules are out of order.
+            // So in order to try to resolve all the rules, we will perform an initial iteration to read in this data, 
+            // and then we will perform more iterations until either all the elements are successfully
+            // read in or we are unable to successfully read any more remaining elements. 
+            
+            val unresolved = new collection.mutable.Queue[AstNode]
+            val origBinds = context.binds
+            val origOpLib = context.operatorLibrary
+            val origRuleLib = context.ruleLibrary
+            
+            // Parse all the elements into AstNodes
+            
+            corePrint("Parsing operators...")
+            val unresolvedOps = new collection.mutable.Queue[AstNode]
+            val reOpLib = new OperatorLibrary(context.operatorLibrary.allowRedefinition)
+            
+            _parser.parseAtoms(ops) match {
+                case Failure(err) =>
+                    corePrint(err)
+                case Success(nodes) =>
+                    context.operatorLibrary = reOpLib
+                    
+                    for(node <- nodes) {
+                        unresolvedOps.enqueue(node)
+                    }
+            }
+            
+            corePrint("Parsing bindings...")
+            val unresolvedBinds = new collection.mutable.Queue[AstNode]
+            
+            _parser.parseAtoms(binds) match {
+                case Failure(err) =>
+                    corePrint(err)
+                case Success(nodes) =>
+                    unresolvedBinds.enqueue(nodes(0))
+            }
+            
+            corePrint("Parsing rules...")
+            val unresolvedRules = new collection.mutable.Queue[AstNode]
+            val reRuleLib = new RuleLibrary(context.ruleLibrary.allowUndeclared)
+            
+            _parser.parseAtoms(rules) match {
+                case Failure(err) =>
+                    corePrint(err)
+                case Success(nodes) =>
+                    context.ruleLibrary = reRuleLib
+                    
+                    for(node <- nodes) {
+                        unresolvedRules.enqueue(node)
+                    }
+            }
+            
+            // iterate until all elements are resolved or no more elements could be resolved.
+            
+            var lastNetQSize = unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size + 1
+            var iterations = 1
+            
+            while(!(unresolvedOps.isEmpty && unresolvedBinds.isEmpty && unresolvedRules.isEmpty) && 
+                unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size < lastNetQSize) {
+                
+                lastNetQSize = unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size
+                corePrint("\nReloading elements: Iteration " + iterations + "...")
+                
+                // attempt to reload operators.
+                if(!unresolvedOps.isEmpty) {
+                    corePrint(" Reloading operators...")
+                    val opSize = unresolvedOps.size
+                    for(i <- 0 until opSize) {
+                        val node = unresolvedOps.dequeue
+                        try {
+                            node.interpret match {
+                                case op : Operator =>
+                                    reOpLib.add(op)
+                                    corePrint(" Added operator " + op.name)
+                                case _ =>
+                                    corePrint(" Encountered a non-Operator")
+                            }
+                        }
+                        catch {
+                            case _ =>
+                                unresolvedOps.enqueue(node)
+                        }
+                    }
+                }
+                
+                // attempt to reload bindings.
+                if(!unresolvedBinds.isEmpty) {
+                    corePrint(" Reloading bindings...")
+                    
+                    val node = unresolvedBinds.dequeue
+                    try {
+                        node.interpret match {
+                            case reBinds : BindingsAtom =>
+                                context.binds = reBinds.mybinds
+                                corePrint(" Added the bindings")
+                            case _ =>
+                                corePrint(" Encountered a non-BindingsAtom")
+                        }
+                    }
+                    catch {
+                        case _ =>
+                            unresolvedBinds.enqueue(node)
+                    }
+                    
+                }
+                
+                // attempt to reload rules.
+                if(!unresolvedRules.isEmpty) {
+                    corePrint(" Reloading rules...")
+                    val ruleSize = unresolvedRules.size
+                    for(i <- 0 until ruleSize) {
+                        val node = unresolvedRules.dequeue
+                        try {
+                            node.interpret match {
+                                case rule : RewriteRule =>
+                                    reRuleLib.add(rule)
+                                    corePrint(" Added a rule ")
+                                case _ =>
+                                    corePrint(" Encountered a non-RewriteRule")
+                            }
+                        }
+                        catch {
+                            case _ =>
+                                unresolvedRules.enqueue(node)
+                        }
+                    }
+                }
+                
+                iterations += 1
+            }
+            
+            // show reloading results
+            
+            if(unresolvedOps.isEmpty && unresolvedBinds.isEmpty && unresolvedRules.isEmpty) {
+                corePrint("\nSuccessfully reloaded the context!")
+            }
+            else {
+                context.operatorLibrary = origOpLib
+                context.binds = origBinds
+                context.ruleLibrary = origRuleLib
+                corePrint("\nFailed to reload the context. Restored the original context.")
+            }
+            
+            if(!unresolvedOps.isEmpty) {
+                corePrint("\nFailed to reload " + unresolvedOps.size + " operators: ")
+                while(!unresolvedOps.isEmpty) {
+                    val node = unresolvedOps.dequeue
+                    try {
+                        node.interpret
+                    }
+                    catch {
+                        case err : Throwable =>
+                            corePrint(err.getMessage)
+                    }
+                }
+            }
+            
+            if(!unresolvedBinds.isEmpty) {
+                corePrint("\nFailed to reload the bindings")
+                while(!unresolvedBinds.isEmpty) {
+                    val node = unresolvedBinds.dequeue
+                    try {
+                        node.interpret
+                    }
+                    catch {
+                        case err : Throwable =>
+                            corePrint(err.getMessage)
+                    }
+                }
+            }
+            
+            if(!unresolvedRules.isEmpty) {
+                corePrint("\nFailed to reload " + unresolvedRules.size + " rules: ")
+                while(!unresolvedRules.isEmpty) {
+                    val node = unresolvedRules.dequeue
+                    try {
+                        node.interpret
+                    }
+                    catch {
+                        case err : Throwable =>
+                            corePrint(err.getMessage)
+                    }
+                }
+            }
+            
+            cfile.close
+            console.emitln("\nCore dump reload results printed to coreReloadResults.txt.")
+            
+            /*
+            console.emitln("Reloading history...")
+            val hist = (coreXML \ "history").text
+            console.emitln(hist)
+            */
+        }
+        catch {
+            case fnfe : FileNotFoundException =>
+                console.warn("Unable to open core dump at " + corePath)
+        }
+   }
 }
 
 /**
@@ -499,4 +735,5 @@ object Processor {
    */
   val fileReadStack = new collection.mutable.ArrayStack[String]
   fileReadStack.push("Console")
+
 }

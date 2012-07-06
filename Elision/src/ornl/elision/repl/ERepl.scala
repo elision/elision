@@ -370,9 +370,9 @@ class ERepl extends Processor {
     // Load all the startup definitions, etc.
     console.reset
     console.quiet = quiet
-    if (!read("bootstrap/Boot.eli", false)) {
+    if (!read(bootstrapFile, false)) {
       // Failed to find bootstrap file.  Stop.
-      console.error("Unable to load bootstrap/Boot.eli.  Cannot continue.")
+      console.error("Unable to load " + bootstrapFile + ".  Cannot continue.")
     //  ReplActor ! ":quit"
       return false
     }
