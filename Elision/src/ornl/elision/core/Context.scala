@@ -94,6 +94,18 @@ class Context extends Fickle with Mutable {
    */
   def binds = _binds
   
+  /**
+   * Set the bindings to use. Any prior value is lost.
+   *
+   * @param bindings    The new bindings.
+   * @return            This context.
+   */
+   def binds_=(bindings : Bindings) = {
+        require(bindings != null)
+        _binds = bindings
+        this
+   }
+  
   //======================================================================
   // Operator library management.
   //======================================================================
