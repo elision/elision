@@ -434,7 +434,7 @@ class TreeBuilder extends Thread {
             val node = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , root, true)
             System.err.println("Fatal error during TreeBuilder tree construction. \n\tEva tree node limit " + mainGUI.config.nodeLimit + " has been reached!")
             root.addChild(node)
-            val node2 = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , root, true)
+            val node2 = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , subroot, true)
             subroot.addChild(node2)
             fatalError = true
             true
@@ -447,7 +447,7 @@ class TreeBuilder extends Thread {
 	override def run : Unit = {
 		tbActor.start
         
-        fatalError
+    //    fatalError
         while(true) {}
 	}
     
