@@ -81,6 +81,18 @@ class OperatorLibrary(
    */
  	private var _nameToOperator = MMap[String, OperatorRef]()
  	
+    /** Makes a copy of this operator library. */
+    def cloneOpLib : OperatorLibrary = {
+        val clone = new OperatorLibrary(this.allowRedefinition)
+        
+        clone._nameToOperator.clear
+        for(mapping <- this._nameToOperator) {
+            clone._nameToOperator += mapping
+        }
+
+        clone
+    }
+    
  	/**
  	 * Turn the operator library into a sequence of newline-terminated strings
  	 * that are parseable by AtomParser.
