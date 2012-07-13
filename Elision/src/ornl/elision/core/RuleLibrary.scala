@@ -141,6 +141,37 @@ object RulesetRef {
 class RuleLibrary(val allowUndeclared:Boolean = false)
 extends Fickle with Mutable {
   
+  /** Creates a clone of this RuleLibrary. */
+  def cloneRuleLib : RuleLibrary = {
+    val clone = new RuleLibrary(allowUndeclared)
+    
+    clone._kind2rules.clear
+    for(mapping <- this._kind2rules) {
+        clone._kind2rules += mapping
+    }
+    
+    clone._op2rules.clear
+    for(mapping <- this._op2rules) {
+        clone._op2rules += mapping
+    }
+    
+    clone._rs2bit.clear
+    for(mapping <- this._rs2bit) {
+        clone._rs2bit += mapping
+    }
+    
+    clone._active.clear
+    for(mapping <- this._active) {
+        clone._active += mapping
+    }
+    
+    clone._nextrs = this._nextrs
+    clone._descend = this._descend
+    clone._limit = this._limit & this._limit
+    
+    clone
+  }
+  
   //======================================================================
   // Controlling active rulesets.
   //======================================================================
@@ -527,30 +558,6 @@ extends Fickle with Mutable {
       return (atom, false)
     }
     
-    //	// *************** GUI changes
-    //	  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
-    //		// get the node representing this atom that is being rewritten
-    //		val rwNode = RWTree.current.addChild("_RulesetRef doRewrite: ")
-    //	    val atomNode = rwNode.addChild(atom)
-    //		// Get the rules.
-    //	    val rules = getRules(atom, List(name))
-    //		val rulesNode = atomNode.addChild("rules: ")
-    //		
-    //	    // Now try every rule until one applies.
-    //	    for (rule <- rules) {
-    //			val ruleNode = rulesNode.addChild(rule)
-    //			RWTree.current = ruleNode
-    //	      val (newatom, applied) = rule.doRewrite(atom, hint)
-    //		  ruleNode.addChild(newatom)
-    //		  
-    //	      if (applied) {
-    //				atomNode.addChild(newatom)
-    //				return (newatom, applied)
-    //			}
-    //	    }
-    //	    return (atom, false)
-    //	  }
-    //	  *************** end GUI changes
     
     def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
     if (subject == this) Match(binds)

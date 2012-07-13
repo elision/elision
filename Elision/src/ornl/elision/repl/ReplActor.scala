@@ -95,12 +95,6 @@ object ReplActor extends Actor {
                     peer.console.width_=(guiColumns)
                     peer.console.height_=(guiRows-1)
                 case ("getHistory", index : Int) =>
-                /*    peer.getHistoryEntry(index) match {
-                        case None => guiActor ! ("reGetHistory", None, peer._hist.getCurrentIndex)
-                        case Some(str : String) => guiActor ! ("reGetHistory", str, peer._hist.getCurrentIndex)
-                        case _ =>
-                    }
-                    */
                     if(index == -1) peer._hist.previous
                     if(index == 1) peer._hist.next
                     peer._hist.current match {

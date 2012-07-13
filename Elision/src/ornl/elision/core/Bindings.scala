@@ -83,6 +83,13 @@ extends HashMap[String, BasicAtom] with Mutable {
   /** Construct an empty binding. */
   def this() = this(HashMap[String,BasicAtom]())
   
+  /** Creates a copy of this Bindings. */
+  def cloneBinds : Bindings = {
+        val clone = new Bindings(this.self)
+        
+        clone
+  }
+  
   /**
    * Cache a list of patterns and subjects here.  This is useful during the
    * associative and commutative matching cycle.  These are accessed via
