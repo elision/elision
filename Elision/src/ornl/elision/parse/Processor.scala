@@ -47,7 +47,7 @@ import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
  * 
  * @param context		The context to use; if none is provided, use an empty one.
  */
-class Processor(val context: Context = new Context)
+class Processor(var context: Context = new Context)
 extends Executor
 with TraceableParse
 with Timeable
@@ -81,6 +81,9 @@ with HasHistory {
   
   /** Specify the console.  We don't know the number of lines. */
   val console = PrintConsole
+  
+  /** The list of context checkpoints */
+  val checkpoints = new collection.mutable.ArrayBuffer[(java.util.Date, Context)]
   
   /**
    * Display the banner, version, and build information on the current
@@ -671,6 +674,42 @@ with HasHistory {
                 console.warn("Unable to open core dump at " + corePath)
         }
    }
+   
+   
+   /** Saves a context checkpoint. */
+   def saveCheckPt : Int = {
+        val date = new java.util.Date
+        
+        val contextCpy = context.cloneContext
+        
+        val checkPt = (date, contextCpy)
+        checkpoints += checkPt
+        
+        checkpoints.size - 1
+   }
+   
+   /** Loads a context checkpoint. */
+   def loadCheckPt(index : Int) : Boolean = {
+        try{
+            val checkpt = checkpoints(index)
+            context = checkpt._2
+            true
+        }
+        catch {
+            case _ => false
+        }
+   }
+   
+   /** Displays the list of saved checkpoints. */
+   def displayCheckPts : Unit = {
+        console.emitln("Saved checkpoints: ")
+        for(i <- 0 until checkpoints.size) {
+            val (date, checkpt) = checkpoints(i)
+            console.emitln(i + " saved at " + date)
+        }
+        if(checkpoints.isEmpty) console.emitln("None")
+   }
+   
 }
 
 /**

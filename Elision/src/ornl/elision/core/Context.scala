@@ -57,6 +57,17 @@ import ornl.elision.ElisionException
  */
 class Context extends Fickle with Mutable {
   
+  /** Creates a copy of this context */
+  def cloneContext : Context = {
+    val clone = new Context
+    
+    clone.binds = this.binds.cloneBinds
+    clone.operatorLibrary = this.operatorLibrary.cloneOpLib
+    clone.ruleLibrary = this.ruleLibrary.cloneRuleLib
+    
+    clone
+  }
+  
   //======================================================================
   // Global bindings management.
   //======================================================================
