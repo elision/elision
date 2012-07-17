@@ -39,14 +39,7 @@ package ornl.elision.gui
 
 import swing._
 import scala.swing.BorderPanel.Position._
-import scala.concurrent.ops._
-import sys.process._
-import java.io._
-import java.awt.Graphics2D
-import scala.util.matching._
-import scala.collection.mutable.ListBuffer
-
-import sage2D._
+import swing.TabbedPane
 
 /** Used to display information about the currently selected node. */
 class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
@@ -55,11 +48,11 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	
-	val label = new Label("Atom parse String: ")
-	label.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
-	contents += label
-	
-	
+    
+    val tabs = new TabbedPane
+    contents += tabs
+
+    // Parse String tab
 	
 	/** The EditorPane that displays the currently selected node's parse string */
 	val parseArea = new EditorPane {
@@ -75,11 +68,12 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
 		preferredSize = new Dimension(PropertiesPanel.preferredWidth,PropertiesPanel.parsePanelHeight)
 	}
-	contents += parsePanel
+    val parsePage = new TabbedPane.Page("Atom Parse String", parsePanel)
+    tabs.pages += parsePage
 	
-	val label2 = new Label("Atom properties: ")
-	label2.border = new javax.swing.border.EmptyBorder(0,0,inset,0)
-	contents += label2
+
+    
+    // Properties tab
 	
 	/** The TextArea that displays the currently selected node's properties */
 	val textArea = new TextArea("",15,45) {
@@ -92,11 +86,12 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 	}
 	
 	/** The scrolling pane that contains textArea */
-	val taPanel = new ScrollPane {
+	val propsPanel = new ScrollPane {
 		contents = textArea
 		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
 	}
-	contents += taPanel
+    val propsPage = new TabbedPane.Page("Atom Properties", propsPanel)
+    tabs.pages += propsPage
 
 	
 	
