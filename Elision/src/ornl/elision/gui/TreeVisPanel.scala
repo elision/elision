@@ -64,8 +64,8 @@ class TreeVisPanel extends GamePanel {
 	/** The mouse input interface for the panel */
 	val mouseIn = new MouseInput(this)
 	
+    /** The keyboard input interface for the panel */
 	val keyboardIn = new KeyboardInput(this)
-	//focusable = true
 	
 	/** Keeps track of the mouse's position in world coordinates */
 	var mouseWorldPosition : java.awt.geom.Point2D = new java.awt.geom.Point2D.Double(0,0)
@@ -81,7 +81,7 @@ class TreeVisPanel extends GamePanel {
 	var loadingThingAngle = 0
     
     /** A SwingWorker thread used for concurrently rendering the panel's image. */
-    val renderThread = new TreeVisThread2(this,timer)
+    val renderThread = new TreeVisThread(this,timer)
     renderThread.execute
     
     /** The Image containing the latest rendering of the visualization tree. */
@@ -98,24 +98,9 @@ class TreeVisPanel extends GamePanel {
             // if we're still processing a previous frame, just return.
             if(!timerLock) {
                 timerLock = true
-            //    (new TreeVisThread(this,gt)).execute
                 renderThread._continue = true
-                
             }
             repaint
-            
-            /*  // old code (Executes in the event dispatch thread and slows everything else down)
-            if(!isLoading) {
-                // perform 1 or more iteration through the timer loop, depending on the skip rate.
-                val numLoops = math.max(skipRate + 1, 1)
-                for(i <- 1 to numLoops) timerLoop	
-            }
-            repaint
-            gt.updateFrameRateCounter
-            
-            // we're done, so unlock the TreeVisPanel
-            timerLock = false
-            */
 		}
 		case _ =>
 	}
@@ -234,8 +219,8 @@ class TreeVisPanel extends GamePanel {
 			camera.moveCenter(clickedNodeScreenPos)
 			treeSprite.selectNode(clickedNode, decompDepth)
 			
-			mainGUI.propsPanel.textArea.text = clickedNode.properties
-			mainGUI.propsPanel.parseStringHighlight(clickedNode.term, clickedNode.isComment)
+			mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
+			mainGUI.sidePanel.parsePanel.parseStringHighlight(clickedNode.term, clickedNode.isComment)
 			
 			camera.x = clickedNode.worldX
 			camera.y = clickedNode.worldY
@@ -297,67 +282,8 @@ object TreeVisPanel {
 }
 
 
-
 /** A swing worker thread to run the Tree Visualization interaction logic and rendering in */
-class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Image, Any] {
-    
-    override def doInBackground : Image = {
-        // run the panel's logic before rendering it.
-        treeVis.timerLoop
-        
-        // Create the rendered image.
-        val image = render
-
-        // return our rendered image
-        image
-    }
-    
-    def render : Image = {
-        val image = treeVis.peer.createVolatileImage(treeVis.size.width, treeVis.size.height) //new BufferedImage(treeVisSize.width, treeVisSize.height, TreeVisPanel.imageType)
-        var g = image.createGraphics
-        
-        // white background
-        g.setColor(new Color(0xffffff))
-        g.fillRect(0,0,treeVis.size.width, treeVis.size.height)
-        
-        // store affine transforms for later use
-		val camTrans = treeVis.camera.getTransform
-		
-		// apply the Camera transform
-		g.setTransform(camTrans)
-		
-		//testPaint(g)
-		treeVis.treeSprite.render(g)
-
-		// dispose of the graphics context
-        g.dispose
-        
-        // return the completed image
-        image
-    }
-    
-    override def done : Unit = {
-        // We finished rendering the image, so hand over the rendering to the TreeVisPanel.
-        try {
-            treeVis.renderedImage = this.get
-        } 
-        catch {
-            case _ =>
-        }
-        finally {
-            // update the frame rate counter
-            gt.updateFrameRateCounter
-            
-            // we're done, so unlock the TreeVisPanel
-            treeVis.timerLock = false
-        }
-    }
-}
-
-
-
-/** A swing worker thread to run the Tree Visualization interaction logic and rendering in */
-class TreeVisThread2(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Any, Any] {
+class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Any, Any] {
     
     var _continue = false
     

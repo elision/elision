@@ -55,7 +55,8 @@ class ConsolePanel extends ScrollPane {
 	val inset = 3
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
-    horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
 	
 	/** The EditorPane containing the REPL */
 	val console = new EditorPane { //new TextArea("",20,ConsolePanel.maxCols) { // new EditorPane {
@@ -73,7 +74,7 @@ class ConsolePanel extends ScrollPane {
     listenTo(this)
     reactions += {
         case re : event.UIElementResized =>
-            ConsolePanel.maxCols = (re.source.size.getWidth/ConsolePanel.charWidth).toInt - 4
+            ConsolePanel.maxCols = (console.size.getWidth/ConsolePanel.charWidth).toInt - 1
             ornl.elision.repl.ReplActor ! ("guiColumns", ConsolePanel.maxCols - 1)
             //System.err.println("Console has been resized!" + ConsolePanel.maxCols)
     }
