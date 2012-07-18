@@ -62,45 +62,62 @@ object GUIActor extends Actor {
 	def act() = {
 		loop {
 			react {
-                case ("Repl", args : Any) => 
-                    // forward a message to the REPL
-                    ornl.elision.repl.ReplActor ! args
-                case ("reGetHistory", result : Any, histSize : Int) =>
-                    ConsolePanel.reGetHistory = (result, histSize)
-                    waitingForReplInput = false
-                case ("Eva", cmd : String, args : Any) => 
-                    // process a TreeBuilder command received from the Elision.
-                    if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args) // processTreeBuilderCommands(cmd, args)
-				case selFile : java.io.File => 
-					// The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-					if(!disableTreeBuilder) mainGUI.treeVisPanel.isLoading = true
-					Thread.sleep(100)
-					
-					// here we accumulate the text of the file into one big string.
-					
-					var str : String = ""
-					val br = new BufferedReader(new FileReader(selFile))
-					while(br.ready) {
-						str += br.readLine + "\n"
-					}
-					br.close
-					
-					// now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
-					println("Reading REPL input from file: " + selFile.getPath)
-					println()
-					ornl.elision.repl.ReplActor ! str
-				case "quit" => 
-					System.exit(0)
-				case ("replFormat", flag : Boolean) =>
-					mainGUI.consolePanel.tos.applyFormatting = flag
-					ornl.elision.repl.ReplActor ! ("wait", false)
-                case("replReduceLines", flag : Boolean) =>
-                    mainGUI.consolePanel.tos.reduceLines = flag
-                    ornl.elision.repl.ReplActor ! ("wait", false)
-				case msg => System.err.println("GUIActor received invalid message: " + msg) // discard anything else that comes into the mailbox.
+                case theMsg : Any => 
+                    reactWithMode(theMsg)
 			}
 		}
 	}
+    
+    /** The actor handles received messages depending on Eva's current mode. */
+    def reactWithMode(theMsg : Any) : Unit = {
+        mainGUI.mode match {
+            case "Elision" =>
+                theMsg match {
+                    case ("Repl", args : Any) => 
+                        // forward a message to the REPL
+                        ornl.elision.repl.ReplActor ! args
+                    case ("reGetHistory", result : Any, histSize : Int) =>
+                        ConsolePanel.reGetHistory = (result, histSize)
+                        waitingForReplInput = false
+                    case ("Eva", cmd : String, args : Any) => 
+                        // process a TreeBuilder command received from the Elision.
+                        if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args)
+                    case selFile : java.io.File => 
+                        // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
+                        if(!disableTreeBuilder) mainGUI.treeVisPanel.isLoading = true
+                        Thread.sleep(100)
+                        
+                        // here we accumulate the text of the file into one big string.
+                        var str : String = ""
+                        val br = new BufferedReader(new FileReader(selFile))
+                        while(br.ready) {
+                            str += br.readLine + "\n"
+                        }
+                        br.close
+                        
+                        // now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
+                        println("Reading REPL input from file: " + selFile.getPath)
+                        println()
+                        ornl.elision.repl.ReplActor ! str
+                    case "quit" => 
+                        System.exit(0)
+                    case ("replFormat", flag : Boolean) =>
+                        mainGUI.consolePanel.tos.applyFormatting = flag
+                        ornl.elision.repl.ReplActor ! ("wait", false)
+                    case("replReduceLines", flag : Boolean) =>
+                        mainGUI.consolePanel.tos.reduceLines = flag
+                        ornl.elision.repl.ReplActor ! ("wait", false)
+                    case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
+                }
+            case _ =>
+                System.err.println("GUIActor error: Eva is not in a recognized mode.")
+        }
+    }
+    
+    
+    
+    
+    
     
     
     /** forces the calling thread to wait for the REPL to finish doing something. */
