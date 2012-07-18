@@ -113,6 +113,7 @@ object mainGUI extends SimpleSwingApplication {
         // TODO: Change the visualization panel
         
         // TODO: Change the REPL panel
+        consolePanel.changeMode(mode)
         
         // Change the window's title
         frame.title = defaultTitle + " (" + mode + " mode)"
