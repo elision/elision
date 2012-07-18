@@ -41,41 +41,45 @@ import swing._
 import scala.swing.BorderPanel.Position._
 import swing.TabbedPane
 
-/** Used to display information about the currently selected node. */
-class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
-	background = mainGUI.bgColor
-	/** Used for setting border spacings in this panel */
-	val inset = 3
-	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-	
-    
-    val tabs = new TabbedPane
-    contents += tabs
 
-    // Parse String tab
-	
-	/** The EditorPane that displays the currently selected node's parse string */
-	val parseArea = new EditorPane {
+class EliParseStringPane extends ScrollPane {
+    val inset = SidePanel.inset
+    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+    preferredSize = new Dimension(SidePanel.preferredWidth, SidePanel.parsePanelHeight)
+    
+    /** The EditorPane that displays the currently selected node's parse string */
+	val textArea = new EditorPane {
 		editable = false
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
 		focusable = true
-		editorKit = new javax.swing.text.html.HTMLEditorKit
+		editorKit = new javax.swing.text.html.HTMLEditorKit 
 	}
-	
-	/** The scrolling pane that contains parseArea */
-	val parsePanel = new ScrollPane {
-		contents = parseArea
-		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
-		preferredSize = new Dimension(PropertiesPanel.preferredWidth,PropertiesPanel.parsePanelHeight)
-	}
-    val parsePage = new TabbedPane.Page("Atom Parse String", parsePanel)
-    tabs.pages += parsePage
-	
-
+    contents = textArea
     
-    // Properties tab
-	
-	/** The TextArea that displays the currently selected node's properties */
+    
+    /**
+     * Displays an atom's parse string in textArea with Elision syntax highlighting applied. 
+     * @param text					the atom's parse string.
+     * @param disableHighlight		disables highlighting if true.
+     */
+    def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
+        // determine the current character width of the textArea.
+        val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 1
+        
+        // set the textArea's text to the resulting HTML-injected parse string.
+        textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + SyntaxFormatter.applyHTMLHighlight(text, disableHighlight, cols) + """</div>"""
+    }
+}
+
+
+
+class EliAtomPropsPane extends ScrollPane {
+    val inset = SidePanel.inset
+    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+    
+    /** The TextArea that displays the currently selected node's properties */
 	val textArea = new TextArea("",15,45) {
 		wordWrap = true
 		lineWrap = true
@@ -84,38 +88,8 @@ class PropertiesPanel extends BoxPanel(Orientation.Vertical) {
 		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
 		focusable = true
 	}
-	
-	/** The scrolling pane that contains textArea */
-	val propsPanel = new ScrollPane {
-		contents = textArea
-		horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
-	}
-    val propsPage = new TabbedPane.Page("Atom Properties", propsPanel)
-    tabs.pages += propsPage
-
-	
-	
-	
-	
-	/**
-	 * Displays an atom's parse string in parseArea with Elision syntax highlighting applied. 
-	 * @param text					the atom's parse string.
-	 * @param disableHighlight		disables highlighting if true.
-	 */
-	def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
-		
-		// set the parseArea's text to the resulting HTML-injected parse string.
-		parseArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + EliSyntaxFormatting.applyHTMLHighlight(text,disableHighlight,40) + """</div>"""
-	}
-	
-	
-	
+    contents = textArea 
 }
 
 
-/** Contains constants used by the PropertiesPanel */
-object PropertiesPanel {
-	val preferredWidth = 260
-	val parsePanelHeight = 200
-}
 

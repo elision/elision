@@ -44,8 +44,7 @@ import collection.mutable.ArrayBuffer
 
 /** 
  * Contrary to what the name suggests, this class is not some sort of mystical nature spirit.
- * Rather, it represents the rewrite tree structure for an Elision term as a 
- * renderable sprite.
+ * Rather, it represents a tree data structure as a renderable sprite.
  */
 class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x,y) {
 	
@@ -369,7 +368,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
     // obtain data for syntax highlighting and formatting
     
-	private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = EliSyntaxFormatting.applyNonHTMLFormatting(term, isComment, NodeSprite.maxTermLength)
+	private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = SyntaxFormatter.applyCFormatting(term, isComment, NodeSprite.maxTermLength)
 	
 	/** The longest line of text in this node's label. */
 	var longestLine= ""
@@ -400,7 +399,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	/** The node's renderable box shape. */
 	val box = new RoundRectangle2D.Double(0, 0-boxHeight/2, boxWidth, boxHeight, 5, 5)
 	
-	/** The node's properties describing the Elision atom it represents */
+	/** The node's properties describing the object it represents */
 	var properties : String = ""
 	
 	/** flag indicates that this node represents a StringLiteral atom. */
@@ -520,7 +519,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
 	
 	/**
-	 * Draws the node's label. It applies Elision syntax highlighting if the syntaxColoring flag is true.
+	 * Draws the node's label. It applies syntax highlighting if the syntaxColoring flag is true.
      * @param g     The graphics context to draw the label with.
 	 */
 	private def drawLabel(g : Graphics2D) : Unit = {

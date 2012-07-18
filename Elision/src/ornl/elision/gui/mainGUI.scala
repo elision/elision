@@ -60,37 +60,72 @@ object mainGUI extends SimpleSwingApplication {
 	/** Eva's configuration settings */
 	val config = new EvaConfig
     GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
+    
+    /** 
+     * This string controls what mode Eva is currently running in. 
+     * Currently supported modes are: 
+     * Elision
+     */
+     
+    var mode = ""
+    
+    val defaultTitle = "Elision Visualization Assistant"
 	
 	/** The panel housing the onboard Elision REPL */
 	val consolePanel = new ConsolePanel
 	
 	/** The panel housing the atom properties display */
-	val propsPanel = new PropertiesPanel
+	val sidePanel = new SidePanel
 	
 	/** The panel housing the rewrite tree visualization */
 	val treeVisPanel = new TreeVisPanel
 	
 	GUIActor.start
 	
+    /** The menu bar */
     val guiMenuBar = new GuiMenuBar
     
-	/** The window's Frame object */
-	def top = new MainFrame {
-		title = "Elision Visualization Assistant"
+    /** The window's Frame object */
+    val frame = new MainFrame {
+		title = defaultTitle // This may change depending on Eva's mode.
 		menuBar = guiMenuBar
 		contents = new BorderPanel {
 			layout( treeVisPanel) = Center
 			layout( consolePanel) = South
-			layout( propsPanel) = East
+			layout( sidePanel) = East
 		}
 		size = new Dimension(1024,800)
 		visible = true
 		
 		// get focus in the REPL panel
 		consolePanel.console.requestFocusInWindow
-		
-		
 	}
+	def top = frame
+    
+    
+    /** Changes the mode that the GUI is currently running in. */
+    def changeMode(mmode : String) : Unit = {
+        mode = mmode
+        
+        // Change the tabs on the side panel
+        sidePanel.changeMode(mode)
+        
+        // TODO: Change the visualization panel
+        
+        // TODO: Change the REPL panel
+        
+        // Change the window's title
+        frame.title = defaultTitle + " (" + mode + " mode)"
+        
+        // Change the SyntaxFormatter's regex set
+        mode match {
+            case "Elision" => SyntaxFormatter.regexes = EliRegexes
+        }
+    }
+    
+    
+    // start in Elision mode
+    changeMode("Elision")
 }
 
 
