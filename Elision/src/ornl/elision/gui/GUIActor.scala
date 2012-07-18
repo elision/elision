@@ -61,7 +61,10 @@ object GUIActor extends Actor {
     
 	def act() = {
 		loop {
+        //    System.out.println("Threads active: " + Thread.activeCount)
 			react {
+                case "quit" => 
+                    System.out.println("Quitting " + mainGUI.mode + " mode...")
                 case theMsg : Any => 
                     reactWithMode(theMsg)
 			}
@@ -76,15 +79,17 @@ object GUIActor extends Actor {
                     case ("Repl", args : Any) => 
                         // forward a message to the REPL
                         ornl.elision.repl.ReplActor ! args
+                    case ("ReplInput", inputString : String) =>
+                        ornl.elision.repl.ReplActor ! inputString
                     case ("reGetHistory", result : Any, histSize : Int) =>
                         ConsolePanel.reGetHistory = (result, histSize)
                         waitingForReplInput = false
                     case ("Eva", cmd : String, args : Any) => 
                         // process a TreeBuilder command received from the Elision.
-                        if(!disableTreeBuilder) treeBuilder.tbActor ! ("Eva", cmd, args)
+                        if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-                        if(!disableTreeBuilder) mainGUI.treeVisPanel.isLoading = true
+                        if(!mainGUI.config.disableTree) mainGUI.treeVisPanel.isLoading = true
                         Thread.sleep(100)
                         
                         // here we accumulate the text of the file into one big string.
@@ -99,8 +104,6 @@ object GUIActor extends Actor {
                         println("Reading REPL input from file: " + selFile.getPath)
                         println()
                         ornl.elision.repl.ReplActor ! str
-                    case "quit" => 
-                        System.exit(0)
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
                         ornl.elision.repl.ReplActor ! ("wait", false)
