@@ -69,7 +69,7 @@ object ReplActor extends Actor {
     
     /** A reference to Elision's REPL. */
     var peer : ornl.elision.repl.ERepl = null
-	
+    
 	/** 
 	 * The actor's act loop will wait to receive string input from the GUI. 
 	 * It will discard any other input in its mailbox.
@@ -117,5 +117,10 @@ object ReplActor extends Actor {
 			Thread.sleep(20) // sleep until the REPL receives input from the GUI
 		}
 	}
+    
+    /** Overriden ! method checks global allowMessages flag before processing a message.*/
+    override def ! (msg : Any) : Unit = {
+        if(guiMode) super.!(msg)
+    }
 }
 

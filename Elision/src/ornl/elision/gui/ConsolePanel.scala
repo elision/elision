@@ -59,13 +59,11 @@ class ConsolePanel extends ScrollPane {
     verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
 	
 	/** The EditorPane containing the REPL */
-	val console = new EditorPane { //new TextArea("",20,ConsolePanel.maxCols) { // new EditorPane {
-	//	wordWrap = true
-	//	lineWrap = true
+	val console = new EditorPane { 
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
 		font = ConsolePanel.font
 		editorKit = new javax.swing.text.html.HTMLEditorKit
-		text = """<div style="font-family:Lucida Console;font-size:12pt">Booting up..."""
+		text = """<div style="font-family:Lucida Console;font-size:12pt">"""
 	}
 	ConsolePanel.textArea = console
 	
@@ -76,7 +74,6 @@ class ConsolePanel extends ScrollPane {
         case re : event.UIElementResized =>
             ConsolePanel.maxCols = (console.size.getWidth/ConsolePanel.charWidth).toInt - 1
             ornl.elision.repl.ReplActor ! ("guiColumns", ConsolePanel.maxCols - 1)
-            //System.err.println("Console has been resized!" + ConsolePanel.maxCols)
     }
     
 
@@ -91,13 +88,23 @@ class ConsolePanel extends ScrollPane {
 	/** Used for REPL output */
 	val ps = new PrintStream(tos)
 	
-	java.lang.System.setOut(ps)
-//	java.lang.System.setErr(ps)
 	
-    /** The REPL thread instance */
-	var repl = new ElisionREPLThread
-	repl.start
-
+	/** The thread for the currently running REPL. */
+    var replThread : Thread = null
+    
+    /** Changes which REPL the ConsolePanel is running and provides a thread for it. */
+    def changeMode(mode : String) : Unit = {
+        mode match {
+            case "Elision" =>
+                /** The REPL thread instance */
+                replThread = new EliReplThread
+                replThread.start
+            case _ =>
+                System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
+        }
+    }
+    
+    java.lang.System.setOut(ps)
 }
 
 /** Contains some helpful constants used by the ConsolePanel, EditorPaneOutputStream, and EditorPaneInputStream. */
@@ -142,24 +149,7 @@ object ConsolePanel {
 }
 
 
-/** A thread to run the REPL in */
 
-class ElisionREPLThread extends Thread {
-	
-	/** Starts a new thread in which the REPL will run in. */
-	override def run : Unit = {
-		ornl.elision.repl.ReplActor.guiMode = true
-		ornl.elision.repl.ReplActor.guiActor = GUIActor
-		runNewRepl
-	}
-	
-	/** Creates an instance of and begins running the new REPL */
-	def runNewRepl : Unit = {
-		val myRepl = new ornl.elision.repl.ERepl
-		myRepl.run
-	}
-
-}
 
 
 
@@ -236,8 +226,8 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + readOnlyOutput
             
 			// update our anchor point and caret position.
-			anchorPos = ConsolePanel.getLength // readOnlyOutput.size // 
-			textArea.caret.position = anchorPos // textArea.text.length
+			anchorPos = ConsolePanel.getLength
+			textArea.caret.position = anchorPos
             
 		} catch {
 			case ioe : Exception => ioe.printStackTrace
@@ -319,7 +309,6 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 		
 		result = result.replaceAllLiterally(" ","""&nbsp;""")
 		result = result.replaceAllLiterally("\t","""&nbsp;&nbsp;&nbsp;""")
-     //   result = result.replaceAllLiterally("\n","""<BR/>""")
 		
 		result
 	}
@@ -427,23 +416,6 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 		
         var newInput = ""
         
-    /*    //newInput = history(historyIndex)
-        GUIActor.waitOnREPL(() => 
-            GUIActor ! ("Repl",("getHistory", historyIndex))
-        , "requesting history index " + historyIndex + " from REPL.")
-        
-        ConsolePanel.reGetHistory match {
-            case (None, histSize : Int) =>
-                if(historyIndex >= histSize) historyIndex = 0
-                if(historyIndex < 0) {
-                    historyIndex = math.max(0,histSize)
-                    getHistory(0)
-                    return
-                }
-            case (str : String, histSize : Int) =>
-                newInput = str
-        }*/
-        
         GUIActor.waitOnREPL(() => 
             GUIActor ! ("Repl",("getHistory", i))
         , "requesting history from REPL.")
@@ -493,8 +465,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			
 			// send the input String to the Repl's actor
 			println()
-			ornl.elision.repl.ReplActor ! inputString
-			
+            GUIActor ! ("ReplInput", inputString)
 		} catch {
 			case _ =>
 		}
