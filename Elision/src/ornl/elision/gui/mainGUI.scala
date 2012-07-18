@@ -106,8 +106,21 @@ object mainGUI extends SimpleSwingApplication {
     /** Changes the mode that the GUI is currently running in. */
     def changeMode(mmode : String) : Unit = {
         mode = mmode
+        
+        // Change the tabs on the side panel
         sidePanel.changeMode(mode)
+        
+        // TODO: Change the visualization panel
+        
+        // TODO: Change the REPL panel
+        
+        // Change the window's title
         frame.title = defaultTitle + " (" + mode + " mode)"
+        
+        // Change the SyntaxFormatter's regex set
+        mode match {
+            case "Elision" => SyntaxFormatter.regexes = EliRegexes
+        }
     }
     
     

@@ -222,8 +222,8 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			if(newTxt == "\n") newTxt = """<br/>"""
 			else {
 				// Inject our new text with HTML tags for Elision formatting.
-				if(applyFormatting) newTxt = EliSyntaxFormatting.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
-				else newTxt = EliSyntaxFormatting.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
+				if(applyFormatting) newTxt = SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
+				else newTxt = SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
 				newTxt = replaceWithHTML(newTxt)
 				if(applyFormatting && reduceLines) newTxt = reduceTo9Lines(newTxt)
 			}
@@ -265,11 +265,11 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 */
 	def reduceTo9Lines(txt : String) : String = {
 		var lineBreakCount = 1
-		for(myMatch <- EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).matchData) {
+		for(myMatch <- SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
 			if(lineBreakCount == ConsolePanel.printMaxRows) {
 				var result = txt.take(myMatch.end)
-				var fontStartCount = EliSyntaxFormatting.htmlFontStartRegex.findAllIn(result).size
-				val fontEndCount = EliSyntaxFormatting.htmlFontEndRegex.findAllIn(result).size
+				var fontStartCount = SyntaxFormatter.htmlFontStartRegex.findAllIn(result).size
+				val fontEndCount = SyntaxFormatter.htmlFontEndRegex.findAllIn(result).size
 				
 				fontStartCount -= fontEndCount
 				
@@ -292,7 +292,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @return		The number of new line tags in txt.
 	 */
 	def lineCount(txt : String) : Int = {
-		EliSyntaxFormatting.htmlNewLineRegex.findAllIn(txt).size
+		SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).size
 	}
 	
 	/** 
@@ -300,7 +300,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @return		true if the readOnlyOutput currently has at least 1 new line tag. Otherwise false.
 	 */
 	def chompFirstLine() : Boolean = {
-		EliSyntaxFormatting.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
+		SyntaxFormatter.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
 			case Some(myMatch : scala.util.matching.Regex.Match) =>
 				readOnlyOutput = readOnlyOutput.drop(myMatch.end)
 				true
@@ -480,7 +480,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			}
 			
 			// apply formatting to the fixed input string
-			val formattedInputString = EliSyntaxFormatting.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
+			val formattedInputString = SyntaxFormatter.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
 			
 			// add the input string to the readOnlyOutput
 			taos.updateReadOnlyText(formattedInputString)

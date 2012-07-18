@@ -68,7 +68,7 @@ object GUIActor extends Actor {
 		}
 	}
     
-    
+    /** The actor handles received messages depending on Eva's current mode. */
     def reactWithMode(theMsg : Any) : Unit = {
         mainGUI.mode match {
             case "Elision" =>
