@@ -61,10 +61,13 @@ object GUIActor extends Actor {
     
 	def act() = {
 		loop {
-        //    System.out.println("Threads active: " + Thread.activeCount)
+            System.err.println("Threads active: " + Thread.activeCount)
+            System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
+            System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
 			react {
                 case "quit" => 
                     System.out.println("Quitting " + mainGUI.mode + " mode...")
+                //    mainGUI.consolePanel.replThread.stop
                 case theMsg : Any => 
                     reactWithMode(theMsg)
 			}
