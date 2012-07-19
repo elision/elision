@@ -44,6 +44,9 @@ object ReplActor extends Actor {
 
 	/** a flag that tells the REPL whether it is receiving input from a GUI or from the console. */
 	var guiMode : Boolean = false 
+    
+    /** a flag used for forcing the ReplActor to accept a message for exiting. */
+    var exitFlag = false
 	
 	/** flag for temporarily disabling GUI communication. */
 	var disableGUIComs = true
@@ -120,7 +123,7 @@ object ReplActor extends Actor {
     
     /** Overriden ! method checks global allowMessages flag before processing a message.*/
     override def ! (msg : Any) : Unit = {
-        if(guiMode) super.!(msg)
+        if(guiMode || exitFlag) super.!(msg)
     }
 }
 
