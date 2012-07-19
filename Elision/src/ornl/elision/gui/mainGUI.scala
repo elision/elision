@@ -178,22 +178,57 @@ class GuiMenuBar extends MenuBar {
 		} )
 		resetCameraItem.mnemonic = event.Key.R
 		viewMenu.contents += resetCameraItem
+	
+    // Mode menu	
 		
-		// Set Decompression Depth : Opens dialog to change the tree visualization's decompression depth.
+	val modeMenu = new Menu("Mode")
+	modeMenu.mnemonic = event.Key.M
+	this.contents += modeMenu
+    
+        // Elision
 		
-		val setDepthItem = new MenuItem(Action("Set Decompression Depth") {
-			val depthDia = new DepthDialog
+		val elisionModeItem = new MenuItem(Action("Elision") {
+			GUIActor ! ("changeMode", "Elision")
 		} )
-		setDepthItem.mnemonic = event.Key.D
-		viewMenu.contents += setDepthItem
+		elisionModeItem.mnemonic = event.Key.E
+		modeMenu.contents += elisionModeItem
+	
+    // Repl menu	
 		
-		// Set REPL Maximum Lines : Opens dialog to change the maximum lines in the onboard REPL
+	val replMenu = new Menu("Repl")
+	replMenu.mnemonic = event.Key.R
+	this.contents += replMenu
+        
+        // Set REPL Maximum Lines : Opens dialog to change the maximum lines in the onboard REPL
 		
 		val setMaxLinesItem = new MenuItem(Action("Set REPL Maximum Lines") {
 			val maxLinesDia = new MaxLinesDialog
 		} )
 		setMaxLinesItem.mnemonic = event.Key.L
-		viewMenu.contents += setMaxLinesItem
+		replMenu.contents += setMaxLinesItem
+        
+        
+    // Tree menu	
+		
+	val treeMenu = new Menu("Tree")
+	treeMenu.mnemonic = event.Key.T
+	this.contents += treeMenu
+
+        // Set Decompression Depth : Opens dialog to change the tree visualization's decompression depth.
+		
+		val setDepthItem = new MenuItem(Action("Set Decompression Depth") {
+			val depthDia = new DepthDialog
+		} )
+		setDepthItem.mnemonic = event.Key.D
+		treeMenu.contents += setDepthItem
+        
+        // Set Node Limit : 
+        
+        val setNodeLimitItem = new MenuItem(Action("Set Node Limit") {
+			val dia = new NodeLimitDialog
+		} )
+		setNodeLimitItem.mnemonic = event.Key.O
+		treeMenu.contents += setNodeLimitItem
         
         // Set Maximum Tree Depth : 
         
@@ -201,7 +236,21 @@ class GuiMenuBar extends MenuBar {
 			val maxDepthDia = new MaxDepthDialog
 		} )
 		setMaxDepthItem.mnemonic = event.Key.M
-		viewMenu.contents += setMaxDepthItem
+		treeMenu.contents += setMaxDepthItem
+        
+        // Disable Node Syntax Coloring : 
+        
+        val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
+        disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
+        
+        disableNodeColoringItem.listenTo(disableNodeColoringItem)
+        disableNodeColoringItem.reactions += {
+            case _ => 
+                mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
+                mainGUI.config.save
+        }
+		disableNodeColoringItem.mnemonic = event.Key.N
+		treeMenu.contents += disableNodeColoringItem
         
         // Disable Tree Construction : 
         
@@ -216,30 +265,10 @@ class GuiMenuBar extends MenuBar {
                 mainGUI.config.save
         }
 		disableTreeItem.mnemonic = event.Key.T
-		viewMenu.contents += disableTreeItem
-        
-        // Disable Node Syntax Coloring : 
-        
-        val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
-        disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
-        
-        disableNodeColoringItem.listenTo(disableNodeColoringItem)
-        disableNodeColoringItem.reactions += {
-            case _ => 
-                mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
-                mainGUI.config.save
-        }
-		disableNodeColoringItem.mnemonic = event.Key.N
-		viewMenu.contents += disableNodeColoringItem
-        
-        // Set Node Limit : 
-        
-        val setNodeLimitItem = new MenuItem(Action("Set Node Limit") {
-			val dia = new NodeLimitDialog
-		} )
-		setNodeLimitItem.mnemonic = event.Key.O
-		viewMenu.contents += setNodeLimitItem
-	
+		treeMenu.contents += disableTreeItem
+    
+    
+    
 	// Help menu	
 		
 	val helpMenu = new Menu("Help")
