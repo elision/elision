@@ -61,13 +61,28 @@ object GUIActor extends Actor {
     
 	def act() = {
 		loop {
-            System.err.println("Threads active: " + Thread.activeCount)
-            System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
-            System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
+        //    System.err.println("Threads active: " + Thread.activeCount)
+        //    System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
+        //    System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
 			react {
-                case "quit" => 
-                    System.out.println("Quitting " + mainGUI.mode + " mode...")
-                //    mainGUI.consolePanel.replThread.stop
+                case "quit" => // forcefully exits the current REPL thread.
+                    try {
+                        System.out.println("Quitting " + mainGUI.mode + " mode...")
+                        mainGUI.consolePanel.replThread.stop
+                    }
+                    catch {
+                        case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
+                    }
+                case ("changeMode", mode : String) => 
+                    try {
+                        System.out.println("Changing to " + mainGUI.mode + " mode...")
+                        mainGUI.consolePanel.replThread.stop
+                    }
+                    catch {
+                        case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
+                    }
+                    mainGUI.changeMode(mode)
+                    waitingForReplInput = false
                 case theMsg : Any => 
                     reactWithMode(theMsg)
 			}
@@ -87,6 +102,8 @@ object GUIActor extends Actor {
                     case ("reGetHistory", result : Any, histSize : Int) =>
                         ConsolePanel.reGetHistory = (result, histSize)
                         waitingForReplInput = false
+                    case ("guiColumns", cols : Int) =>
+                        ornl.elision.repl.ReplActor ! ("guiColumns", cols)
                     case ("Eva", cmd : String, args : Any) => 
                         // process a TreeBuilder command received from the Elision.
                         if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)

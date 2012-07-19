@@ -48,16 +48,14 @@ import java.io._
  *	This panel displays the Elision REPL in a scrollable EditorPane.
  */
 
-class ConsolePanel extends ScrollPane {
+class ConsolePanel extends BoxPanel(Orientation.Vertical) {
 	background = mainGUI.bgColor
-	
+	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
+    
 	/** Used for setting border spacings in this panel */
 	val inset = 3
-	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
-    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
 	
+
 	/** The EditorPane containing the REPL */
 	val console = new EditorPane { 
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
@@ -66,14 +64,29 @@ class ConsolePanel extends ScrollPane {
 		text = """<div style="font-family:Lucida Console;font-size:12pt">"""
 	}
 	ConsolePanel.textArea = console
-	
-	contents = console
+    
+    
+    /** The ScrollPane containing the console. */
+    val scrollingConsolePanel = new ScrollPane {
+        background = mainGUI.bgColor
+        border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+        
+        horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+        verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+
+        preferredSize = new Dimension(Integer.MAX_VALUE, 300)
+        
+        contents = console
+    }
+    
+    contents += scrollingConsolePanel
+    
     
     listenTo(this)
     reactions += {
-        case re : event.UIElementResized =>
-            ConsolePanel.maxCols = (console.size.getWidth/ConsolePanel.charWidth).toInt - 1
-            ornl.elision.repl.ReplActor ! ("guiColumns", ConsolePanel.maxCols - 1)
+        case re : event.UIEvent =>
+            ConsolePanel.maxCols = (scrollingConsolePanel.size.getWidth/ConsolePanel.charWidth).toInt - 4
+            GUIActor ! ("guiColumns", ConsolePanel.maxCols - 1)
     }
     
 
@@ -202,7 +215,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	
 	/** 
 	 * Does the actually processing work for writing new text to the EditorPane. 
-	 * This includes applying HTML tags for Elision formatting and keeping track 
+	 * This includes applying HTML tags for formatting and keeping track 
 	 * of where the boundary between output and input space is. 
 	 * @param _newTxt		is the string being appended to the EditorPane.
 	 */
@@ -211,7 +224,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			var newTxt = _newTxt
 			if(newTxt == "\n") newTxt = """<br/>"""
 			else {
-				// Inject our new text with HTML tags for Elision formatting.
+				// Inject our new text with HTML tags for formatting.
 				if(applyFormatting) newTxt = SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
 				else newTxt = SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
 				newTxt = replaceWithHTML(newTxt)
