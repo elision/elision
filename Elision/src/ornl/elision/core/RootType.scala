@@ -161,7 +161,7 @@ object NamedRootType {
       INTEGER, FLOAT,
       BOOLEAN, RULETYPE,
       OPREF, STRATEGY,
-      BINDING,
+      BINDING, BITS,
       ANY, NONE)
 }
 
@@ -192,6 +192,8 @@ object RSREF extends NamedRootType("RSREF")
 object STRATEGY extends NamedRootType("STRATEGY")
 /** A type for all bindings. */
 object BINDING extends NamedRootType("BINDING")
+/** A type for all bindings. */
+object BITS extends NamedRootType("BITS")
 
 /**
  * The unusual type ANY that matches anything (even NONE).
