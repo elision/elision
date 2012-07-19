@@ -464,10 +464,10 @@ class ERepl extends Processor {
 				// Reset the terminal size now, if we can, and if the user wants to
 				// use the pager.
 				if (getProperty[Boolean]("usepager")) {
-          console.height_=(
-              scala.tools.jline.TerminalFactory.create().getHeight()-1)
-          console.width_=(
-              scala.tools.jline.TerminalFactory.create().getWidth())
+                  console.height_=(
+                      scala.tools.jline.TerminalFactory.create().getHeight()-1)
+                  console.width_=(
+                      scala.tools.jline.TerminalFactory.create().getWidth())
 				} else {
 				  console.height_=(0)
 				  console.width_=(0)
