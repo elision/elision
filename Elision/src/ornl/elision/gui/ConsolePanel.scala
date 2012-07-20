@@ -117,6 +117,16 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         }
     }
     
+    
+    override def paint(g : Graphics2D) : Unit = {
+        try {
+            super.paint(g)
+        }
+        catch {
+            case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
+        }
+    }
+    
     java.lang.System.setOut(ps)
 }
 

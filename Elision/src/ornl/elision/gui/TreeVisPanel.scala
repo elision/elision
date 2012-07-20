@@ -53,12 +53,12 @@ import sage2D._
  * This panel shall display a tree structure showing the rewriting hierarchy 
  * of the last atom string passed to the REPL as input.
  */
-class TreeVisPanel extends GamePanel {
+class TreeVisPanel extends GamePanel with HasCamera {
 	background = new Color(0xffffff)
-	preferredSize = new Dimension(640,480)
+	preferredSize = new Dimension(640, 480)
 	
 	/** The panel's camera for panning around and zooming in the visualization */
-	val camera = new Camera(0,0,640,480)
+	val camera = new Camera(0, 0, 640, 480)
 	NodeSprite.camera = camera
 	
 	/** The mouse input interface for the panel */
@@ -70,12 +70,9 @@ class TreeVisPanel extends GamePanel {
 	/** Keeps track of the mouse's position in world coordinates */
 	var mouseWorldPosition : java.awt.geom.Point2D = new java.awt.geom.Point2D.Double(0,0)
 	
-	/** The current decompression depth for the visualization trees */
-	var decompDepth = mainGUI.config.decompDepth //2
-	
 	/** The sprite representing the visualization of the rewrite tree */
 	var treeSprite = TreeSprite.buildWelcomeTree //TreeSprite.buildTouhouTree
-	treeSprite.selectNode(treeSprite.root, decompDepth) 
+	treeSprite.selectNode(treeSprite.root, mainGUI.config.decompDepth) 
 
 	/** A variable used only by the loading screen animation. It's not important. */
 	var loadingThingAngle = 0
@@ -106,6 +103,14 @@ class TreeVisPanel extends GamePanel {
 	}
     
     
+    /** 
+     * Cleans up the TreeVis panel when we're done with it. 
+     * Most importantly, it causes its worker thread to exit after its current iteration.
+     */
+    
+    override def clean : Unit = {
+        renderThread.exitFlag = true
+    }
     
 	/** 
 	 * test painting function.
@@ -140,27 +145,8 @@ class TreeVisPanel extends GamePanel {
 	 */
 	
 	def mainPaint(g : Graphics2D) : Unit = {
-        /*
-        // store affine transforms for later use
-		val camTrans = camera.getTransform
-		val origTrans = g.getTransform
-		
-		// apply the Camera transform
-		g.setTransform(camTrans)
-		
-		//testPaint(g)
-		treeSprite.render(g)
-		
-		// draw the panel's border (used for testing clipping techniques)
-		
-	//	g.setColor(new Color(0xffaaaa))
-	//	g.drawRect(camera.xLeftEdge.toInt, camera.yTopEdge.toInt, camera.xRightEdge.toInt - camera.xLeftEdge.toInt, camera.yBottomEdge.toInt - camera.yTopEdge.toInt)
-		
-		// restore the original transform
-		g.setTransform(origTrans)
-		
-		
-        */
+        
+        // render the most recent image produced by our rendering thread.
         g.drawImage(renderedImage, null, null)
         
         // display HUD information
@@ -217,7 +203,7 @@ class TreeVisPanel extends GamePanel {
 			
 			val clickedNodeScreenPos = camera.worldToScreenCoords(clickedNode.getWorldPosition)
 			camera.moveCenter(clickedNodeScreenPos)
-			treeSprite.selectNode(clickedNode, decompDepth)
+			treeSprite.selectNode(clickedNode, mainGUI.config.decompDepth)
 			
 			mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
 			mainGUI.sidePanel.parsePanel.parseStringHighlight(clickedNode.term, clickedNode.isComment)
@@ -234,12 +220,6 @@ class TreeVisPanel extends GamePanel {
 	def timerLoop : Unit = {
 
 		keyboardIn.poll
-		
-		/*
-		if(keyboardIn.justAnyPressed) println("just pressed " + keyboardIn.lastKeyPressed)
-		if(keyboardIn.isAnyPressed) println("pressed " + keyboardIn.lastKeyPressed)
-		if(keyboardIn.justAnyTyped) println("just released " + keyboardIn.lastKeyPressed)
-		*/
 		
 		// handle mouse input.
 		
@@ -286,6 +266,7 @@ object TreeVisPanel {
 class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Any, Any] {
     
     var _continue = false
+    var exitFlag = false
     
     override def doInBackground : Any = {
         
@@ -315,6 +296,8 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Swin
                 treeVis.timerLock = false
                 _continue = false
             }
+            
+            if(exitFlag) return null
 
         }
         null

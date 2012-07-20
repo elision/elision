@@ -109,7 +109,7 @@ object GUIActor extends Actor {
                         if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-                        if(!mainGUI.config.disableTree) mainGUI.treeVisPanel.isLoading = true
+                        if(!mainGUI.config.disableTree) mainGUI.visPanel.isLoading = true
                         Thread.sleep(100)
                         
                         // here we accumulate the text of the file into one big string.
