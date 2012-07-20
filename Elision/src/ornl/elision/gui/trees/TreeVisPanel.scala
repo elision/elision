@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.trees
 
 import scala.swing.BorderPanel.Position._
 import scala.concurrent.ops._
@@ -47,6 +47,8 @@ import java.awt.image.VolatileImage
 import javax.swing.SwingWorker
 
 import sage2D._
+
+import ornl.elision.gui._
 
 
 /**

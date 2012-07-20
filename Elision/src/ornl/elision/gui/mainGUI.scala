@@ -44,9 +44,7 @@ import sys.process._
 import java.io._
 import java.awt.Color
 import java.awt.Dimension
-
-import sage2D._
-
+import sage2D.GamePanel
 
 
 /**	
@@ -116,8 +114,11 @@ object mainGUI extends SimpleSwingApplication {
         if(visPanel != null) visPanel.clean
         mode match {
             case "Elision" => 
-                SyntaxFormatter.regexes = EliRegexes
-                visPanel = new TreeVisPanel
+                syntax.SyntaxFormatter.regexes = elision.EliRegexes
+                visPanel = new trees.TreeVisPanel
+            case "Welcome" =>
+                syntax.SyntaxFormatter.regexes = null
+                visPanel = new welcome.WelcomePanel
             case _ =>
                 System.out.println("mainGUI error: Eva is not in a recognized mode.")
         }
@@ -133,9 +134,8 @@ object mainGUI extends SimpleSwingApplication {
 		consolePanel.console.requestFocusInWindow
     }
     
-    
     // start in Elision mode
-    changeMode("Elision")
+    changeMode("Welcome")
 }
 
 
@@ -196,7 +196,15 @@ class GuiMenuBar extends MenuBar {
 	val modeMenu = new Menu("Mode")
 	modeMenu.mnemonic = event.Key.M
 	this.contents += modeMenu
-    
+        
+        // Welcome
+        
+        val welcomeModeItem = new MenuItem(Action("Welcome") {
+			GUIActor ! ("changeMode", "Welcome")
+		} )
+		welcomeModeItem.mnemonic = event.Key.W
+		modeMenu.contents += welcomeModeItem
+        
         // Elision
 		
 		val elisionModeItem = new MenuItem(Action("Elision") {
@@ -245,7 +253,7 @@ class GuiMenuBar extends MenuBar {
                 
                 this.contents += ConsoleMenu.apply(mode)
                 
-                this.contents += TreeVisMenu.apply(mode)
+                this.contents += trees.TreeVisMenu.apply(mode)
                 
                 this.contents += helpMenu
                     helpMenu.contents += helpItem

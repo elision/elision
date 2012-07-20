@@ -47,7 +47,7 @@ import scala.actors.Actor
 object GUIActor extends Actor {
     
     /** A reference to the GUI's TreeBuilder. */
-    val treeBuilder = new TreeBuilder
+    val treeBuilder = new trees.TreeBuilder
     treeBuilder.start
     
     /** Flag for temporarily disabling the TreeBuilder. */
@@ -67,7 +67,7 @@ object GUIActor extends Actor {
 			react {
                 case "quit" => // forcefully exits the current REPL thread.
                     try {
-                        System.out.println("Quitting " + mainGUI.mode + " mode...")
+                        System.out.println("\nQuitting " + mainGUI.mode + " mode...")
                         mainGUI.consolePanel.replThread.stop
                     }
                     catch {
@@ -75,8 +75,8 @@ object GUIActor extends Actor {
                     }
                 case ("changeMode", mode : String) => 
                     try {
-                        System.out.println("Changing to " + mainGUI.mode + " mode...")
-                        mainGUI.consolePanel.replThread.stop
+                        System.out.println("\nChanging to " + mode + " mode...")
+                        if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.stop
                     }
                     catch {
                         case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
@@ -132,6 +132,7 @@ object GUIActor extends Actor {
                         ornl.elision.repl.ReplActor ! ("wait", false)
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
                 }
+            case "Welcome" => // ignore messages.
             case _ =>
                 System.err.println("GUIActor error: Eva is not in a recognized mode.")
         }

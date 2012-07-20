@@ -35,10 +35,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.trees
 
 import swing._
 import swing.BorderPanel.Position._
+
+import ornl.elision.gui._
 
 
 object TreeVisMenu {

@@ -35,12 +35,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.trees
 
 import collection.mutable.ArrayStack
 import collection.mutable.HashMap
-
 import scala.actors.Actor
+
+import ornl.elision.gui._
+
 
 /** A factory class used to contruct TreeSprites. */
 class TreeBuilder extends Thread {
