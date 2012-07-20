@@ -405,6 +405,8 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			
 			if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
 				mainGUI.guiMenuBar.openItem.doClick
+            if(e.key == swing.event.Key.F1)
+                mainGUI.guiMenuBar.helpItem.doClick
 			
 		}
 		case e : swing.event.KeyReleased => {

@@ -141,7 +141,7 @@ object mainGUI extends SimpleSwingApplication {
 
 /**	This is the menu bar for the GUI */
 class GuiMenuBar extends MenuBar {
-	
+
 	// File menu
 	
 	val fileMenu = new Menu("File")
@@ -223,14 +223,20 @@ class GuiMenuBar extends MenuBar {
 		// Help : Opens help documents for the GUI
 		
 		val helpItem = new MenuItem(Action("Help") {
-			val helpDia = new HelpDialog
+			val helpDia = mainGUI.mode match {
+                    case "Elision" => new elision.EliHelpDialog
+                    case _ => null
+                }
 		} )
 		helpItem.mnemonic = event.Key.F1
 		
 		// Help : Opens help documents for the GUI
 		
 		val aboutItem = new MenuItem(Action("About") {
-			val helpDia = new AboutDialog
+			val helpDia = mainGUI.mode match {
+                    case "Elision" => new elision.EliAboutDialog
+                    case _ => null
+                }
 		} )
 		aboutItem.mnemonic = event.Key.A
 	
