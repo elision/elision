@@ -34,25 +34,11 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
+
 package ornl.elision.gui
 
-import scala.collection.mutable.ListBuffer
-import util.matching._
+import sage2D.Camera
 
-
-trait SyntaxRegexes {
-    /** List of this syntax's regexes in the order of their priority. */
-    val rList : List[Regex]
-    
-    /** A mapping of regexes to web colors ("#" followed by the color's hex value) */
-    val colorMap : Map[Regex, String]
-    
-    /** 
-     * A mapping of regexes to their recursive subgroup index (if any). 
-     * If the regex doesn't have a recursive subgroup, map it to -1. 
-     * Currently, this only supports one recursive subgroup per regex.
-     */
-    val recursableMap : Map[Regex, Int]
+trait HasCamera {
+    val camera : Camera
 }
-
-

@@ -34,11 +34,12 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.gui
+package ornl.elision.gui.syntax
 
 import scala.collection.mutable.ListBuffer
 import util.matching._
 
+import ornl.elision.gui._
 
 
 /** provides methods for doing syntax formatting for text using a SyntaxRegexes object. */

@@ -34,61 +34,26 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
+package ornl.elision.gui.syntax
 
-package ornl.elision.gui
+import scala.collection.mutable.ListBuffer
+import util.matching._
 
-import swing._
-import scala.swing.BorderPanel.Position._
-import swing.TabbedPane
+import ornl.elision.gui._
 
-/** Used to display information about the currently selected node. */
-class SidePanel extends BoxPanel(Orientation.Vertical) {
-	background = mainGUI.bgColor
-	/** Used for setting border spacings in this panel */
-	val inset = SidePanel.inset
-	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-    preferredSize = new Dimension(SidePanel.preferredWidth, SidePanel.parsePanelHeight)
-	
-    // This panel organizes a much of other panels into tabs. The panels available from the tabs depends on Eva's current mode.
-    val tabs = new TabbedPane
-    contents += tabs
-
-    // Elision pages: 
-    // Parse String tab
-    val parsePanel = new elision.EliParseStringPane
-    val parsePage = new TabbedPane.Page("Atom Parse String", parsePanel)
+trait SyntaxRegexes {
+    /** List of this syntax's regexes in the order of their priority. */
+    val rList : List[Regex]
     
-    // Properties tab
-    val propsPanel = new elision.EliAtomPropsPane
-    val propsPage = new TabbedPane.Page("Atom Properties", propsPanel)
-
-	/** Changes the tabs in the SidePanel to match a given Eva mode. This is called by mainGUI's changeMode method. */
-	def changeMode(mode : String) {
-        tabs.pages.clear
-        mode match {
-            case "Elision" =>
-                tabs.pages += parsePage
-                tabs.pages += propsPage
-            case "Welcome" => // ignore messages.
-            case _ =>
-        }
-    }
+    /** A mapping of regexes to web colors ("#" followed by the color's hex value) */
+    val colorMap : Map[Regex, String]
     
-    override def paint(g : Graphics2D) : Unit = {
-        try {
-            super.paint(g)
-        }
-        catch {
-            case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
-        }
-    }
+    /** 
+     * A mapping of regexes to their recursive subgroup index (if any). 
+     * If the regex doesn't have a recursive subgroup, map it to -1. 
+     * Currently, this only supports one recursive subgroup per regex.
+     */
+    val recursableMap : Map[Regex, Int]
 }
 
-
-/** Contains constants used by the SidePanel */
-object SidePanel {
-	val preferredWidth = 300
-	val parsePanelHeight = 200
-    val inset = 3
-}
 

@@ -35,11 +35,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.trees
 
 import java.awt._
 import sage2D._
 import collection.mutable.ArrayBuffer
+
+import ornl.elision.gui._
 
 
 /** 
@@ -368,7 +370,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
     // obtain data for syntax highlighting and formatting
     
-	private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = SyntaxFormatter.applyCFormatting(term, isComment, NodeSprite.maxTermLength)
+	private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = syntax.SyntaxFormatter.applyCFormatting(term, isComment, NodeSprite.maxTermLength)
 	
 	/** The longest line of text in this node's label. */
 	var longestLine= ""

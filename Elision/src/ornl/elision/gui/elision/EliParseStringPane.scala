@@ -35,11 +35,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.elision
 
 import swing._
 import scala.swing.BorderPanel.Position._
 import swing.TabbedPane
+
+import ornl.elision.gui._
 
 
 class EliParseStringPane extends ScrollPane {
@@ -68,7 +70,7 @@ class EliParseStringPane extends ScrollPane {
         val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 1
         
         // set the textArea's text to the resulting HTML-injected parse string.
-        textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + SyntaxFormatter.applyHTMLHighlight(text, disableHighlight, cols) + """</div>"""
+        textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + syntax.SyntaxFormatter.applyHTMLHighlight(text, disableHighlight, cols) + """</div>"""
     }
 }
 

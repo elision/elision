@@ -35,12 +35,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.trees
 
 import collection.mutable.ArrayStack
 import collection.mutable.HashMap
-
 import scala.actors.Actor
+
+import ornl.elision.gui._
+
 
 /** A factory class used to contruct TreeSprites. */
 class TreeBuilder extends Thread {
@@ -447,7 +449,6 @@ class TreeBuilder extends Thread {
 	override def run : Unit = {
 		tbActor.start
         
-    //    fatalError
         while(true) {}
 	}
     
@@ -479,14 +480,24 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     case _ => System.err.println("TreeBuilder.newTree received incorrect arguments: " + args)
                 }
             case "finishTree" => // FINISH HIM. FATALITY. KO!
-                mainGUI.treeVisPanel.isLoading = true
-                mainGUI.treeVisPanel.treeSprite = treeBuilder.finishTree
+                // get a reference to the tree visualization panel
+                val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
+                    case tvp : TreeVisPanel =>
+                        tvp
+                    case _ =>
+                        null
+                }
+                if(treeVisPanel != null) {
+                    treeVisPanel.isLoading = true
+                    treeVisPanel.treeSprite = treeBuilder.finishTree
+                    
+                    // once the tree visualization is built, select its root node and center the camera on it.
+                    treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
+                    treeVisPanel.camera.reset
+                    treeVisPanel.isLoading = false
+                }
                 
-                // once the tree visualization is built, select its root node and center the camera on it.
-                mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.root)
-                mainGUI.treeVisPanel.camera.reset
                 
-                mainGUI.treeVisPanel.isLoading = false
             case "pushTable" => 
                 treeBuilder.pushTable(args)
             case "popTable" => 
