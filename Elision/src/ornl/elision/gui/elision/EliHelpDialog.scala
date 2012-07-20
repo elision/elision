@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.elision
 
 import swing._
 import scala.swing.BorderPanel.Position._
@@ -48,8 +48,8 @@ import sage2D.ImageLoader
 
 /** A dialog window containing help docs for the Elision GUI */
 
-class HelpDialog extends Dialog {
-	title = "Help"
+class EliHelpDialog extends Dialog {
+	title = "Elision Mode Help"
 	
 	background = new Color(0xBBBBff)
 	
@@ -70,8 +70,8 @@ class HelpDialog extends Dialog {
 
 /** A dialog window containing version information for the Elision GUI */
 
-class AboutDialog extends Dialog {
-	title = "About"
+class EliAboutDialog extends Dialog {
+	title = "Elision Mode About"
 	val inset = 3
     background = new Color(0xBBBBff)
 
@@ -127,9 +127,10 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
         
         val licensePane = new ScrollPane {
             horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+            verticalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Always
             border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
             
-            val licenseContents = new TextArea(HelpDialog.licenseText,20,80) {
+            val licenseContents = new TextArea(ornl.elision.HelpText.about, 20, 80) { // HelpDialog.licenseText, 20, 80) {
                 editable = false
                 border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
                 font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 10 )
