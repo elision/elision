@@ -127,9 +127,10 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
         
         val licensePane = new ScrollPane {
             horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+            verticalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Always
             border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
             
-            val licenseContents = new TextArea(HelpDialog.licenseText,20,80) {
+            val licenseContents = new TextArea(ornl.elision.HelpText.about, 20, 80) { // HelpDialog.licenseText, 20, 80) {
                 editable = false
                 border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
                 font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 10 )
