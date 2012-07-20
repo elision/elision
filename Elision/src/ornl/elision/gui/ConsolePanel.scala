@@ -110,10 +110,21 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         mode match {
             case "Elision" =>
                 /** The REPL thread instance */
-                replThread = new EliReplThread
+                replThread = new elision.EliReplThread
                 replThread.start
+            case "Welcome" => // ignore messages.
             case _ =>
                 System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
+        }
+    }
+    
+    
+    override def paint(g : Graphics2D) : Unit = {
+        try {
+            super.paint(g)
+        }
+        catch {
+            case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
         }
     }
     
@@ -225,8 +236,8 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			if(newTxt == "\n") newTxt = """<br/>"""
 			else {
 				// Inject our new text with HTML tags for formatting.
-				if(applyFormatting) newTxt = SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
-				else newTxt = SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
+				if(applyFormatting) newTxt = syntax.SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
+				else newTxt = syntax.SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
 				newTxt = replaceWithHTML(newTxt)
 				if(applyFormatting && reduceLines) newTxt = reduceTo9Lines(newTxt)
 			}
@@ -268,11 +279,11 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 */
 	def reduceTo9Lines(txt : String) : String = {
 		var lineBreakCount = 1
-		for(myMatch <- SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
+		for(myMatch <- syntax.SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
 			if(lineBreakCount == ConsolePanel.printMaxRows) {
 				var result = txt.take(myMatch.end)
-				var fontStartCount = SyntaxFormatter.htmlFontStartRegex.findAllIn(result).size
-				val fontEndCount = SyntaxFormatter.htmlFontEndRegex.findAllIn(result).size
+				var fontStartCount = syntax.SyntaxFormatter.htmlFontStartRegex.findAllIn(result).size
+				val fontEndCount = syntax.SyntaxFormatter.htmlFontEndRegex.findAllIn(result).size
 				
 				fontStartCount -= fontEndCount
 				
@@ -295,7 +306,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @return		The number of new line tags in txt.
 	 */
 	def lineCount(txt : String) : Int = {
-		SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).size
+		syntax.SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).size
 	}
 	
 	/** 
@@ -303,7 +314,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @return		true if the readOnlyOutput currently has at least 1 new line tag. Otherwise false.
 	 */
 	def chompFirstLine() : Boolean = {
-		SyntaxFormatter.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
+		syntax.SyntaxFormatter.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
 			case Some(myMatch : scala.util.matching.Regex.Match) =>
 				readOnlyOutput = readOnlyOutput.drop(myMatch.end)
 				true
@@ -465,7 +476,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			}
 			
 			// apply formatting to the fixed input string
-			val formattedInputString = SyntaxFormatter.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
+			val formattedInputString = syntax.SyntaxFormatter.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
 			
 			// add the input string to the readOnlyOutput
 			taos.updateReadOnlyText(formattedInputString)
