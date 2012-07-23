@@ -71,19 +71,30 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 
 
  def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+    
+    
     // If this is not concrete, do not execute.
     if (!_conc) {
       return (SimpleApply(this, atom), false)
     } else {
+      ReplActor ! ("Eva","pushTable","RulesetStrategy doRewrite")
+      // top node of this subtree
+      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RulesetStrategy doRewrite: ")) 
+      ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) 
+      ReplActor ! ("Eva", "setSubroot", "atom") 
+      
       // Get the rules.
       val rules = context.ruleLibrary.getRules(atom, _namelist)
       // Now try every rule until one applies.
       for (rule <- rules) {
         val (newatom, applied) = rule.doRewrite(atom, hint)
         if (applied) {
+          ReplActor ! ("Eva", "addTo", ("atom", "", newatom))
+          ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
           return (newatom, applied)
         }
       } // Try all rules.
+      ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
       return (atom, false)
     }
   }
