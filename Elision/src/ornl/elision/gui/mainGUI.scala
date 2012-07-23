@@ -98,6 +98,24 @@ object mainGUI extends SimpleSwingApplication {
     def changeMode(mmode : String) : Unit = {
         mode = mmode
         
+        // Change the SyntaxFormatter's regex set and the visualization panel
+        if(visPanel != null) visPanel.clean
+        mode match {
+            case "Elision" => 
+                syntax.SyntaxFormatter.regexes = elision.EliRegexes
+                visPanel = new trees.TreeVisPanel
+            case "Welcome" =>
+                syntax.SyntaxFormatter.regexes = null
+                visPanel = new welcome.WelcomePanel
+            case _ =>
+                syntax.SyntaxFormatter.regexes = null
+                visPanel = new welcome.WelcomePanel
+                mode = "Welcome"
+        }
+        
+        config.bootMode = mode
+        config.save
+        
         // Change the tabs on the side panel
         sidePanel.changeMode(mode)
         
@@ -110,19 +128,6 @@ object mainGUI extends SimpleSwingApplication {
         // Change the window's title
         frame.title = defaultTitle + " (" + mode + " mode)"
         
-        // Change the SyntaxFormatter's regex set and the visualization panel
-        if(visPanel != null) visPanel.clean
-        mode match {
-            case "Elision" => 
-                syntax.SyntaxFormatter.regexes = elision.EliRegexes
-                visPanel = new trees.TreeVisPanel
-            case "Welcome" =>
-                syntax.SyntaxFormatter.regexes = null
-                visPanel = new welcome.WelcomePanel
-            case _ =>
-                System.out.println("mainGUI error: Eva is not in a recognized mode.")
-        }
-        
         frame.contents = new BorderPanel {
 			layout( visPanel) = Center
 			layout( consolePanel) = South
@@ -134,8 +139,8 @@ object mainGUI extends SimpleSwingApplication {
 		consolePanel.console.requestFocusInWindow
     }
     
-    // start in Elision mode
-    changeMode("Welcome")
+    // start in whatever mode was used last.
+    changeMode(config.bootMode)
 }
 
 
