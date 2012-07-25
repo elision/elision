@@ -48,7 +48,7 @@ import sage2D.GamePanel
 
 
 /**	
- * This is the Elision GUI's main window.
+ * This is the Eva's main window.
  */
 object mainGUI extends SimpleSwingApplication {
 	
@@ -144,7 +144,7 @@ object mainGUI extends SimpleSwingApplication {
 }
 
 
-/**	This is the menu bar for the GUI */
+/**	Eva's menu bar */
 class GuiMenuBar extends MenuBar {
 
 	// File menu
@@ -189,7 +189,7 @@ class GuiMenuBar extends MenuBar {
 		
 		val resetCameraItem = new MenuItem(Action("Reset Camera") {
             mainGUI.visPanel match {
-                case camPanel : HasCamera =>
+                case camPanel : sage2D.HasCamera =>
                     camPanel.camera.reset
             }
 		} )

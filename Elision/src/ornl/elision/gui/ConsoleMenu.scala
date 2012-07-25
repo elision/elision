@@ -40,7 +40,7 @@ package ornl.elision.gui
 import swing._
 import swing.BorderPanel.Position._
 
-
+/** The console menu for Eva's menu bar. */
 object ConsoleMenu {
     // Console menu	
 		

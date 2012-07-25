@@ -47,6 +47,7 @@ import java.awt.image.VolatileImage
 import javax.swing.SwingWorker
 
 import sage2D._
+import sage2D.input._
 
 import ornl.elision.gui._
 
@@ -264,7 +265,7 @@ object TreeVisPanel {
 }
 
 
-/** A swing worker thread to run the Tree Visualization interaction logic and rendering in */
+/** A swing worker thread to run the Tree Visualization interaction logic and rendering in so that the EDT doesn't get tied up during large tree renderings. */
 class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Any, Any] {
     
     var _continue = false
