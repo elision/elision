@@ -34,62 +34,27 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
+package ornl.elision.gui.syntax
 
-package ornl.elision.gui
+import scala.collection.mutable.ListBuffer
+import util.matching._
 
-import swing._
-import scala.swing.BorderPanel.Position._
-import swing.TabbedPane
+import ornl.elision.gui._
 
-
-class EliParseStringPane extends ScrollPane {
-    val inset = SidePanel.inset
-    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
-    preferredSize = new Dimension(SidePanel.preferredWidth, SidePanel.parsePanelHeight)
+/** Provides regexes and some other useful data for performing syntax coloring in Eva. */
+trait SyntaxRegexes {
+    /** List of this syntax's regexes in the order of their priority. */
+    val rList : List[Regex]
     
-    /** The EditorPane that displays the currently selected node's parse string */
-	val textArea = new EditorPane {
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
-		focusable = true
-		editorKit = new javax.swing.text.html.HTMLEditorKit 
-	}
-    contents = textArea
+    /** A mapping of regexes to web colors ("#" followed by the color's hex value) */
+    val colorMap : Map[Regex, String]
     
-    
-    /**
-     * Displays an atom's parse string in textArea with Elision syntax highlighting applied. 
-     * @param text					the atom's parse string.
-     * @param disableHighlight		disables highlighting if true.
+    /** 
+     * A mapping of regexes to their recursive subgroup index (if any). 
+     * If the regex doesn't have a recursive subgroup, map it to -1. 
+     * Currently, this only supports one recursive subgroup per regex.
      */
-    def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
-        // determine the current character width of the textArea.
-        val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 1
-        
-        // set the textArea's text to the resulting HTML-injected parse string.
-        textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + SyntaxFormatter.applyHTMLHighlight(text, disableHighlight, cols) + """</div>"""
-    }
+    val recursableMap : Map[Regex, Int]
 }
-
-
-
-class EliAtomPropsPane extends ScrollPane {
-    val inset = SidePanel.inset
-    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
-    
-    /** The TextArea that displays the currently selected node's properties */
-	val textArea = new TextArea("",15,45) {
-		wordWrap = true
-		lineWrap = true
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-		focusable = true
-	}
-    contents = textArea 
-}
-
 
 

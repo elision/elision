@@ -55,11 +55,11 @@ class SidePanel extends BoxPanel(Orientation.Vertical) {
 
     // Elision pages: 
     // Parse String tab
-    val parsePanel = new EliParseStringPane
+    val parsePanel = new elision.EliParseStringPane
     val parsePage = new TabbedPane.Page("Atom Parse String", parsePanel)
     
     // Properties tab
-    val propsPanel = new EliAtomPropsPane
+    val propsPanel = new elision.EliAtomPropsPane
     val propsPage = new TabbedPane.Page("Atom Properties", propsPanel)
 
 	/** Changes the tabs in the SidePanel to match a given Eva mode. This is called by mainGUI's changeMode method. */
@@ -69,7 +69,17 @@ class SidePanel extends BoxPanel(Orientation.Vertical) {
             case "Elision" =>
                 tabs.pages += parsePage
                 tabs.pages += propsPage
+            case "Welcome" => // ignore messages.
             case _ =>
+        }
+    }
+    
+    override def paint(g : Graphics2D) : Unit = {
+        try {
+            super.paint(g)
+        }
+        catch {
+            case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
         }
     }
 }

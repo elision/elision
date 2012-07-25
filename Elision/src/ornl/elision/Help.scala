@@ -47,8 +47,20 @@ object Help extends App {
  * Simple about text.
  */
 object About extends App {
-  /** reusable text for any About commands/dialogues in Elision or its associated GUIs and applications. */
-  val text = 
+  /*
+  println("Elision is a term rewriter.")
+  println("Copyright (c) 2012 by UT-Battelle, LLC.  All rights reserved.\n")
+  println("Elision is distributed under a modified BSD license.")
+  println("See the LICENSE.txt file in the distribution, or visit the Elision")
+  println("home page.\n")
+  println("http://elision.github.com")
+  */
+  println(HelpText.about)
+}
+
+object HelpText {
+    /** reusable text for any About commands/dialogues in Elision or its associated GUIs and applications. */
+    val about = 
 """Elision is a term rewriter.
 Copyright (c) 2012 by UT-Battelle, LLC.  All rights reserved.
 
@@ -58,13 +70,5 @@ home page.
 
 http://elision.github.com
 """
-  /*
-  println("Elision is a term rewriter.")
-  println("Copyright (c) 2012 by UT-Battelle, LLC.  All rights reserved.\n")
-  println("Elision is distributed under a modified BSD license.")
-  println("See the LICENSE.txt file in the distribution, or visit the Elision")
-  println("home page.\n")
-  println("http://elision.github.com")
-  */
-  println(text)
 }
+

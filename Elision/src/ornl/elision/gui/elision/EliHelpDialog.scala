@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.elision
 
 import swing._
 import scala.swing.BorderPanel.Position._
@@ -44,10 +44,11 @@ import sys.process._
 import java.io._
 import java.awt.Graphics2D
 
-/** A dialog window containing help docs for the Elision GUI */
+import sage2D.images.ImageLoader
 
-class HelpDialog extends Dialog {
-	title = "Help"
+/** A dialog window containing help docs for the Elision GUI */
+class EliHelpDialog extends Dialog {
+	title = "Elision Mode Help"
 	
 	background = new Color(0xBBBBff)
 	
@@ -67,15 +68,12 @@ class HelpDialog extends Dialog {
 }
 
 /** A dialog window containing version information for the Elision GUI */
-
-class AboutDialog extends Dialog {
-	title = "About"
+class EliAboutDialog extends Dialog {
+	title = "Elision Mode About"
 	val inset = 3
     background = new Color(0xBBBBff)
-	
-    val evaIconURL = this.getClass.getClassLoader.getResource("EvaIcon.png")
-    val evaIcon = java.awt.Toolkit.getDefaultToolkit.getImage(evaIconURL)
-    
+
+    val evaIcon = ImageLoader.loadPath("EvaIcon.png")
     
     val infoPaneContents = 
 """<b><u>Elision Visualization Assistant</u></b><br/>
@@ -92,9 +90,10 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
             /** The panel containing the Eva graphical icon. */
             contents += new FlowPanel {
                 // Wait for the icon's image to finish loading before setting this panel's size.
-                val mt = new java.awt.MediaTracker(this.peer)
-                mt.addImage(evaIcon,0)
-                mt.waitForAll
+                val imageLoader = new ImageLoader(this.peer)
+                imageLoader.addImage(evaIcon)
+                imageLoader.waitForAll
+
                 preferredSize = new Dimension(evaIcon.getWidth(null), evaIcon.getHeight(null))
                 override def paint(g : java.awt.Graphics2D) : Unit = {
                     super.paint(g)
@@ -126,9 +125,10 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
         
         val licensePane = new ScrollPane {
             horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+            verticalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Always
             border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
             
-            val licenseContents = new TextArea(HelpDialog.licenseText,20,80) {
+            val licenseContents = new TextArea(ornl.elision.HelpText.about, 20, 80) { // HelpDialog.licenseText, 20, 80) {
                 editable = false
                 border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
                 font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 10 )
@@ -143,8 +143,7 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
 	open
 }
 
-/** Contains static text data used by HelpDialog */
-
+/** Contains static text data used by EliHelpDialog */
 object HelpDialog {
 	val licenseText = 
 """Redistribution and use in source and binary forms, with or without

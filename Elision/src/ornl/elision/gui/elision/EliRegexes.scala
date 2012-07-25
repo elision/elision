@@ -34,14 +34,16 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.gui
+package ornl.elision.gui.elision
 
 import scala.collection.mutable.ListBuffer
 import util.matching._
 
+import ornl.elision.gui._
 
-/** Provides regexes and some other useful data for performing syntax highlighting in Eva. */
-object EliRegexes extends SyntaxRegexes {
+
+/** Provides regexes and some other useful data for performing Elision syntax highlighting in Eva. */
+object EliRegexes extends syntax.SyntaxRegexes {
 	val multilineComment = new Regex("""(/\*(\n|.)+?\*/)""",
 		"all")
 	val singlelineComment = new Regex("""(//.*(\n|))""",
@@ -193,7 +195,7 @@ object EliRegexes extends SyntaxRegexes {
 }
 
 /** 
- * Web color constants for syntax highlighting in Eva. 
+ * Web color constants for Elision syntax highlighting in Eva. 
  * These are Strings of the form "#[some hex value representing a color]".
  */
 object EliWebColors {

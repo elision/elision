@@ -45,19 +45,16 @@ import java.io._
 
 
 /**
- *	This panel displays the Elision REPL in a scrollable EditorPane.
+ *	This panel displays Eva's current REPL in a scrollable EditorPane. 
  */
-
-class ConsolePanel extends ScrollPane {
+class ConsolePanel extends BoxPanel(Orientation.Vertical) {
 	background = mainGUI.bgColor
-	
+	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
+    
 	/** Used for setting border spacings in this panel */
 	val inset = 3
-	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
-    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
 	
+
 	/** The EditorPane containing the REPL */
 	val console = new EditorPane { 
 		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
@@ -66,14 +63,29 @@ class ConsolePanel extends ScrollPane {
 		text = """<div style="font-family:Lucida Console;font-size:12pt">"""
 	}
 	ConsolePanel.textArea = console
-	
-	contents = console
+    
+    
+    /** The ScrollPane containing the console. */
+    val scrollingConsolePanel = new ScrollPane {
+        background = mainGUI.bgColor
+        border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+        
+        horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+        verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+
+        preferredSize = new Dimension(Integer.MAX_VALUE, 300)
+        
+        contents = console
+    }
+    
+    contents += scrollingConsolePanel
+    
     
     listenTo(this)
     reactions += {
-        case re : event.UIElementResized =>
-            ConsolePanel.maxCols = (console.size.getWidth/ConsolePanel.charWidth).toInt - 1
-            ornl.elision.repl.ReplActor ! ("guiColumns", ConsolePanel.maxCols - 1)
+        case re : event.UIEvent =>
+            ConsolePanel.maxCols = (scrollingConsolePanel.size.getWidth/ConsolePanel.charWidth).toInt - 4
+            GUIActor ! ("guiColumns", ConsolePanel.maxCols - 1)
     }
     
 
@@ -97,10 +109,21 @@ class ConsolePanel extends ScrollPane {
         mode match {
             case "Elision" =>
                 /** The REPL thread instance */
-                replThread = new EliReplThread
+                replThread = new elision.EliReplThread
                 replThread.start
+            case "Welcome" => // ignore messages.
             case _ =>
                 System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
+        }
+    }
+    
+    
+    override def paint(g : Graphics2D) : Unit = {
+        try {
+            super.paint(g)
+        }
+        catch {
+            case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
         }
     }
     
@@ -159,7 +182,6 @@ object ConsolePanel {
  * @param maxLines		The maximum number of lines we want to have in textArea at any one time. 
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
-
 class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
 	
 	/** flag for applying Elision formatting to output */
@@ -202,7 +224,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	
 	/** 
 	 * Does the actually processing work for writing new text to the EditorPane. 
-	 * This includes applying HTML tags for Elision formatting and keeping track 
+	 * This includes applying HTML tags for formatting and keeping track 
 	 * of where the boundary between output and input space is. 
 	 * @param _newTxt		is the string being appended to the EditorPane.
 	 */
@@ -211,9 +233,9 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 			var newTxt = _newTxt
 			if(newTxt == "\n") newTxt = """<br/>"""
 			else {
-				// Inject our new text with HTML tags for Elision formatting.
-				if(applyFormatting) newTxt = SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
-				else newTxt = SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
+				// Inject our new text with HTML tags for formatting.
+				if(applyFormatting) newTxt = syntax.SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
+				else newTxt = syntax.SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
 				newTxt = replaceWithHTML(newTxt)
 				if(applyFormatting && reduceLines) newTxt = reduceTo9Lines(newTxt)
 			}
@@ -255,11 +277,11 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 */
 	def reduceTo9Lines(txt : String) : String = {
 		var lineBreakCount = 1
-		for(myMatch <- SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
+		for(myMatch <- syntax.SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
 			if(lineBreakCount == ConsolePanel.printMaxRows) {
 				var result = txt.take(myMatch.end)
-				var fontStartCount = SyntaxFormatter.htmlFontStartRegex.findAllIn(result).size
-				val fontEndCount = SyntaxFormatter.htmlFontEndRegex.findAllIn(result).size
+				var fontStartCount = syntax.SyntaxFormatter.htmlFontStartRegex.findAllIn(result).size
+				val fontEndCount = syntax.SyntaxFormatter.htmlFontEndRegex.findAllIn(result).size
 				
 				fontStartCount -= fontEndCount
 				
@@ -282,7 +304,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @return		The number of new line tags in txt.
 	 */
 	def lineCount(txt : String) : Int = {
-		SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).size
+		syntax.SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).size
 	}
 	
 	/** 
@@ -290,7 +312,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @return		true if the readOnlyOutput currently has at least 1 new line tag. Otherwise false.
 	 */
 	def chompFirstLine() : Boolean = {
-		SyntaxFormatter.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
+		syntax.SyntaxFormatter.htmlNewLineRegex.findFirstMatchIn(readOnlyOutput) match {
 			case Some(myMatch : scala.util.matching.Regex.Match) =>
 				readOnlyOutput = readOnlyOutput.drop(myMatch.end)
 				true
@@ -340,7 +362,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 
 
 /** 
- * It's not actually an InputStream, but it facilitates in sending input from a textArea to the REPL. 
+ * It's not actually an InputStream, but it facilitates in sending input from a textArea to the current REPL. 
  * @param taos		The TextAreaOutputStream that contains the TextArea that is housing the REPL.
  */
 class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
@@ -381,6 +403,8 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			
 			if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
 				mainGUI.guiMenuBar.openItem.doClick
+            if(e.key == swing.event.Key.F1)
+                mainGUI.guiMenuBar.helpItem.doClick
 			
 		}
 		case e : swing.event.KeyReleased => {
@@ -452,7 +476,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			}
 			
 			// apply formatting to the fixed input string
-			val formattedInputString = SyntaxFormatter.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
+			val formattedInputString = syntax.SyntaxFormatter.applyHTMLHighlight(inputString, false, ConsolePanel.maxCols)
 			
 			// add the input string to the readOnlyOutput
 			taos.updateReadOnlyText(formattedInputString)

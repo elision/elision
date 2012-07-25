@@ -44,13 +44,11 @@ import sys.process._
 import java.io._
 import java.awt.Color
 import java.awt.Dimension
-
-import sage2D._
-
+import sage2D.GamePanel
 
 
 /**	
- * This is the Elision GUI's main window.
+ * This is the Eva's main window.
  */
 object mainGUI extends SimpleSwingApplication {
 	
@@ -71,14 +69,14 @@ object mainGUI extends SimpleSwingApplication {
     
     val defaultTitle = "Elision Visualization Assistant"
 	
-	/** The panel housing the onboard Elision REPL */
+	/** The panel housing the onboard console */
 	val consolePanel = new ConsolePanel
 	
-	/** The panel housing the atom properties display */
+	/** The tabbed panel housing information about the visualization properties. */
 	val sidePanel = new SidePanel
 	
-	/** The panel housing the rewrite tree visualization */
-	val treeVisPanel = new TreeVisPanel
+	/** The panel housing Eva's current visualization. */
+	var visPanel : GamePanel = null
 	
 	GUIActor.start
 	
@@ -89,16 +87,9 @@ object mainGUI extends SimpleSwingApplication {
     val frame = new MainFrame {
 		title = defaultTitle // This may change depending on Eva's mode.
 		menuBar = guiMenuBar
-		contents = new BorderPanel {
-			layout( treeVisPanel) = Center
-			layout( consolePanel) = South
-			layout( sidePanel) = East
-		}
+        
 		size = new Dimension(1024,800)
 		visible = true
-		
-		// get focus in the REPL panel
-		consolePanel.console.requestFocusInWindow
 	}
 	def top = frame
     
@@ -107,32 +98,55 @@ object mainGUI extends SimpleSwingApplication {
     def changeMode(mmode : String) : Unit = {
         mode = mmode
         
+        // Change the SyntaxFormatter's regex set and the visualization panel
+        if(visPanel != null) visPanel.clean
+        mode match {
+            case "Elision" => 
+                syntax.SyntaxFormatter.regexes = elision.EliRegexes
+                visPanel = new trees.TreeVisPanel
+            case "Welcome" =>
+                syntax.SyntaxFormatter.regexes = null
+                visPanel = new welcome.WelcomePanel
+            case _ =>
+                syntax.SyntaxFormatter.regexes = null
+                visPanel = new welcome.WelcomePanel
+                mode = "Welcome"
+        }
+        
+        config.bootMode = mode
+        config.save
+        
         // Change the tabs on the side panel
         sidePanel.changeMode(mode)
         
-        // TODO: Change the visualization panel
-        
-        // TODO: Change the REPL panel
+        // Change the REPL panel
         consolePanel.changeMode(mode)
+        
+        // Change the menu bar
+        guiMenuBar.changeMode(mode)
         
         // Change the window's title
         frame.title = defaultTitle + " (" + mode + " mode)"
         
-        // Change the SyntaxFormatter's regex set
-        mode match {
-            case "Elision" => SyntaxFormatter.regexes = EliRegexes
+        frame.contents = new BorderPanel {
+			layout( visPanel) = Center
+			layout( consolePanel) = South
+			layout( sidePanel) = East
         }
+        frame.size = new Dimension(1024,800)
+        
+        // get focus in the REPL panel
+		consolePanel.console.requestFocusInWindow
     }
     
-    
-    // start in Elision mode
-    changeMode("Elision")
+    // start in whatever mode was used last.
+    changeMode(config.bootMode)
 }
 
 
-/**	This is the menu bar for the GUI */
+/**	Eva's menu bar */
 class GuiMenuBar extends MenuBar {
-	
+
 	// File menu
 	
 	val fileMenu = new Menu("File")
@@ -174,72 +188,37 @@ class GuiMenuBar extends MenuBar {
 		// Reset Camera : reset's the camera in the visualization panel.
 		
 		val resetCameraItem = new MenuItem(Action("Reset Camera") {
-			mainGUI.treeVisPanel.camera.reset
+            mainGUI.visPanel match {
+                case camPanel : sage2D.HasCamera =>
+                    camPanel.camera.reset
+            }
 		} )
 		resetCameraItem.mnemonic = event.Key.R
-		viewMenu.contents += resetCameraItem
 		
-		// Set Decompression Depth : Opens dialog to change the tree visualization's decompression depth.
-		
-		val setDepthItem = new MenuItem(Action("Set Decompression Depth") {
-			val depthDia = new DepthDialog
-		} )
-		setDepthItem.mnemonic = event.Key.D
-		viewMenu.contents += setDepthItem
-		
-		// Set REPL Maximum Lines : Opens dialog to change the maximum lines in the onboard REPL
-		
-		val setMaxLinesItem = new MenuItem(Action("Set REPL Maximum Lines") {
-			val maxLinesDia = new MaxLinesDialog
-		} )
-		setMaxLinesItem.mnemonic = event.Key.L
-		viewMenu.contents += setMaxLinesItem
-        
-        // Set Maximum Tree Depth : 
-        
-        val setMaxDepthItem = new MenuItem(Action("Set Maximum Tree Depth") {
-			val maxDepthDia = new MaxDepthDialog
-		} )
-		setMaxDepthItem.mnemonic = event.Key.M
-		viewMenu.contents += setMaxDepthItem
-        
-        // Disable Tree Construction : 
-        
-        val disableTreeItem = new CheckMenuItem("Disable Tree Construction")
-        disableTreeItem.peer.setState(mainGUI.config.disableTree)
-        GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
-        disableTreeItem.listenTo(disableTreeItem)
-        disableTreeItem.reactions += {
-            case _ => 
-                GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
-                mainGUI.config.disableTree = disableTreeItem.peer.getState
-                mainGUI.config.save
-        }
-		disableTreeItem.mnemonic = event.Key.T
-		viewMenu.contents += disableTreeItem
-        
-        // Disable Node Syntax Coloring : 
-        
-        val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
-        disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
-        
-        disableNodeColoringItem.listenTo(disableNodeColoringItem)
-        disableNodeColoringItem.reactions += {
-            case _ => 
-                mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
-                mainGUI.config.save
-        }
-		disableNodeColoringItem.mnemonic = event.Key.N
-		viewMenu.contents += disableNodeColoringItem
-        
-        // Set Node Limit : 
-        
-        val setNodeLimitItem = new MenuItem(Action("Set Node Limit") {
-			val dia = new NodeLimitDialog
-		} )
-		setNodeLimitItem.mnemonic = event.Key.O
-		viewMenu.contents += setNodeLimitItem
 	
+    // Mode menu (Does not change. Its contents remain the same for ALL Eva modes.)
+		
+	val modeMenu = new Menu("Mode")
+	modeMenu.mnemonic = event.Key.M
+	this.contents += modeMenu
+        
+        // Welcome
+        
+        val welcomeModeItem = new MenuItem(Action("Welcome") {
+			GUIActor ! ("changeMode", "Welcome")
+		} )
+		welcomeModeItem.mnemonic = event.Key.W
+		modeMenu.contents += welcomeModeItem
+        
+        // Elision
+		
+		val elisionModeItem = new MenuItem(Action("Elision") {
+			GUIActor ! ("changeMode", "Elision")
+		} )
+		elisionModeItem.mnemonic = event.Key.E
+		modeMenu.contents += elisionModeItem
+	
+
 	// Help menu	
 		
 	val helpMenu = new Menu("Help")
@@ -249,232 +228,62 @@ class GuiMenuBar extends MenuBar {
 		// Help : Opens help documents for the GUI
 		
 		val helpItem = new MenuItem(Action("Help") {
-			val helpDia = new HelpDialog
+			val helpDia = mainGUI.mode match {
+                    case "Elision" => new elision.EliHelpDialog
+                    case _ => null
+                }
 		} )
 		helpItem.mnemonic = event.Key.F1
-		helpMenu.contents += helpItem
 		
 		// Help : Opens help documents for the GUI
 		
 		val aboutItem = new MenuItem(Action("About") {
-			val helpDia = new AboutDialog
+			val helpDia = mainGUI.mode match {
+                    case "Elision" => new elision.EliAboutDialog
+                    case _ => null
+                }
 		} )
 		aboutItem.mnemonic = event.Key.A
-		helpMenu.contents += aboutItem
-	
 	
 
-	/** The dialog window for the "View > Set Decompression Depth" menu item */
-	class DepthDialog extends Dialog {
-		this.title = "Set Decompression Depth"
-		val inset = 3
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		background = new Color(0xBBBBff)
-		
-		val depthInput = new TextField(10) { 
-			listenTo(keys) 
-			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-			text = "" + mainGUI.treeVisPanel.decompDepth
-		}
-		val okBtn = new Button(Action("OK") {enterInput(depthInput.text)})
-		val cancelBtn = new Button(Action("Cancel") { close } )
-		
-		contents = new BorderPanel {
-			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			layout(new Label("Enter new node decompression depth: (integer > 0)")) = North
-			layout(depthInput) = Center
-			layout(new FlowPanel {
-				contents += okBtn
-				contents += cancelBtn
-			} ) = South
-		}
-		
-		
-		/** 
-		 * processes the input for the dialog when the user clicks OK or presses Enter 
-		 * @param input		The input string being evaluated as the new decompression depth
-		 */
-		private def enterInput(input : String) : Unit = {
-			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
-			// Otherwise, just close the dialog.
-			
-			try {
-				val fieldInt = input.toInt
-				if(fieldInt > 0) {
-					mainGUI.treeVisPanel.decompDepth = fieldInt
-					mainGUI.config.decompDepth = fieldInt
-					mainGUI.config.save
-					mainGUI.treeVisPanel.selectNode(mainGUI.treeVisPanel.treeSprite.selectedNode)
-				}
-			} catch {
-				case _ =>
-			}
-			
-			// close the dialog when we finish processing input
-			close
-		}
-		
-		// open the dialog when it is finished setting up
-		open
-	}
-	
-	/** The dialog window for the "View > Set REPL Maximum Lines" menu item */
-	class MaxLinesDialog extends Dialog {
-		this.title = "Set REPL Maximum Lines"
-		val inset = 3
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		
-		val linesInput = new TextField(10) { 
-			listenTo(keys) 
-			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-			text = "" + mainGUI.consolePanel.tos.maxLines
-		}
-		val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
-		val cancelBtn = new Button(Action("Cancel") { close } )
-		
-		contents = new BorderPanel {
-			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			val minLines = ConsolePanel.infiniteMaxLines
-			layout( new GridPanel(2,1) { 
-						contents += new Label("Enter max lines: (integer >= " + minLines + ")")
-						contents += new Label("(<" + minLines + " will make there be no maximum)") 
-					} ) = North
-			layout(linesInput) = Center
-			layout(new FlowPanel {
-				contents += okBtn
-				contents += cancelBtn
-			} ) = South
-		}
-		
-		
-		/** 
-		 * processes the input for the dialog when the user clicks OK or presses Enter 
-		 * @param input		The input string being evaluated as the new value for the REPL's maximum lines.
-		 */
-		private def enterInput(input : String) : Unit = {
-			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
-			// Otherwise, just close the dialog.
-			
-			try {
-				val fieldInt = input.toInt
-				mainGUI.consolePanel.tos.maxLines = fieldInt
-				mainGUI.config.replMaxLines = fieldInt
-				mainGUI.config.save
-				// close the dialog when we finish processing input
-				close
-			} catch {
-				case _ =>
-			}
-		}
-		
-		// open the dialog when it is finished setting up
-		open
-	}
-	
     
-    
-    /** The dialog window for the "View > Set Maximum Tree Depth" menu item */
-	class MaxDepthDialog extends Dialog {
-		this.title = "Set Maximum Tree Depth"
-		val inset = 3
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		
-		val linesInput = new TextField(10) { 
-			listenTo(keys) 
-			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-			text = "" + GUIActor.treeBuilder.treeMaxDepth
-		}
-		val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
-		val cancelBtn = new Button(Action("Cancel") { close } )
-		
-		contents = new BorderPanel {
-			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			layout( new GridPanel(2,1) { 
-						contents += new Label("Enter max depth: (integer)")
-						contents += new Label("(< 0 will make there be no depth limit)") 
-					} ) = North
-			layout(linesInput) = Center
-			layout(new FlowPanel {
-				contents += okBtn
-				contents += cancelBtn
-			} ) = South
-		}
-		
-		
-		/** 
-		 * processes the input for the dialog when the user clicks OK or presses Enter 
-		 * @param input		The input string being evaluated as the new value for the maximum tree depth.
-		 */
-		private def enterInput(input : String) : Unit = {
-			// if the input is an integer > 0, proceed to set the decompression depth to the input. 
-			// Otherwise, just close the dialog.
-			
-			try {
-				val fieldInt = input.toInt
-				GUIActor.treeBuilder.treeMaxDepth = fieldInt
-				mainGUI.config.maxTreeDepth = fieldInt
-				mainGUI.config.save
-				// close the dialog when we finish processing input
-				close
-			} catch {
-				case _ =>
-			}
-		}
-		
-		// open the dialog when it is finished setting up
-		open
-	}
+    /** Changes the menu bar for the GUI according to the new mode. */
+    def changeMode(mode : String) : Unit = {
+        this.contents.clear
+        
+        mode match {
+            case "Elision" =>
+                this.contents += fileMenu
+                    fileMenu.contents += openItem
+                    fileMenu.contents += quitItem
+                
+                this.contents += viewMenu
+                    viewMenu.contents += resetCameraItem
+                
+                this.contents += modeMenu
+                
+                this.contents += ConsoleMenu.apply(mode)
+                
+                this.contents += trees.TreeVisMenu.apply(mode)
+                
+                this.contents += helpMenu
+                    helpMenu.contents += helpItem
+                    helpMenu.contents += aboutItem
+            case _ => // default menu bar
+                this.contents += fileMenu
+                    fileMenu.contents += openItem
+                    fileMenu.contents += quitItem
+                
+                this.contents += modeMenu
+                
+                this.contents += helpMenu
+                    helpMenu.contents += helpItem
+                    helpMenu.contents += aboutItem
+        }
+    }
     
     
     
-    
-    /** The dialog window for the "View > Set Node Limit" menu item */
-	class NodeLimitDialog extends Dialog {
-		this.title = "Set Node Limit"
-		val inset = 3
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		
-		val linesInput = new TextField(10) { 
-			listenTo(keys) 
-			reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-			text = "" + mainGUI.config.nodeLimit
-		}
-		val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
-		val cancelBtn = new Button(Action("Cancel") { close } )
-		
-		contents = new BorderPanel {
-			border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-			layout( new GridPanel(2,1) { 
-						contents += new Label("Enter node limit: (integer)")
-						contents += new Label("(< 2 will make there be no node limit)") 
-					} ) = North
-			layout(linesInput) = Center
-			layout(new FlowPanel {
-				contents += okBtn
-				contents += cancelBtn
-			} ) = South
-		}
-		
-		
-		/** 
-		 * processes the input for the dialog when the user clicks OK or presses Enter 
-		 * @param input		The input string being evaluated as the new value for the node limit.
-		 */
-		private def enterInput(input : String) : Unit = {
-			try {
-				val fieldInt = input.toInt
-				mainGUI.config.nodeLimit = fieldInt
-				mainGUI.config.save
-				// close the dialog when we finish processing input
-				close
-			} catch {
-				case _ =>
-			}
-		}
-		
-		// open the dialog when it is finished setting up
-		open
-	}
 	
 	
 	

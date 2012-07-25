@@ -47,7 +47,7 @@ import scala.actors.Actor
 object GUIActor extends Actor {
     
     /** A reference to the GUI's TreeBuilder. */
-    val treeBuilder = new TreeBuilder
+    val treeBuilder = new trees.TreeBuilder
     treeBuilder.start
     
     /** Flag for temporarily disabling the TreeBuilder. */
@@ -61,10 +61,28 @@ object GUIActor extends Actor {
     
 	def act() = {
 		loop {
-        //    System.out.println("Threads active: " + Thread.activeCount)
+        //    System.err.println("Threads active: " + Thread.activeCount)
+        //    System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
+        //    System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
 			react {
-                case "quit" => 
-                    System.out.println("Quitting " + mainGUI.mode + " mode...")
+                case "quit" => // forcefully exits the current REPL thread.
+                    try {
+                        System.out.println("\nQuitting " + mainGUI.mode + " mode...")
+                        mainGUI.consolePanel.replThread.stop
+                    }
+                    catch {
+                        case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
+                    }
+                case ("changeMode", mode : String) => 
+                    try {
+                        System.out.println("\nChanging to " + mode + " mode...")
+                        if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.stop
+                    }
+                    catch {
+                        case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
+                    }
+                    mainGUI.changeMode(mode)
+                    waitingForReplInput = false
                 case theMsg : Any => 
                     reactWithMode(theMsg)
 			}
@@ -84,12 +102,14 @@ object GUIActor extends Actor {
                     case ("reGetHistory", result : Any, histSize : Int) =>
                         ConsolePanel.reGetHistory = (result, histSize)
                         waitingForReplInput = false
+                    case ("guiColumns", cols : Int) =>
+                        ornl.elision.repl.ReplActor ! ("guiColumns", cols)
                     case ("Eva", cmd : String, args : Any) => 
                         // process a TreeBuilder command received from the Elision.
                         if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-                        if(!mainGUI.config.disableTree) mainGUI.treeVisPanel.isLoading = true
+                        if(!mainGUI.config.disableTree) mainGUI.visPanel.isLoading = true
                         Thread.sleep(100)
                         
                         // here we accumulate the text of the file into one big string.
@@ -112,6 +132,7 @@ object GUIActor extends Actor {
                         ornl.elision.repl.ReplActor ! ("wait", false)
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
                 }
+            case "Welcome" => // ignore messages.
             case _ =>
                 System.err.println("GUIActor error: Eva is not in a recognized mode.")
         }
