@@ -6,22 +6,31 @@ import util.Random
 import collection.mutable.ListBuffer
 
 import sage2D._
+import sage2D.sprites._
 
-
+/** Eva's welcome mode visualization. All it does is display the Eva logo and visualize a quadtree structure for demonstrating collision detections between sprites. */
 class WelcomePanel extends GamePanel {
 	background = new Color(0xffffff)
 	preferredSize = new Dimension(640,480)
 	
+    /** The collection of BallSprites used in the demo. */
 	val balls = new ListBuffer[BallSprite]
 	for(i <- 1 to 100) {
 		val x = Random.nextInt(640)
 		val y = Random.nextInt(480)
 		balls += new BallSprite(x, y, Random.nextDouble()*64 + 4)
 	}
+    
+    /** A renderable wrapper for sage2D's quadtree. */
 	val quadSprite = new QuadTreeSprite(null)
 	
-    val evaIcon = ImageLoader.loadPath("EvaIcon.png")
+    /** The image for Eva's logo */
+    val evaIcon = sage2D.images.ImageLoader.loadPath("EvaIcon.png")
+    
+    /** evaIcon's pixel width */
     var iconWidth = 0.0
+    
+    /** evaIcon's pixel height */
     var iconHeight = 0.0
     
 	def timerLoop : Unit = {
@@ -74,6 +83,7 @@ class WelcomePanel extends GamePanel {
 		g.drawString("" + timer.fpsCounter, 10,32)
 	}
 	
+    /** This demonstration doesn't have a loading screen. */
 	def loadingPaint(g : Graphics2D) : Unit = {
 	
 	}
@@ -85,11 +95,24 @@ class WelcomePanel extends GamePanel {
    System.out.println("Please select a mode from the Mode menu.")
 }
 
-class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends Sprite(_x, _y) {
-	var dia = 2 * radius
+/** 
+ * A circle that bounces around the edges of its containing panel. 
+ * @param _x    The sprite's initial x coordinate.
+ * @param _y    The sprite's initial y coordinate.
+ * @param radius    The circle's radius.
+ */
+class BallSprite(_x : Double, _y : Double, val radius : Double) extends Sprite(_x, _y) {
+	
+    /** The circle's diameter*/
+    var dia = 2 * radius
+    
+    /** The circle's x velocity */
 	var dx = Random.nextDouble()*6 - 3
+    
+    /** The circle's y velocity */
 	var dy = Random.nextDouble()*6 - 3
 	
+    /** If true, the ball will be colored greenish. Otherwise, it will be drawn redish. */
 	var isColliding = false
 	
 	override def draw(g : Graphics2D) : Unit = {
@@ -102,6 +125,7 @@ class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends 
 		new Rectangle2D.Double(x-radius, y-radius, dia, dia)
 	}
 	
+    /** Moves the ball and causes it to bounce if it hits the edge of its panel. */
 	def move(panel : GamePanel) : Unit = {
 		x += dx
 		y += dy
@@ -124,6 +148,7 @@ class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends 
         }
 	}
 	
+    /** Tests for a collision between this and another BallSprite. */
 	def collision(other : BallSprite) : Boolean = {
 		if(this == other) 
 			false
@@ -133,7 +158,7 @@ class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends 
 }
 
 
-
+/** A renderable wrapper for sage2D's Quadtree structure. */
 class QuadTreeSprite(var quadTree : QuadTree) extends Sprite(0,0) {
 	override def draw(g: Graphics2D) : Unit = {
 		g.setColor(new Color(0xaa0000))
@@ -141,6 +166,7 @@ class QuadTreeSprite(var quadTree : QuadTree) extends Sprite(0,0) {
 		recDraw(g,quadTree)
 	}
 	
+    /** Recursively draws quadrants of the quadtree. */
 	def recDraw(g: Graphics2D, quad : QuadTree) : Unit = {
 		g.drawRect(quad.minX.toInt, quad.minY.toInt, (quad.maxX-quad.minX).toInt, (quad.maxY-quad.minY).toInt)
 		for(subQuad <- quad.quads) {

@@ -42,7 +42,7 @@ import swing.BorderPanel.Position._
 
 import ornl.elision.gui._
 
-
+/** The Tree menu for Eva's menu bar. This only shows up for modes that use a TreeVisPanel for visualization. */
 object TreeVisMenu {
     // Tree menu		
 	val treeMenu = new Menu("Tree")

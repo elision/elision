@@ -45,9 +45,8 @@ import java.io._
 
 
 /**
- *	This panel displays the Elision REPL in a scrollable EditorPane.
+ *	This panel displays Eva's current REPL in a scrollable EditorPane. 
  */
-
 class ConsolePanel extends BoxPanel(Orientation.Vertical) {
 	background = mainGUI.bgColor
 	preferredSize = new Dimension(Integer.MAX_VALUE, 300)
@@ -183,7 +182,6 @@ object ConsolePanel {
  * @param maxLines		The maximum number of lines we want to have in textArea at any one time. 
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
-
 class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
 	
 	/** flag for applying Elision formatting to output */
@@ -364,7 +362,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 
 
 /** 
- * It's not actually an InputStream, but it facilitates in sending input from a textArea to the REPL. 
+ * It's not actually an InputStream, but it facilitates in sending input from a textArea to the current REPL. 
  * @param taos		The TextAreaOutputStream that contains the TextArea that is housing the REPL.
  */
 class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
