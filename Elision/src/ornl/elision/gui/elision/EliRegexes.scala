@@ -42,7 +42,7 @@ import util.matching._
 import ornl.elision.gui._
 
 
-/** Provides regexes and some other useful data for performing syntax highlighting in Eva. */
+/** Provides regexes and some other useful data for performing Elision syntax highlighting in Eva. */
 object EliRegexes extends syntax.SyntaxRegexes {
 	val multilineComment = new Regex("""(/\*(\n|.)+?\*/)""",
 		"all")
@@ -195,7 +195,7 @@ object EliRegexes extends syntax.SyntaxRegexes {
 }
 
 /** 
- * Web color constants for syntax highlighting in Eva. 
+ * Web color constants for Elision syntax highlighting in Eva. 
  * These are Strings of the form "#[some hex value representing a color]".
  */
 object EliWebColors {

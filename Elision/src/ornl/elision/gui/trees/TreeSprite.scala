@@ -38,7 +38,8 @@
 package ornl.elision.gui.trees
 
 import java.awt._
-import sage2D._
+import sage2D.sprites.Sprite
+import sage2D.Camera
 import collection.mutable.ArrayBuffer
 
 import ornl.elision.gui._

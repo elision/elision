@@ -43,7 +43,7 @@ import swing.TabbedPane
 
 import ornl.elision.gui._
 
-
+/** A scrolling pane for displaying an Elision atom's parse string with formatting and syntax coloring. */
 class EliParseStringPane extends ScrollPane {
     val inset = SidePanel.inset
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
@@ -75,7 +75,7 @@ class EliParseStringPane extends ScrollPane {
 }
 
 
-
+/** A scrolling pane for displaying an Elision atom's internal properties. */
 class EliAtomPropsPane extends ScrollPane {
     val inset = SidePanel.inset
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never

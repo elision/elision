@@ -44,10 +44,9 @@ import sys.process._
 import java.io._
 import java.awt.Graphics2D
 
-import sage2D.ImageLoader
+import sage2D.images.ImageLoader
 
 /** A dialog window containing help docs for the Elision GUI */
-
 class EliHelpDialog extends Dialog {
 	title = "Elision Mode Help"
 	
@@ -69,7 +68,6 @@ class EliHelpDialog extends Dialog {
 }
 
 /** A dialog window containing version information for the Elision GUI */
-
 class EliAboutDialog extends Dialog {
 	title = "Elision Mode About"
 	val inset = 3
@@ -145,8 +143,7 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
 	open
 }
 
-/** Contains static text data used by HelpDialog */
-
+/** Contains static text data used by EliHelpDialog */
 object HelpDialog {
 	val licenseText = 
 """Redistribution and use in source and binary forms, with or without
