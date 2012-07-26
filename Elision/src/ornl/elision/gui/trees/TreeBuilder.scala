@@ -40,6 +40,7 @@ package ornl.elision.gui.trees
 import collection.mutable.ArrayStack
 import collection.mutable.HashMap
 import scala.actors.Actor
+import scala.xml._
 
 import ornl.elision.gui._
 
@@ -445,11 +446,177 @@ class TreeBuilder extends Thread {
     }
     
     
-    /** Starts a new thread in which the TreeBuilder will run in. */
+    
+    /** Loads a TreeSprite from a treexml file. */
+    def loadFromFile(file : java.io.File) : TreeSprite = {
+        
+        /** Extracts a named attribute from an xml node. If the attribute doesn't exist, "", the empty string, is returned. */
+        def extrAtt(myXML : Node, tttrait : String) : String = {
+            try {
+                val ttrait = "@" + tttrait
+                (myXML \ ttrait).text
+            }
+            catch {
+                case _ => ""
+            }
+        }
+        
+        def unreplaceNLs(str : String) : String = {
+            val toks = str.split("""&#13;""")
+            var result = ""
+            
+            for(tok <- toks) {
+                result += tok + "\n"
+            }
+            result
+        }
+        
+        try {
+            val topXML = XML.loadFile(file)
+            
+            // load the label map
+            val labels = (topXML \ "labelMap") \ "label"
+            val labelMap = new HashMap[Int, String]
+            for(labelXML <- labels) {
+                val key = extrAtt(labelXML, "key").toInt
+                val value = extrAtt(labelXML, "value")
+                
+                labelMap += (key -> value)
+            }
+            
+            // load the properties map
+            val props = (topXML \ "propsMap") \ "props"
+            val propsMap = new HashMap[Int, String]
+            for(propsXML <- props) {
+                val key = extrAtt(propsXML, "key").toInt
+                val value = extrAtt(propsXML, "value")
+                
+                propsMap += (key -> value)
+            }
+            
+            // load the root NodeSprite
+            val rootXML = (topXML \ "root")(0)
+            
+            val rLabelKey = extrAtt(rootXML, "label").toInt
+            val rPropsKey = extrAtt(rootXML, "props").toInt
+            
+            val rootNode = new NodeSprite(labelMap(rLabelKey))
+            rootNode.properties = unreplaceNLs(propsMap(rPropsKey))
+            
+            // recursively load the rest of the tree.
+            def recLoadTree(subroot : NodeSprite, subrootXML : Node) : Unit = {
+                val nodes = subrootXML \ "node"
+                for(nodeXML <- nodes) {
+                    // load the node's data
+                    val lKey = extrAtt(nodeXML, "label").toInt
+                    val nodeLabel = labelMap(lKey)
+                    
+                    val pKey = extrAtt(nodeXML, "props").toInt
+                    val nodeProps = unreplaceNLs(propsMap(pKey))
+                    
+                    val nodeIsComment = extrAtt(nodeXML, "com").toBoolean
+                    
+                    // create the node and add it to subroot's list of children.
+                    val node = new NodeSprite(nodeLabel, subroot, nodeIsComment)
+                    node.properties = nodeProps
+                    subroot.addChild(node)
+                    
+                    // recursive call
+                    recLoadTree(node, nodeXML)
+                }
+            }
+            recLoadTree(rootNode, rootXML)
+            
+            // return the loaded tree.
+            new TreeSprite(0, 0, rootNode)
+        }
+        catch {
+            case ex : Throwable => 
+                System.out.println("" + ex)
+                null
+        }
+    }
+    
+    /** Saves a TreeSprite to a file. */
+    def saveToFile(treeSprite : TreeSprite, path : String) : Boolean = {
+        
+        
+        val labelMap = new HashMap[String, Int]
+        var labelsNext = 0
+        val propsMap = new HashMap[String, Int]
+        var propsNext = 0
+        
+        def recNodeSpriteXML(subroot : NodeSprite) : Seq[Elem] = {
+            for(child <- subroot.children) yield {
+                val labelKey = if(labelMap.contains(child.term)) labelMap(child.term)
+                    else {
+                        labelMap += (child.term -> labelsNext)
+                        val res = labelsNext
+                        labelsNext += 1
+                        res
+                    }
+
+                val propsKey = if(propsMap.contains(child.properties)) propsMap(child.properties)
+                    else {
+                        propsMap += (child.properties -> propsNext)
+                        val res = propsNext
+                        propsNext += 1
+                        res
+                    }
+                
+                <node label={labelKey.toString} props={propsKey.toString} com={child.isComment.toString}>{recNodeSpriteXML(child)}</node>
+            }
+        }
+        
+        def replaceNLs(str : String) : String = {
+            val toks = str.split("\n")
+            var result = ""
+            
+            for(tok <- toks) {
+                result += tok + """&#13;"""
+            }
+            result
+        }
+        
+        try {
+            labelMap += (treeSprite.root.term -> 0)
+            labelsNext = 1
+            propsMap += (treeSprite.root.properties -> 0)
+            propsNext = 1
+            
+            val rootXML = <root label={"0"} props={"0"}>{
+                recNodeSpriteXML(treeSprite.root)
+            }</root>
+            
+            
+            
+            val labelMapXML = <labelMap>{
+                for( (value, key) <- labelMap) yield <label key={key.toString} value={value}/>
+            }</labelMap>
+            
+            val propsMapXML = <propsMap>{
+                for( (value, key) <- propsMap) yield <props key={key.toString} value={replaceNLs(value)}/>
+            }</propsMap>
+            
+            
+            
+            val all = <treexml>
+                    {labelMapXML}
+                    {propsMapXML}
+                    {rootXML}
+                    </treexml>
+        	XML.save(path, all)
+            true
+        }
+        catch {
+            case _ => false
+        }
+    }
+
+    
+    /** Starts a new thread in which the TreeBuilder's actor will run. */
 	override def run : Unit = {
 		tbActor.start
-        
-        while(true) {}
 	}
     
 }
@@ -465,6 +632,47 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
                     processTreeBuilderCommands(cmd, args)
+                case ("OpenTree", file : java.io.File) =>
+                    System.out.println("\nLoading tree from: " + file.getPath)
+                    
+                    // get a reference to the tree visualization panel
+                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
+                        case tvp : TreeVisPanel =>
+                            tvp
+                        case _ =>
+                            null
+                    }
+                    if(treeVisPanel != null) {
+                        treeVisPanel.isLoading = true
+                        
+                        val treeSprite = treeBuilder.loadFromFile(file)
+                        treeVisPanel.treeSprite = treeSprite
+                        
+                        // once the tree visualization is built, select its root node and center the camera on it.
+                        treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
+                        treeVisPanel.camera.reset
+                        
+                        treeVisPanel.isLoading = false
+                    }
+                case ("SaveTree", file : java.io.File) =>
+                    // make the correct treexml file path to save the tree to.
+                    var filePath = file.getPath
+                    if(!filePath.endsWith(".treexml")) filePath += ".treexml"
+                    
+                    // get a reference to the tree visualization panel
+                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
+                        case tvp : TreeVisPanel =>
+                            tvp
+                        case _ =>
+                            null
+                    }
+                    if(treeVisPanel != null) {
+                        treeVisPanel.isLoading = true
+                        val success = treeBuilder.saveToFile(treeVisPanel.treeSprite, filePath)
+                        treeVisPanel.isLoading = false
+                        if(success) System.out.println("\nSaved the current tree to: " + filePath)
+                        else System.out.println("Failed to save the current tree.")
+                    }
                 case cmd => System.err.println("Bad tree builder command: " + cmd)
             }
         }

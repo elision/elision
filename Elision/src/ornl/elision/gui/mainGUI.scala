@@ -156,9 +156,11 @@ class GuiMenuBar extends MenuBar {
 		// Open : opens an Elision script file to be immediately processed by the Repl as input.
 		
 		var openDirectory = mainGUI.config.lastOpenPath //"."
-		
+		var fileFilter : javax.swing.filechooser.FileFilter = null
+        
 		val openItem = new MenuItem(Action("Open      Ctrl+ O") {
 			val fc = new FileChooser(new File(openDirectory))
+            if(fileFilter != null) fc.fileFilter = fileFilter
 			val result = fc.showOpenDialog(null)
 			val selFile = fc.selectedFile
 			if(selFile != null && result == FileChooser.Result.Approve) {
@@ -253,8 +255,11 @@ class GuiMenuBar extends MenuBar {
         
         mode match {
             case "Elision" =>
+                this.fileFilter = new elision.EliFileFilter
                 this.contents += fileMenu
                     fileMenu.contents += openItem
+                    fileMenu.contents += trees.TreeVisMenu.openTreeItem
+                    fileMenu.contents += trees.TreeVisMenu.saveTreeItem
                     fileMenu.contents += quitItem
                 
                 this.contents += viewMenu
@@ -270,6 +275,7 @@ class GuiMenuBar extends MenuBar {
                     helpMenu.contents += helpItem
                     helpMenu.contents += aboutItem
             case _ => // default menu bar
+                this.fileFilter = null
                 this.contents += fileMenu
                     fileMenu.contents += openItem
                     fileMenu.contents += quitItem
