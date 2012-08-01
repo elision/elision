@@ -37,8 +37,9 @@
 
 package ornl.elision.gui
 
-import swing._
+import scala.swing._
 import scala.concurrent.ops._
+import scala.actors.Actor
 import sys.process._
 import java.io._
 
@@ -127,6 +128,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         }
     }
     
+    tos.start
     java.lang.System.setOut(ps)
 }
 
@@ -182,7 +184,7 @@ object ConsolePanel {
  * @param maxLines		The maximum number of lines we want to have in textArea at any one time. 
  * @param baos			A ByteArrayOutputStream for processing output byte by byte.
  */
-class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) {
+class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val baos : ByteArrayOutputStream) extends FilterOutputStream(baos) with Actor {
 	
 	/** flag for applying Elision formatting to output */
 	var applyFormatting = false
@@ -229,32 +231,43 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
 	 * @param _newTxt		is the string being appended to the EditorPane.
 	 */
 	private def _write(_newTxt : String) : Unit = {
-		try {
-			var newTxt = _newTxt
-			if(newTxt == "\n") newTxt = """<br/>"""
-			else {
-				// Inject our new text with HTML tags for formatting.
-				if(applyFormatting) newTxt = syntax.SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
-				else newTxt = syntax.SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
-				newTxt = replaceWithHTML(newTxt)
-				if(applyFormatting && reduceLines) newTxt = reduceTo9Lines(newTxt)
-			}
-			
-			// append our processed new text to our previous output.
-			updateReadOnlyText(newTxt)
-			enforceMaxLines
-			
-			// apply a constant-width font to our entire EditorPane.
-			textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + readOnlyOutput
-            
-			// update our anchor point and caret position.
-			anchorPos = ConsolePanel.getLength
-			textArea.caret.position = anchorPos
-            
-		} catch {
-			case ioe : Exception => ioe.printStackTrace
-		}
+		this ! _newTxt
 	}
+    
+    
+    def act() = {
+        loop {
+            react {
+                case _newTxt : String =>
+                    try {
+                        var newTxt = _newTxt
+                        if(newTxt == "\n") newTxt = """<br/>"""
+                        else {
+                            // Inject our new text with HTML tags for formatting.
+                            if(applyFormatting) newTxt = syntax.SyntaxFormatter.applyHTMLHighlight(newTxt, false, ConsolePanel.maxCols)
+                            else newTxt = syntax.SyntaxFormatter.applyMinHTML(newTxt, ConsolePanel.maxCols) //  replaceAngleBrackets(newTxt)
+                            newTxt = replaceWithHTML(newTxt)
+                            if(applyFormatting && reduceLines) newTxt = reduceTo9Lines(newTxt)
+                        }
+                        
+                        // append our processed new text to our previous output.
+                        updateReadOnlyText(newTxt)
+                        enforceMaxLines
+                        
+                        // apply a constant-width font to our entire EditorPane.
+                        textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + readOnlyOutput
+                        
+                        // update our anchor point and caret position.
+                        anchorPos = ConsolePanel.getLength
+                        textArea.caret.position = anchorPos
+                        
+                    } catch {
+                        case ioe : Exception => ioe.printStackTrace
+                    }
+                case _ => // ignore
+            }
+        }
+    }
 	
 	/**
 	 * If the current number of lines in the text area is greater than maxlines, 
