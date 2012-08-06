@@ -34,7 +34,8 @@ import ornl.elision.parse._
 /**
  * Implement an interface to run the REPL from the prompt.
  */
-object ReplMain extends ERepl {
+object ReplMain { // extends ERepl {
+  /*
   def main(args: Array[String]) {
     run()
     console.emitln("")
@@ -47,6 +48,17 @@ object ReplMain extends ERepl {
     } else {
       console.warn("Unable to save context.")
     }
+  }
+  */
+  
+  def main(args: Array[String]) {
+    runRepl
+  }
+  
+  def runRepl {
+    val erepl = new ERepl
+    erepl.run()
+    erepl.clean()
   }
 }
 
@@ -407,7 +419,7 @@ class ERepl extends Processor {
 
     // Load all the startup definitions, etc.
     if (!bootstrap()) {
-        ReplActor ! ":quit"
+        ReplActor ! (":quit", true)
         return
     }
     
@@ -509,7 +521,7 @@ class ERepl extends Processor {
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
         // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
         ReplActor.exitFlag = true
-        ReplActor ! ":quit"
+        ReplActor ! (":quit", true)
         return
       }
       
@@ -552,6 +564,19 @@ class ERepl extends Processor {
           coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.
+  }
+  
+  def clean() {
+    console.emitln("")
+    addHistoryLine("// Ended normally: " + new java.util.Date)
+    val cfile = new java.io.FileWriter(_lastcontext)
+    if (cfile != null) {
+      cfile.write(context.toParseString)
+      cfile.flush()
+      cfile.close()
+    } else {
+      console.warn("Unable to save context.")
+    }
   }
   
 }

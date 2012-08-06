@@ -82,7 +82,7 @@ class TreeVisPanel extends GamePanel with HasCamera {
     
     /** A SwingWorker thread used for concurrently rendering the panel's image. */
     val renderThread = new TreeVisThread(this,timer)
-    renderThread.execute
+    renderThread.start // execute
     
     /** The Image containing the latest rendering of the visualization tree. */
     var renderedImage : Image = new BufferedImage(640,480, TreeVisPanel.imageType)
@@ -266,17 +266,18 @@ object TreeVisPanel {
 
 
 /** A swing worker thread to run the Tree Visualization interaction logic and rendering in so that the EDT doesn't get tied up during large tree renderings. */
-class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends SwingWorker[Any, Any] {
+class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thread { // SwingWorker[Any, Any] {
     
     var _continue = false
     var exitFlag = false
     
-    override def doInBackground : Any = {
+    override def run : Unit = { // doInBackground : Any = {
         
-        while(true) {
+        while(!exitFlag) {
             // block until the TreeVisPanel says it should render the next frame.
             while(!_continue) {
                 Thread.sleep(1)
+                if(exitFlag) return
             }
             try {
                 // run the panel's logic before rendering it.
@@ -299,9 +300,6 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Swin
                 treeVis.timerLock = false
                 _continue = false
             }
-            
-            if(exitFlag) return null
-
         }
         null
     }

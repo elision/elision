@@ -85,9 +85,9 @@ object ReplActor extends Actor {
                     if(guiMode && !disableGUIComs) guiActor ! ("Eva", cmd, args)
                 case ("disableGUIComs", flag : Boolean) =>
                     disableGUIComs = flag
-                case ":quit" =>
+                case (":quit", true) =>
                     if(guiMode)  guiActor ! "quit"
-                    exit
+                    else exit
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false
