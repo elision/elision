@@ -68,7 +68,7 @@ object GUIActor extends Actor {
                 case "quit" => // forcefully exits the current REPL thread.
                     try {
                         System.out.println("\nQuitting " + mainGUI.mode + " mode...")
-                        mainGUI.consolePanel.replThread.stop
+                        mainGUI.consolePanel.replThread.clean
                     }
                     catch {
                         case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
@@ -76,13 +76,14 @@ object GUIActor extends Actor {
                 case ("changeMode", mode : String) => 
                     try {
                         System.out.println("\nChanging to " + mode + " mode...")
-                        if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.stop
+                        if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.clean
                     }
                     catch {
                         case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
                     }
                     mainGUI.changeMode(mode)
                     waitingForReplInput = false
+                    System.out.println("Mode change was successful")
                 case theMsg : Any => 
                     reactWithMode(theMsg)
 			}
