@@ -103,7 +103,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
 	
 	
 	/** The thread for the currently running REPL. */
-    var replThread : Thread = null
+    var replThread : ReplThread = null
     
     /** Changes which REPL the ConsolePanel is running and provides a thread for it. */
     def changeMode(mode : String) : Unit = {
