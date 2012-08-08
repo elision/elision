@@ -476,10 +476,10 @@ class ERepl extends Processor {
 				// Reset the terminal size now, if we can, and if the user wants to
 				// use the pager.
 				if (getProperty[Boolean]("usepager")) {
-                  console.height_=(
-                      scala.tools.jline.TerminalFactory.create().getHeight()-1)
-                  console.width_=(
-                      scala.tools.jline.TerminalFactory.create().getWidth())
+          console.height_=(
+              scala.tools.jline.TerminalFactory.create().getHeight()-1)
+          console.width_=(
+              scala.tools.jline.TerminalFactory.create().getWidth())
 				} else {
 				  console.height_=(0)
 				  console.width_=(0)
@@ -516,7 +516,7 @@ class ERepl extends Processor {
 	        line = ""
 	      }
       }
-
+      
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
         // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
