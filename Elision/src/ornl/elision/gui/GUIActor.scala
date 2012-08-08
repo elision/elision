@@ -107,6 +107,10 @@ object GUIActor extends Actor {
                     case ("Eva", cmd : String, args : Any) => 
                         // process a TreeBuilder command received from the Elision.
                         if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
+                    case ("OpenTree", file : java.io.File) =>
+                        treeBuilder.tbActor ! ("OpenTree", file)
+                    case ("SaveTree", file : java.io.File) =>
+                        treeBuilder.tbActor ! ("SaveTree", file)
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
                         if(!mainGUI.config.disableTree) mainGUI.visPanel.isLoading = true

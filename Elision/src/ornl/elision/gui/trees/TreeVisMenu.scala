@@ -44,6 +44,37 @@ import ornl.elision.gui._
 
 /** The Tree menu for Eva's menu bar. This only shows up for modes that use a TreeVisPanel for visualization. */
 object TreeVisMenu {
+    
+    // File menu
+        
+        var openDirectory = mainGUI.config.lastOpenPath //"."
+        
+        val openTreeItem = new MenuItem(Action("Open Tree Visualization") {
+			val fc = new FileChooser(new java.io.File(openDirectory))
+            fc.fileFilter = new TreeXMLFileFilter
+			val result = fc.showOpenDialog(null)
+			val selFile = fc.selectedFile
+			if(selFile != null && result == FileChooser.Result.Approve) {
+				openDirectory = selFile.getParent
+				mainGUI.config.lastOpenPath = openDirectory
+				mainGUI.config.save
+				GUIActor ! ("OpenTree", selFile)
+			}
+		} )
+        
+        val saveTreeItem = new MenuItem(Action("Save Tree Visualization") {
+			val fc = new FileChooser(new java.io.File(openDirectory))
+            fc.fileFilter = new TreeXMLFileFilter
+			val result = fc.showSaveDialog(null)
+			val selFile = fc.selectedFile
+			if(selFile != null && result == FileChooser.Result.Approve) {
+				openDirectory = selFile.getParent
+				mainGUI.config.lastOpenPath = openDirectory
+				mainGUI.config.save
+				GUIActor ! ("SaveTree", selFile)
+			}
+		} )
+
     // Tree menu		
 	val treeMenu = new Menu("Tree")
 	treeMenu.mnemonic = event.Key.T
@@ -276,5 +307,23 @@ class NodeLimitDialog extends Dialog {
     
     // open the dialog when it is finished setting up
     open
+}
+
+
+/** A FileFilter that only accepts .treexml files */
+class TreeXMLFileFilter extends javax.swing.filechooser.FileFilter  {
+    def accept(f : java.io.File) : Boolean = {
+        if(f.isDirectory) return true
+        
+        val name = f.getName
+        val lastDot = name.lastIndexOf('.')
+        val ext = name.drop(lastDot+1)
+        if(ext == "treexml") true
+        else false
+    }
+    
+    def getDescription : String = {
+        "Eva treexml files"
+    }
 }
 

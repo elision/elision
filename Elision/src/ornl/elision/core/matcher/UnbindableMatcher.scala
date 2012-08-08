@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core.matcher
 import ornl.elision.core._
 
@@ -70,7 +71,8 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
    */
   override def next = super.next match {
     case null => null
-    case binds:Bindings => binds.set(patterns, subjects)
+    //  Make sure to honor the original bindings we were given.
+    case binds1:Bindings => (binds1 ++ binds).set(patterns, subjects)
   }
   
   /* Find the first unbindable pattern and then search the subjects to find a
@@ -112,10 +114,10 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
         // do is look at the next subject index.
         findNext
         return
-      case Match(binds) =>
+      case Match(binds1) =>
         // The pattern and subject match.  This binding is the basis for the
-        // continued match.
-        MatchIterator(binds)
+        // continued match. Make sure to honor the original bindings we were given.
+        MatchIterator(binds ++ binds1)
       case Many(iter) =>
         // The pattern and subject match in many ways.  We use this to build
         // a new iterator for the next pattern.
