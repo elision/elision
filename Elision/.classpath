@@ -21,5 +21,6 @@
 			<attribute name="javadoc_location" value="file:/Users/ysp/workspace/kryo-2.16/javadoc/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/vendor/jars/scala-compiler.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
