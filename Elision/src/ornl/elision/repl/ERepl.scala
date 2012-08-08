@@ -34,7 +34,8 @@ import ornl.elision.parse._
 /**
  * Implement an interface to run the REPL from the prompt.
  */
-object ReplMain extends ERepl {
+object ReplMain { // extends ERepl {
+  /*
   def main(args: Array[String]) {
     run()
     console.emitln("")
@@ -47,6 +48,17 @@ object ReplMain extends ERepl {
     } else {
       console.warn("Unable to save context.")
     }
+  }
+  */
+  
+  def main(args: Array[String]) {
+    runRepl
+  }
+  
+  def runRepl {
+    val erepl = new ERepl
+    erepl.run()
+    erepl.clean()
   }
 }
 
@@ -373,13 +385,11 @@ class ERepl extends Processor {
     if (!read(bootstrapFile, false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load " + bootstrapFile + ".  Cannot continue.")
-      ReplActor ! ":quit"
       return false
     }
     console.quiet = 0
     if (console.errors > 0) {
       console.error("Errors were detected during bootstrap.  Cannot continue.")
-      ReplActor ! ":quit"
       return false
     }
     
@@ -391,7 +401,6 @@ class ERepl extends Processor {
       if (console.errors > 0) {
         console.error("Errors were detected processing " + _rc +
             ".  Cannot continue.")
-        ReplActor ! ":quit"
         return false
       }
     }
@@ -409,7 +418,10 @@ class ERepl extends Processor {
     startTimer
 
     // Load all the startup definitions, etc.
-    if (!bootstrap()) return
+    if (!bootstrap()) {
+        ReplActor ! (":quit", true)
+        return
+    }
     
     // Report startup time.
     stopTimer
@@ -507,7 +519,9 @@ class ERepl extends Processor {
       
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-        ReplActor ! ":quit"
+        // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
+        ReplActor.exitFlag = true
+        ReplActor ! (":quit", true)
         return
       }
       
@@ -550,6 +564,19 @@ class ERepl extends Processor {
           coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.
+  }
+  
+  def clean() {
+    console.emitln("")
+    addHistoryLine("// Ended normally: " + new java.util.Date)
+    val cfile = new java.io.FileWriter(_lastcontext)
+    if (cfile != null) {
+      cfile.write(context.toParseString)
+      cfile.flush()
+      cfile.close()
+    } else {
+      console.warn("Unable to save context.")
+    }
   }
   
 }

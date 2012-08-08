@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.elision
+package ornl.elision.gui
 
 import scala.concurrent.ops._
 import sys.process._
@@ -43,30 +43,9 @@ import sys.process._
 import ornl.elision.gui._
 
 
-/** A thread to run the Elision REPL in */
-class EliReplThread extends ReplThread {
+/** A thread to run a REPL in. It's really just a wrapper for a normal Thread that also provides a cleanup method for safely quitting the thread. */
+abstract class ReplThread extends Thread {
 	
-	/** Starts a new thread in which the REPL will run in. */
-	override def run : Unit = {
-		ornl.elision.repl.ReplActor.guiMode = true
-		ornl.elision.repl.ReplActor.guiActor = GUIActor
-		runNewRepl
-	}
-	
-	/** Creates an instance of and begins running the new REPL */
-	def runNewRepl : Unit = {
-		val myRepl = new ornl.elision.repl.ERepl
-		myRepl.run()
-        myRepl.clean()
-	}
-    
-    def clean : Unit = {
-        ornl.elision.repl.ReplActor ! ":quit"
-        // join
-        // this.stop
-        System.out.println("Successfully quit the Elision REPL's thread.")
-    }
+	def clean : Unit
 
 }
-
-
