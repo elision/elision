@@ -152,13 +152,6 @@ object Literal {
   def apply(value: String): StringLiteral = new StringLiteral(value)
   /** Make a symbol literal from a Scala symbol value. */
   def apply(value: Symbol): SymbolLiteral = new SymbolLiteral(value)
-  
-  /** Make a bits literal from a Scala (Int, BitInt) tuple */
-  def apply(value: (Int, BigInt)): BitsLiteral = new BitsLiteral(value)
-  /** Make a bits literal from a Scala tuple and override the type. */
-  def apply(typ: BasicAtom, value: (Int, BigInt)): BitsLiteral = 
-    new BitsLiteral(typ, value)
-  
   /**
    * Get the appropriate Boolean literal for a Scala Boolean value.
    */
@@ -569,44 +562,3 @@ object FloatLiteral {
   /** The default platform to use for floating point work. */
   var platform: IEEE754 = IEEE754Double
 }
-
-case class BitsLiteral(typ: BasicAtom, value: (Int,BigInt)) extends Literal[(Int, BigInt)](typ) {
-  /**
-   * Alternate constructor with default `BITS` type.
-   */
-  def this(len: Int, value: BigInt) = this(BITS, (len,value))
-  /**
-   * Alternate constructor with default `BITS` type.
-   */
-  def this(value: (Int, BigInt)) = this(BITS, value)
-  /**
-   * Alternate constructor with default `BITS` type.
-   */
-  def this(typ: BasicAtom, len: Int, value: BigInt) = this(typ, (len,value))
-  
-  def rewrite(binds: Bindings) = {
-    (ANY, true)
-    ReplActor ! ("Eva", "pushTable", "BitsLiteral rewrite")
-    // top node of this subtree
-    // val rwNode = RWTree.current
-    ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
-        ReplActor ! ("Eva", "setSubroot", "type")
-    
-    theType.rewrite(binds) match {
-      case (newtype, true) =>
-      ReplActor ! ("Eva", "setSubroot", "subroot") // RWTree.current = rwNode
-      val newLit = Literal(newtype, value)
-      ReplActor ! ("Eva", "addTo", ("subroot", "", newLit)) // RWTree.addTo(rwNode, newLit)
-            ReplActor ! ("Eva", "popTable", "BitsLiteral rewrite")
-      (newLit, true)
-      case _ =>
-            ReplActor ! ("Eva", "popTable", "BitsLiteral rewrite")
-      (this, false)
-    }
-  }
-  
-  def toParseString = value.toString +
-    (if ((typ != BITS) && BasicAtom.printTypeInfo) ":" + typ.toParseString else "") 
-}
-
-
