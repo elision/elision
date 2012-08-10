@@ -116,6 +116,8 @@ object GUIActor extends Actor {
                         treeBuilder.tbActor ! ("OpenTree", file)
                     case ("SaveTree", file : java.io.File) =>
                         treeBuilder.tbActor ! ("SaveTree", file)
+                    case "IgnoreNextTree" => 
+                        treeBuilder.tbActor ! "IgnoreNextTree"
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
                         if(!mainGUI.config.disableTree) mainGUI.visPanel.isLoading = true

@@ -625,7 +625,8 @@ class TreeBuilder extends Thread {
 
 /** An actor object for doing concurrent operations with a TreeBuilder. */
 class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
-
+    var ignoreNextTree = false
+    
     def act() = {
 		loop {
 			receive {
@@ -675,6 +676,8 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                         else System.out.println("Failed to save the current tree.\n")
                     }
                     GUIActor ! "newPrompt"
+                case "IgnoreNextTree" =>
+                    ignoreNextTree = true
                 case cmd => System.err.println("Bad tree builder command: " + cmd)
             }
         }
@@ -697,16 +700,20 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     case _ =>
                         null
                 }
-                if(treeVisPanel != null) {
-                    GUIActor ! ("loading", true)
+                
+                GUIActor ! ("loading", true)
+                if(treeVisPanel != null && !ignoreNextTree) {
+                    
                     treeVisPanel.treeSprite = treeBuilder.finishTree
                     
                     // once the tree visualization is built, select its root node and center the camera on it.
                     treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
                     treeVisPanel.camera.reset
-                    GUIActor ! ("loading", false)
+                    
                 }
                 
+                ignoreNextTree = false
+                GUIActor ! ("loading", false)
                 
             case "pushTable" => 
                 treeBuilder.pushTable(args)

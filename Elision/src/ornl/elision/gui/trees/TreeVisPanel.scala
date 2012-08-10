@@ -69,6 +69,7 @@ class TreeVisPanel extends GamePanel with HasCamera {
 	
     /** The keyboard input interface for the panel */
 	val keyboardIn = new KeyboardInput(this)
+//    focusable = true
 	
 	/** Keeps track of the mouse's position in world coordinates */
 	var mouseWorldPosition : java.awt.geom.Point2D = new java.awt.geom.Point2D.Double(0,0)
@@ -221,7 +222,6 @@ class TreeVisPanel extends GamePanel with HasCamera {
 	 * It's mostly just processing mouse input for controlling the camera and selecting nodes.
 	 */
 	def timerLoop : Unit = {
-
 		keyboardIn.poll
 		
 		// handle mouse input.
@@ -229,6 +229,7 @@ class TreeVisPanel extends GamePanel with HasCamera {
 		mouseIn.poll
 		
 		if(mouseIn.justLeftPressed) {
+        //    requestFocusInWindow
 			val clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
 			selectNode(clickedNode)
 			camera.startDrag(mouseIn.position)

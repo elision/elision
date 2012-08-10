@@ -238,6 +238,13 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
     def act() = {
         loop {
             react {
+                case ("bumpCaret", true) =>
+                    try {
+                        textArea.caret.position = math.max(anchorPos, textArea.caret.position)
+                    }
+                    catch {
+                        case _ =>
+                    }
                 case _newTxt : String =>
                     try {
                         var newTxt = _newTxt
@@ -411,6 +418,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 					case _ => avoidInfLoop = true
 				}
 			}
+            
 			
 			// keyboard menu shortcuts
 			
@@ -418,6 +426,19 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 				mainGUI.guiMenuBar.openItem.doClick
             if(e.key == swing.event.Key.F1)
                 mainGUI.guiMenuBar.helpItem.doClick
+                
+            
+            mainGUI.visPanel match {
+                case etvp : elision.EliTreeVisPanel =>
+                    if(e.key == swing.event.Key.R && e.modifiers == swing.event.Key.Modifier.Control) {
+                        etvp.selectingRuleLHS = true
+                    }
+                    if(e.key == swing.event.Key.Escape) {
+                        etvp.selectingRuleLHS = false
+                    }
+                case _ =>
+            }
+            
 			
 		}
 		case e : swing.event.KeyReleased => {
@@ -437,6 +458,14 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 					case _ => {}
 				}
 			}
+            if(e.key == swing.event.Key.Home) {
+                var avoidInfLoop = false
+				try {
+					textArea.caret.position = math.max(taos.anchorPos, textArea.caret.position)
+				} catch {
+					case _ => avoidInfLoop = true
+				}
+            }
 			textArea.caret.visible = true
 		}
 		

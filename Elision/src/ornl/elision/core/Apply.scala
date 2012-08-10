@@ -180,11 +180,28 @@ object Apply {
    */
   def apply(op: BasicAtom, arg: BasicAtom,
       bypass: Boolean = false): BasicAtom = {
+      /*
+    val applyString : String = { op match {
+                case opp : Operator => 
+                    toESymbol(opp.name)
+                case opref : OperatorRef =>
+                    toESymbol(opref.name)
+                case _ =>
+                    op.toParseString
+            }} + "(" + 
+            {arg match {
+                case argSeq : AtomSeq => 
+                    argSeq.atoms.mkParseString("" , ", ", "")
+                case _ => 
+                    arg.toParseString
+            }} + ")"
+    */
       
     //////////////////// GUI changes
     ReplActor ! ("Eva","pushTable", "object Apply apply")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) // val rwNode = RWTree.addToCurrent("object Apply apply: ") 
+   // ReplActor ! ("Eva", "addTo", ("rwNode0", "rwNode", applyString))
     ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op)) // val opNode = RWTree.addTo(rwNode, "Operator: ", op) 
     ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) // val argNode = RWTree.addTo(rwNode, "Argument: ", arg) 
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
@@ -194,6 +211,7 @@ object Apply {
     // Do not try to compute if metaterms are present.
     if (!op.evenMeta && !arg.isTerm) {
         val result = SimpleApply(op, arg)
+        ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
         ReplActor ! ("Eva", "popTable", "object Apply apply")
         result
     } else {
@@ -202,6 +220,7 @@ object Apply {
   		    // If the argument is also a string literal, then we want to simply
   		    // concatenate them.
   		    val result = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
+            ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
             ReplActor ! ("Eva", "popTable", "object Apply apply")
             result
   	    case app:Applicable =>
@@ -209,6 +228,7 @@ object Apply {
   		      // The lhs is applicable; invoke its apply method.  This will
   		      // return some atom, and that atom is the overall result.
   		      val result = app.doApply(arg, bypass)
+              ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
               ReplActor ! ("Eva", "popTable", "object Apply apply")
               result
   	      } catch {
@@ -226,6 +246,7 @@ object Apply {
   	      val result = BindingsAtom(Bindings() +
   	          ("atom" -> r_atom) +
   	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
           ReplActor ! ("Eva", "popTable", "object Apply apply")
           result
   	    case _ =>
@@ -233,6 +254,7 @@ object Apply {
   	      // expression that we have yet to evaluate.  Just build a simple
   	      // apply of the lhs and rhs.
   	      val result = SimpleApply(op, arg)
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
           ReplActor ! ("Eva", "popTable", "object Apply apply")
           result
 	    }
