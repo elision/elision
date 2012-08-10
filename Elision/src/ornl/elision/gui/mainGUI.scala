@@ -103,7 +103,7 @@ object mainGUI extends SimpleSwingApplication {
         mode match {
             case "Elision" => 
                 syntax.SyntaxFormatter.regexes = elision.EliRegexes
-                visPanel = new trees.TreeVisPanel
+                visPanel = new elision.EliTreeVisPanel
             case "Welcome" =>
                 syntax.SyntaxFormatter.regexes = null
                 visPanel = new welcome.WelcomePanel
@@ -266,6 +266,8 @@ class GuiMenuBar extends MenuBar {
                     viewMenu.contents += resetCameraItem
                 
                 this.contents += modeMenu
+                
+                this.contents += elision.EliMenu.eliMenu
                 
                 this.contents += ConsoleMenu.apply(mode)
                 
