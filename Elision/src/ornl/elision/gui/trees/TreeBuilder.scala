@@ -625,7 +625,8 @@ class TreeBuilder extends Thread {
 
 /** An actor object for doing concurrent operations with a TreeBuilder. */
 class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
-
+    var ignoreNextTree = false
+    
     def act() = {
 		loop {
 			receive {
@@ -633,7 +634,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     // process a TreeBuilder command received from the Elision.
                     processTreeBuilderCommands(cmd, args)
                 case ("OpenTree", file : java.io.File) =>
-                    System.out.println("\nLoading tree from: " + file.getPath)
+                    System.out.println("\nLoading tree from: " + file.getPath + "\n")
                     
                     // get a reference to the tree visualization panel
                     val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
@@ -643,7 +644,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                             null
                     }
                     if(treeVisPanel != null) {
-                        treeVisPanel.isLoading = true
+                        GUIActor ! ("loading", true)
                         
                         val treeSprite = treeBuilder.loadFromFile(file)
                         treeVisPanel.treeSprite = treeSprite
@@ -652,8 +653,9 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                         treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
                         treeVisPanel.camera.reset
                         
-                        treeVisPanel.isLoading = false
+                        GUIActor ! ("loading", false)
                     }
+                    GUIActor ! "newPrompt"
                 case ("SaveTree", file : java.io.File) =>
                     // make the correct treexml file path to save the tree to.
                     var filePath = file.getPath
@@ -667,12 +669,15 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                             null
                     }
                     if(treeVisPanel != null) {
-                        treeVisPanel.isLoading = true
+                        GUIActor ! ("loading", true)
                         val success = treeBuilder.saveToFile(treeVisPanel.treeSprite, filePath)
-                        treeVisPanel.isLoading = false
-                        if(success) System.out.println("\nSaved the current tree to: " + filePath)
-                        else System.out.println("Failed to save the current tree.")
+                        GUIActor ! ("loading", false)
+                        if(success) System.out.println("\nSaved the current tree to: " + filePath + "\n")
+                        else System.out.println("Failed to save the current tree.\n")
                     }
+                    GUIActor ! "newPrompt"
+                case "IgnoreNextTree" =>
+                    ignoreNextTree = true
                 case cmd => System.err.println("Bad tree builder command: " + cmd)
             }
         }
@@ -695,16 +700,20 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     case _ =>
                         null
                 }
-                if(treeVisPanel != null) {
-                    treeVisPanel.isLoading = true
+                
+                GUIActor ! ("loading", true)
+                if(treeVisPanel != null && !ignoreNextTree) {
+                    
                     treeVisPanel.treeSprite = treeBuilder.finishTree
                     
                     // once the tree visualization is built, select its root node and center the camera on it.
                     treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
                     treeVisPanel.camera.reset
-                    treeVisPanel.isLoading = false
+                    
                 }
                 
+                ignoreNextTree = false
+                GUIActor ! ("loading", false)
                 
             case "pushTable" => 
                 treeBuilder.pushTable(args)

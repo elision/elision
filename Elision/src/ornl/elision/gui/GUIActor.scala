@@ -99,7 +99,11 @@ object GUIActor extends Actor {
                         // forward a message to the REPL
                         ornl.elision.repl.ReplActor ! args
                     case ("ReplInput", inputString : String) =>
+                        if(inputString != "\n" && inputString != "")
+                            mainGUI.visPanel.isLoading = true
                         ornl.elision.repl.ReplActor ! inputString
+                    case "newPrompt" =>
+                        System.out.print("\ne> ")
                     case ("reGetHistory", result : Any, histSize : Int) =>
                         ConsolePanel.reGetHistory = (result, histSize)
                         waitingForReplInput = false
@@ -112,6 +116,8 @@ object GUIActor extends Actor {
                         treeBuilder.tbActor ! ("OpenTree", file)
                     case ("SaveTree", file : java.io.File) =>
                         treeBuilder.tbActor ! ("SaveTree", file)
+                    case "IgnoreNextTree" => 
+                        treeBuilder.tbActor ! "IgnoreNextTree"
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
                         if(!mainGUI.config.disableTree) mainGUI.visPanel.isLoading = true
@@ -135,6 +141,8 @@ object GUIActor extends Actor {
                     case("replReduceLines", flag : Boolean) =>
                         mainGUI.consolePanel.tos.reduceLines = flag
                         ornl.elision.repl.ReplActor ! ("wait", false)
+                    case("loading", flag : Boolean) =>
+                        mainGUI.visPanel.isLoading = flag
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
                 }
             case "Welcome" => // ignore messages.
