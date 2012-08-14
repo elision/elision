@@ -225,56 +225,6 @@ extends Fickle with Mutable {
   //======================================================================
   // Rewriting.
   //======================================================================
-
-  
-  /*
-  def rewriteOnce(atom: BasicAtom): (BasicAtom, Boolean) = {
-    var (newtop, appliedtop) = rewriteTop(atom)
-  if (_descend) {
-    var (newatom, applied) = rewriteChildren(newtop)
-  (newatom, appliedtop || applied)
-  } else {
-    (newtop, appliedtop)
-  }
-  }
-  
-  def rewriteTop(atom: BasicAtom): (BasicAtom, Boolean) = {
-    // Get the rules.
-    val rules = getRules(atom)
-  // Now try every rule until one applies.
-  for (rule <- rules) {
-    val (newatom, applied) = rule.doRewrite(atom)
-  if (applied) return (newatom, applied)
-  }
-  return (atom, false)
-  }
-  
-  def rewriteChildren(atom: BasicAtom): (BasicAtom, Boolean) = atom match {
-    case AtomSeq(props, atoms) =>
-      var flag = false
-  (AtomSeq(props, atoms.map { atom =>
-    val (newatom, applied) = rewriteOnce(atom)
-  flag ||= applied
-  newatom
-	                   }), flag)
-  case Apply(op, AtomSeq(props, atoms)) =>
-    var flag = false
-  (Apply(op, AtomSeq(props, atoms.map { atom =>
-    val (newatom, applied) = rewriteOnce(atom)
-  flag ||= applied
-  newatom
-	                             })), flag)
-  case Apply(lhs, rhs) =>
-    val newlhs = rewriteOnce(lhs)
-  val newrhs = rewriteOnce(rhs)
-  (Apply(newlhs._1, newrhs._1), newlhs._2 || newrhs._2)
-  case _ =>
-    // Do nothing in this case.
-    (atom, false)
-  }
-  */
-  
-
   
   /**
   * Rewrite the provided atom once, if possible.  Children may be rewritten,
@@ -313,7 +263,7 @@ extends Fickle with Mutable {
       if (applied) {
         return (newatom, applied)
       }
-    }
+    } // Try all rules.
     return (atom, false)
   }
   
@@ -330,50 +280,59 @@ extends Fickle with Mutable {
     atom match {
       case AtomSeq(props, atoms) =>
         var flag = false
-      // Rewrite the properties.  The result must still be a property spec.
-      // If not, we keep the same properties.
-      val newProps = rewriteOnce(props, rulesets) match {
-        case (ap: AlgProp, true) => flag = true; ap
-        case _ => props
-      }
-      // Rewrite the atoms.
-      val newAtoms = atoms.map {
-        atom =>
-          val (newatom, applied) = rewriteOnce(atom, rulesets)
-        flag ||= applied
-        newatom
-      }
-      // Return the result.
-      if (flag) (AtomSeq(newProps, newAtoms), true)
-      else (atom, false)
+        // Rewrite the properties.  The result must still be a property spec.
+        // If not, we keep the same properties.
+        val newProps = rewriteOnce(props, rulesets) match {
+          case (ap: AlgProp, true) => flag = true; ap
+          case _ => props
+        }
+        // Rewrite the atoms.
+        val newAtoms = atoms.map {
+          atom =>
+            val (newatom, applied) = rewriteOnce(atom, rulesets)
+          flag ||= applied
+          newatom
+        }
+        // Return the result.
+        if (flag) (AtomSeq(newProps, newAtoms), true) else (atom, false)
         
-        case Apply(lhs, rhs) =>
-          val newlhs = rewriteOnce(lhs, rulesets)
-      val newrhs = rewriteOnce(rhs, rulesets)
-      if (newlhs._2 || newrhs._2) (Apply(newlhs._1, newrhs._1), true)
-      else (atom, false)
-        
-        case Lambda(param, body) =>
-          val newparam = rewriteOnce(param, rulesets) match {
-            case (v: Variable, true) => (v, true)
-              case _ => (param, false)
-          }
-      val newbody = rewriteOnce(body, rulesets)
-      if (newparam._2 || newbody._2) (Lambda(newparam._1, newbody._1), true)
-      else (atom, false)
-
-        case SpecialForm(tag, content) =>
-          val newlhs = rewriteOnce(tag, rulesets)
-      val newrhs = rewriteOnce(content, rulesets)
-      if (newlhs._2 || newrhs._2) (SpecialForm(newlhs._1, newrhs._1), true)
-      else (atom, false)
-
-        case _ =>
-          // Do nothing in this case.
+      case Apply(lhs, rhs) =>
+        val newlhs = rewriteOnce(lhs, rulesets)
+        val newrhs = rewriteOnce(rhs, rulesets)
+        if (newlhs._2 || newrhs._2) {
+          (Apply(newlhs._1, newrhs._1), true)
+        } else {
           (atom, false)
+        }
+        
+      case Lambda(param, body) =>
+        val newparam = rewriteOnce(param, rulesets) match {
+          case (v: Variable, true) => (v, true)
+          case _ => (param, false)
+        }
+        val newbody = rewriteOnce(body, rulesets)
+        if (newparam._2 || newbody._2) {
+          (Lambda(newparam._1, newbody._1), true)
+        } else {
+          (atom, false)
+        }
+
+      case SpecialForm(tag, content) =>
+        val newlhs = rewriteOnce(tag, rulesets)
+        val newrhs = rewriteOnce(content, rulesets)
+        if (newlhs._2 || newrhs._2) {
+          (SpecialForm(newlhs._1, newrhs._1), true)
+        } else {
+          (atom, false)
+        }
+
+      case _ =>
+        // Do nothing in this case.
+        (atom, false)
     }
   }
 
+  // *************** GUI changes
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
    * rulesets.  This is limited by the rewrite limit.
@@ -382,11 +341,6 @@ extends Fickle with Mutable {
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
-  
-  // def rewrite(atom: BasicAtom) = doRewrite(atom, Set.empty)
-  
-  // ***************** GUI changes
-  
   def rewrite(atom: BasicAtom) = {
     ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
     // top node of this subtree
@@ -403,7 +357,6 @@ extends Fickle with Mutable {
     ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
     (newatom, flag)
   }
-  
   // *************** end GUI changes
 
   // *************** GUI changes
@@ -552,161 +505,163 @@ extends Fickle with Mutable {
       val rules = getRules(atom, Set(name))
       // Now try every rule until one applies.
       for (rule <- rules) {
-	val (newatom, applied) = rule.doRewrite(atom, hint)
-	if (applied) return (newatom, applied)
-      }
+      	val (newatom, applied) = rule.doRewrite(atom, hint)
+      	if (applied) return (newatom, applied)
+      } // Try every rule until one applies.
       return (atom, false)
     }
     
     
     def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-    if (subject == this) Match(binds)
-    else subject match {
-    case rr:RulesetRef if (rr.name == name) => Match(binds)
-    case _ => Fail("Ruleset reference does not match subject.", this, subject)
+      if (subject == this) Match(binds) else subject match {
+        case rr:RulesetRef if (rr.name == name) => Match(binds)
+        case _ => Fail("Ruleset reference does not match subject.", this, subject)
+      }
   }
-}
 
-//======================================================================
-// Rule management.
-//======================================================================
+  //======================================================================
+  // Rule management.
+  //======================================================================
 
-/**
- * Map each kind of atom to a list of rules for rewriting that atom.  The
- * rules are ordered, and each has an associated bit set that tells which
-* rulesets the rule is in.
-*/
-private val _kind2rules = MMap[Class[_],ListBuffer[(BitSet,RewriteRule)]]()
+  /**
+   * Map each kind of atom to a list of rules for rewriting that atom.  The
+   * rules are ordered, and each has an associated bit set that tells which
+   * rulesets the rule is in.
+   */
+  private val _kind2rules = MMap[Class[_],ListBuffer[(BitSet,RewriteRule)]]()
 
-/**
-* Map each operator to a list of rules for rewriting terms with that
-* operator at the root.  The rules are ordered, and each has an associated
-* bit set that tells which rulesets the rule is in.
-*/
-private val _op2rules = MMap[String,ListBuffer[(BitSet,RewriteRule)]]()
+  /**
+   * Map each operator to a list of rules for rewriting terms with that
+   * operator at the root.  The rules are ordered, and each has an associated
+   * bit set that tells which rulesets the rule is in.
+   */
+  private val _op2rules = MMap[String,ListBuffer[(BitSet,RewriteRule)]]()
 
-/**
-* Add a rewrite rule to this context.
-* 
-* @param rule	The rewrite rule to add.
-* @throws	NoSuchRulesetException
-* 					At least one ruleset mentioned in the rule has not been declared,
-* 					and undeclared rulesets are not allowed.
-*/
-def add(rule: RewriteRule) = {
-  // Complete the rule.
-  for (rule2 <- Completor.complete(rule)) doAdd(rule2)
-  this
-}
-
-/**
-* Add a rewrite rule to this context.
-* 
-* @param rule	The rewrite rule to add.
-* @throws	NoSuchRulesetException
-* 					At least one ruleset mentioned in the rule has not been declared,
-* 					and undeclared rulesets are not allowed.
-*/
-private def doAdd(rule: RewriteRule) = {
-  // Make sure the rule is not (or does not appear to be) an identity.
-  if (rule.pattern == rule.rewrite) {
-    throw new IdentityRuleException("The rule " + rule.toParseString +
-                                    " appears to be an identity.  It cannot be added to the system.")
+  /**
+   * Add a rewrite rule to this context.
+   * 
+   * @param rule	The rewrite rule to add.
+   * @throws	NoSuchRulesetException
+   * 					At least one ruleset mentioned in the rule has not been declared,
+   * 					and undeclared rulesets are not allowed.
+   */
+  def add(rule: RewriteRule) = {
+    // Complete the rule.
+    for (rule2 <- Completor.complete(rule)) doAdd(rule2)
+    this
   }
-  // Figure out what rulesets this rule is in.  We build the bitset here.
-  val bits = new BitSet()
-  for (rs <- rule.rulesets) bits += getRulesetBit(rs)
-  // Get (or create) the list for the kind of atom the rule's pattern uses.
-  val list = getRuleList(rule.pattern)
-  // Okay, now add the rule to the list.  We perform no checking to see if
-  // the rule is already present.
-  list += Pair(bits, rule)
-  this
-}
 
-/**
-* Helper method to get all rules for a particular kind of atom.
-* 
-* @param atom	The atom.
-* @return	The list of rules for the given kind of atom.
-*/
-private def getRuleList(atom: BasicAtom) = atom match {
-  case Apply(op:Operator, _) =>
-    _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
-  case Apply(OperatorRef(op), _) =>
-    _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
-  case _ =>
-    _kind2rules.getOrElseUpdate(atom.getClass(),
-	                        ListBuffer[(BitSet, RewriteRule)]())
-}
-
-/**
-* Get the list of rules that apply to the given atom and which are in any
-* of the currently active rulesets.
-* 
-* @param atom	The atom to which the rule may apply.
-* @return	A list of rules.
-*/
-def getRules(atom: BasicAtom) =
-  for ((bits, rule) <- getRuleList(atom) ; if (!(bits & _active).isEmpty))
-  yield rule
-
-/**
-* Get the list of rules that apply to the given atom and which are in any
-* of the specified rulesets.
-* 
-* @param atom	The atom to which to the rules may apply.
-* @param name	The ruleset names.
-* @return	A list of rules.
-*/
-def getRules(atom: BasicAtom, names: Set[String]) = {
-  val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
-  for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
-  yield rule
-}
-
-//======================================================================
-// Strings.
-//======================================================================
-
-/**
-* Generate a newline-separated list of rules that can be parsed using the
-* atom parser to reconstruct the set of rules in this context.
-* 
-* @return	The parseable rule sets.
-*/
-def toParseString = {
-  val buf = new StringBuilder
-  for ((kind,list) <- _kind2rules) {
-    buf append ("// Rules for " + kind.toString + ".\n")
-    buf append list.map(_._2).mkParseString("","\n","\n")
+  /**
+   * Add a rewrite rule to this context.
+   * 
+   * @param rule	The rewrite rule to add.
+   * @throws	NoSuchRulesetException
+   * 					At least one ruleset mentioned in the rule has not been declared,
+   * 					and undeclared rulesets are not allowed.
+   */
+  private def doAdd(rule: RewriteRule) = {
+    // Make sure the rule is not (or does not appear to be) an identity.
+    if (rule.pattern == rule.rewrite) {
+      throw new IdentityRuleException("The rule " + rule.toParseString +
+          " appears to be an identity.  It cannot be added to the system.")
+    }
+    
+    // Figure out what rulesets this rule is in.  We build the bitset here.
+    val bits = new BitSet()
+    for (rs <- rule.rulesets) bits += getRulesetBit(rs)
+    
+    // Get (or create) the list for the kind of atom the rule's pattern uses.
+    val list = getRuleList(rule.pattern)
+    
+    // Okay, now add the rule to the list.  We perform no checking to see if
+    // the rule is already present.
+    list += Pair(bits, rule)
+    this
   }
-  for ((name,list) <- _op2rules) {
-    buf append ("// Rules for operator " + name + ".\n")
-    buf append list.map(_._2).mkParseString("","\n","\n")
-  }
-  buf.toString()
-}
 
-/**
-* Generate a newline-separated list of rules that can be parsed by Scala
-* to reconstruct the set of rules in this context.
-* 
-* @return	The parseable rule sets.
-*/
-override def toString = {
-  val buf = new StringBuilder
-  buf append "def _mkrulelib(_context: Context) {\n"
-  buf append("  val rulelib = _context.ruleLibrary\n")
-  for ((_,list) <- _kind2rules) {
-    buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+  /**
+   * Helper method to get all rules for a particular kind of atom.
+   * 
+   * @param atom	The atom.
+   * @return	The list of rules for the given kind of atom.
+   */
+  private def getRuleList(atom: BasicAtom) = atom match {
+    case Apply(op:Operator, _) =>
+      _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
+    case Apply(OperatorRef(op), _) =>
+      _op2rules.getOrElseUpdate(op.name, ListBuffer[(BitSet, RewriteRule)]())
+    case _ =>
+      _kind2rules.getOrElseUpdate(atom.getClass(),
+          ListBuffer[(BitSet, RewriteRule)]())
   }
-  for ((_,list) <- _op2rules) {
-    buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+
+  /**
+   * Get the list of rules that apply to the given atom and which are in any
+   * of the currently active rulesets.
+   * 
+   * @param atom	The atom to which the rule may apply.
+   * @return	A list of rules.
+   */
+  def getRules(atom: BasicAtom) =
+      for ((bits, rule) <- getRuleList(atom) ; if (!(bits & _active).isEmpty))
+        yield rule
+
+  /**
+   * Get the list of rules that apply to the given atom and which are in any
+   * of the specified rulesets.
+   * 
+   * @param atom	The atom to which to the rules may apply.
+   * @param name	The ruleset names.
+   * @return	A list of rules.
+   */
+  def getRules(atom: BasicAtom, names: Set[String]) = {
+    val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
+    for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
+      yield rule
   }
-  buf append "}\n"
-  buf.toString()
-}
+
+  //======================================================================
+  // Strings.
+  //======================================================================
+
+  /**
+   * Generate a newline-separated list of rules that can be parsed using the
+   * atom parser to reconstruct the set of rules in this context.
+   * 
+   * @return	The parseable rule sets.
+   */
+  def toParseString = {
+    val buf = new StringBuilder
+    for ((kind,list) <- _kind2rules) {
+      buf append ("// Rules for " + kind.toString + ".\n")
+      buf append list.map(_._2).mkParseString("","\n","\n")
+    } // Add all the rules stored by kind.
+    for ((name,list) <- _op2rules) {
+      buf append ("// Rules for operator " + name + ".\n")
+      buf append list.map(_._2).mkParseString("","\n","\n")
+    } // Add all the rules stored by name.
+    buf.toString()
+  }
+
+  /**
+   * Generate a newline-separated list of rules that can be parsed by Scala
+   * to reconstruct the set of rules in this context.
+   * 
+   * @return	The parseable rule sets.
+   */
+  override def toString = {
+    val buf = new StringBuilder
+    buf append "def _mkrulelib(_context: Context) {\n"
+    buf append("  val rulelib = _context.ruleLibrary\n")
+    for ((_,list) <- _kind2rules) {
+      buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+    } // Add all rules stored by kind.
+    for ((_,list) <- _op2rules) {
+      buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+    } // Add all rules stored by name.
+    buf append "}\n"
+    buf.toString()
+  }
 }
 
 

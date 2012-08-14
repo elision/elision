@@ -203,7 +203,8 @@ class OperatorLibrary(
  	 * 
  	 * @param app     The destination of the text.
  	 * @param width	  Width of the field.
- 	 * @param apropos Only return operators whose description contains this string.
+ 	 * @param apropos Only return operators whose description or name contains
+ 	 *                this string.
  	 */
  	def help(app: Appendable, width: Int, apropos: String = ""): Appendable = {
  	  // Iterate over the operators and compute the longest description.
@@ -227,7 +228,8 @@ class OperatorLibrary(
  	  keyorder.foreach {
  	    key =>
  	      val op = _nameToOperator(key).operator
- 	      if (op.description.toUpperCase().indexOf(APROPOS) >= 0) {
+ 	      if (op.description.toUpperCase().indexOf(APROPOS) >= 0 ||
+ 	          key.toUpperCase().indexOf(APROPOS) >= 0) {
    	      app.append(' ').append(op.name).append(' ')
    	      val pos = op.name.length + 2
    	      if (pos >= dstart) {
