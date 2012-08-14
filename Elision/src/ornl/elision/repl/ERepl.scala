@@ -35,26 +35,19 @@ import ornl.elision.parse._
  * Implement an interface to run the REPL from the prompt.
  */
 object ReplMain { // extends ERepl {
-  /*
-  def main(args: Array[String]) {
-    run()
-    console.emitln("")
-    addHistoryLine("// Ended normally: " + new java.util.Date)
-    val cfile = new java.io.FileWriter(_lastcontext)
-    if (cfile != null) {
-      cfile.write(context.toParseString)
-      cfile.flush()
-      cfile.close()
-    } else {
-      console.warn("Unable to save context.")
-    }
-  }
-  */
   
+  /**
+   * Entry point when run from the prompt.
+   * 
+   * @param args  The command line arguments.
+   */
   def main(args: Array[String]) {
     runRepl
   }
   
+  /**
+   * Start the REPL.
+   */
   def runRepl {
     val erepl = new ERepl
     erepl.run()
@@ -87,8 +80,8 @@ class ERepl extends Processor {
   
   
 	//////////////////// GUI changes
-    ReplActor.start
-    ReplActor.peer = this
+  ReplActor.start
+  ReplActor.peer = this
 	ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
