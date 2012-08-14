@@ -64,21 +64,26 @@ trait Console {
   /** The end of line character. */
   private final val _ENDL = _prop("line.separator")
   
-  /** The default pause operation.  Wait for a user-entered character. */
-  def defaultPause() {
+  /**
+   * The default pause operation.  Wait for a user-entered character.
+   * 
+   * @return  True if output should continue; false if the user wants to
+   *          terminate the output.
+   */
+  def defaultPause(): Boolean = {
     write("--More--")
     if(ReplActor.guiMode) {
         ReplActor.waitOnGUI()
-    }
-    else {
-        val ch = Array[Char](2)
-        scala.io.Source.stdin.copyToArray(ch,1)
-        if (ch(0) != '\n') write(_ENDL)
+        true
+    } else {
+        val ch = scala.io.Source.stdin.reader.read.toChar
+        if (ch != '\n') write(_ENDL)
+        ch != 'q'
     }
   }
   
   /** The pause closure to use. */
-  private var _pause: () => Unit = defaultPause _
+  private var _pause: () => Boolean = defaultPause _
   
   /** The number of lines to emit before invoking the pager.  Zero to disable. */
   private var _height = 0
@@ -117,11 +122,12 @@ trait Console {
   
   /**
    * Specify a closure to invoke when a screen has filled.  By default this is
-   * the pager specified by `defaultPause`.
+   * the pager specified by `defaultPause`.  The pager should return a Boolean
+   * value that is true to continue, and false if output should be terminated.
    * 
    * @param pager The pager to invoke.
    */
-  def pause_=(pager: () => Unit) { _pause = pager }
+  def pause_=(pager: () => Boolean) { _pause = pager }
   
   /**
    * Specify whether to be quiet.  How quiet it determined by levels.
@@ -190,7 +196,7 @@ trait Console {
           count += 1
           if (count >= _height) {
             count = 0
-            _pause()
+            if (!_pause()) return
           }
         } // Emit all lines.
       } // Not a screenful case.
