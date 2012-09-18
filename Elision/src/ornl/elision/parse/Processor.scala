@@ -50,6 +50,7 @@ import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 class Processor(var context: Context = new Context)
 extends Executor
 with TraceableParse
+with ToggleableParser
 with Timeable
 with HasHistory {
   // We are the implicit executor.
@@ -77,7 +78,7 @@ with HasHistory {
   private var _queue = List[Processor.Handler]()
   
   /** The parser to use. */
-  private var _parser = new AtomParser(context, _toggle, _trace)
+  private var _parser = new AtomParser(context, _trace, _toggle)
   
   /** Specify the console.  We don't know the number of lines. */
   val console = PrintConsole
@@ -351,7 +352,21 @@ with HasHistory {
     if (enable != _trace) {
       // The trace state has changed.  Re-create the parser.
       _trace = enable
-      _parser = new AtomParser(context, _trace)
+      _parser = new AtomParser(context, _trace, _toggle)
+    }
+  }
+ 
+  /**
+   * Specify whether to trace the parser.
+   * 
+   * @param enable  If true, trace the parser.  If false, do not.
+   */
+  def toggle_=(enable: Boolean) {
+    // If the toggle state has changed, re-create the parser.
+    if (enable != _toggle) {
+      // The toggle state has changed.  Re-create the parser.
+      _toggle = enable
+      _parser = new AtomParser(context, _trace, _toggle)
     }
   }
   
@@ -359,6 +374,11 @@ with HasHistory {
    * Determine whether tracing is enabled.
    */
   def trace = _trace
+
+  /**
+   * Determine which parser to use
+   */
+  def toggle = _toggle
   
   /**
    * Register a handler.  This handler will be placed at the front of the

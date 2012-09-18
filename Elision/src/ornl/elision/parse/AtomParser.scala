@@ -45,6 +45,8 @@ import ornl.elision.core._
 import ornl.elision.core.{ ANY => EANY }
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
+import scala.util.parsing.combinator.JavaTokenParsers
+import scala.util.parsing.combinator.PackratParsers
 
 /**
  * A special form was incorrectly formatted.
@@ -1122,7 +1124,13 @@ class AtomParser(val context: Context, val trace: Boolean = false,
       
       import scala.util.parsing.combinator.Parsers
       parser.run(line) match {
-        case parser.Success(list, _) => Success(list.asInstanceOf[List[AstNode]])
+        case parser.Success(list, _) => {
+          list match {
+            case node: AstNode => Success(List(node))
+            case l: List[AstNode] => Success(l)
+            case _ => Failure("shouldn't happen 1")
+          }
+        }
         case parser.NoSuccess(msg, _)	 => Failure(msg)
       }
     } else {      
@@ -1146,14 +1154,32 @@ class AtomParser(val context: Context, val trace: Boolean = false,
    */
   // FIXME: Currently only supports the parboiled parser
   def parseAtoms(source: scala.io.Source): Presult = {
-    val tr =
-      if (trace) TracingParseRunner(AtomSeq)
-      else ReportingParseRunner(AtomSeq)
-    val parsingResult = tr.run(source)
-    parsingResult.result match {
-      case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid MPL2 source:\n" +
-          ErrorUtils.printParseErrors(parsingResult))
+    if (toggle) {
+      val parser = new ParseCombinators(context)
+      
+      import scala.util.parsing.combinator.Parsers
+      
+      parser.run4(source)
+//      parser.run(source.mkString) match {
+//        case parser.Success(list, _) => {
+//          list match {
+//            case node: AstNode => Success(List(node))
+//            case l: List[AstNode] => Success(l)
+//            case _ => Failure("shouldn't happen 2")
+//          }
+//        }
+//        case parser.NoSuccess(msg, _)  => Failure(msg)
+//      }
+    } else {  
+      val tr =
+        if (trace) TracingParseRunner(AtomSeq)
+        else ReportingParseRunner(AtomSeq)
+      val parsingResult = tr.run(source)
+      parsingResult.result match {
+        case Some(nodes) => Success(nodes)
+        case None => Failure("Invalid MPL2 source:\n" +
+            ErrorUtils.printParseErrors(parsingResult))
+      }
     }
   }
 
@@ -1697,9 +1723,6 @@ class AtomParser(val context: Context, val trace: Boolean = false,
   override implicit def toRule(string: String) =
     if (string.endsWith(" ")) str(string.trim) ~ WS else str(string)
 }
-
-import scala.util.parsing.combinator.JavaTokenParsers
-import scala.util.parsing.combinator.PackratParsers
 class ParseCombinators(val context: Context) extends JavaTokenParsers with PackratParsers {
   import scala.util.matching.Regex
   import ornl.elision.parse.AtomParser._
@@ -1711,14 +1734,36 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   // http://stackoverflow.com/questions/5952720/ignoring-c-style-comments-in-a-scala-combinator-parser
   protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
   
+  import scala.annotation.tailrec
+  import scala.collection.mutable.ListBuffer
+  def repMostN[T](num: Int, p: => Parser[T]): Parser[List[T]] =
+    if (num == 0) success(Nil) else Parser { in =>
+      val elems = new ListBuffer[T]
+      val p0 = p    // avoid repeatedly re-evaluating by-name parser
+
+      @tailrec def applyp(in0: Input): ParseResult[List[T]] =
+        if (elems.length == num) Success(elems.toList, in0)
+        else p0(in0) match {
+          case Success(x, rest)   => elems += x ; applyp(rest)
+          case ns: NoSuccess      => Success(elems.toList, in0)
+        }
+
+      applyp(in)
+    }
+  
   //======================================================================
   // Parse application/lambda.
   //======================================================================
   lazy val AtomSeq: PackratParser[List[AstNode]] = (
     rep(AtomApplication))
 
+  lazy val AtomFile: PackratParser[List[AstNode]] = (
+    repMostN(5000,AtomApplication))
+    
   lazy val Atom: PackratParser[AstNode] = (
     "(" ~> AtomApplication <~ ")" |
+    
+//    AtomApplication |
 
     Lambda |
 
@@ -2099,11 +2144,53 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   //======================================================================
   // END a number.
   //======================================================================
+  import scala.annotation.tailrec
+  import ornl.elision.parse.AtomParser.Presult
+  import ornl.elision.parse.AtomParser.{ Success => PSuccess }
+  import ornl.elision.parse.AtomParser.{ Failure => PFailure }
+  
+  @tailrec
+  private def run3(input: Input, result: Presult): Presult = {
+    if(input.atEnd) return result
+    System.out.println("`"+input.toString+"`")
+    
+    result match {
+      case s: PSuccess => {
+        parse(AtomFile, input) match {
+          case Success(node, rest) => {
+            if(node.length == 0) result
+            
+            else if((s.nodes.length%5000) == 0) {
+              println("resetting reader: "+ s.nodes.length)
+              val tmpSource = rest.source.subSequence(rest.offset, rest.source.length())
+              println("`"+tmpSource.toString+"`")
+              val reader = new CharSequenceReader(tmpSource)              
+              run3(new PackratReader(reader), PSuccess(node ::: s.nodes))
+            } else {
+              run3(rest, PSuccess(node ::: s.nodes))
+            }
+//            run3(rest, PSuccess(node ::: s.nodes))
+          }
+          case NoSuccess(msg, _) => {
+            println("fail")
+            PFailure(msg)
+          }
+        }
+      } 
+      case f: PFailure => f
+    }
+  }
+
+  import scala.annotation.tailrec
   def run(arg: String): ParseResult[Any] = {
 //    Console println "`"+ arg +"`"
     parseAll(AtomSeq, new PackratReader(new CharSequenceReader(arg)))
   }
-
+ 
+  def run4(arg: scala.io.Source): Presult = {
+    run3(new PackratReader(new CharSequenceReader(arg.mkString.trim)), PSuccess(List[AstNode]()))
+  }
+  
   def ignoreCase(str: String): Regex = ("""(?i)\Q""" + str + """\E""").r
 }
 
