@@ -31,6 +31,7 @@ package ornl.elision.core
 
 import com.strangegizmo.cdb._
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.HashSet
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are
@@ -87,6 +88,19 @@ object Memo {
    */
   def getStats = (_hits, _misses, _cache.size)
   
+  /**
+   * Print information about the Elision cache.
+   */
+  def showStats {
+    println("""
+        |Elision Cache
+        |=============
+        |Hits:    %10d
+        |Misses:  %10d
+        |Size:    %10d
+        |""".stripMargin.format(_hits, _misses, _cache.size + _normal.size))
+  }
+  
   //======================================================================
   // Limits.
   //======================================================================
@@ -107,6 +121,12 @@ object Memo {
    * rewrite limit is stored!
    */
   private var _cache = new HashMap[(BasicAtom,Set[String]),(BasicAtom,Int)]()
+  
+  /**
+   * This set holds atoms that are in their "normal form" state and do not
+   * get rewritten.
+   */
+  private var _normal = new HashSet[(BasicAtom,Set[String])]()
   
   /**
    * Track whether anything has been added at a particular cache level.  If
@@ -156,16 +176,21 @@ object Memo {
    * 
    * @param atom      The unrewritten atom to search for.
    * @param rulesets  The rulesets that will be used to rewrite.
-   * @return  The optional fully-rewritten atom.
+   * @return  The optional fully-rewritten atom and a flag indicating whether
+   *          the input atom is already in normal form.
    */
   def get(atom: BasicAtom, rulesets: Set[String]) = {
-    _cache.get((atom, rulesets)) match {
-      case None =>
-        // Cache miss.
-        None
-      case Some((atom, level)) =>
-        // Cache hit.
-        Some(atom)
+    if (_normal.contains((atom,rulesets))) {
+      Some((atom, false))
+    } else {
+      _cache.get((atom, rulesets)) match {
+        case None =>
+          // Cache miss.
+          None
+        case Some((atom, level)) =>
+          // Cache hit.
+          Some((atom, true))
+      }
     }
   }
   
@@ -179,7 +204,10 @@ object Memo {
    */
   def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
     val lvl = 0 max level min (_LIMIT-1)
-    _cache((atom, rulesets)) = (value, level)
-    _dirty(level) = true
+    if (atom eq value) {
+      _normal.add(atom, rulesets)
+    } else {
+      _cache((atom, rulesets)) = (value, level)
+    }
   }
 }

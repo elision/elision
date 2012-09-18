@@ -358,11 +358,11 @@ extends Fickle with Mutable {
     // Check the cache.
     val (newatom, flag) = Memo.get(atom, Set.empty) match {
       case None =>
-        val (newatom, flag) = doRewrite(atom, Set.empty)
-        Memo.put(atom, Set.empty, newatom, 0)
-        (newatom, flag)
-      case Some(newatom) =>
-        (newatom, newatom != atom)
+        val pair = doRewrite(atom, Set.empty)
+        Memo.put(atom, Set.empty, pair._1, 0)
+        pair
+      case Some(pair) =>
+        pair
     }
     
     ReplActor.disableGUIComs = tempDisabled
@@ -396,11 +396,11 @@ extends Fickle with Mutable {
     // Check the cache.
     val (newatom, flag) = Memo.get(atom, rulesets) match {
       case None =>
-        val (newatom, flag) = doRewrite(atom, rulesets)
-        Memo.put(atom, rulesets, newatom, 0)
-        (newatom, flag)
-      case Some(newatom) =>
-        (newatom, newatom != atom)
+        val pair = doRewrite(atom, rulesets)
+        Memo.put(atom, rulesets, pair._1, 0)
+        pair
+      case Some(pair) =>
+        pair
     }
     
     ReplActor.disableGUIComs = tempDisabled
