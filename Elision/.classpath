@@ -15,6 +15,7 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/jline.jar"/>
 	<classpathentry kind="lib" path="lib/sage2D.jar"/>
+	<classpathentry kind="lib" path="lib/sg-cdb-1.0.4.jar"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/kryo-2.16-all.jar" sourcepath="/Users/ysp/workspace/kryo-2.16/java/src">
 		<attributes>

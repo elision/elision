@@ -57,8 +57,8 @@ class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 class IdentityRuleException(msg: String) extends ElisionException(msg)
 
 /**
-* A ruleset reference.
-*/
+ * A ruleset reference.
+ */
 abstract class RulesetRef extends BasicAtom with Rewriter {
   val depth = 0
   val deBruijnIndex = 0
@@ -72,8 +72,8 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   def toParseString = toESymbol(name) + ":RSREF"
   
   /**
-  * Ruleset references cannot be rewritten.
-  */
+   * Ruleset references cannot be rewritten.
+   */
   def rewrite(binds: Bindings) = (this, false)
     
   override def hashCode = 61*name.hashCode
@@ -86,8 +86,8 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
 }
 
 /**
-* Creation and matching of ruleset references.
-*/
+ * Creation and matching of ruleset references.
+ */
 object RulesetRef {
   /**
   * Extract the parts of a ruleset reference.
@@ -141,7 +141,13 @@ object RulesetRef {
 class RuleLibrary(val allowUndeclared:Boolean = false)
 extends Fickle with Mutable {
   
-  /** Creates a clone of this RuleLibrary. */
+  /**
+   * Create a shallow clone of this rule library.  This returns a new rule
+   * library instance; since the content of the library is immutable, this
+   * new instance is technically independent of the original.
+   * 
+   * @return  The clone.
+   */
   def cloneRuleLib : RuleLibrary = {
     val clone = new RuleLibrary(allowUndeclared)
     
@@ -346,62 +352,86 @@ extends Fickle with Mutable {
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
-    
     val tempDisabled = ReplActor.disableGUIComs
+    if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
     
-    if(ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-    val (newatom, flag) = doRewrite(atom, Set.empty)
+    // Check the cache.
+    val (newatom, flag) = Memo.get(atom, Set.empty) match {
+      case None =>
+        val (newatom, flag) = doRewrite(atom, Set.empty)
+        Memo.put(atom, Set.empty, newatom, 0)
+        (newatom, flag)
+      case Some(newatom) =>
+        (newatom, newatom != atom)
+    }
+    
     ReplActor.disableGUIComs = tempDisabled
     if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-    
     ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+    
     (newatom, flag)
   }
   // *************** end GUI changes
 
   // *************** GUI changes
   /**
-   * Rewrite the given atom, repeatedly applying the rules of the active
+   * Rewrite the given atom, repeatedly applying the rules of the specified
    * rulesets.  This is limited by the rewrite limit.
+   * 
+   * Perform rewriting of an atom given a collection of rulesets.
    * 
    * @param atom      The atom to rewrite.
    * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
-   def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
-     ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-     // top node of this subtree
-     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
-     
-     val tempDisabled = ReplActor.disableGUIComs
-     
-     if(ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-     val (newatom, flag) = doRewrite(atom, rulesets)
-     ReplActor.disableGUIComs = tempDisabled
-     ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-     
-     ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
-     (newatom, flag)
-   }
+  def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
+    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+    // top node of this subtree
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
+    val tempDisabled = ReplActor.disableGUIComs
+    if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+    
+    // Check the cache.
+    val (newatom, flag) = Memo.get(atom, rulesets) match {
+      case None =>
+        val (newatom, flag) = doRewrite(atom, rulesets)
+        Memo.put(atom, rulesets, newatom, 0)
+        (newatom, flag)
+      case Some(newatom) =>
+        (newatom, newatom != atom)
+    }
+    
+    ReplActor.disableGUIComs = tempDisabled
+    ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+    
+    (newatom, flag)
+  }
   // *************** end GUI changes
 
   /**
-  * Rewrite the given atom, repeatedly applying the rules of the active
-  * rulesets.  This is limited by the rewrite limit.
-  * 
-  * @param atom      The atom to rewrite.
-  * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
-  * @param bool      Flag used for tracking whether any rules have succeeded.
-  * @param limit     The remaining rewrite limit.  Use a negative number for
-    *                  no limit.
-  * @return  The rewritten atom, and true iff any rules were successfully
-  *          applied.
-  */
+   * Rewrite the given atom, repeatedly applying the rules of the active
+   * rulesets.  This is limited by the rewrite limit.
+   * 
+   * This is the main method responsible for implementing systematic rewrite
+   * using rulesets and tracking the rewrite limit.  Do not memoize this
+   * method!
+   * 
+   * @param atom      The atom to rewrite.
+   * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
+   * @param bool      Flag used for tracking whether any rules have succeeded.
+   * @param limit     The remaining rewrite limit.  Use a negative number for
+   *                  no limit.
+   * @return  The rewritten atom, and true iff any rules were successfully
+   *          applied.
+   */
   @tailrec
-  private def doRewrite(atom: BasicAtom, rulesets: Set[String] = Set.empty,
-                        bool: Boolean = false, limit: BigInt = _limit): (BasicAtom, Boolean) = {
+  private def doRewrite(atom: BasicAtom,
+      rulesets: Set[String] = Set.empty,
+      bool: Boolean = false,
+      limit: BigInt = _limit): (BasicAtom, Boolean) = {
     if (limit == 0) return (atom, bool)
     else rewriteOnce(atom, rulesets) match {
       case (newatom, false) =>
