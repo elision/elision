@@ -72,7 +72,12 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
   override def next = super.next match {
     case null => null
     //  Make sure to honor the original bindings we were given.
-    case binds1:Bindings => (binds1 ++ binds).set(patterns, subjects)
+    case binds1:Bindings => {
+          (binds1 ++ binds).set(
+          binds1.patterns.getOrElse(patterns).intersect(patterns),
+          binds1.subjects.getOrElse(subjects).intersect(subjects)
+          )
+    }
   }
   
   /* Find the first unbindable pattern and then search the subjects to find a
