@@ -37,7 +37,7 @@
 * */
 package ornl.elision.core
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.OpenHashMap
 import ornl.elision.repl.ReplActor
 
 /**

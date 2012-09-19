@@ -116,7 +116,7 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
 object NamedRootType {
   /** The map of names to known root types. */
   private lazy val _known =
-    scala.collection.mutable.HashMap[String,NamedRootType]()
+    scala.collection.mutable.OpenHashMap[String,NamedRootType]()
   
   /**
    * Make a new named root type.  In general you can avoid this method, and

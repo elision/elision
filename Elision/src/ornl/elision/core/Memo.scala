@@ -30,7 +30,7 @@
 package ornl.elision.core
 
 import com.strangegizmo.cdb._
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{OpenHashMap => HashMap}
 import scala.collection.mutable.HashSet
 
 /**

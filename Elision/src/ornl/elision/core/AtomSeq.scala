@@ -110,7 +110,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * This is a mapping from constants in the sequence to the (zero-based)
    * index of the constant.
    */
-  val constantMap = scala.collection.mutable.HashMap[BasicAtom, Int]()
+  val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
   for (i <- 0 until atoms.length)
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
   

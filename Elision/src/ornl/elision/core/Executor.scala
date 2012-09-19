@@ -42,8 +42,8 @@ class CacheException(msg: String) extends ElisionException(msg)
  * Manage a collection of properties.
  */
 trait PropertyManager {
-  val _prop2val = scala.collection.mutable.HashMap[String,Any]()
-  val _prop2desc = scala.collection.mutable.HashMap[String,String]()
+  val _prop2val = scala.collection.mutable.OpenHashMap[String,Any]()
+  val _prop2desc = scala.collection.mutable.OpenHashMap[String,String]()
   
   /**
    * Declare a property.
@@ -385,7 +385,7 @@ trait Executor extends PropertyManager {
   case class ParseFailure(err: String) extends ParseResult
   
   /** Cache for use by native methods. */
-  private val _cache = scala.collection.mutable.HashMap[String,Any]()
+  private val _cache = scala.collection.mutable.OpenHashMap[String,Any]()
   
   /**
    * Provide typed access to the content of the cache.  This is intended for

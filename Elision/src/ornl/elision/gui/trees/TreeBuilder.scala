@@ -38,7 +38,7 @@
 package ornl.elision.gui.trees
 
 import collection.mutable.ArrayStack
-import collection.mutable.HashMap
+import collection.mutable.{OpenHashMap => HashMap}
 import scala.actors.Actor
 import scala.xml._
 
