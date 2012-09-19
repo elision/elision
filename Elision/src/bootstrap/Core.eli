@@ -449,6 +449,25 @@ decl.{! traceparse()
   "tracing."
 }
 
+decl.{! toggleparser()
+  #handler=
+  """
+    exec match {
+      case tp: ToggleableParser =>
+        // Toggle parser.
+        tp.toggle = !tp.toggle
+        emitln("Using " + (if (tp.toggle) "packrat" else "parboiled") +" parser.")
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Toggle which parser is used"
+  #detail=
+  "Toggle which parser is used, parboiled or packrat.". 
+  "Parboiled is used by default."
+
+}
+
 decl.{! tracematch()
   #handler=
   """

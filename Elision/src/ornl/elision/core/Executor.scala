@@ -263,6 +263,24 @@ trait TraceableParse {
 }
 
 /**
+ * Indicates if it is possible to toggle the parser used
+ */
+trait ToggleableParser {
+  /**
+   * Specify whether to toggle the parser.
+   * 
+   * @param enable  If true, toggle the parser.  If false, do not.
+   */
+  def toggle_=(enable: Boolean): Unit
+  
+  /**
+   * Determine whether the parser used to toggled
+   */
+  def toggle: Boolean
+}
+
+
+/**
  * Specify that it is possible to enable and disable printing the execution
  * time of each atom that is parsed.  To use this you must implement the
  * `reportElapsed` method that reports the elapsed time, and make sure that the
