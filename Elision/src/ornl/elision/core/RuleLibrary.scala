@@ -681,15 +681,24 @@ extends Fickle with Mutable {
    */
   override def toString = {
     val buf = new StringBuilder
-    buf append "def _mkrulelib(_context: Context) {\n"
-    buf append("  val rulelib = _context.ruleLibrary\n")
+    
+    var i = 0;
+    
     for ((_,list) <- _kind2rules) {
-      buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+      buf append list.map( e => {
+        val s = "  object rule"+i+" { def apply(_context: Context):Unit = { _context.ruleLibrary.add(" + e._2 + "); rule"+(i+1)+"(_context) } }"
+        i = i+1
+        s
+      }).mkString("","\n","\n")
     } // Add all rules stored by kind.
     for ((_,list) <- _op2rules) {
-      buf append list.map("  rulelib.add(" + _._2 + ")").mkString("","\n","\n")
+      buf append list.map( e => {
+        val s = "  object rule"+i+" { def apply(_context: Context):Unit = { _context.ruleLibrary.add(" + e._2 + "); rule"+(i+1)+"(_context) } }"
+        i = i+1
+        s
+      }).mkString("","\n","\n")
     } // Add all rules stored by name.
-    buf append "}\n"
+    buf append "  object rule"+i+" { def apply(_context: Context):Unit = () }\n"
     buf.toString()
   }
 }

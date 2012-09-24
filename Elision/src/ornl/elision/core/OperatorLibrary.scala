@@ -80,7 +80,7 @@ class OperatorLibrary(
    * changes.
    */
  	private var _nameToOperator = MMap[String, OperatorRef]()
- 	
+
     /** Makes a copy of this operator library. */
     def cloneOpLib : OperatorLibrary = {
         val clone = new OperatorLibrary(this.allowRedefinition)
@@ -110,17 +110,15 @@ class OperatorLibrary(
  	 */
  	override def toString = {
  	  var i = 0;
- 	  
- 	  "def _mkoplib(_context: Context) {\n" +
- 	  "  val oplib = _context.operatorLibrary\n" +
+
  	  _nameToOperator.values.map(e => {
- 	    val s = "  def m"+i+": Unit = { oplib.add(" + e.operator.toString +
- 	    ".asInstanceOf[Operator]); m"+(i+1)+ " }"
+ 	    val s = "  object op"+i+" { def apply(_context: Context):Unit = { _context.operatorLibrary.add(" + 
+ 	    e.operator.toString + ".asInstanceOf[Operator]); op"+(i+1)+ "(_context) } }"
  	    i = i+1
  	    s
  	  }).
  	  mkString("","\n","\n") +
- 	  "  def m"+i+" = ()\n  m0 }\n"
+ 	  "  object op"+i+" { def apply(_context: Context):Unit = () }\n"
  	}
  	
  	/**

@@ -212,13 +212,28 @@ class Context extends Fickle with Mutable {
     buf append "object LoadContext {\n"
     buf append "  def main(args: Array[String]) {\n"
     buf append "    val _context = new Context()\n"
-    buf append "    _mkoplib(_context)\n"
-    buf append "    _mkrulelib(_context)\n"
+    buf append "    op0(_context)\n"
+    buf append "    rule0(_context)\n"
     buf append "    println(_context.toParseString)\n"
     buf append "  }\n"
+    buf append "}\n"
     buf append operatorLibrary.toString
     buf append ruleLibrary.toString
-    buf append "}\n"
     buf.toString()
   }
+//  override def toString = {
+//    val buf = new StringBuilder
+//    buf append "import ornl.elision.core._\n"
+//    buf append "object LoadContext {\n"
+//    buf append "  def main(args: Array[String]) {\n"
+//    buf append "    val _context = new Context()\n"
+//    buf append "    _mkoplib(_context)\n"
+//    buf append "    _mkrulelib(_context)\n"
+//    buf append "    println(_context.toParseString)\n"
+//    buf append "  }\n"
+//    buf append operatorLibrary.toString
+//    buf append ruleLibrary.toString
+//    buf append "}\n"
+//    buf.toString()
+//  }
 }
