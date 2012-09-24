@@ -109,12 +109,18 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	override def toString = {
+ 	  var i = 0;
+ 	  
  	  "def _mkoplib(_context: Context) {\n" +
  	  "  val oplib = _context.operatorLibrary\n" +
- 	  _nameToOperator.values.map("  oplib.add(" + _.operator.toString +
- 	      ".asInstanceOf[Operator])").
- 	    mkString("","\n","\n") +
- 	  "}\n"
+ 	  _nameToOperator.values.map(e => {
+ 	    val s = "  def m"+i+": Unit = { oplib.add(" + e.operator.toString +
+ 	    ".asInstanceOf[Operator]); m"+(i+1)+ " }"
+ 	    i = i+1
+ 	    s
+ 	  }).
+ 	  mkString("","\n","\n") +
+ 	  "  def m"+i+" = ()\n  m0 }\n"
  	}
  	
  	/**

@@ -95,7 +95,7 @@ object ScalaGenerator {
       case IntegerLiteral(typ, value) =>
         buf.append("IntegerLiteral(")
         apply(typ, context, buf).append(",")
-        buf.append(value.toString).append(")")
+        buf.append("BigInt(\""+value.toString+"\")").append(")")
       case StringLiteral(typ, value) =>
         buf.append("StringLiteral(")
         apply(typ, context, buf).append(",")
@@ -175,13 +175,15 @@ object ScalaGenerator {
         apply(cases, context, buf).append(",")
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(")")
-      case TypedSymbolicOperator(name, typ, params, description, detail) =>
-        buf.append("CaseOperator(")
+      case TypedSymbolicOperator(name, typ, params, description, detail, evenMeta, handlerB64) =>
+        buf.append("TypedSymbolicOperator(")
         buf.append(toEString(name)).append(",")
         apply(typ, context, buf).append(",")
         apply(params, context, buf).append(",")
         buf.append(toEString(description)).append(",")
-        buf.append(toEString(detail)).append(")")
+        buf.append(toEString(detail)).append(",")
+        buf.append(if(evenMeta) "true" else "false").append(",")
+        buf.append(toEString(handlerB64)).append(")")
         // TODO Handlers are not handled!
       case RewriteRule(pat, rew, gua, rs, syn) =>
         buf.append("RewriteRule(")

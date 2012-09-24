@@ -313,6 +313,7 @@ object CaseOperator {
       ("type" -> typ) + ("description" -> Literal(description)) +
       ("detail" -> Literal(detail + Operator.declaredInString))     // Cazra TODO: add in declaring file's name into the detail string.
     val sfh = new SpecialFormHolder(Operator.tag, binds)
+
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
 
@@ -322,6 +323,7 @@ object CaseOperator {
    * @param co	The case operator.
    * @return	A triple of the name, type, and cases.
    */
+    // TODO: might need to change theType to type in unapply
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases,
       co.description, co.detail))
 }
@@ -476,6 +478,7 @@ object TypedSymbolicOperator {
     var handler: Option[ApplyData => BasicAtom] = None
 
     // Compile the handler, if we are given one.
+    var runme = ""
     if (handlertxt != "") {
       // Create a new handler holder to get the result, and bind it in the
       // interpreter.  It is okay to rebind.
@@ -484,7 +487,7 @@ object TypedSymbolicOperator {
 
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
-      val runme =
+      runme =
         "def _handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
@@ -492,7 +495,7 @@ object TypedSymbolicOperator {
           handlertxt + "\n" +
           "}\n" +
           "passback.handler = Some(_handler _)"
-
+          
       // Now interpret it.
       val res = _main.beQuietDuring(_main.interpret(runme))
 
@@ -516,9 +519,84 @@ object TypedSymbolicOperator {
     val tso = new TypedSymbolicOperator(sfh, name, typ, params,
       description, detail, evenMeta)
     tso.handler = handler
+    
+    // set handlerB64
+    tso.handlerB64 = new sun.misc.BASE64Encoder().encode(handlertxt.getBytes())
+    
     tso
   }
 
+  /**
+   * Make a typed symbolic operator with native handler
+   *
+   * @param sfh   The parsed special form data.
+   * @return  The typed symbolic operator.
+   */
+  def apply(name: String, typ: BasicAtom, params: AtomSeq,
+            description: String, detail: String, evenMeta: Boolean, 
+            handlerB64: String): TypedSymbolicOperator = {
+    
+    val nameS = Literal(Symbol(name))
+    val binds = Bindings() + ("name" -> nameS) +
+      ("type" -> typ) + ("description" -> Literal(description)) +
+      ("params" -> params) +
+      ("detail" -> Literal(detail + Operator)) +
+      ("evenmeta" -> Literal(evenMeta))
+    val sfh = new SpecialFormHolder(Operator.tag, binds)   
+    
+    var handlertxt = new String(new sun.misc.BASE64Decoder().decodeBuffer(handlerB64))
+    
+    val tso = new TypedSymbolicOperator(sfh, name, typ, params,
+      description, detail, evenMeta)
+
+    if (handlertxt.length > 0 && handlertxt(0) == '|')
+      handlertxt = handlertxt.stripMargin('|')
+
+    // Now make a handler object to pass into the interpreter.
+    var handler: Option[ApplyData => BasicAtom] = None
+
+    // Compile the handler, if we are given one.
+    var runme = ""
+    if (handlertxt != "") {
+      // Create a new handler holder to get the result, and bind it in the
+      // interpreter.  It is okay to rebind.
+      val passback = new HandHolder(None)
+      _main.beQuietDuring(_main.bind("passback", passback))
+
+      // Extract the handler text, and surround it with the appropriate
+      // boilerplate to create an actual handler closure.
+      runme =
+        "def _handler(_data: ApplyData): BasicAtom = {\n" +
+          "import _data._\n" +
+          "import ApplyData._\n" +
+          "import console._\n" +
+          handlertxt + "\n" +
+          "}\n" +
+          "passback.handler = Some(_handler _)"
+          
+      // Now interpret it.
+      val res = _main.beQuietDuring(_main.interpret(runme))
+
+      // Determine what to do based on the result.
+      res match {
+        case Results.Error => throw new NativeHandlerException(
+          "Parsing failed for native handler.  Operator " +
+            toESymbol(name) + " with native handler:\n" + runme)
+        case Results.Incomplete => throw new NativeHandlerException(
+          "Incomplete Scala code for native handler.  Operator " +
+            toESymbol(name) + " with native handler:\n" + handlertxt)
+        case Results.Success =>
+          if (passback.handler.isDefined) {
+            handler = Some(passback.handler.get)
+          }
+      }
+    }
+    
+    tso.handler = handler
+    tso.handlerB64 = handlerB64
+    tso
+  }
+  
   /**
    * Make a typed symbolic operator from the provided parts.
    *
@@ -552,7 +630,7 @@ object TypedSymbolicOperator {
    * @return	The triple of name, computed type, and parameters.
    */
   def unapply(so: TypedSymbolicOperator) =
-    Some((so.name, so.theType, so.params, so.description, so.detail))
+    Some((so.name, so.typ, so.params, so.description, so.detail, so.evenMeta, so.handlerB64))
 }
 
 /**
@@ -576,6 +654,8 @@ class TypedSymbolicOperator private (sfh: SpecialFormHolder,
   description: String, detail: String, evenMeta: Boolean)
   extends SymbolicOperator(sfh, name, typ, params,
     description, detail, evenMeta) {
+  
+  var handlerB64: String = ""
   /**
    * The type of an operator is a mapping from the operator domain to the
    * operator codomain.
