@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 import scala.collection.mutable.{Map => MMap}
+import scala.collection.immutable.List
 import ornl.elision.ElisionException
 
 /**
@@ -80,7 +81,11 @@ class OperatorLibrary(
    * changes.
    */
  	private var _nameToOperator = MMap[String, OperatorRef]()
-
+ 	
+ 	// NOTE: We prepend to this list for performance. When reading for insertion order,
+ 	// be sure to use a reverseIterator
+ 	private var opRefList = List[OperatorRef]()
+ 	
     /** Makes a copy of this operator library. */
     def cloneOpLib : OperatorLibrary = {
         val clone = new OperatorLibrary(this.allowRedefinition)
@@ -90,6 +95,7 @@ class OperatorLibrary(
             clone._nameToOperator += mapping
         }
 
+        clone.opRefList = opRefList
         clone
     }
     
@@ -111,7 +117,8 @@ class OperatorLibrary(
  	override def toString = {
  	  var i = 0;
 
- 	  _nameToOperator.values.map(e => {
+//    _nameToOperator.values.map(e => {
+ 	  opRefList.reverseIterator.map(e => {
  	    val s = "  object op"+i+" { def apply(_context: Context):Unit = { _context.operatorLibrary.add(" + 
  	    e.operator.toString + ".asInstanceOf[Operator]); op"+(i+1)+ "(_context) } }"
  	    i = i+1
@@ -196,6 +203,7 @@ class OperatorLibrary(
  	    }
     // Accept this and store it in the map.  Return the operator reference.
  	  val ref = OperatorRef(op)
+ 	  opRefList = ref :: opRefList
     _nameToOperator += (name -> ref)
  	  ref
  	}

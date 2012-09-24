@@ -41,6 +41,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
+import scala.collection.immutable.List
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -140,6 +141,12 @@ object RulesetRef {
 */
 class RuleLibrary(val allowUndeclared:Boolean = false)
 extends Fickle with Mutable {
+
+  // needed for writing out the scala code to get the order of operations right
+  // we prepend to the list for performance, so be sure to use a reverseIterator
+  // to get the order. Contains rule additions, ruleset enabling, disabling, 
+  // and declaring
+  private var actionList = List[Action]()
   
   /**
    * Create a shallow clone of this rule library.  This returns a new rule
@@ -191,7 +198,12 @@ extends Fickle with Mutable {
    * @param name	The name of the ruleset to enable.
    * @return	This context.
    */
-  def enableRuleset(name: String) = _active += getRulesetBit(name) ; this
+  def enableRuleset(name: String) = {
+    actionList = EnableRS(name) :: actionList
+    
+    _active += getRulesetBit(name)
+    this
+  }
   
   /**
    * Disable a ruleset.
@@ -199,7 +211,12 @@ extends Fickle with Mutable {
    * @param name	The name of the ruleset to disable.
   * @return	This context.
   */
-  def disableRuleset(name: String) = _active -= getRulesetBit(name) ; this
+  def disableRuleset(name: String) = {
+    actionList = DisableRS(name) :: actionList
+    
+    _active -= getRulesetBit(name)
+    this
+  }
   
   //======================================================================
   // Controlling automatic rewriting.
@@ -493,11 +510,14 @@ extends Fickle with Mutable {
   * @return	True if the ruleset was declared, and false if it was already
   * 					(previously) declared.
   */
-  def declareRuleset(name: String) =
+  def declareRuleset(name: String) = {
+    actionList = DeclareRS(name) :: actionList
+    
     _rs2bit.get(name) match {
       case None => _rs2bit += (name -> bump()) ; true
       case _ => false
     }
+  }
   
   //======================================================================
   // Ruleset reference.
@@ -552,7 +572,7 @@ extends Fickle with Mutable {
   //======================================================================
   // Rule management.
   //======================================================================
-
+  
   /**
    * Map each kind of atom to a list of rules for rewriting that atom.  The
    * rules are ordered, and each has an associated bit set that tells which
@@ -576,6 +596,9 @@ extends Fickle with Mutable {
    * 					and undeclared rulesets are not allowed.
    */
   def add(rule: RewriteRule) = {
+    // add to action list
+    actionList = AddRule(rule) :: actionList
+    
     // Complete the rule.
     for (rule2 <- Completor.complete(rule)) doAdd(rule2)
     this
@@ -605,6 +628,7 @@ extends Fickle with Mutable {
     
     // Okay, now add the rule to the list.  We perform no checking to see if
     // the rule is already present.
+    // TODO: l5o this list is never used?
     list += Pair(bits, rule)
     this
   }
@@ -683,24 +707,56 @@ extends Fickle with Mutable {
     val buf = new StringBuilder
     
     var i = 0;
-    
-    for ((_,list) <- _kind2rules) {
-      buf append list.map( e => {
-        val s = "  object rule"+i+" { def apply(_context: Context):Unit = { _context.ruleLibrary.add(" + e._2 + "); rule"+(i+1)+"(_context) } }"
-        i = i+1
-        s
-      }).mkString("","\n","\n")
-    } // Add all rules stored by kind.
-    for ((_,list) <- _op2rules) {
-      buf append list.map( e => {
-        val s = "  object rule"+i+" { def apply(_context: Context):Unit = { _context.ruleLibrary.add(" + e._2 + "); rule"+(i+1)+"(_context) } }"
-        i = i+1
-        s
-      }).mkString("","\n","\n")
-    } // Add all rules stored by name.
+
+    actionList.reverseIterator.foreach( e => {
+      val prologue = "  object rule"+i+" { def apply(_context: Context):Unit = { "
+      val meat: String = e match {
+        case AddRule(rule) => "_context.ruleLibrary.add("+ rule
+        case EnableRS(ruleSet) => "_context.ruleLibrary.enableRuleset(\""+ ruleSet +"\""
+        case DisableRS(ruleSet) => "_context.ruleLibrary.disableRuleset(\""+ ruleSet +"\""
+        case DeclareRS(ruleSet) => "_context.ruleLibrary.declareRuleset(\""+ ruleSet +"\""
+      }
+      val epilogue = "); rule"+(i+1)+"(_context) } }\n"
+      i = i + 1
+      buf append (prologue + meat + epilogue)
+    })
     buf append "  object rule"+i+" { def apply(_context: Context):Unit = () }\n"
-    buf.toString()
+    buf.toString()    
   }
+  
+  
+//  /**
+//   * Generate a newline-separated list of rules that can be parsed by Scala
+//   * to reconstruct the set of rules in this context.
+//   * 
+//   * @return  The parseable rule sets.
+//   */
+//  override def toString = {
+//    val buf = new StringBuilder
+//    
+//    var i = 0;
+//    
+//    buf append "\n// kind2rules begin"
+//    for ((_,list) <- _kind2rules) {
+//      buf append list.map( e => {
+//        val s = "  object rule"+i+" { def apply(_context: Context):Unit = { _context.ruleLibrary.add(" + e._2 + "); rule"+(i+1)+"(_context) } }"
+//        i = i+1
+//        s
+//      }).mkString("","\n","\n")
+//    } // Add all rules stored by kind.
+//    buf append "// kind2rules end\n"
+//    buf append "\n// op2rules begin"
+//    for ((_,list) <- _op2rules) {
+//      buf append list.map( e => {
+//        val s = "  object rule"+i+" { def apply(_context: Context):Unit = { _context.ruleLibrary.add(" + e._2 + "); rule"+(i+1)+"(_context) } }"
+//        i = i+1
+//        s
+//      }).mkString("","\n","\n")
+//    } // Add all rules stored by name.
+//    buf append "// op2rules end\n"
+//    buf append "  object rule"+i+" { def apply(_context: Context):Unit = () }\n"
+//    buf.toString()
+//  }
 }
 
 
@@ -805,4 +861,21 @@ private object Completor {
       case _ => return list
     }
   }
+}
+
+abstract class Action
+case class AddRule(rule: RewriteRule) extends Action {
+//  def apply(rl: RuleLibrary, action: Action): String = "rl.add(rule)"
+}
+case class EnableRS(ruleSet: String) extends Action {
+//  def apply(rl: RuleLibrary) = rl.enableRuleset(ruleSet)
+}
+case class DisableRS(ruleSet: String) extends Action {
+//  def apply(rl: RuleLibrary) = rl.disableRuleset(ruleSet)
+}
+case class DeclareRS(ruleSet: String) extends Action {
+//  def apply(rl: RuleLibrary) = rl.declareRuleset(ruleSet)
+}
+case class NopAction() extends Action {
+//  def apply(rl: RuleLibrary) = ()
 }

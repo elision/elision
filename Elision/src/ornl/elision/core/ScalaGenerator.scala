@@ -184,7 +184,6 @@ object ScalaGenerator {
         buf.append(toEString(detail)).append(",")
         buf.append(if(evenMeta) "true" else "false").append(",")
         buf.append(toEString(handlerB64)).append(")")
-        // TODO Handlers are not handled!
       case RewriteRule(pat, rew, gua, rs, syn) =>
         buf.append("RewriteRule(")
         apply(pat, context, buf).append(",")
