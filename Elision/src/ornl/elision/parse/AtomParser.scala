@@ -2163,7 +2163,7 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
             else if((s.nodes.length%5000) == 0) {
               println("resetting reader: "+ s.nodes.length)
               val tmpSource = rest.source.subSequence(rest.offset, rest.source.length())
-              println("`"+tmpSource.toString+"`")
+              //println("`"+tmpSource.toString+"`")
               val reader = new CharSequenceReader(tmpSource)              
               run3(new PackratReader(reader), PSuccess(node ::: s.nodes))
             } else {

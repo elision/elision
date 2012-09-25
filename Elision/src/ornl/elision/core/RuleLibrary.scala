@@ -705,27 +705,44 @@ extends Fickle with Mutable {
    */
   override def toString = {
     val buf = new StringBuilder
-    
-    var i = 0;
 
-    buf append "import scala.util.control.TailCalls._\n"
-    buf append "object Rules {\n  def apply(_context: Context):Unit = { rule0(_context).result }\n\n"
+    buf append "object Rules {\n\n"
+
+    // add ruleLibrary actions
+    actionList.reverseIterator.zipWithIndex.foreach { case (v,i) => 
+      buf append "  def rule"+i+"(_context: Context):Unit = { "+
+      (v match {
+        case AddRule(rule) => "_context.ruleLibrary.add("+ rule +") }\n"
+        case EnableRS(ruleSet) => "_context.ruleLibrary.enableRuleset(\""+ ruleSet +"\") }\n"
+        case DisableRS(ruleSet) => "_context.ruleLibrary.disableRuleset(\""+ ruleSet +"\") }\n"
+        case DeclareRS(ruleSet) => "_context.ruleLibrary.declareRuleset(\""+ ruleSet +"\") }\n"
+      })
+    }
     
-    actionList.reverseIterator.foreach( e => {
-      val prologue = "  def rule"+i+"(_context: Context):TailRec[Unit] = { "
-      val meat: String = e match {
-        case AddRule(rule) => "_context.ruleLibrary.add("+ rule
-        case EnableRS(ruleSet) => "_context.ruleLibrary.enableRuleset(\""+ ruleSet +"\""
-        case DisableRS(ruleSet) => "_context.ruleLibrary.disableRuleset(\""+ ruleSet +"\""
-        case DeclareRS(ruleSet) => "_context.ruleLibrary.declareRuleset(\""+ ruleSet +"\""
+    // add runs
+    var runNum = 0
+    var needBrace = false
+    for(i <- 0 until actionList.length) {
+      if(i%5000==0 && needBrace) {
+        buf append "  }\n"
+        needBrace = false
       }
-      val epilogue = "); tailcall(rule"+(i+1)+"(_context)) }\n"
+      if(i%5000==0) {
+        buf append "  def run"+runNum+"(_context: Context):Unit = {\n"
+        needBrace = true
+        runNum = runNum + 1 
+      }
       
-      i = i + 1
-      buf append (prologue + meat + epilogue)
-    })
-    buf append "  def rule"+i+"(_context: Context):TailRec[Unit] = done()\n}\n"
-    buf.toString()    
+      buf append "    rule"+i+"(_context)\n"
+    }
+    if(needBrace) buf append "  }\n"
+    
+    // add apply
+    buf append "  def apply(_context: Context):Unit = {\n"
+    for(k <- 0 until actionList.length/5000+1) buf append "    run"+k+"(_context)\n"
+    buf append "  }\n}\n\n"
+    
+    buf.toString()  
   }
   
   

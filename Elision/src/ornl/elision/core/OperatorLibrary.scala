@@ -116,24 +116,42 @@ class OperatorLibrary(
  	 */
  	override def toString = {
  	  val buf = new StringBuilder
- 	  var i = 0;
+ 	  
+    buf append "object Ops {\n\n"
 
-    buf append "import scala.util.control.TailCalls._\n"
-    buf append "object Ops {\n  def apply(_context: Context):Unit = { op0(_context).result }\n\n"
-
- 	  opRefList.reverseIterator.foreach(e => {
- 	    val prologue = "  def op"+i+"(_context: Context):TailRec[Unit] = { "
- 	    val meat: String ="_context.operatorLibrary.add(" + e.operator.toString +
- 	                      ".asInstanceOf[Operator]);"
- 	    val epilogue = " tailcall(op"+(i+1)+"(_context)) }\n"
-
- 	    i = i+1
- 	    buf append (prologue + meat + epilogue)
- 	  })
-    buf append "  def op"+i+"(_context: Context):TailRec[Unit] = done()\n}\n"
+    // add operators
+ 	  opRefList.reverseIterator.zipWithIndex.foreach { case (v,i) => 
+   	  buf append "  def op"+i+"(_context: Context):Unit = { "+
+   	  "_context.operatorLibrary.add(" + v.operator.toString + 
+   	  ".asInstanceOf[Operator]) }\n"
+ 	  }
+ 	  
+ 	  // add runs
+    var runNum = 0
+    var needBrace = false
+ 	  for(i <- 0 until opRefList.length) {
+ 	    if(i%5000==0 && needBrace) {
+ 	      buf append "  }\n"
+ 	      needBrace = false
+ 	    }
+ 	    if(i%5000==0) {
+        buf append "  def run"+runNum+"(_context: Context):Unit = {\n"
+        needBrace = true
+        runNum = runNum + 1        
+ 	    }
+ 	    
+ 	    buf append "    op"+i+"(_context)\n"
+ 	  }
+    if(needBrace) buf append "  }\n"
+ 	  
+    // add apply
+ 	  buf append "  def apply(_context: Context):Unit = {\n"
+ 	  for(k <- 0 until opRefList.length/5000+1) buf append "    run"+k+"(_context)\n"
+ 	  buf append "  }\n}\n\n"
+ 	  
     buf.toString()   
  	}
- 	
+
  	/**
  	 * Register a native handler for an operator.  The operator must already be
  	 * defined.  Note that the handler is not always invoked; only if
