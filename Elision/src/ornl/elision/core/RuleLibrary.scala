@@ -708,19 +708,23 @@ extends Fickle with Mutable {
     
     var i = 0;
 
+    buf append "import scala.util.control.TailCalls._\n"
+    buf append "object Rules {\n  def apply(_context: Context):Unit = { rule0(_context).result }\n\n"
+    
     actionList.reverseIterator.foreach( e => {
-      val prologue = "  object rule"+i+" { def apply(_context: Context):Unit = { "
+      val prologue = "  def rule"+i+"(_context: Context):TailRec[Unit] = { "
       val meat: String = e match {
         case AddRule(rule) => "_context.ruleLibrary.add("+ rule
         case EnableRS(ruleSet) => "_context.ruleLibrary.enableRuleset(\""+ ruleSet +"\""
         case DisableRS(ruleSet) => "_context.ruleLibrary.disableRuleset(\""+ ruleSet +"\""
         case DeclareRS(ruleSet) => "_context.ruleLibrary.declareRuleset(\""+ ruleSet +"\""
       }
-      val epilogue = "); rule"+(i+1)+"(_context) } }\n"
+      val epilogue = "); tailcall(rule"+(i+1)+"(_context)) }\n"
+      
       i = i + 1
       buf append (prologue + meat + epilogue)
     })
-    buf append "  object rule"+i+" { def apply(_context: Context):Unit = () }\n"
+    buf append "  def rule"+i+"(_context: Context):TailRec[Unit] = done()\n}\n"
     buf.toString()    
   }
   

@@ -115,17 +115,23 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	override def toString = {
+ 	  val buf = new StringBuilder
  	  var i = 0;
 
-//    _nameToOperator.values.map(e => {
- 	  opRefList.reverseIterator.map(e => {
- 	    val s = "  object op"+i+" { def apply(_context: Context):Unit = { _context.operatorLibrary.add(" + 
- 	    e.operator.toString + ".asInstanceOf[Operator]); op"+(i+1)+ "(_context) } }"
+    buf append "import scala.util.control.TailCalls._\n"
+    buf append "object Ops {\n  def apply(_context: Context):Unit = { op0(_context).result }\n\n"
+
+ 	  opRefList.reverseIterator.foreach(e => {
+ 	    val prologue = "  def op"+i+"(_context: Context):TailRec[Unit] = { "
+ 	    val meat: String ="_context.operatorLibrary.add(" + e.operator.toString +
+ 	                      ".asInstanceOf[Operator]);"
+ 	    val epilogue = " tailcall(op"+(i+1)+"(_context)) }\n"
+
  	    i = i+1
- 	    s
- 	  }).
- 	  mkString("","\n","\n") +
- 	  "  object op"+i+" { def apply(_context: Context):Unit = () }\n"
+ 	    buf append (prologue + meat + epilogue)
+ 	  })
+    buf append "  def op"+i+"(_context: Context):TailRec[Unit] = done()\n}\n"
+    buf.toString()   
  	}
  	
  	/**
