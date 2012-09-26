@@ -183,7 +183,11 @@ object ScalaGenerator {
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(",")
         buf.append(if(evenMeta) "true" else "false").append(",")
-        buf.append(toEString(handlerB64)).append(")")
+        buf.append(toEString(handlerB64)).append(",")
+        // this is VERY tightly coupled with OperatorLibrary.toString
+        if(handlerB64 != "") buf.append("OpsNative.`native$"+name+"`")
+        else buf.append("None")
+        buf.append(")")
       case RewriteRule(pat, rew, gua, rs, syn) =>
         buf.append("RewriteRule(")
         apply(pat, context, buf).append(",")

@@ -117,15 +117,16 @@ class OperatorLibrary(
  	override def toString = {
     val buf = new StringBuilder
 
-    // make the master Rules
-    buf append "object Ops {\n"
+    // make the master Ops
+    buf append "object Ops {\n  import ornl.elision.core.Context\n"
 
     // add apply
     buf append "  def apply(_context: Context):Unit = {\n"
-    for(k <- 0 until opRefList.length/5000+1) buf append "    Ops"+k+"(_context)\n"
+    for(k <- 0 until opRefList.length/5000+1) 
+      buf append "    Ops"+k+"(_context)\n"
     buf append "  }\n}\n\n"
     
-    // add ruleLibrary actions to Rule* classes
+    // add ruleLibrary actions to Ops* classes
     var start = 0
     var end = 0
     var runNum = 0
@@ -143,13 +144,14 @@ class OperatorLibrary(
       }
       if(i%5000==0) {
         start = i
-        buf append "object Ops"+runNum+" {\n"
+        buf append "object Ops"+runNum+" {\n  import ornl.elision.core._\n"
         runNum = runNum + 1 
         needBrace = true
       }      
       
       buf append "  def op"+i+"(_context: Context):Unit = " +
-      "_context.operatorLibrary.add(" + v.operator.toString +".asInstanceOf[Operator])\n"
+      "_context.operatorLibrary.add(" + v.operator.toString +
+      ".asInstanceOf[Operator])\n"
 
     }}
     if(needBrace) {
@@ -159,6 +161,37 @@ class OperatorLibrary(
         buf append "  }\n}\n"      
     }
     
+    // phew, now lets make OpsNative. operators which are native and
+    // used in Ops get their compiled native handlers here
+    buf append "object OpsNative {\n"
+    buf append "  import ornl.elision.core._\n"
+    
+    // since operators can be defined multiple times, we need to take
+    // the last occurrences of an operator from the operatorList while
+    // preserving order
+    val opRefListUniqLast: List[OperatorRef] = 
+      opRefList.reverseIterator.foldRight(List[OperatorRef]())
+      { (v,a) => { if(!a.map(_.name).contains(v.name)) v::a else a } }
+    
+    opRefListUniqLast.foreach { e =>
+      e.operator match {
+        case tso: TypedSymbolicOperator => if(tso.handler.isDefined) {
+          var handlertxt = new String(
+              new sun.misc.BASE64Decoder().decodeBuffer(tso.handlerB64))
+          buf append "  def `native$"+tso.name+"`():Option[ApplyData => BasicAtom] = {\n\n" 
+          buf append "def _handler(_data: ApplyData): BasicAtom = {\n"
+          buf append "import _data._\n"
+          buf append "import ApplyData._\n"
+          buf append "import console._\n"
+          buf append handlertxt + "\n"
+          buf append "}\n"
+          buf append "  Some(_handler _)\n"
+          buf append "  }\n\n"
+        }
+        case _ => ()
+      }
+    }
+    buf append "}\n\n"
     
     buf.toString()  
  	}

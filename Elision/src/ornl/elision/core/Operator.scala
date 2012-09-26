@@ -527,14 +527,16 @@ object TypedSymbolicOperator {
   }
 
   /**
-   * Make a typed symbolic operator with native handler
+   * Make a typed symbolic operator with native handler, this is only
+   * meant to be used for importing exported scala code. 
    *
    * @param sfh   The parsed special form data.
    * @return  The typed symbolic operator.
    */
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
             description: String, detail: String, evenMeta: Boolean, 
-            handlerB64: String): TypedSymbolicOperator = {
+            handlerB64: String, nativeOp: Option[ApplyData => BasicAtom]): 
+            TypedSymbolicOperator = {
     
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) +
@@ -555,9 +557,12 @@ object TypedSymbolicOperator {
     // Now make a handler object to pass into the interpreter.
     var handler: Option[ApplyData => BasicAtom] = None
 
-    // Compile the handler, if we are given one.
-    var runme = ""
-    if (handlertxt != "") {
+    // if we are passed a native operator then use it for the native handler
+    if (nativeOp.isDefined) {
+      handler = nativeOp
+    }
+    // Otherwise compile the handler if given handler code.
+    else if (handlertxt!="" && nativeOp.isEmpty) {
       // Create a new handler holder to get the result, and bind it in the
       // interpreter.  It is okay to rebind.
       val passback = new HandHolder(None)
@@ -565,7 +570,7 @@ object TypedSymbolicOperator {
 
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
-      runme =
+      val runme =
         "def _handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +

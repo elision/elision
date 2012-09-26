@@ -707,7 +707,7 @@ extends Fickle with Mutable {
     val buf = new StringBuilder
 
     // make the master Rules
-    buf append "object Rules {\n"
+    buf append "object Rules {\n  import ornl.elision.core.Context\n"
 
     // add apply
     buf append "  def apply(_context: Context):Unit = {\n"
@@ -732,7 +732,7 @@ extends Fickle with Mutable {
       }
       if(i%5000==0) {
         start = i
-        buf append "object Rules"+runNum+" {\n"
+        buf append "object Rules"+runNum+" {\n  import ornl.elision.core._\n"
         runNum = runNum + 1 
         needBrace = true
       }      
