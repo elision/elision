@@ -411,10 +411,23 @@ class ERepl extends Processor {
     startTimer
 
     // Load all the startup definitions, etc.
-    if (!bootstrap()) {
+    // If LoadContext is specified on the classpath
+    // then load that context instead of bootstrapping
+    try {
+      // attempt to load LoadContext to see if it was specified
+      // on the classpath
+      type typ = { def apply(): Context }
+      val c = Class.forName("LoadContext$")
+      val LoadContext = c.getField("MODULE$").get(null).asInstanceOf[typ] 
+      context = LoadContext()
+    } catch {
+      case e: ClassNotFoundException =>     
+        if (!bootstrap()) {
         ReplActor ! (":quit", true)
         return
+        }
     }
+
     
     // Report startup time.
     stopTimer

@@ -214,7 +214,12 @@ class Context extends Fickle with Mutable {
     buf append "    val _context = new Context()\n"
     buf append "    Ops(_context)\n"
     buf append "    Rules(_context)\n"
-//    buf append "    println(_context.toParseString)\n"
+    buf append "  }\n"
+    buf append "  def apply():Context = {\n"
+    buf append "    val _context = new Context()\n"
+    buf append "    Ops(_context)\n"
+    buf append "    Rules(_context)\n"
+    buf append "    _context\n"
     buf append "  }\n"
     buf append "}\n\n"
     buf append operatorLibrary.toString
