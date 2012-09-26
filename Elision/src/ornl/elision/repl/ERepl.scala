@@ -421,7 +421,7 @@ class ERepl extends Processor {
       val LoadContext = c.getField("MODULE$").get(null).asInstanceOf[typ] 
       context = LoadContext()
     } catch {
-      case e: ClassNotFoundException =>     
+      case _ =>     
         if (!bootstrap()) {
         ReplActor ! (":quit", true)
         return
