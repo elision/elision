@@ -115,41 +115,52 @@ class OperatorLibrary(
  	 * @return	A parseable version of this instance.
  	 */
  	override def toString = {
- 	  val buf = new StringBuilder
- 	  
-    buf append "object Ops {\n\n"
+    val buf = new StringBuilder
 
-    // add operators
- 	  opRefList.reverseIterator.zipWithIndex.foreach { case (v,i) => 
-   	  buf append "  def op"+i+"(_context: Context):Unit = { "+
-   	  "_context.operatorLibrary.add(" + v.operator.toString + 
-   	  ".asInstanceOf[Operator]) }\n"
- 	  }
- 	  
- 	  // add runs
+    // make the master Rules
+    buf append "object Ops {\n"
+
+    // add apply
+    buf append "  def apply(_context: Context):Unit = {\n"
+    for(k <- 0 until opRefList.length/5000+1) buf append "    Ops"+k+"(_context)\n"
+    buf append "  }\n}\n\n"
+    
+    // add ruleLibrary actions to Rule* classes
+    var start = 0
+    var end = 0
     var runNum = 0
     var needBrace = false
- 	  for(i <- 0 until opRefList.length) {
- 	    if(i%5000==0 && needBrace) {
- 	      buf append "  }\n"
- 	      needBrace = false
- 	    }
- 	    if(i%5000==0) {
-        buf append "  def run"+runNum+"(_context: Context):Unit = {\n"
+    opRefList.reverseIterator.zipWithIndex.foreach { case (v,i) =>  {
+      // update end so we can get the range right for the apply()
+      end = i
+      
+      if(i%5000==0 && needBrace) {
+        buf append "\n  def apply(_context: Context):Unit = {\n"
+        for(j <- start until end)
+          buf append "    op"+j+"(_context)\n"
+        buf append "  }\n}\n"
+        needBrace = false
+      }
+      if(i%5000==0) {
+        start = i
+        buf append "object Ops"+runNum+" {\n"
+        runNum = runNum + 1 
         needBrace = true
-        runNum = runNum + 1        
- 	    }
- 	    
- 	    buf append "    op"+i+"(_context)\n"
- 	  }
-    if(needBrace) buf append "  }\n"
- 	  
-    // add apply
- 	  buf append "  def apply(_context: Context):Unit = {\n"
- 	  for(k <- 0 until opRefList.length/5000+1) buf append "    run"+k+"(_context)\n"
- 	  buf append "  }\n}\n\n"
- 	  
-    buf.toString()   
+      }      
+      
+      buf append "  def op"+i+"(_context: Context):Unit = " +
+      "_context.operatorLibrary.add(" + v.operator.toString +".asInstanceOf[Operator])\n"
+
+    }}
+    if(needBrace) {
+        buf append "  def apply(_context: Context):Unit = {\n"
+        for(j <- start until end)
+          buf append "    op"+j+"(_context)\n"
+        buf append "  }\n}\n"      
+    }
+    
+    
+    buf.toString()  
  	}
 
  	/**
