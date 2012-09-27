@@ -420,6 +420,14 @@ class ERepl extends Processor {
       val c = Class.forName("LoadContext$")
       val LoadContext = c.getField("MODULE$").get(null).asInstanceOf[typ] 
       context = LoadContext()
+      
+      // TODO: l5o
+      // this toggle_ is nothing but a kludge to create a new _parser instance
+      // which has the newly created context. Doing this currently because
+      // _parser is private, should probably make a new trait for the ability
+      // to load contexts
+      toggle_=(true)
+      toggle_=(false)
     } catch {
       case _ =>     
         if (!bootstrap()) {
