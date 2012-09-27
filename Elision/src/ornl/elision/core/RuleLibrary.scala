@@ -846,9 +846,9 @@ private object Completor {
     val pattern = rule.pattern
     val rewrite = rule.rewrite
     pattern match {
-      case Apply(op:Operator, as:AtomSeq) => {
+      case Apply(op:OperatorRef, as:AtomSeq) => {
         // Extract the operator properties.
-        val props = op match {
+        val props = op.operator match {
           case po: SymbolicOperator => po.params.props
           case _ => NoProps
         }
