@@ -90,7 +90,60 @@ object ACMatcher {
           slist
       }, binds)
     }
+    
+    // @@@@ BEGIN KIRK CHANGES
+    // If the subject we are trying to match is big enough, do some
+    // initial checks to see if matching is even possible.
+    println("Kirk precheck...")
+    //if (slist.length > 5) {
       
+    // First see if there is at least 1 subject child that matches
+    // each item in the pattern.
+    for (pat <- plist) {
+      
+      // Check each subject child against the current pattern child,
+      // looking for a match.
+      var gotMatch = false
+      for (sub <- slist) {
+        if (!gotMatch) {
+          pat.tryMatch(sub, binds) match {
+            case fail:Fail => {
+              gotMatch = false
+            }
+	    case Match(binds1) => {
+              gotMatch = true
+            }
+	    case Many(iter) => {
+              gotMatch = true
+            }
+          }
+        }
+      }
+      
+      // Did we find a match for the current pattern child?
+      if (!gotMatch) {
+        
+        // If there is no possible match for the current pattern
+        // child, there is no way this overall match will work.
+        println("FAST FAIL...")
+        return Fail("Matching is impossible. Matching precheck failed.", plist, slist)
+      }
+    }
+    
+    // Are we going to need to do some associative grouping to get
+    // things to match?
+    if (slist.length > plist.length) {
+      
+      // We have more targets to match than we have in the
+      // pattern. This means that the excess (at a minimum) targets
+      // will all be grouped together via associativity as an
+      // instance of an operator the same type as the target. See if
+      // there is a potential match for an operator of the same type
+      // as the target.
+    }
+    //}
+    // @@@@ END KIRK CHANGES
+
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
     var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
