@@ -74,7 +74,12 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     //  Make sure to honor the original bindings we were given.
     case binds1:Bindings =>
       (binds1 ++ binds).set(binds1.patterns.getOrElse(patterns),
-          binds1.subjects.getOrElse(subjects))
+                            binds1.subjects.getOrElse(subjects))
+    /*
+    case binds1:Bindings =>
+      (binds1 ++ binds).set(binds1.patterns.getOrElse(patterns).intersect(binds.patterns.getOrElse(patterns)),
+          binds1.subjects.getOrElse(subjects).intersect(binds.subjects.getOrElse(subjects)))
+    */
   }
   
   /* Find the first unbindable pattern and then search the subjects to find a
@@ -110,7 +115,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     }
     
     // Try to match the subject and the pattern.
-    val iterator = patterns(_patindex).tryMatch(subjects(subindex)) match {
+    val iterator = patterns(_patindex).tryMatch(subjects(subindex), binds) match {
       case fail:Fail =>
         // The match failed, but we can try to keep searching.  The thing to
         // do is look at the next subject index.
@@ -119,7 +124,8 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
       case Match(binds1) =>
         // The pattern and subject match.  This binding is the basis for the
         // continued match. Make sure to honor the original bindings we were given.
-        MatchIterator(binds ++ binds1)
+        MatchIterator((binds1 ++ binds).set(binds1.patterns.getOrElse(patterns),
+                                            binds1.subjects.getOrElse(subjects)))
       case Many(iter) =>
         // The pattern and subject match in many ways.  We use this to build
         // a new iterator for the next pattern.
@@ -129,7 +135,11 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     // If we arrive here, we were able to match the subject and pattern, and
     // we have an iterator over the matches.  Now we must combine this with
     // the subsequent unbindable matches (if any).
-    _local = iterator ~ (bindings => new UnbindableMatcher(
-        patterns.omit(_patindex), subjects.omit(subindex), bindings))
+    _local = iterator ~ (bindings => 
+      new UnbindableMatcher(
+            patterns.omit(_patindex), 
+            subjects.omit(subindex), 
+            bindings ++ binds)
+      )
   }
 }

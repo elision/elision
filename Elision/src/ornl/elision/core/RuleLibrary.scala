@@ -263,8 +263,10 @@ extends Fickle with Mutable {
     // Get the rules.
     val rules = if (rulesets.isEmpty) getRules(atom) else getRules(atom, rulesets)
 
+    println("** Elision: Rewriting atom '" + atom.toParseString + "'...")
     // Now try every rule until one applies.
     for (rule <- rules) {
+      println("** Elision: Rule = " + rule.toParseString)
       val (newatom, applied) = rule.doRewrite(atom)
       if (applied) {
         return (newatom, applied)
@@ -766,9 +768,12 @@ private object Completor {
         var right = Variable(as(0).theType, "::R")
         var newpatternlist = as.atoms :+ right
         var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
+        val newRule = RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+                                  Apply(op, AtomSeq(props, newrewritelist)),
+                                  rule.guards, rule.rulesets, true)
+        println("** Elision: Old Rule: " + rule.toParseString)
+        println("** Elision: Synthetic Rule: " + newRule.toParseString)
+        list :+= newRule
         
         // If the operator is commutative, we are done.
         if (props.isC(false)) {

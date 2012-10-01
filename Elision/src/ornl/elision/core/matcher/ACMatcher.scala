@@ -94,7 +94,7 @@ object ACMatcher {
     // @@@@ BEGIN KIRK CHANGES
     // If the subject we are trying to match is big enough, do some
     // initial checks to see if matching is even possible.
-    println("Kirk precheck...")
+    //println("Kirk precheck...")
     //if (slist.length > 5) {
       
     // First see if there is at least 1 subject child that matches
@@ -125,7 +125,7 @@ object ACMatcher {
         
         // If there is no possible match for the current pattern
         // child, there is no way this overall match will work.
-        println("FAST FAIL...")
+        //println("FAST FAIL...")
         return Fail("Matching is impossible. Matching precheck failed.", plist, slist)
       }
     }
@@ -153,8 +153,30 @@ object ACMatcher {
     // atoms that are not variables, and so their matching is much more
     // restrictive.  We obtain an iterator over these, and then combine it
     // with the iterator for "everything else."
-    val um = new UnbindableMatcher(patterns, subjects, binds)
+    var um = new UnbindableMatcher(patterns, subjects, binds)
+    val foundUMMatches = um.hasNext
+    //println("** Elision: UnbindableMatcher for P:" + patterns + " and S:" +
+    //      subjects + " hasNext() == " + foundUMMatches);
     
+    // Does the pattern actually contain any unbindable items?
+    if (patterns.indexWhere(!_.isBindable) >= 0) {
+
+      // The pattern contains at least 1 unbindable item. Were we able
+      // to match all the unbindable items?
+      if (!foundUMMatches) {
+
+        // We were not able to match up all the unbindable items in
+        // the pattern. This pattern will never match and anything
+        // more we do is wasted work.
+        //println("FAST FAIL, UnbindableMatch Failed...")
+        return Fail("Matching is impossible. Cannot match unbindables in pattern..", plist, slist)
+      }
+    }
+    
+    // Regenerate the unbindable matcher in case calling hasNext()
+    // messed it up.
+    um = new UnbindableMatcher(patterns, subjects, binds)
+
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
 
@@ -164,12 +186,12 @@ object ACMatcher {
       
       // If there is exactly one pattern then match it immediately.
       if (pats.atoms.length == 1) {
-        //println("** bindings = " + bindings)
+        println("** bindings = " + bindings)
         //println("** binds = " + binds)
         //println("** patterns = " + patterns)
-        //println("** pats = " + pats)
+        println("** pats = " + pats)
         //println("** subjects = " + subjects)
-        //println("** subs = " + subs)
+        println("** subs = " + subs)
         return pats.atoms(0).tryMatch(op match {
           case Some(opref) =>
             Apply(opref, subs)
