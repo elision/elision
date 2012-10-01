@@ -126,7 +126,9 @@ object CMatcher {
      * have `_current` set to the next match or we have exhausted the
      * iterator.
      */
-    protected def findNext {
+    import scala.annotation.tailrec
+    @tailrec
+    final protected def findNext {
       if (BasicAtom.traceMatching) print("C Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
