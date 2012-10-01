@@ -94,7 +94,7 @@ object ACMatcher {
     // @@@@ BEGIN KIRK CHANGES
     // If the subject we are trying to match is big enough, do some
     // initial checks to see if matching is even possible.
-    println("Kirk precheck...")
+//    println("Kirk precheck...")
     //if (slist.length > 5) {
       
     // First see if there is at least 1 subject child that matches
@@ -125,7 +125,7 @@ object ACMatcher {
         
         // If there is no possible match for the current pattern
         // child, there is no way this overall match will work.
-        println("FAST FAIL...")
+//        println("FAST FAIL...")
         return Fail("Matching is impossible. Matching precheck failed.", plist, slist)
       }
     }
@@ -212,7 +212,9 @@ object ACMatcher {
      * have `_current` set to the next match or we have exhausted the
      * iterator.
      */
-    protected def findNext {
+    import scala.annotation.tailrec
+    @tailrec
+    final protected def findNext {
       if (BasicAtom.traceMatching) print("AC Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next
