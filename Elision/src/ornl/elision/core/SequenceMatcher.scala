@@ -157,8 +157,9 @@ object SequenceMatcher {
         // bindings we received.  This is easy; proceed to the next element.
         _tryMatch(patterns.tail, 
                   subjects.tail, 
-                  (newbinds++binds).set(newbinds.patterns.getOrElse(patterns),
-                                        newbinds.subjects.getOrElse(subjects)), 
+                  //(newbinds++binds).set(newbinds.patterns.getOrElse(patterns),
+                  //                      newbinds.subjects.getOrElse(subjects)), 
+                  (newbinds++binds),
                   position+1)
       case Many(miter) =>
         // Matching returned a match iterator.  This is the nontrivial case.
@@ -169,8 +170,9 @@ object SequenceMatcher {
         Many(MatchIterator(
             (newbinds: Bindings) => _tryMatch(pt, 
                                               st, 
-                                              (newbinds++binds).set(newbinds.patterns.getOrElse(patterns),
-                                                                    newbinds.subjects.getOrElse(subjects)), 
+                                              //(newbinds++binds).set(newbinds.patterns.getOrElse(patterns),
+                                              //                      newbinds.subjects.getOrElse(subjects)), 
+                                              (newbinds++binds),
                                               position+1),
             miter))
     }

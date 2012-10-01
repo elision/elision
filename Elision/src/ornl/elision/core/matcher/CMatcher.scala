@@ -87,15 +87,17 @@ object CMatcher {
       // If there are no patterns, there is nothing to do.
       if (pats.length == 0) {
         //println("** new bindings (1) = " + (bindings ++ binds))
-        MatchIterator((bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
-                                              bindings.subjects.getOrElse(subjects)))
+        //MatchIterator((bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
+        //                                      bindings.subjects.getOrElse(subjects)))
+        MatchIterator((bindings ++ binds))
       }
       else {
         //println("** new bindings (2) = " + (bindings ++ binds))
         new CMatchIterator(pats, 
                            subs, 
-                           (bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
-                                                   bindings.subjects.getOrElse(subjects)))
+                           //(bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
+                           //                        bindings.subjects.getOrElse(subjects))
+                           (bindings ++ binds))
       }
     })
     if (iter.hasNext) return Many(iter)
