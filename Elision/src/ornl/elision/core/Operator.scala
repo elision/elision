@@ -947,9 +947,9 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             throw new ArgumentListException("Incorrect argument for operator " +
               toESymbol(name) + " at position " + index + ": " +
               newseq(index).toParseString + ".  " + reason())
-          case Match(binds) =>
+          case Match(binds1) =>
             // The argument list matches.
-            return handleApply(binds)
+            return handleApply(binds1)
           case Many(iter) =>
             // The argument list matches.
             return handleApply(iter.next)

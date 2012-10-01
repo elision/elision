@@ -87,11 +87,15 @@ object CMatcher {
       // If there are no patterns, there is nothing to do.
       if (pats.length == 0) {
         //println("** new bindings (1) = " + (bindings ++ binds))
-        MatchIterator(bindings ++ binds)
+        MatchIterator((bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
+                                              bindings.subjects.getOrElse(subjects)))
       }
       else {
         //println("** new bindings (2) = " + (bindings ++ binds))
-        new CMatchIterator(pats, subs, (bindings ++ binds))
+        new CMatchIterator(pats, 
+                           subs, 
+                           (bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
+                                                   bindings.subjects.getOrElse(subjects)))
       }
     })
     if (iter.hasNext) return Many(iter)
@@ -140,9 +144,10 @@ object CMatcher {
 	      // We ignore this case.  We only fail if we exhaust all attempts.
               if (BasicAtom.traceMatching) println(fail)
 	    findNext
-	    case Match(binds) => {
+	    case Match(binds1) => {
 	      // This case we care about.  Save the bindings as the current match.
-	      _current = binds
+	      _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
+                                               binds1.subjects.getOrElse(subjects))
             }
 	    if (BasicAtom.traceMatching) println("C Found.")
 	    case Many(iter) =>

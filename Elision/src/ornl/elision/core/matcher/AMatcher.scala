@@ -184,9 +184,10 @@ object AMatcher {
               // We ignore this case.  We only fail if we exhaust all attempts.
               if (BasicAtom.traceMatching) println(fail)
             findNext
-	    case Match(binds) =>
+	    case Match(binds1) =>
 	      // This case we care about.  Save the bindings as the current match.
-	      _current = binds
+	      _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
+                                               binds1.subjects.getOrElse(subjects))
 	    if (BasicAtom.traceMatching) println("A Found.")
 	    case Many(iter) =>
 	      // We've potentially found many matches.  We save this as a local

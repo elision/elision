@@ -155,7 +155,11 @@ object SequenceMatcher {
       case Match(newbinds) =>
         // We found exactly one way in which the pattern could match, given the
         // bindings we received.  This is easy; proceed to the next element.
-        _tryMatch(patterns.tail, subjects.tail, newbinds, position+1)
+        _tryMatch(patterns.tail, 
+                  subjects.tail, 
+                  (newbinds++binds).set(newbinds.patterns.getOrElse(patterns),
+                                        newbinds.subjects.getOrElse(subjects)), 
+                  position+1)
       case Many(miter) =>
         // Matching returned a match iterator.  This is the nontrivial case.
         // Now we have to be careful, and build another match iterator that
@@ -163,7 +167,11 @@ object SequenceMatcher {
         // NOTE  It may be more efficient to replace this recursion.
         val (pt, st) = (patterns.tail, subjects.tail)
         Many(MatchIterator(
-            (newbinds: Bindings) => _tryMatch(pt, st, newbinds, position+1),
+            (newbinds: Bindings) => _tryMatch(pt, 
+                                              st, 
+                                              (newbinds++binds).set(newbinds.patterns.getOrElse(patterns),
+                                                                    newbinds.subjects.getOrElse(subjects)), 
+                                              position+1),
             miter))
     }
   }
