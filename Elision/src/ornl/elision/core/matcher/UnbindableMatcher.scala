@@ -42,8 +42,39 @@ import ornl.elision.core._
  * Match unbindable atoms in a sequence of patterns to the unbindable atoms
  * in a sequence of subjects.  This match is done commutatively.
  * 
+ * == Purpose ==
+ * When performing commutative matching it is best to fail as rapidly as
+ * possible.  The best place to look for a failure is in an "unbindable" atom
+ * that appears in the patterns.  An unbindable atom is an atom whose
+ * `isBindable` method returns false; it cannot be bound.  Examples are
+ * constants (which are actually eliminated elsewhere, and should not need to
+ * be handled here) and operator applications.
+ * 
+ * This forces the matching system to attempt to match structurally first, and
+ * then try various potential bindings second, leading to much faster matching.
+ * It also requires that the atoms matched by this method be removed before
+ * further matching continue.
+ * 
  * To determine which atoms are left after this matcher completes, a specialized
  * version of Bindings is returned.
+ * 
+ * == Example ==
+ * Consider the patterns `$x,$y,foo(4,$y),$z` and the subject lists:
+ * - `foo(4,yar),9,21,yar` (which matches)
+ * - `foo(4,yar),9,21,har` (which does not)
+ * 
+ * It could take a long time to determine that the second item does not match
+ * the pattern, since the system will exhaustively try all orderings and
+ * groupings before giving up.  The unbindable matcher will first scan the
+ * patterns for unbindables, seeing `foo(4,$y)`.  It then tries to match this
+ * against each of the subjects in the list.  For the first example above
+ * it immediately matches against `foo(4,yar)` with the binding `$y -> yar`.
+ * This results in an almost immediate match.  In the second case no match
+ * is possible, and the unbindable matcher immediately fails and stops any
+ * further attempts.
+ * 
+ * Note also that this example shows the benefit for commutative, but not
+ * associative, matching.
  * 
  * @param patterns	The patterns to match.
  * @param subjects	The subjects to match.
@@ -71,15 +102,11 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
    */
   override def next = super.next match {
     case null => null
-    //  Make sure to honor the original bindings we were given.
     case binds1:Bindings =>
+      // Make sure to honor the original bindings we were given from the
+      // complete match (not the ones we have cached locally).
       (binds1 ++ binds).set(binds1.patterns.getOrElse(patterns),
                             binds1.subjects.getOrElse(subjects))
-    /*
-    case binds1:Bindings =>
-      (binds1 ++ binds).set(binds1.patterns.getOrElse(patterns).intersect(binds.patterns.getOrElse(patterns)),
-          binds1.subjects.getOrElse(subjects).intersect(binds.subjects.getOrElse(subjects)))
-    */
   }
   
   /* Find the first unbindable pattern and then search the subjects to find a

@@ -46,9 +46,15 @@ object MatchHelper {
   /**
    * Given two lists of atoms, identify and remove any constants from the two
    * lists, returning the resulting lists.
+   * 
+   * The atoms in the two lists are assumed to be unordered.  That is, this
+   * method is only suitable for use when performing commutative matching
+   * (whether or not associative).
    *
    * @param plist	The pattern list.
    * @param slist	The subject list.
+   * @return  A triple that contains the new patterns, new subjects, and an
+   *          optional failure instance in the event matching does not succeed. 
    */
   def eliminateConstants(plist: AtomSeq, slist: AtomSeq):
   		(OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {

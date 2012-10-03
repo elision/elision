@@ -45,7 +45,7 @@ import ornl.elision.core._
 object CMatcher {
 
   /**
-   * Attempt to match two lists.  The second list can be re-ordered arbitrariliy.
+   * Attempt to match two lists.  The second list can be re-ordered arbitrarily.
    * 
    * @param plist	The pattern list.
    * @param slist	The subject list.
@@ -54,8 +54,6 @@ object CMatcher {
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings): Outcome = {
     // Check the length.
-    //println("** CMatcher...")
-    //println("** original bindings = " + binds)
     if (plist.length != slist.length)
       return Fail("Lists are different sizes, so no match is possible.",
           plist, slist)
@@ -67,7 +65,8 @@ object CMatcher {
     // Step one is to perform constant elimination.  For each constant
     // pattern, find and remove the same constant pattern from the subjects.
     // If we cannot, we do not match.
-    var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
+    var (patterns, subjects, fail) =
+      MatchHelper.eliminateConstants(plist, slist)
     if (fail.isDefined) return fail.get
     
     // Step two is to match and eliminate any unbindable atoms.  These are
@@ -78,36 +77,34 @@ object CMatcher {
     
     // Step three is to re-order the subjects and match until we succeed, or we
     // exhaust the search space.  We have to do this with a match iterator, but
-    // we also have to check for a single match first.
+    // we also have to check for a single match first since we need to determine
+    // precisely what to return from this method.
     val iter = um ~ (bindings => {
       // Get the patterns and subjects that remain.
       val pats = bindings.patterns.getOrElse(patterns)
       val subs = bindings.subjects.getOrElse(subjects)
       
-      // If there are no patterns, there is nothing to do.
+      // If there are no patterns, there is nothing to do.  We have matched.
+      // Just to be safe, we set the patterns and subjects (that remain from
+      // the unbindable matcher) so they are carried forward.
       if (pats.length == 0) {
-        //println("** new bindings (1) = " + (bindings ++ binds))
-        //MatchIterator((bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
-        //                                      bindings.subjects.getOrElse(subjects)))
-        MatchIterator((bindings ++ binds))
-      }
-      else {
-        //println("** new bindings (2) = " + (bindings ++ binds))
+        MatchIterator((bindings ++ binds).set(pats, subs))
+      } else {
         new CMatchIterator(pats, 
                            subs, 
-                           //(bindings ++ binds).set(bindings.patterns.getOrElse(patterns),
-                           //                        bindings.subjects.getOrElse(subjects))
-                           (bindings ++ binds))
+                           (bindings ++ binds).set(pats, subs))
       }
     })
+    
+    // If there is a next match, return the iterator.  If not, return a failure.
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
   
   /* How commutative matching works.
    * 
-   * The lists must be the same length.  We immediately match and remove any
-   * constants from both lists.  Next we need to try to match the remainder.
+   * The lists must be the same length.
+   * 
    * We generate all permutations of the subject list, and for each one, we
    * try to match it against the pattern list using the sequence matcher.  If
    * the match succeeds, we yield the match.  If it does not, we continue
@@ -137,32 +134,33 @@ object CMatcher {
     final protected def findNext {
       if (BasicAtom.traceMatching) print("C Searching... ")
       _current = null
-      if (_local != null && _local.hasNext) _current = _local.next
-      else {
+      if (_local != null && _local.hasNext) {
+        _current = _local.next
+      } else {
         _local = null
-	if (_perms.hasNext)
-	  SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
-	    case fail:Fail =>
-	      // We ignore this case.  We only fail if we exhaust all attempts.
+        if (_perms.hasNext) {
+          SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
+            case fail:Fail =>
+              // We ignore this case.  We only fail if we exhaust all attempts.
               if (BasicAtom.traceMatching) println(fail)
-	    findNext
-	    case Match(binds1) => {
-	      // This case we care about.  Save the bindings as the current match.
-	      _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
+              findNext
+            case Match(binds1) =>
+              // This case we care about.  Save the bindings as the current match.
+              _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
                                                binds1.subjects.getOrElse(subjects))
-            }
-	    if (BasicAtom.traceMatching) println("C Found.")
-	    case Many(iter) =>
-	      // We've potentially found many matches.  We save this as a local
-	      // iterator and then use it in the future.
-	      _local = iter
-	    findNext
-	  } else {
-	    // We have exhausted the permutations.  We have exhausted this
-	    // iterator.
-	    _exhausted = true
-	    if (BasicAtom.traceMatching) println("C Exhausted.")
-	  }
+              if (BasicAtom.traceMatching) println("C Found.")
+            case Many(iter) =>
+              // We've potentially found many matches.  We save this as a local
+              // iterator and then use it in the future.
+              _local = iter
+              findNext
+          }
+        } else {
+          // We have exhausted the permutations.  We have exhausted this
+          // iterator.
+          _exhausted = true
+          if (BasicAtom.traceMatching) println("C Exhausted.")
+        }
       }
     }
   }
