@@ -34,7 +34,7 @@ import ornl.elision.parse._
 /**
  * Implement an interface to run the REPL from the prompt.
  */
-object ReplMain { // extends ERepl {
+object ReplMain {
   
   /**
    * Entry point when run from the prompt.

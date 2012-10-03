@@ -53,14 +53,15 @@ package sjp
  * This is the current punch list for Elision.  This list gets picked up by
  * [[http://eclipse.org Eclipse]].
  * 
- *  - TODO Alternative parser. Logan.
  *  - TODO Implicit corecions. Mark.
- *  - TODO REPL refactoring. Stacy.
  *  - TODO Infix. DEFER.
- *  - TODO Need {def} form to define operators. Stacy.
- *  - TODO Pick up built in operators from .elision files. Stacy.
- *  - TODO Pick up native handlers from operator definitions. Stacy.
- * 
+ *  - TODO Need parser context for error messages. Stacy.
+ *  - TODO Check all recursion in matching. Stacy.
+ *  - TODO Need package.scala files for all packages.  Stacy.
+ *  - TODO Need better documentation of the matcher.  Stacy.
+ *  - TODO Need support for command-line overrides.  Stacy.
+ *  - TODO Need simple output configuration.  Stacy.
+ *  
  */
 package object elision {
 	// No content at the present time.
