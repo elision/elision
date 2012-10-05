@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
@@ -164,7 +165,7 @@ class AlgProp(
   
   val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
   
-  val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
+  lazy val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
   
   val isConstant = (associative match {
     case None => true

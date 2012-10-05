@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import scala.collection.IndexedSeq
@@ -110,7 +111,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * This is a mapping from constants in the sequence to the (zero-based)
    * index of the constant.
    */
-  val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
+  lazy val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
   for (i <- 0 until atoms.length)
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
   
@@ -128,9 +129,9 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 		    if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
       }
     }
-  val isConstant = atoms.forall(_.isConstant)
-  val isTerm = atoms.forall(_.isTerm)
-  val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))
+  lazy val isConstant = atoms.forall(_.isConstant)
+  lazy val isTerm = atoms.forall(_.isTerm)
+  lazy val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))
   val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
   val depth = atoms.foldLeft(0)(_ max _.depth) + 1
   
@@ -201,37 +202,37 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     }
   }
 	
-	//////////////////// GUI changes
+  // GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-	ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
+    ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
     // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: ")) // val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
-	
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: ")) // val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
+    
     // Rewrite the properties.
-	ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))  // val propsNode = RWTree.addTo(rwNode, "Properties: ",props)
-	ReplActor ! ("Eva", "setSubroot", "props")    //RWTree.current = propsNode
+    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))  // val propsNode = RWTree.addTo(rwNode, "Properties: ",props)
+    ReplActor ! ("Eva", "setSubroot", "props")    //RWTree.current = propsNode
     val (newprop, pchanged) = props.rewrite(binds)
-	
+    
     // We must rewrite every child atom, and collect them into a new sequence.
-	ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: ")) // RWTree.current = RWTree.addTo(rwNode, "Atoms: ")
+    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: ")) // RWTree.current = RWTree.addTo(rwNode, "Atoms: ")
     ReplActor ! ("Eva", "setSubroot", "atoms")
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
-	
+    
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-		ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = rwNode
-		val newAS = new AtomSeq(newprop, newseq)
-		ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // rwNode.addChild(newAS)
-        
-        ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
-		(newAS, true)
-	}
+      ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = rwNode
+      val newAS = new AtomSeq(newprop, newseq)
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // rwNode.addChild(newAS)
+      
+      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
+      (newAS, true)
+    }
     else {
-        ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
-        (this, false)
+      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
+      (this, false)
     }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
 
   def toParseString = atoms.mkParseString(props.toParseString + "(" , ", ", ")")
 

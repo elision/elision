@@ -181,15 +181,17 @@ object Memo {
    */
   def get(atom: BasicAtom, rulesets: Set[String]) = {
     if (_normal.contains((atom,rulesets))) {
+      //println("** Elision: Cache read rewrite " + atom.toParseString + " -> " + atom.toParseString + " for rulsests " + rulesets)
       Some((atom, false))
     } else {
       _cache.get((atom, rulesets)) match {
         case None =>
           // Cache miss.
           None
-        case Some((atom, level)) =>
+        case Some((value, level)) =>
           // Cache hit.
-          Some((atom, true))
+          //println("** Elision: Cache read rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
+          Some((value, true))
       }
     }
   }
@@ -203,6 +205,7 @@ object Memo {
    * @param level     The lowest level of the rewrite.
    */
   def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
+    //println("** Elision: Cache add rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
     val lvl = 0 max level min (_LIMIT-1)
     if (atom eq value) {
       _normal.add(atom, rulesets)

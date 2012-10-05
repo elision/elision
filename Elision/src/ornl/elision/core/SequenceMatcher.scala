@@ -33,8 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ ======================================================================
+ * */
 package ornl.elision.core
 
 import ornl.elision.repl.ReplActor
@@ -65,35 +65,35 @@ object SequenceMatcher {
    * @return	The result of the match.
    */
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
-      binds: Bindings = Bindings()): Outcome = {
-    if (BasicAtom.traceMatching) {
-      if (BasicAtom.traceVerbose(this)) {
-        println("Sequence Matcher called: ")
-        println("    Patterns: " + patterns.mkParseString("",",",""))
-        println("    Subjects: " + subjects.mkParseString("",",",""))
-        println("    Bindings: " + binds.toParseString)
-      } else if (BasicAtom.traceTerse(this)) {
-        println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
-            subjects.mkParseString("(",",",") ") + binds.toParseString)
-      }
-    }
-    if (patterns.length != subjects.length)
-      Fail("Sequences are not the same length.")
-    else _tryMatch(patterns, subjects, binds, 0)
-  }
-   /*
+               binds: Bindings = Bindings()): Outcome = {
+                 if (BasicAtom.traceMatching) {
+                   if (BasicAtom.traceVerbose(this)) {
+                     println("Sequence Matcher called: ")
+                     println("    Patterns: " + patterns.mkParseString("",",",""))
+                     println("    Subjects: " + subjects.mkParseString("",",",""))
+                     println("    Bindings: " + binds.toParseString)
+                   } else if (BasicAtom.traceTerse(this)) {
+                     println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
+                             subjects.mkParseString("(",",",") ") + binds.toParseString)
+                   }
+                 }
+                 if (patterns.length != subjects.length)
+                   Fail("Sequences are not the same length.")
+                 else _tryMatch(patterns, subjects, binds, 0)
+               }
+  /*
    def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
-    var changed = false
-    def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
-      if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
-        val (newatom, change) = atoms.head.rewrite(binds)
-        changed |= change
-        newatom +: doit(atoms.tail)
-      }
-    (doit(subjects), changed)
-  }
+   var changed = false
+   def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
+   if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
+   val (newatom, change) = atoms.head.rewrite(binds)
+   changed |= change
+   newatom +: doit(atoms.tail)
+   }
+   (doit(subjects), changed)
+   }
    */
-	//////////////////// GUI changes
+  //  GUI changes
   /**
    * Rewrite a sequence of atoms by applying the given bindings to each.
    * 
@@ -103,29 +103,42 @@ object SequenceMatcher {
    * 					that is true if any rewrites succeeded.
    */
   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
-	ReplActor ! ("Eva","pushTable","obj SequenceMatcher rewrite")
+    ReplActor ! ("Eva","pushTable","obj SequenceMatcher rewrite")
     // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object SequenceMatcher rewrite: ")) // val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
-	ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
-	
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object SequenceMatcher rewrite: ")) // val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
+    ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
+    
     var changed = false
     def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
       if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
-		ReplActor ! ("Eva", "addTo", ("seq", "head", atoms.head)) // val headNode = seqNode.addChild(atoms.head)
-		ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
+        ReplActor ! ("Eva", "addTo", ("seq", "head", atoms.head)) // val headNode = seqNode.addChild(atoms.head)
+        ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
         
-		val (newatom, change) = atoms.head.rewrite(binds)
-		ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
-		
+        val (newatom, change) = atoms.head.rewrite(binds)
+        ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
+        
         changed |= change
         newatom +: doit(atoms.tail)
       }
-      
-      val result = doit(subjects)
-      ReplActor ! ("Eva", "popTable", "obj SequenceMatcher rewrite")
+    /*
+     * Trying to rewrite the above without recursion. Does not compile.
+     * 
+    def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] = {
+      var newatom : IndexedSeq[BasicAtom] = IndexedSeq[BasicAtom]()
+      for (atom <- atoms) {
+        val (rewriteatom, change) = atom.rewrite(binds)
+        changed |= change
+        newatom = newatom +: rewriteatom
+      }
+      newatom
+    }
+    */
+
+    val result = doit(subjects)
+    ReplActor ! ("Eva", "popTable", "obj SequenceMatcher rewrite")
     (result, changed)
   }
-  //////////////////// end GUI changes
+  //  end GUI changes
 
   /**
    * Match two sequences of atoms, in order.
@@ -138,7 +151,7 @@ object SequenceMatcher {
    * @return	The result of the match.
    */
   private def _tryMatch(patterns: OmitSeq[BasicAtom],
-      subjects: OmitSeq[BasicAtom], binds: Bindings, position: Int): Outcome = {
+                        subjects: OmitSeq[BasicAtom], binds: Bindings, position: Int): Outcome = {
     // Watch for the basis case.  If the patterns list is empty, we are done
     // and return a successful match.
     if (patterns.isEmpty) return Match(binds)
@@ -151,7 +164,7 @@ object SequenceMatcher {
         // The atoms do not match.  There is nothing further to try; the
         // entire match can be rejected at this point, so return failure.
         Fail("Elements do not match.",
-            patterns.head, subjects.head, Some(fail), position)
+             patterns.head, subjects.head, Some(fail), position)
       case Match(newbinds) =>
         // We found exactly one way in which the pattern could match, given the
         // bindings we received.  This is easy; proceed to the next element.
@@ -167,7 +180,7 @@ object SequenceMatcher {
         // performs the rest of the matching work.  We do that now.
         // NOTE  It may be more efficient to replace this recursion.
         val (pt, st) = (patterns.tail, subjects.tail)
-        Many(MatchIterator(
+          Many(MatchIterator(
             (newbinds: Bindings) => _tryMatch(pt, 
                                               st, 
                                               //(newbinds++binds).set(newbinds.patterns.getOrElse(patterns),

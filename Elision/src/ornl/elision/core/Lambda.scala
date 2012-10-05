@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
@@ -148,7 +149,7 @@ extends BasicAtom with Applicable {
    */
   val isTerm = body.isTerm  
   val depth = body.depth + 1
-  val constantPool =
+  lazy val constantPool =
     Some(BasicAtom.buildConstantPool(theType.hashCode, lvar, body))
     
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,

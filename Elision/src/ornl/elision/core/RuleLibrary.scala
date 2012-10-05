@@ -41,6 +41,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
+import scala.collection.immutable.HashSet
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -185,13 +186,23 @@ extends Fickle with Mutable {
   /** The active rulesets. */
   val _active = new BitSet()
 
+  /** The active rulesets, by names. */
+  var _activeNames : Set[String] = new HashSet[String]()
+
   /**
    * Enable a ruleset.
    * 
    * @param name	The name of the ruleset to enable.
    * @return	This context.
    */
-  def enableRuleset(name: String) = _active += getRulesetBit(name) ; this
+  def enableRuleset(name: String) = {
+    _active += getRulesetBit(name)
+    _activeNames += name
+    if (BasicAtom.traceRules) {
+      println("Enable ruleset " + name + ". new rulesets = " + _activeNames)
+    }
+    this
+  }
   
   /**
    * Disable a ruleset.
@@ -199,7 +210,14 @@ extends Fickle with Mutable {
    * @param name	The name of the ruleset to disable.
   * @return	This context.
   */
-  def disableRuleset(name: String) = _active -= getRulesetBit(name) ; this
+  def disableRuleset(name: String) = {
+    _active -= getRulesetBit(name)
+    _activeNames -= name
+    if (BasicAtom.traceRules) {
+      println("Disable ruleset " + name + ". new rulesets = " + _activeNames)
+    }
+    this
+  }
   
   //======================================================================
   // Controlling automatic rewriting.
@@ -242,9 +260,44 @@ extends Fickle with Mutable {
   *          applied.
   */
   def rewriteOnce(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
+
+    // Check the cache.
+    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+    Memo.get(atom, usedRulesets) match {
+      case None => {
+        
+        // We do not have a cached value for the current atom. We will
+        // need to do the rewrites.
+      }
+      case Some(pair) => {
+
+        // We have a cached value for this atom. Use it.
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + usedRulesets)
+        }
+        return pair
+      }
+    }
+
     var (newtop, appliedtop) = rewriteTop(atom, rulesets)
     if (_descend) {
       var (newatom, applied) = rewriteChildren(newtop, rulesets)
+      
+      // Were the top atom or any of its children rewritten?
+      if (applied || appliedtop) {
+
+        // Add this rewrite to the cache.
+        Memo.put(atom, usedRulesets, newatom, 0)
+      }
+      
+      // Neither the top atom nor any of its children were rewritten.
+      else {
+
+        // Add the lack of a rewrite to the cache.
+        Memo.put(atom, usedRulesets, atom, 0)
+      }
       (newatom, appliedtop || applied)
     } else {
       (newtop, appliedtop)
@@ -260,18 +313,46 @@ extends Fickle with Mutable {
   *          applied.
   */
   def rewriteTop(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
+
+    // Check the cache.
+    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+    Memo.get(atom, usedRulesets) match {
+      case None => {
+        
+        // We do not have a cached value for the current atom. We will
+        // need to do the rewrites.
+      }
+      case Some(pair) => {
+
+        // We have a cached value for this atom. Use it.
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + usedRulesets)
+        }
+        return pair
+      }
+    }
+
     // Get the rules.
     val rules = if (rulesets.isEmpty) getRules(atom) else getRules(atom, rulesets)
 
-    println("** Elision: Rewriting atom '" + atom.toParseString + "'...")
+    if (BasicAtom.traceRules) {
+      println("Rewriting atom '" + atom.toParseString + "'...")
+    }
     // Now try every rule until one applies.
     for (rule <- rules) {
-      println("** Elision: Rule = " + rule.toParseString)
+      if (BasicAtom.traceRules) {
+        println("Trying rule '" + rule.toParseString + "'...")
+      }
       val (newatom, applied) = rule.doRewrite(atom)
       if (applied) {
+
+        // Return the rewrite result.
         return (newatom, applied)
       }
     } // Try all rules.
+
     return (atom, false)
   }
   
@@ -358,13 +439,19 @@ extends Fickle with Mutable {
     if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
     
     // Check the cache.
-    val (newatom, flag) = Memo.get(atom, Set.empty) match {
+    val (newatom, flag) = Memo.get(atom, _activeNames) match {
       case None =>
         val pair = doRewrite(atom, Set.empty)
-        Memo.put(atom, Set.empty, pair._1, 0)
+        //Memo.put(atom, _activeNames, pair._1, 0)
         pair
-      case Some(pair) =>
+      case Some(pair) => {
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + _activeNames)
+        }
         pair
+      }
     }
     
     ReplActor.disableGUIComs = tempDisabled
@@ -396,13 +483,20 @@ extends Fickle with Mutable {
     if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
     
     // Check the cache.
-    val (newatom, flag) = Memo.get(atom, rulesets) match {
+    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+    val (newatom, flag) = Memo.get(atom, usedRulesets) match {
       case None =>
-        val pair = doRewrite(atom, rulesets)
-        Memo.put(atom, rulesets, pair._1, 0)
+        val pair = doRewrite(atom, usedRulesets)
+        //Memo.put(atom, usedRulesets, pair._1, 0)
         pair
-      case Some(pair) =>
+      case Some(pair) => {
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + usedRulesets)
+        }
         pair
+      }
     }
     
     ReplActor.disableGUIComs = tempDisabled
@@ -533,13 +627,44 @@ extends Fickle with Mutable {
     * true. Otherwise it is false.
     */
     def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+
+      // Check the cache.
+      Memo.get(atom, _activeNames) match {
+        case None => {
+          
+          // We do not have a cached value for the current atom. We will
+          // need to do the rewrites.
+        }
+        case Some(pair) => {
+          
+          // We have a cached value for this atom. Use it.
+          if (BasicAtom.traceRules) {
+            println("Got cached rewrite '" +
+                    atom.toParseString + "' -> '" + pair._1.toParseString +
+                    "' w. rulesets " + _activeNames)
+          }
+          return pair
+        }
+      }
+
       // Get the rules.
       val rules = getRules(atom, Set(name))
       // Now try every rule until one applies.
       for (rule <- rules) {
       	val (newatom, applied) = rule.doRewrite(atom, hint)
-      	if (applied) return (newatom, applied)
+      	if (applied) {
+
+          // Add this rewrite to the cache.
+          //Memo.put(atom, _activeNames, newatom, 0)
+          
+          // Return the rewrite result.
+          return (newatom, applied)
+        }
       } // Try every rule until one applies.
+
+      // Add the lack of a rewrite to the cache.
+      //Memo.put(atom, _activeNames, atom, 0)
+
       return (atom, false)
     }
     
@@ -771,8 +896,6 @@ private object Completor {
         val newRule = RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
                                   Apply(op, AtomSeq(props, newrewritelist)),
                                   rule.guards, rule.rulesets, true)
-        println("** Elision: Old Rule: " + rule.toParseString)
-        println("** Elision: Synthetic Rule: " + newRule.toParseString)
         list :+= newRule
         
         // If the operator is commutative, we are done.
