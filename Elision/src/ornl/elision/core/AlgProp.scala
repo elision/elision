@@ -165,8 +165,6 @@ class AlgProp(
   
   val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
   
-  lazy val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
-  
   val isConstant = (associative match {
     case None => true
     case Some(atom) => atom.isConstant
