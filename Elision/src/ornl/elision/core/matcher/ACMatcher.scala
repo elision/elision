@@ -130,8 +130,10 @@ object ACMatcher {
           case m1:Match => _matched = true
           case m2:Many => _matched = true
         }
+        _sindex += 1
       } // Search for a matching subject.
       if (!_matched) return Fail("Matching precheck failed.", plist, slist)
+      _pindex += 1
     } // Test for a match for each pattern.
 
     // Step one is to perform constant elimination.  Any constants must match
