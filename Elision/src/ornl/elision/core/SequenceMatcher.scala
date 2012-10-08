@@ -109,34 +109,19 @@ object SequenceMatcher {
     ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
     
     var changed = false
-    def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] =
-      if (atoms.isEmpty) IndexedSeq[BasicAtom]() else {
-        ReplActor ! ("Eva", "addTo", ("seq", "head", atoms.head)) // val headNode = seqNode.addChild(atoms.head)
-        ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
-        
-        val (newatom, change) = atoms.head.rewrite(binds)
-        ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
-        
-        changed |= change
-        newatom +: doit(atoms.tail)
-      }
-    /*
-     * Trying to rewrite the above without recursion. Does not compile.
-     * 
-    def doit(atoms: IndexedSeq[BasicAtom]): IndexedSeq[BasicAtom] = {
-      var newatom : IndexedSeq[BasicAtom] = IndexedSeq[BasicAtom]()
-      for (atom <- atoms) {
-        val (rewriteatom, change) = atom.rewrite(binds)
-        changed |= change
-        newatom = newatom +: rewriteatom
-      }
-      newatom
-    }
-    */
-
-    val result = doit(subjects)
+    var index = 0
+    var newseq = OmitSeq[BasicAtom]()
+    while (index < subjects.size) {
+      ReplActor ! ("Eva", "addTo", ("seq", "head", subjects(index))) // val headNode = seqNode.addChild(atoms.head)
+      ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
+      val (newatom, change) = subjects(index).rewrite(binds)
+      ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
+      changed |= change
+      newseq :+= newatom
+    } // Rewrite the subjects.
+    
     ReplActor ! ("Eva", "popTable", "obj SequenceMatcher rewrite")
-    (result, changed)
+    if (changed) (newseq, changed) else (subjects, false)
   }
   //  end GUI changes
 
