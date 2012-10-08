@@ -78,7 +78,6 @@ with Rewriter {
   val theType = STRATEGY
   val isConstant = left.isConstant && right.isConstant
   val depth = (left.depth max right.depth) + 1
-  lazy val constantPool = Some(BasicAtom.buildConstantPool(11, left, right))
   val isTerm = left.isTerm && right.isTerm
   val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
   override lazy val hashCode = left.hashCode * 31 + right.hashCode

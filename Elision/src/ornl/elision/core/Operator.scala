@@ -194,7 +194,6 @@ object Operator {
 class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
   val depth = 0
   val deBruijnIndex = 0
-  val constantPool = None
   val isTerm = true
   val isConstant = true
   val theType = OPREF

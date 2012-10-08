@@ -131,7 +131,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     }
   lazy val isConstant = atoms.forall(_.isConstant)
   lazy val isTerm = atoms.forall(_.isTerm)
-  lazy val constantPool = Some(BasicAtom.buildConstantPool(1, atoms:_*))
   val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
   val depth = atoms.foldLeft(0)(_ max _.depth) + 1
   

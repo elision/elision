@@ -63,7 +63,6 @@ class IdentityRuleException(msg: String) extends ElisionException(msg)
 abstract class RulesetRef extends BasicAtom with Rewriter {
   val depth = 0
   val deBruijnIndex = 0
-  val constantPool = None
   val isTerm = true
   val isConstant = true
   val theType = RSREF
