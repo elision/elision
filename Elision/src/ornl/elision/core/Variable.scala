@@ -101,7 +101,6 @@ class Variable(typ: BasicAtom, val name: String,
   val depth = 0
   /** By default, variables can be bound. */
   override val isBindable = true
-  val constantPool = None
 
   /**
    * Attempt to bind the variable.  The potential variable binding is added

@@ -386,13 +386,6 @@ class TreeBuilder extends Thread {
 		node.properties += "Is De Bruijn index: " + atom.isDeBruijnIndex + "\n\n"
 		node.properties += "Is constant: " + atom.isConstant + "\n\n"
 		node.properties += "Is term: " + atom.isTerm + "\n\n"
-		
-		try {
-			node.properties += "constant pool: \n"
-			for(i <- atom.constantPool.get) node.properties += "\t" + i + "\n"
-		} catch {
-			case _ => {}
-		}
         
         if(parent != null) parent.addChild(node)
         nodeCount += 1

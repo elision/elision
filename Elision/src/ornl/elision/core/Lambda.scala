@@ -149,8 +149,6 @@ extends BasicAtom with Applicable {
    */
   val isTerm = body.isTerm  
   val depth = body.depth + 1
-  lazy val constantPool =
-    Some(BasicAtom.buildConstantPool(theType.hashCode, lvar, body))
     
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) =

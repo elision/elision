@@ -77,8 +77,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   val isTerm = mybinds.values.forall(_.isTerm)
   val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
   val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
-  lazy val constantPool =
-    Some(BasicAtom.buildConstantPool(theType.hashCode, mybinds.values.toSeq:_*))
     
   /**
    * Match this bindings atom against the provided atom.

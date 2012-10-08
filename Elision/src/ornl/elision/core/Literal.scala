@@ -107,9 +107,6 @@ extends BasicAtom {
   /** Literals are terms. */
   val isTerm = true
   
-  /** Literals have no children. */
-  val constantPool = None
-  
   /** The depth of all literals is zero. */
   val depth = 0
   

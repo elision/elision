@@ -61,7 +61,6 @@ import ornl.elision.repl.ReplActor
 abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   val isConstant = op.isConstant && arg.isConstant
   val isTerm = op.isTerm && arg.isTerm
-  lazy val constantPool = Some(BasicAtom.buildConstantPool(2, op, arg))
   val depth = (op.depth max arg.depth) + 1
   val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
   

@@ -254,7 +254,6 @@ extends BasicAtom {
   /** All special forms use the type ANY as their type. */
   val theType: BasicAtom = ANY
   lazy val isTerm = tag.isTerm && content.isTerm
-  lazy val constantPool = Some(BasicAtom.buildConstantPool(17, tag, content))
   override lazy val hashCode = tag.hashCode * 31 + content.hashCode
   
   override def equals(other: Any) = other match {
