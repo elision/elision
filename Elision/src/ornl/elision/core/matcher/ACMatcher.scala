@@ -59,8 +59,6 @@ object ACMatcher {
                op: Option[OperatorRef]): Outcome = {
 
     // Check the length.
-    //println("** ACMatcher...")
-    //println("** original bindings = " + binds)
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -91,58 +89,50 @@ object ACMatcher {
           slist
       }, binds)
     }
+
+    // Conduct a test to see if matching is even possible.  Try to match
+    // every pattern against some subject.  Note that this does not work
+    // in general, since a pattern might match a grouping of subjects.
+    // We should not have to worry about that case here, since such patterns
+    // would have been "flattened" earlier by associativity.  That is, the
+    // operator would have arisen because it is the "outer" operator and
+    // thus the list would be flattened.  This is hard to explain, but an
+    // example might help.
+    //
+    // Suppose we end up with the operator being foo, and the following
+    // patterns and subjects.
+    //
+    // patterns: foo($a,$b), $c, bar($a)
+    // subjects: $x, $y, $z, bar($x)
+    //
+    // We could group $x and $y to foo($x,$y) and then match the (unbindable)
+    // pattern foo($a,$b).  However the operator foo must have arisen as the
+    // original outer operator for the patterns; that is the original pattern
+    // was foo(foo($a,$b),$c,bar($a)), and since foo is associative (or we
+    // would not be here) lists get flattened, giving new pattern
+    // foo($a,$b,$c,bar($a)).  So we wind up with the following patterns and
+    // subjects.
+    //
+    // patterns: $a, $b, $c, bar($a)
+    // subjects: $x, $y, $z, bar($x)
+    //
+    // We match just as we should.
     
-    // @@@@ BEGIN KIRK CHANGES
-    // If the subject we are trying to match is big enough, do some
-    // initial checks to see if matching is even possible.
-    //if (slist.length > 5) {
-      
     // First see if there is at least 1 subject child that matches
     // each item in the pattern.
-    for (pat <- plist) {
-      
-      // Check each subject child against the current pattern child,
-      // looking for a match.
-      var gotMatch = false
-      for (sub <- slist) {
-        if (!gotMatch) {
-          pat.tryMatch(sub, binds) match {
-            case fail:Fail => {
-              gotMatch = false
-            }
-	    case Match(binds1) => {
-              gotMatch = true
-            }
-	    case Many(iter) => {
-              gotMatch = true
-            }
-          }
+    var _pindex = 0
+    while (_pindex < plist.length) {
+      var _sindex = 0
+      var _matched = false
+      while ((!_matched) && (_sindex < slist.length)) {
+        plist(_pindex).tryMatch(slist(_sindex), binds) match {
+          case fail:Fail =>
+          case m1:Match => _matched = true
+          case m2:Many => _matched = true
         }
-      }
-      
-      // Did we find a match for the current pattern child?
-      if (!gotMatch) {
-        
-        // If there is no possible match for the current pattern
-        // child, there is no way this overall match will work.
-        //println("FAST FAIL...")
-        return Fail("Matching is impossible. Matching precheck failed.", plist, slist)
-      }
-    }
-    
-    // Are we going to need to do some associative grouping to get
-    // things to match?
-    if (slist.length > plist.length) {
-      
-      // We have more targets to match than we have in the
-      // pattern. This means that the excess (at a minimum) targets
-      // will all be grouped together via associativity as an
-      // instance of an operator the same type as the target. See if
-      // there is a potential match for an operator of the same type
-      // as the target.
-    }
-    //}
-    // @@@@ END KIRK CHANGES
+      } // Search for a matching subject.
+      if (!_matched) return Fail("Matching precheck failed.", plist, slist)
+    } // Test for a match for each pattern.
 
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
@@ -154,28 +144,27 @@ object ACMatcher {
     // restrictive.  We obtain an iterator over these, and then combine it
     // with the iterator for "everything else."
     var um = new UnbindableMatcher(patterns, subjects, binds)
-    val foundUMMatches = um.hasNext
-    //println("** Elision: UnbindableMatcher for P:" + patterns + " and S:" +
-    //        subjects + " hasNext() == " + foundUMMatches);
     
-    // Does the pattern actually contain any unbindable items?
-    if (patterns.indexWhere(!_.isBindable) >= 0) {
-
-      // The pattern contains at least 1 unbindable item. Were we able
-      // to match all the unbindable items?
-      if (!foundUMMatches) {
-
-        // We were not able to match up all the unbindable items in
-        // the pattern. This pattern will never match and anything
-        // more we do is wasted work.
-        //println("FAST FAIL, UnbindableMatch Failed...")
-        return Fail("Matching is impossible. Cannot match unbindables in pattern..", plist, slist)
-      }
-    }
+    // If there is an unbindable, and the unbindable does not match, then the
+    // unbindable matcher will immediately fail, causing failure of the entire
+    // matching system.  There should be no need to do the following check; in
+    // fact, it will probably add time.
     
-    // Regenerate the unbindable matcher in case calling hasNext()
-    // messed it up.
-    um = new UnbindableMatcher(patterns, subjects, binds)
+//    val foundUMMatches = um.hasNext
+//    
+//    // Does the pattern actually contain any unbindable items?
+//    if (patterns.indexWhere(!_.isBindable) >= 0) {
+//
+//      // The pattern contains at least 1 unbindable item. Were we able
+//      // to match all the unbindable items?
+//      if (!foundUMMatches) {
+//
+//        // We were not able to match up all the unbindable items in
+//        // the pattern. This pattern will never match and anything
+//        // more we do is wasted work.
+//        return Fail("Matching is impossible. Cannot match unbindables in pattern..", plist, slist)
+//      }
+//    }
 
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
@@ -186,28 +175,18 @@ object ACMatcher {
       
       // If there is exactly one pattern then match it immediately.
       if (pats.atoms.length == 1) {
-        //println("** bindings = " + bindings)
-        //println("** binds = " + binds)
-        //println("** patterns = " + patterns)
-        //println("** pats = " + pats)
-        //println("** subjects = " + subjects)
-        //println("** subs = " + subs)
         return pats.atoms(0).tryMatch(op match {
           case Some(opref) =>
             Apply(opref, subs)
           case None =>
             subs
         }, (bindings ++ binds))
-        //return pats.atoms(0).tryMatch(subs,binds)
       }
       
       // If there are no patterns, there is nothing to do.
       if (pats.atoms.length == 0) {
-        //println("** new bindings (1) = " + bindings)
         MatchIterator(bindings ++ binds)
-      }
-      else {
-
+      } else {
         // Merge the current bindings with the old bindings.
         val newBinds = (bindings ++ binds)
 
@@ -230,12 +209,6 @@ object ACMatcher {
         var newPats = scala.collection.immutable.Vector.empty[BasicAtom]
         var discardSubs = scala.collection.immutable.Vector.empty[BasicAtom]
         for (patItem <- pats) {
-          
-          // Sanity check.
-          if (!patItem.isBindable) {
-            //println("BOGUS!!: '" + patItem.toString + "' is not bindable!!!")
-          }
-
           // Is the current pattern variable currently bound to
           // something?
           patItem match {
@@ -336,8 +309,7 @@ object ACMatcher {
           val pats1 = AtomSeq(plist.props, newPats)
           val subs1 = AtomSeq(slist.props, newSubs)
           new ACMatchIterator(pats1, subs1, newBinds, op)
-        }
-        else {
+        } else {
 
           // This set of bindings can never match. Return an empty iterator.
           new MatchIterator {

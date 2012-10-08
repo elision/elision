@@ -140,19 +140,19 @@ abstract class MatchIterator extends Iterator[Bindings] {
     val first = this
     new MatchIterator {
       def findNext {
-	// We only come here if the local iterator has been exhausted, so we
-	// need to build a new complete match.  We do that now.
-	if (first.hasNext) {
-	  // Get the next match from the first iterator.
-	  val part1 = first.next
-	  // Build a complete match.
-	  _local = second(part1)
-	} else {
-	  // The first iterator is exhausted.
-	  _exhausted = true
-	}
-      }
-    }
+        // We only come here if the local iterator has been exhausted, so we
+        // need to build a new complete match.  We do that now.
+        if (first.hasNext) {
+          // Get the next match from the first iterator.
+          val part1 = first.next
+          // Build a complete match.
+          _local = second(part1)
+        } else {
+          // The first iterator is exhausted.
+          _exhausted = true
+        }
+      } // End of findNext method
+    } // End of MatchIterator class
   }
   
   /**
