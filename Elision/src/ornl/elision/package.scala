@@ -36,6 +36,8 @@
 ======================================================================*/
 package sjp
 
+import scala.collection.immutable.BitSet
+
 /** 
  * Elision is a term rewriter.
  * 

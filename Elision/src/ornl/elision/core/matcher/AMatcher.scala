@@ -37,10 +37,11 @@
 * */
 package ornl.elision.core.matcher
 import ornl.elision.core._
+import ornl.elision.Debugger._
 
 /**
  * Match two sequences, where the elements of the second sequence can be
- * grouped.
+ * grouped, but not re-ordered.
  */
 object AMatcher {
 
@@ -57,7 +58,6 @@ object AMatcher {
                op: Option[OperatorRef]): Outcome = {
 
     // Check the length.
-    //println("** AMatcher...")
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)

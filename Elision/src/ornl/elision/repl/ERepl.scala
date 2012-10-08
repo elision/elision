@@ -184,9 +184,8 @@ class ERepl extends Processor {
   //======================================================================
   // Define the REPL control fields.
   //======================================================================
-  
-  /** Should execution time be printed after every command. */
-  private var _timing = false
+      
+  // None yet.
  
   //======================================================================
   // Register handlers.
