@@ -313,21 +313,7 @@ extends Fickle with Mutable {
 
     var (newtop, appliedtop) = rewriteTop(atom, rulesets)
     if (_descend) {
-      var (newatom, applied) = rewriteChildren(newtop, rulesets)
-      
-      // Were the top atom or any of its children rewritten?
-      if (applied || appliedtop) {
-
-        // Add this rewrite to the cache.
-        Memo.put(atom, usedRulesets, newatom, 0)
-      }
-      
-      // Neither the top atom nor any of its children were rewritten.
-      else {
-
-        // Add the lack of a rewrite to the cache.
-        Memo.put(atom, usedRulesets, atom, 0)
-      }
+      var (newatom, applied) = rewriteChildren(newtop, rulesets)     
       (newatom, appliedtop || applied)
     } else {
       (newtop, appliedtop)
@@ -472,7 +458,8 @@ extends Fickle with Mutable {
     val (newatom, flag) = Memo.get(atom, _activeNames) match {
       case None =>
         val pair = doRewrite(atom, Set.empty)
-        //Memo.put(atom, _activeNames, pair._1, 0)
+        Memo.put(atom, _activeNames, pair._1, 0)
+        Memo.put(pair._1, _activeNames, pair._1, 0)
         pair
       case Some(pair) => {
         if (BasicAtom.traceRules) {
@@ -517,7 +504,8 @@ extends Fickle with Mutable {
     val (newatom, flag) = Memo.get(atom, usedRulesets) match {
       case None =>
         val pair = doRewrite(atom, usedRulesets)
-        //Memo.put(atom, usedRulesets, pair._1, 0)
+        Memo.put(atom, usedRulesets, pair._1, 0)
+        Memo.put(pair._1, usedRulesets, pair._1, 0)
         pair
       case Some(pair) => {
         if (BasicAtom.traceRules) {
@@ -684,16 +672,10 @@ extends Fickle with Mutable {
       	val (newatom, applied) = rule.doRewrite(atom, hint)
       	if (applied) {
 
-          // Add this rewrite to the cache.
-          //Memo.put(atom, _activeNames, newatom, 0)
-          
           // Return the rewrite result.
           return (newatom, applied)
         }
       } // Try every rule until one applies.
-
-      // Add the lack of a rewrite to the cache.
-      //Memo.put(atom, _activeNames, atom, 0)
 
       return (atom, false)
     }

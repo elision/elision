@@ -188,7 +188,6 @@ object Memo {
     
     // Return nothing if caching is turned off.
     if (!knownExecutor.getProperty[Boolean]("cache")) {
-      println("** CACHE OFF, get()")
       None
     }
 
@@ -223,11 +222,10 @@ object Memo {
 
     // Do nothing if caching is turned off.
     if (!knownExecutor.getProperty[Boolean]("cache")) {
-      println("** CACHE OFF, put()")
       return
     }
 
-    println("** Elision: Cache add rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
+    //println("** Elision: Cache add rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
     val lvl = 0 max level min (_LIMIT-1)
     if (atom eq value) {
       _normal.add(atom, rulesets)
