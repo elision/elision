@@ -191,8 +191,6 @@ extends BasicAtom with Applicable {
   }
   //////////////////// end GUI changes
   
-  def toParseString = "\\" + lvar.toParseString + "." + body.toParseString
-  
   override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
   
   override def equals(other: Any) = other match {

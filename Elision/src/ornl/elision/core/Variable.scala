@@ -90,7 +90,7 @@ class Variable(typ: BasicAtom, val name: String,
     val guard: BasicAtom = Literal.TRUE,
     val labels: Set[String] = Set[String]()) extends BasicAtom {
   /** The prefix for this variable. */
-  protected val prefix = "$"
+  val prefix = "$"
     
   /** This variable is a term. */
   val isTerm = true
@@ -225,11 +225,6 @@ class Variable(typ: BasicAtom, val name: String,
     }
   }
   //////////////////// end GUI changes
-
-  def toParseString = prefix + toESymbol(name) +
-  		(if (guard != Literal.TRUE) "{" + guard.toParseString + "}" else "") +
-  		(if ((theType != ANY) && BasicAtom.printTypeInfo) ":" + typ.toParseString else "") +
-  		labels.map(" @" + toESymbol(_)).mkString("")
   
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   

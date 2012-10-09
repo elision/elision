@@ -424,7 +424,7 @@ abstract class BasicAtom {
    * 
    * @return	The string.
    */
-  def toParseString: String
+  def toParseString = ElisionGenerator.apply(this).toString
   
   /**
    * Make a string that can be used to re-generate this atom.

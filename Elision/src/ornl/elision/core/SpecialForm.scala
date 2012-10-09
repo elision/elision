@@ -302,9 +302,6 @@ extends BasicAtom {
     }
   }
 	//////////////////// end GUI changes
-
-  def toParseString(): String =
-    "{: " + tag.toParseString + " " + content.toParseString + " :}"
 }
 
 /**

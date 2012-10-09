@@ -139,16 +139,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   }
   
   //////////////////// end GUI changes
-
-  /**
-   * The parseable representation of a bindings atom is roughly equivalent to
-   * that of an object, except that the keyword "bind" is used.
-   * 
-   * @return	A parseable version of this atom.
-   */
-  def toParseString() = "{ binds " + (mybinds.map(pair =>
-    toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(" ") +
-    " }"
     
   override def equals(other: Any) = other match {
     case BindingsAtom(obinds) if (obinds == mybinds) => true
