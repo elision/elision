@@ -524,9 +524,9 @@ extends Fickle with Mutable {
    */
   @tailrec
   private def doRewrite(atom: BasicAtom,
-      rulesets: Set[String] = Set.empty,
-      bool: Boolean = false,
-      limit: BigInt = _limit): (BasicAtom, Boolean) = {
+                        rulesets: Set[String] = Set.empty,
+                        bool: Boolean = false,
+                        limit: BigInt = _limit): (BasicAtom, Boolean) = {
     if (limit == 0) return (atom, bool)
     else rewriteOnce(atom, rulesets) match {
       case (newatom, false) =>
