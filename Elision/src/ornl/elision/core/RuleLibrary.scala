@@ -229,21 +229,54 @@ extends Fickle with Mutable {
   private var _descend = true
   
   /**
+   * The method to use to rewrite a child.  This is set by the
+   * `setNormalizeChildren` method.
+   */
+  private var _rewritechild: (BasicAtom, Set[String]) => (BasicAtom, Boolean) =
+    rewrite _
+  
+  /**
   * Set the limit for the number of rewrites.  Use a negative number
   * to indicate no rewrites, and zero to turn off rewriting.
   * 
   * @param limit	The limit of the number of rewrites.
-  * @return	This context.
+  * @return	This rule library.
   */
-  def setLimit(limit: BigInt) = _limit = limit ; this
+  def setLimit(limit: BigInt) = { _limit = limit ; this }
   
   /**
   * Set whether to rewrite children recursively.
   * 
   * @param descend	Whether to rewrite children recursively.
-  * @return	This context.
+  * @return	This rule library.
   */
-  def setDescend(descend: Boolean) = _descend = descend ; this
+  def setDescend(descend: Boolean) = { _descend = descend ; this }
+  
+  /**
+   * Set whether to normalize children when rewriting.  The alternative is to
+   * rewrite children once, recursively, and then return to the top level to
+   * check it again.  The latter is a better strategy in general, but the
+   * former results in the normalized form of children being stored in the
+   * memoization cache.
+   * 
+   * Both should ultimately result in the same rewrite
+   * if everything works correctly, but can result in different rewrites
+   * under certain conditions.  Specifically, if an intermediate form of a
+   * child causes a higher-level rewrite to occur, whereas the normalized form
+   * of the child causes a different (or no) higher-level rewrite to occur,
+   * then you will get different results.  This is really a problem with the
+   * rules.
+   * 
+   * The default is to fully normalize children.
+   * 
+   * @param norm  Whether to normalize children.
+   * @return  This rule library.
+   */
+  def setNormalizeChildren(norm: Boolean) = {
+    if (norm) _rewritechild = rewrite _
+    else _rewritechild = rewriteOnce _
+    this
+  }
   
   //======================================================================
   // Rewriting.
@@ -370,14 +403,14 @@ extends Fickle with Mutable {
         var flag = false
         // Rewrite the properties.  The result must still be a property spec.
         // If not, we keep the same properties.
-        val newProps = rewriteOnce(props, rulesets) match {
+        val newProps = _rewritechild(props, rulesets) match {
           case (ap: AlgProp, true) => flag = true; ap
           case _ => props
         }
         // Rewrite the atoms.
         val newAtoms = atoms.map {
           atom =>
-            val (newatom, applied) = rewriteOnce(atom, rulesets)
+            val (newatom, applied) = _rewritechild(atom, rulesets)
           flag ||= applied
           newatom
         }
@@ -385,8 +418,8 @@ extends Fickle with Mutable {
         if (flag) (AtomSeq(newProps, newAtoms), true) else (atom, false)
         
       case Apply(lhs, rhs) =>
-        val newlhs = rewriteOnce(lhs, rulesets)
-        val newrhs = rewriteOnce(rhs, rulesets)
+        val newlhs = _rewritechild(lhs, rulesets)
+        val newrhs = _rewritechild(rhs, rulesets)
         if (newlhs._2 || newrhs._2) {
           (Apply(newlhs._1, newrhs._1), true)
         } else {
@@ -394,11 +427,11 @@ extends Fickle with Mutable {
         }
         
       case Lambda(param, body) =>
-        val newparam = rewriteOnce(param, rulesets) match {
+        val newparam = _rewritechild(param, rulesets) match {
           case (v: Variable, true) => (v, true)
           case _ => (param, false)
         }
-        val newbody = rewriteOnce(body, rulesets)
+        val newbody = _rewritechild(body, rulesets)
         if (newparam._2 || newbody._2) {
           (Lambda(newparam._1, newbody._1), true)
         } else {
@@ -406,8 +439,8 @@ extends Fickle with Mutable {
         }
 
       case SpecialForm(tag, content) =>
-        val newlhs = rewriteOnce(tag, rulesets)
-        val newrhs = rewriteOnce(content, rulesets)
+        val newlhs = _rewritechild(tag, rulesets)
+        val newrhs = _rewritechild(content, rulesets)
         if (newlhs._2 || newrhs._2) {
           (SpecialForm(newlhs._1, newrhs._1), true)
         } else {
