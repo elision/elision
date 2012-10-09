@@ -282,21 +282,7 @@ extends Fickle with Mutable {
 
     var (newtop, appliedtop) = rewriteTop(atom, rulesets)
     if (_descend) {
-      var (newatom, applied) = rewriteChildren(newtop, rulesets)
-      
-      // Were the top atom or any of its children rewritten?
-      if (applied || appliedtop) {
-
-        // Add this rewrite to the cache.
-        Memo.put(atom, usedRulesets, newatom, 0)
-      }
-      
-      // Neither the top atom nor any of its children were rewritten.
-      else {
-
-        // Add the lack of a rewrite to the cache.
-        Memo.put(atom, usedRulesets, atom, 0)
-      }
+      var (newatom, applied) = rewriteChildren(newtop, rulesets)     
       (newatom, appliedtop || applied)
     } else {
       (newtop, appliedtop)
@@ -370,14 +356,14 @@ extends Fickle with Mutable {
         var flag = false
         // Rewrite the properties.  The result must still be a property spec.
         // If not, we keep the same properties.
-        val newProps = rewriteOnce(props, rulesets) match {
+        val newProps = rewrite(props, rulesets) match {
           case (ap: AlgProp, true) => flag = true; ap
           case _ => props
         }
         // Rewrite the atoms.
         val newAtoms = atoms.map {
           atom =>
-            val (newatom, applied) = rewriteOnce(atom, rulesets)
+            val (newatom, applied) = rewrite(atom, rulesets)
           flag ||= applied
           newatom
         }
@@ -385,8 +371,8 @@ extends Fickle with Mutable {
         if (flag) (AtomSeq(newProps, newAtoms), true) else (atom, false)
         
       case Apply(lhs, rhs) =>
-        val newlhs = rewriteOnce(lhs, rulesets)
-        val newrhs = rewriteOnce(rhs, rulesets)
+        val newlhs = rewrite(lhs, rulesets)
+        val newrhs = rewrite(rhs, rulesets)
         if (newlhs._2 || newrhs._2) {
           (Apply(newlhs._1, newrhs._1), true)
         } else {
@@ -394,11 +380,11 @@ extends Fickle with Mutable {
         }
         
       case Lambda(param, body) =>
-        val newparam = rewriteOnce(param, rulesets) match {
+        val newparam = rewrite(param, rulesets) match {
           case (v: Variable, true) => (v, true)
           case _ => (param, false)
         }
-        val newbody = rewriteOnce(body, rulesets)
+        val newbody = rewrite(body, rulesets)
         if (newparam._2 || newbody._2) {
           (Lambda(newparam._1, newbody._1), true)
         } else {
@@ -441,7 +427,8 @@ extends Fickle with Mutable {
     val (newatom, flag) = Memo.get(atom, _activeNames) match {
       case None =>
         val pair = doRewrite(atom, Set.empty)
-        //Memo.put(atom, _activeNames, pair._1, 0)
+        Memo.put(atom, _activeNames, pair._1, 0)
+        Memo.put(pair._1, _activeNames, pair._1, 0)
         pair
       case Some(pair) => {
         if (BasicAtom.traceRules) {
@@ -486,7 +473,8 @@ extends Fickle with Mutable {
     val (newatom, flag) = Memo.get(atom, usedRulesets) match {
       case None =>
         val pair = doRewrite(atom, usedRulesets)
-        //Memo.put(atom, usedRulesets, pair._1, 0)
+        Memo.put(atom, usedRulesets, pair._1, 0)
+        Memo.put(pair._1, usedRulesets, pair._1, 0)
         pair
       case Some(pair) => {
         if (BasicAtom.traceRules) {
@@ -653,16 +641,10 @@ extends Fickle with Mutable {
       	val (newatom, applied) = rule.doRewrite(atom, hint)
       	if (applied) {
 
-          // Add this rewrite to the cache.
-          //Memo.put(atom, _activeNames, newatom, 0)
-          
           // Return the rewrite result.
           return (newatom, applied)
         }
       } // Try every rule until one applies.
-
-      // Add the lack of a rewrite to the cache.
-      //Memo.put(atom, _activeNames, atom, 0)
 
       return (atom, false)
     }
