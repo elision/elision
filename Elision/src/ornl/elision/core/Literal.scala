@@ -235,9 +235,6 @@ extends Literal[BigInt](typ) {
 		}
 	}
 	//////////////////// end GUI changes
-	
-  def toParseString = value.toString +
-    (if ((typ != INTEGER) && BasicAtom.printTypeInfo) ":" + typ.toParseString else "") 
 }
 
 /**
@@ -272,8 +269,6 @@ extends Literal[String](typ) {
 		}
 	}
 	//////////////////// end GUI changes
-  def toParseString = toEString(value) +
-    (if (typ != STRING) ":" + typ.toParseString else "") 
 }
 
 /**
@@ -308,7 +303,6 @@ extends Literal[Symbol](typ) {
 		}
 	}
 	//////////////////// end GUI changes
-  def toParseString = toESymbol(value.name) + ":" + typ.toParseString 
 }
 
 /**
@@ -350,9 +344,6 @@ extends Literal[Boolean](typ) {
 		}
 	}
 	//////////////////// end GUI changes
-	
-  override def toParseString = value.toString +
-    (if (typ != BOOLEAN) ":" + typ.toParseString else "")
 }
 
 /**
@@ -449,11 +440,15 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
   /** Absolute value of exponent. */
   private val _epos = if (_eneg) -exponent else exponent
   
-  override def toParseString =
+  /**
+   * This is a string representing the number.  It should be parseable by
+   * the Elision parser as a floating point number.  No type information
+   * is included in the string.
+   */
+  val numberString = 
     (if (_sneg) "-" else "") + _prefix + _spos.toString(radix) +
     (if (radix == 16) "P" else "e") +
-    (if (_eneg) "-" else "") + _prefix + Integer.toString(_epos, radix) +
-    (if (typ != FLOAT) ":" + typ.toParseString else "")
+    (if (_eneg) "-" else "") + _prefix + Integer.toString(_epos, radix)
     
   /** This value as a platform-dependent floating point value. */
   lazy val toFloat = significand.toFloat * scala.math.pow(radix, exponent).toFloat

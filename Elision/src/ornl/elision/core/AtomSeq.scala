@@ -233,8 +233,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   }
   // end GUI changes
 
-  def toParseString = atoms.mkParseString(props.toParseString + "(" , ", ", ")")
-
   /**
    * Provide a "naked" version of the sequence, without the parens and property
    * indicators.

@@ -290,8 +290,6 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   val theType = op.operator.typ.rewrite(pabinds)._1
   
-  def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
-  
   // GUI changes
   override def rewrite(binds: Bindings) = {
 	ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
@@ -336,16 +334,4 @@ case class SimpleApply protected[core] (override val op: BasicAtom,
    * might cause trouble with matching.
    */
   val theType = op.theType
-  
-  // When an integer literal is present, we have to surround it with parens
-  // so that the system does not interpret the applicative dot as a decimal
-  // point.  If a named root type is present, it can also cause trouble, so
-  // we must explicitly annotate it.
-  def toParseString = "(" +
-  	(if (op.isInstanceOf[IntegerLiteral])
-  	  "(" + op.toParseString + ")"
-	  else if (op.isInstanceOf[NamedRootType])
-	    op.toParseString + ":^TYPE"
-    else op.toParseString) +
-    "." + arg.toParseString + ")"
 }

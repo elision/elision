@@ -424,7 +424,16 @@ abstract class BasicAtom {
    * 
    * @return	The string.
    */
-  def toParseString: String
+  def toParseString = ElisionGenerator.apply(this).toString
+  
+  /**
+   * Generate a parseable string from this atom.  The string is immediately
+   * written ("streamed") to the given appendable.
+   * 
+   * @param app The appendable to get the string.
+   * @return  The appendable.
+   */
+  def toParseString(app: Appendable) = ElisionGenerator.apply(this, app)
   
   /**
    * Make a string that can be used to re-generate this atom.

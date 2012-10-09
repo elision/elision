@@ -69,8 +69,6 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   /** The name of the referenced ruleset. */
   val name: String
   
-  def toParseString = toESymbol(name) + ":RSREF"
-  
   /**
    * Ruleset references cannot be rewritten.
    */

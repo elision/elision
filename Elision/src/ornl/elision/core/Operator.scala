@@ -209,8 +209,6 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
    */
   def doApply(atom: BasicAtom, bypass: Boolean) = operator.doApply(atom, bypass)
 
-  def toParseString = toESymbol(operator.name) + ":OPREF"
-
   /**
    * Operator references cannot be rewritten.  This is actually why they exist!
    */

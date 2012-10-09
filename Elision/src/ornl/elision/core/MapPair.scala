@@ -152,7 +152,4 @@ with Rewriter {
 		  }
 	  }
 	  //////////////////// end GUI changes
-
-  def toParseString = "(" + left.toParseString + " -> " +
-  		right.toParseString + ")"
 }

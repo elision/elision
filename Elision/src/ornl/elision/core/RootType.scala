@@ -93,8 +93,6 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   /** Generate the hash code. */
   override lazy val hashCode = name.hashCode()
   
-  override def toParseString = toESymbol(name)
-  
   /**
    * Because of careful use of names, two named root types are equal
    * iff they have the same name.
