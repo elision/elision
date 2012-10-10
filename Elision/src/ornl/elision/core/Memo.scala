@@ -185,12 +185,20 @@ object Memo {
    *          the input atom is already in normal form.
    */
   def get(atom: BasicAtom, rulesets: Set[String]) = {
-    
-    // Return nothing if caching is turned off.
-    if (!knownExecutor.getProperty[Boolean]("cache")) {
-      None
+
+    // Constants, variables, and symbols should never be
+    // rewritten. So, if we are trying to get one of those just
+    // return the original atom.
+    if (atom.isInstanceOf[Literal[_]] ||
+        atom.isInstanceOf[Variable]) {
+      Some((atom, true))
     }
 
+    // Return nothing if caching is turned off.
+    else if (!knownExecutor.getProperty[Boolean]("cache")) {
+      None
+    }
+   
     // We are doing caching. Actually look in the cache.
     else {
       if (_normal.contains((atom,rulesets))) {
