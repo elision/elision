@@ -28,6 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package ornl.elision
+import scala.collection.mutable.StringBuilder
 
 /**
  * This is the entry point when running from the jar file.
@@ -47,5 +48,57 @@ object Main extends App {
   } catch {
     case ex: Version.MainException =>
       println("ERROR: " + ex.getMessage)
+  }
+  
+  /**
+   * Provide command line help.
+   */
+  def help = {
+    val buf = new StringBuilder
+    buf.append(
+        """|Usage: [global switches] [command] [command switches]
+           |Execute the command [command].  Prior to this, the switches given
+           |by [global switches] are processed.  The [command switches] are
+           |passed to the selected [command].
+           |
+           |Global Switches:
+           |""".stripMargin)
+  }
+  
+  /**
+   * Process the command line arguments, extract any switches and process them,
+   * and then return the resulting structure.
+   * 
+   * @param args  The command line arguments.
+   * @return  The processed arguments.
+   */
+  def processArguments(args: Array[String]) = {
+    var index = 0
+    while (index < args.size) {
+      // See if this argument starts with a dash.  If so, it is possibly a
+      // switch, and we will process it as such.
+      val arg = args(index)
+      if (arg.startsWith("-")) {
+        // The argument starts with a dash; it might be a switch.  Try to match
+        // it against the different permissible kinds of switches.  We start
+        // with the most complex first.
+        val Assignment = "^--([^=]+)=(.*)$".r
+        val Longswitch = "^--(.*)$".r
+        val Shortswitch = "^-(.*)$".r
+        arg match {
+          case Assignment(name, value) =>
+            // This is a switch that assigns a value to some named option.
+          case Longswitch(name) =>
+            // This is just a long switch.
+          case Shortswitch(singles) =>
+            // This can be a collection of short switches (and maybe even
+            // their arguments) on a single dash.
+          case _ => // Does not match; skip it.
+        }
+      }
+      
+      // Move to next argument.
+      index += 1
+    } // Process all command line arguments.
   }
 }

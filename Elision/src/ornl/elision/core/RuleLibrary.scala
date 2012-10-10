@@ -58,6 +58,22 @@ class NoSuchRulesetException(msg: String) extends ElisionException(msg)
 class IdentityRuleException(msg: String) extends ElisionException(msg)
 
 /**
+ * Indicate an attempt to add a rule whose pattern is bindable (i.e., a
+ * simple variable).
+ * 
+ * @param msg   A human-readable message.
+ */
+class BindablePatternException(msg: String) extends ElisionException(msg)
+
+/**
+ * Indicate an attempt to add a rule whose pattern is a literal, when such
+ * are not allowed.
+ * 
+ * @param msg   A human-readable message.
+ */
+class LiteralPatternException(msg: String) extends ElisionException(msg)
+
+/**
  * A ruleset reference.
  */
 abstract class RulesetRef extends BasicAtom with Rewriter {
@@ -177,6 +193,17 @@ extends Fickle with Mutable {
   }
   
   //======================================================================
+  // Control what can be rewritten.
+  //======================================================================
+  
+  /**
+   * Should rules that rewrite literals be permitted.  If true, it is possible
+   * to create rules that rewrite one literal to another.  In general this is
+   * a bad idea.
+   */
+  var _allowLiteralRules = false
+  
+  //======================================================================
   // Controlling active rulesets.
   //======================================================================
 
@@ -284,36 +311,18 @@ extends Fickle with Mutable {
   * Rewrite the provided atom once, if possible.  Children may be rewritten,
   * depending on whether descent is enabled.
   * 
+  * Do not memoize this method.
+  * 
   * @param atom      The atom to rewrite.
   * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
   * @return  The rewritten atom, and true iff any rules were successfully
   *          applied.
   */
-  def rewriteOnce(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
-
-    // Check the cache.
-    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
-    Memo.get(atom, usedRulesets) match {
-      case None => {
-        
-        // We do not have a cached value for the current atom. We will
-        // need to do the rewrites.
-      }
-      case Some(pair) => {
-
-        // We have a cached value for this atom. Use it.
-        if (BasicAtom.traceRules) {
-          println("Got cached rewrite '" +
-                  atom.toParseString + "' -> '" + pair._1.toParseString +
-                  "' w. rulesets " + usedRulesets)
-        }
-        return pair
-      }
-    }
-
-    var (newtop, appliedtop) = rewriteTop(atom, rulesets)
+  def rewriteOnce(atom: BasicAtom,
+      rulesets: Set[String]): (BasicAtom, Boolean) = {
+    var (newtop, appliedtop) = _rewriteTop(atom, rulesets)
     if (_descend) {
-      var (newatom, applied) = rewriteChildren(newtop, rulesets)     
+      var (newatom, applied) = _rewriteChildren(newtop, rulesets)     
       (newatom, appliedtop || applied)
     } else {
       (newtop, appliedtop)
@@ -323,33 +332,15 @@ extends Fickle with Mutable {
   /**
   * Rewrite the atom at the top level, once.
   * 
+  * Do not memoize this method.
+  * 
   * @param atom      The atom to rewrite.
   * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
   * @return  The rewritten atom, and true iff any rules were successfully
   *          applied.
   */
-  def rewriteTop(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
-
-    // Check the cache.
-    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
-    Memo.get(atom, usedRulesets) match {
-      case None => {
-        
-        // We do not have a cached value for the current atom. We will
-        // need to do the rewrites.
-      }
-      case Some(pair) => {
-
-        // We have a cached value for this atom. Use it.
-        if (BasicAtom.traceRules) {
-          println("Got cached rewrite '" +
-                  atom.toParseString + "' -> '" + pair._1.toParseString +
-                  "' w. rulesets " + usedRulesets)
-        }
-        return pair
-      }
-    }
-
+  private def _rewriteTop(atom: BasicAtom,
+      rulesets: Set[String]): (BasicAtom, Boolean) = {
     // Get the rules.
     val rules = if (rulesets.isEmpty) getRules(atom) else getRules(atom, rulesets)
 
@@ -376,12 +367,15 @@ extends Fickle with Mutable {
   * Recursively rewrite the atom and its children.  This method understands
   * atom collections and operators.
   * 
+  * Do not memoize this method.
+  * 
   * @param atom      The atom to rewrite.
   * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
   * @return  The rewritten atom, and true iff any rules were successfully
   *          applied.
   */
-  def rewriteChildren(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
+  private def _rewriteChildren(atom: BasicAtom,
+      rulesets: Set[String]): (BasicAtom, Boolean) = {
     atom match {
       case AtomSeq(props, atoms) =>
         var flag = false
@@ -442,40 +436,46 @@ extends Fickle with Mutable {
    * Rewrite the given atom, repeatedly applying the rules of the active
    * rulesets.  This is limited by the rewrite limit.
    * 
+   * This method uses the memoization cache, if enabled.
+   * 
    * @param atom      The atom to rewrite.
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
   def rewrite(atom: BasicAtom) = {
-    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-    // top node of this subtree
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
-    val tempDisabled = ReplActor.disableGUIComs
-    if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-    
-    // Check the cache.
-    val (newatom, flag) = Memo.get(atom, _activeNames) match {
-      case None =>
-        val pair = doRewrite(atom, Set.empty)
-        Memo.put(atom, _activeNames, pair._1, 0)
-        Memo.put(pair._1, _activeNames, pair._1, 0)
-        pair
-      case Some(pair) => {
-        if (BasicAtom.traceRules) {
-          println("Got cached rewrite '" +
-                  atom.toParseString + "' -> '" + pair._1.toParseString +
-                  "' w. rulesets " + _activeNames)
+    if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
+    else if (atom.isInstanceOf[Variable]) (atom, false)
+    else {
+      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+      // top node of this subtree
+      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+      val tempDisabled = ReplActor.disableGUIComs
+      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+      
+      // Check the cache.
+      val (newatom, flag) = Memo.get(atom, _activeNames) match {
+        case None =>
+          val pair = _doRewrite(atom, Set.empty)
+          Memo.put(atom, _activeNames, pair._1, 0)
+          Memo.put(pair._1, _activeNames, pair._1, 0)
+          pair
+        case Some(pair) => {
+          if (BasicAtom.traceRules) {
+            println("Got cached rewrite '" +
+                    atom.toParseString + "' -> '" + pair._1.toParseString +
+                    "' w. rulesets " + _activeNames)
+          }
+          pair
         }
-        pair
       }
+      
+      ReplActor.disableGUIComs = tempDisabled
+      if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+      
+      (newatom, flag)
     }
-    
-    ReplActor.disableGUIComs = tempDisabled
-    if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
-    
-    (newatom, flag)
   }
   // *************** end GUI changes
 
@@ -486,42 +486,48 @@ extends Fickle with Mutable {
    * 
    * Perform rewriting of an atom given a collection of rulesets.
    * 
+   * This method uses the memoization cache, if enabled.
+   * 
    * @param atom      The atom to rewrite.
    * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
   def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
-    ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-    // top node of this subtree
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-    ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
-    val tempDisabled = ReplActor.disableGUIComs
-    if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-    
-    // Check the cache.
-    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
-    val (newatom, flag) = Memo.get(atom, usedRulesets) match {
-      case None =>
-        val pair = doRewrite(atom, usedRulesets)
-        Memo.put(atom, usedRulesets, pair._1, 0)
-        Memo.put(pair._1, usedRulesets, pair._1, 0)
-        pair
-      case Some(pair) => {
-        if (BasicAtom.traceRules) {
-          println("Got cached rewrite '" +
-                  atom.toParseString + "' -> '" + pair._1.toParseString +
-                  "' w. rulesets " + usedRulesets)
+    if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
+    else if (atom.isInstanceOf[Variable]) (atom, false)
+    else {
+      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+      // top node of this subtree
+      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
+      val tempDisabled = ReplActor.disableGUIComs
+      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+      
+      // Check the cache.
+      val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+      val (newatom, flag) = Memo.get(atom, usedRulesets) match {
+        case None =>
+          val pair = _doRewrite(atom, usedRulesets)
+          Memo.put(atom, usedRulesets, pair._1, 0)
+          Memo.put(pair._1, usedRulesets, pair._1, 0)
+          pair
+        case Some(pair) => {
+          if (BasicAtom.traceRules) {
+            println("Got cached rewrite '" +
+                    atom.toParseString + "' -> '" + pair._1.toParseString +
+                    "' w. rulesets " + usedRulesets)
+          }
+          pair
         }
-        pair
       }
+      
+      ReplActor.disableGUIComs = tempDisabled
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+      
+      (newatom, flag)
     }
-    
-    ReplActor.disableGUIComs = tempDisabled
-    ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-    ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
-    
-    (newatom, flag)
   }
   // *************** end GUI changes
 
@@ -542,7 +548,7 @@ extends Fickle with Mutable {
    *          applied.
    */
   @tailrec
-  private def doRewrite(atom: BasicAtom,
+  private def _doRewrite(atom: BasicAtom,
                         rulesets: Set[String] = Set.empty,
                         bool: Boolean = false,
                         limit: BigInt = _limit): (BasicAtom, Boolean) = {
@@ -557,7 +563,7 @@ extends Fickle with Mutable {
         if (atom == newatom) {
           return (newatom, true)
         }
-        return doRewrite(newatom, rulesets, true,
+        return _doRewrite(newatom, rulesets, true,
                          if(limit > 0) limit-1 else limit)
       }
     }
@@ -715,6 +721,18 @@ extends Fickle with Mutable {
    * 					and undeclared rulesets are not allowed.
    */
   def add(rule: RewriteRule) = {
+    // A rule whose left-hand side is either bindable is not allowed.
+    if (rule.pattern.isBindable) {
+      throw new BindablePatternException("The rule " + rule.toParseString +
+          " has a bindable pattern.  It cannot be added to the system.")
+    }
+    
+    // Rules that rewrite literals might not be allowed.
+    if (rule.pattern.isInstanceOf[Literal[_]] && !_allowLiteralRules) {
+      throw new LiteralPatternException("The rule " + rule.toParseString +
+          " has a literal pattern.  It cannot be added to the system.")
+    }
+    
     // Complete the rule.
     for (rule2 <- Completor.complete(rule)) doAdd(rule2)
     this
