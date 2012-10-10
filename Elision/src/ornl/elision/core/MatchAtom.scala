@@ -89,12 +89,12 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
       case fail:Fail => return None
       case Match(newbinds) =>
         // We got a match.  Check the guards.
-        if (checkGuards(newbinds)) Some(newbinds) else return None
+        if (checkGuards(newbinds ++ binds)) Some(newbinds ++ binds) else return None
       case Many(iter) =>
         // We might have many matches.  We search through them until we find
         // one that satisfies the guards, or until we run out of candidates.
         for (newbinds <- iter) {
-          if (checkGuards(newbinds)) return Some(newbinds)
+          if (checkGuards(newbinds ++ binds)) return Some(newbinds ++ binds)
         }
         return None
     }

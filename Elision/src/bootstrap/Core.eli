@@ -635,3 +635,26 @@ decl.{! fail()
   "Generate a runtime exception (a VerifyError).  This causes a core dump and ".
   "may be useful if you are trying to debug the system."
 }
+
+{! _declprop($name: STRING, $default, $description: STRING)
+   #description="Declare a property."
+   #detail="Declare a property.  The property name is $name, and the ".
+           "$description is a human-readable description of the property's ".
+           "purpose and use.  The default (initial) value is $default."
+   #handler="""
+     args match {
+       case Args(StringLiteral(_, name), value, StringLiteral(_, description)) =>
+         // Declare the property.
+         val realval = value match {
+           case StringLiteral(_, str) => str
+           case IntegerLiteral(_, ival) => ival
+           case BooleanLiteral(_, flag) => flag
+           case SymbolLiteral(_, sym) => sym
+         }
+         exec.declareProperty(name, description, realval)
+         console.emitln("Declared property "+toEString(name)+" with type "+
+           realval.getClass.getName+".")
+         _no_show
+       case _ => as_is
+     }"""
+}

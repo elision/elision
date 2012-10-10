@@ -194,7 +194,6 @@ object Operator {
 class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
   val depth = 0
   val deBruijnIndex = 0
-  val constantPool = None
   val isTerm = true
   val isConstant = true
   val theType = OPREF
@@ -209,8 +208,6 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
    * @return	The result of applying the referenced operator to the given atom.
    */
   def doApply(atom: BasicAtom, bypass: Boolean) = operator.doApply(atom, bypass)
-
-  def toParseString = toESymbol(operator.name) + ":OPREF"
 
   /**
    * Operator references cannot be rewritten.  This is actually why they exist!
@@ -903,35 +900,38 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         val assoc = props.isA(false)
         val commu = props.isC(false)
         val idemp = props.isI(false)
-        val absor = props.absorber.isDefined
-        val ident = props.identity.isDefined
-
+        val absor = props.absorber.getOrElse(null)
+        val ident = props.identity.getOrElse(null)
+        
         // Run through the arguments and watch for the absorber, omit
         // identities, and flatten associative lists.
-        var newseq = OmitSeq[BasicAtom]()
-        for (atom <- args) {
-          // If there is an absorber and we find it, we are done.
-          if (absor && props.absorber.get == atom) {
+        var newseq = args.atoms
+        var index = 0
+        // While loops are significantly faster than for comprehensions.
+        while (index < newseq.size) {
+          val atom = newseq(index)
+          if (absor == atom) {
             // Found the absorber.  Nothing else to do.
-            return props.absorber.get
+            return absor
           }
-          // Skip the identity.
-          if (!ident || props.identity.get != atom) {
+          // Omit identities.
+          if (ident == atom) {
+            newseq = newseq.omit(index)
+          } else {
+            // Check for associative lists to flatten.
             if (assoc) atom match {
-              case OpApply(opref, args, binds) if opref.operator == this =>
-                // Add the arguments directly to this list.  We can assume this
-                // list has already been processed, so no deeper checking is
-                // needed.  This flattens the associative lists.
-                newseq ++= args
+              case OpApply(opref, opargs, binds) if (opref.operator == this) =>
+                // Add the arguments directly to this list.  We can assume the
+                // sub-list has already been processed, so no deeper checking
+                // is needed.  This flattens associative lists, as required.
+                newseq = newseq.omit(index)
+                newseq = newseq.insert(index, opargs)
               case _ =>
-                // Add this atom to the list.
-                newseq :+= atom
-            }
-            else {
-              newseq :+= atom
+                // Nothing to do.
             }
           }
-        } // Loop over atoms.
+          index += 1
+        } // Run through all arguments.
 
         // Handle actual operator application.
         def handleApply(binds: Bindings): BasicAtom = {
@@ -968,14 +968,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // the argument list is empty, but there is no identity, apply the
           // operator to the empty list.
           if (newseq.length == 0) {
-            params.identity match {
-              case Some(ident) =>
-                // Return the identity.
-                return ident
-              case None =>
-                // No identity.  We're done.
-                return handleApply(Bindings())
-            }
+            if (ident == null) return handleApply(Bindings()) else ident
           }
         }
 
@@ -989,7 +982,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         // and we probably do want f(x)->x.  So, for now, that's the rule.
         // For greater control, you have to use a case operator.
         if (newseq.length == 1) {
-          if (params.associative && params.identity.isDefined) {
+          if (assoc && ident != null) {
             // Get the atom.
             val atom = newseq(0)
             // Match the type of the atom against the type of the parameters.
@@ -1013,12 +1006,15 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         // If the operator is associative, we pad the parameter list to get faster
         // matching.  Otherwise we just match as-is.  In any case, when we are done
         // we can just use the sequence matcher.
-        val newparams = if (params.associative) {
+        val newparams = if (assoc) {
           var newatoms: OmitSeq[BasicAtom] = EmptySeq
           val atom = params(0)
-          for (index <- 0 until newseq.length) {
+          // While loops are faster than for comprehensions.
+          var index = 0
+          while (index < newseq.length) {
             var param = Variable(atom.theType, "" + index)
             newatoms = param +: newatoms
+            index += 1
           } // Build new parameter list.
           newatoms
         } else {
@@ -1032,9 +1028,9 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             throw new ArgumentListException("Incorrect argument for operator " +
               toESymbol(name) + " at position " + index + ": " +
               newseq(index).toParseString + ".  " + reason())
-          case Match(binds) =>
+          case Match(binds1) =>
             // The argument list matches.
-            return handleApply(binds)
+            return handleApply(binds1)
           case Many(iter) =>
             // The argument list matches.
             return handleApply(iter.next)

@@ -174,13 +174,13 @@ bin, lib, and other folders.</echo>
 			unchecked	="on">
 			<src path="${build.src}"/>
 		</scalac>
-		<javac
+		<!-- javac
 			destdir		="${build.bin}"
 			classpathref	="build.classpath"
 			includeantruntime ="false"
 			deprecation	="on">
 			<src path="${build.src}"/>
-		</javac>
+		</javac -->
 		<copy todir="${build.bin}" overwrite="yes">
 			<fileset dir="${build.src}" includes="**/*.eli"/>
 			<filterset>

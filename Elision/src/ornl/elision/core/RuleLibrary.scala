@@ -42,6 +42,7 @@ import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
 import scala.collection.immutable.List
+import scala.collection.immutable.HashSet
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -69,8 +70,6 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   val theType = RSREF
   /** The name of the referenced ruleset. */
   val name: String
-  
-  def toParseString = toESymbol(name) + ":RSREF"
   
   /**
    * Ruleset references cannot be rewritten.
@@ -192,6 +191,9 @@ extends Fickle with Mutable {
   /** The active rulesets. */
   val _active = new BitSet()
 
+  /** The active rulesets, by names. */
+  var _activeNames : Set[String] = new HashSet[String]()
+
   /**
    * Enable a ruleset.
    * 
@@ -202,6 +204,10 @@ extends Fickle with Mutable {
     actionList = EnableRS(name) :: actionList
     
     _active += getRulesetBit(name)
+    _activeNames += name
+    if (BasicAtom.traceRules) {
+      println("Enable ruleset " + name + ". new rulesets = " + _activeNames)
+    }
     this
   }
   
@@ -215,6 +221,10 @@ extends Fickle with Mutable {
     actionList = DisableRS(name) :: actionList
     
     _active -= getRulesetBit(name)
+    _activeNames -= name
+    if (BasicAtom.traceRules) {
+      println("Disable ruleset " + name + ". new rulesets = " + _activeNames)
+    }
     this
   }
   
@@ -229,21 +239,54 @@ extends Fickle with Mutable {
   private var _descend = true
   
   /**
+   * The method to use to rewrite a child.  This is set by the
+   * `setNormalizeChildren` method.
+   */
+  private var _rewritechild: (BasicAtom, Set[String]) => (BasicAtom, Boolean) =
+    rewrite _
+  
+  /**
   * Set the limit for the number of rewrites.  Use a negative number
   * to indicate no rewrites, and zero to turn off rewriting.
   * 
   * @param limit	The limit of the number of rewrites.
-  * @return	This context.
+  * @return	This rule library.
   */
-  def setLimit(limit: BigInt) = _limit = limit ; this
+  def setLimit(limit: BigInt) = { _limit = limit ; this }
   
   /**
   * Set whether to rewrite children recursively.
   * 
   * @param descend	Whether to rewrite children recursively.
-  * @return	This context.
+  * @return	This rule library.
   */
-  def setDescend(descend: Boolean) = _descend = descend ; this
+  def setDescend(descend: Boolean) = { _descend = descend ; this }
+  
+  /**
+   * Set whether to normalize children when rewriting.  The alternative is to
+   * rewrite children once, recursively, and then return to the top level to
+   * check it again.  The latter is a better strategy in general, but the
+   * former results in the normalized form of children being stored in the
+   * memoization cache.
+   * 
+   * Both should ultimately result in the same rewrite
+   * if everything works correctly, but can result in different rewrites
+   * under certain conditions.  Specifically, if an intermediate form of a
+   * child causes a higher-level rewrite to occur, whereas the normalized form
+   * of the child causes a different (or no) higher-level rewrite to occur,
+   * then you will get different results.  This is really a problem with the
+   * rules.
+   * 
+   * The default is to fully normalize children.
+   * 
+   * @param norm  Whether to normalize children.
+   * @return  This rule library.
+   */
+  def setNormalizeChildren(norm: Boolean) = {
+    if (norm) _rewritechild = rewrite _
+    else _rewritechild = rewriteOnce _
+    this
+  }
   
   //======================================================================
   // Rewriting.
@@ -259,6 +302,27 @@ extends Fickle with Mutable {
   *          applied.
   */
   def rewriteOnce(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
+
+    // Check the cache.
+    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+    Memo.get(atom, usedRulesets) match {
+      case None => {
+        
+        // We do not have a cached value for the current atom. We will
+        // need to do the rewrites.
+      }
+      case Some(pair) => {
+
+        // We have a cached value for this atom. Use it.
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + usedRulesets)
+        }
+        return pair
+      }
+    }
+
     var (newtop, appliedtop) = rewriteTop(atom, rulesets)
     if (_descend) {
       var (newatom, applied) = rewriteChildren(newtop, rulesets)
@@ -277,16 +341,46 @@ extends Fickle with Mutable {
   *          applied.
   */
   def rewriteTop(atom: BasicAtom, rulesets: Set[String]): (BasicAtom, Boolean) = {
+
+    // Check the cache.
+    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+    Memo.get(atom, usedRulesets) match {
+      case None => {
+        
+        // We do not have a cached value for the current atom. We will
+        // need to do the rewrites.
+      }
+      case Some(pair) => {
+
+        // We have a cached value for this atom. Use it.
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + usedRulesets)
+        }
+        return pair
+      }
+    }
+
     // Get the rules.
     val rules = if (rulesets.isEmpty) getRules(atom) else getRules(atom, rulesets)
 
+    if (BasicAtom.traceRules) {
+      println("Rewriting atom '" + atom.toParseString + "'...")
+    }
     // Now try every rule until one applies.
     for (rule <- rules) {
+      if (BasicAtom.traceRules) {
+        println("Trying rule '" + rule.toParseString + "'...")
+      }
       val (newatom, applied) = rule.doRewrite(atom)
       if (applied) {
+
+        // Return the rewrite result.
         return (newatom, applied)
       }
     } // Try all rules.
+
     return (atom, false)
   }
   
@@ -305,14 +399,14 @@ extends Fickle with Mutable {
         var flag = false
         // Rewrite the properties.  The result must still be a property spec.
         // If not, we keep the same properties.
-        val newProps = rewriteOnce(props, rulesets) match {
+        val newProps = _rewritechild(props, rulesets) match {
           case (ap: AlgProp, true) => flag = true; ap
           case _ => props
         }
         // Rewrite the atoms.
         val newAtoms = atoms.map {
           atom =>
-            val (newatom, applied) = rewriteOnce(atom, rulesets)
+            val (newatom, applied) = _rewritechild(atom, rulesets)
           flag ||= applied
           newatom
         }
@@ -320,8 +414,8 @@ extends Fickle with Mutable {
         if (flag) (AtomSeq(newProps, newAtoms), true) else (atom, false)
         
       case Apply(lhs, rhs) =>
-        val newlhs = rewriteOnce(lhs, rulesets)
-        val newrhs = rewriteOnce(rhs, rulesets)
+        val newlhs = _rewritechild(lhs, rulesets)
+        val newrhs = _rewritechild(rhs, rulesets)
         if (newlhs._2 || newrhs._2) {
           (Apply(newlhs._1, newrhs._1), true)
         } else {
@@ -329,11 +423,11 @@ extends Fickle with Mutable {
         }
         
       case Lambda(param, body) =>
-        val newparam = rewriteOnce(param, rulesets) match {
+        val newparam = _rewritechild(param, rulesets) match {
           case (v: Variable, true) => (v, true)
           case _ => (param, false)
         }
-        val newbody = rewriteOnce(body, rulesets)
+        val newbody = _rewritechild(body, rulesets)
         if (newparam._2 || newbody._2) {
           (Lambda(newparam._1, newbody._1), true)
         } else {
@@ -341,8 +435,8 @@ extends Fickle with Mutable {
         }
 
       case SpecialForm(tag, content) =>
-        val newlhs = rewriteOnce(tag, rulesets)
-        val newrhs = rewriteOnce(content, rulesets)
+        val newlhs = _rewritechild(tag, rulesets)
+        val newrhs = _rewritechild(content, rulesets)
         if (newlhs._2 || newrhs._2) {
           (SpecialForm(newlhs._1, newrhs._1), true)
         } else {
@@ -373,13 +467,20 @@ extends Fickle with Mutable {
     if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
     
     // Check the cache.
-    val (newatom, flag) = Memo.get(atom, Set.empty) match {
+    val (newatom, flag) = Memo.get(atom, _activeNames) match {
       case None =>
         val pair = doRewrite(atom, Set.empty)
-        Memo.put(atom, Set.empty, pair._1, 0)
+        Memo.put(atom, _activeNames, pair._1, 0)
+        Memo.put(pair._1, _activeNames, pair._1, 0)
         pair
-      case Some(pair) =>
+      case Some(pair) => {
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + _activeNames)
+        }
         pair
+    }
     }
     
     ReplActor.disableGUIComs = tempDisabled
@@ -411,13 +512,21 @@ extends Fickle with Mutable {
     if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
     
     // Check the cache.
-    val (newatom, flag) = Memo.get(atom, rulesets) match {
+    val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+    val (newatom, flag) = Memo.get(atom, usedRulesets) match {
       case None =>
-        val pair = doRewrite(atom, rulesets)
-        Memo.put(atom, rulesets, pair._1, 0)
+        val pair = doRewrite(atom, usedRulesets)
+        Memo.put(atom, usedRulesets, pair._1, 0)
+        Memo.put(pair._1, usedRulesets, pair._1, 0)
         pair
-      case Some(pair) =>
+      case Some(pair) => {
+        if (BasicAtom.traceRules) {
+          println("Got cached rewrite '" +
+                  atom.toParseString + "' -> '" + pair._1.toParseString +
+                  "' w. rulesets " + usedRulesets)
+        }
         pair
+    }
     }
     
     ReplActor.disableGUIComs = tempDisabled
@@ -551,13 +660,38 @@ extends Fickle with Mutable {
     * true. Otherwise it is false.
     */
     def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
+
+      // Check the cache.
+      Memo.get(atom, _activeNames) match {
+        case None => {
+          
+          // We do not have a cached value for the current atom. We will
+          // need to do the rewrites.
+        }
+        case Some(pair) => {
+          
+          // We have a cached value for this atom. Use it.
+          if (BasicAtom.traceRules) {
+            println("Got cached rewrite '" +
+                    atom.toParseString + "' -> '" + pair._1.toParseString +
+                    "' w. rulesets " + _activeNames)
+          }
+          return pair
+        }
+      }
+
       // Get the rules.
       val rules = getRules(atom, Set(name))
       // Now try every rule until one applies.
       for (rule <- rules) {
       	val (newatom, applied) = rule.doRewrite(atom, hint)
-      	if (applied) return (newatom, applied)
+      	if (applied) {
+
+          // Return the rewrite result.
+          return (newatom, applied)
+        }
       } // Try every rule until one applies.
+
       return (atom, false)
     }
     
@@ -628,7 +762,6 @@ extends Fickle with Mutable {
     
     // Okay, now add the rule to the list.  We perform no checking to see if
     // the rule is already present.
-    // TODO: l5o this list is never used?
     list += Pair(bits, rule)
     this
   }
@@ -864,9 +997,10 @@ private object Completor {
         var right = Variable(as(0).theType, "::R")
         var newpatternlist = as.atoms :+ right
         var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+        val newRule = RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
             Apply(op, AtomSeq(props, newrewritelist)),
             rule.guards, rule.rulesets, true)
+        list :+= newRule
         
         // If the operator is commutative, we are done.
         if (props.isC(false)) {

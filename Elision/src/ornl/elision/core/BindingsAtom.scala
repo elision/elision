@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import scala.collection.immutable.HashMap
@@ -76,8 +77,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   val isTerm = mybinds.values.forall(_.isTerm)
   val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
   val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
-  lazy val constantPool =
-    Some(BasicAtom.buildConstantPool(theType.hashCode, mybinds.values.toSeq:_*))
     
   /**
    * Match this bindings atom against the provided atom.
@@ -140,16 +139,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   }
   
   //////////////////// end GUI changes
-
-  /**
-   * The parseable representation of a bindings atom is roughly equivalent to
-   * that of an object, except that the keyword "bind" is used.
-   * 
-   * @return	A parseable version of this atom.
-   */
-  def toParseString() = "{ binds " + (mybinds.map(pair =>
-    toESymbol(pair._1) + " -> " + pair._2.toParseString)).mkString(" ") +
-    " }"
     
   override def equals(other: Any) = other match {
     case BindingsAtom(obinds) if (obinds == mybinds) => true

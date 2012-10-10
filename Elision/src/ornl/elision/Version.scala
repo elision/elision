@@ -55,6 +55,8 @@ package ornl.elision
  *     build = "build date / time identifier"/>
  *   <main name="command name" class="fully.qualified.class.name"
  *     description="human-readable description"/>
+ *   <option name="option name" class="fully.qualified.class.name"
+ *     description="human-readable description" value="value"/>
  * </configuration>
  * }}}
  * 
@@ -65,16 +67,21 @@ package ornl.elision
  * The `loaded` field reveals if the file was successfully loaded.  If not, the
  * other fields contain default (and useless) information.  Missing fields
  * result in a value of the empty string for that field.  Extra fields not
- * specified above are ignored, but may be used in the future.
+ * specified above are ignored, but may be used in the future.  That is, the
+ * absence of a tag is not license to use that tag; keep custom tags in a
+ * separate, declared XML namespace, please.
  * 
  * Both the configuration and its DTD (`elision_configuration.dtd`) are
  * expected to be found in the root of the class path.
+ * 
+ * It is permissible for significant functionality to depend on the ability to
+ * read this file.
  * 
  * == DTD ==
  * The following is the DTD for the configuration file.
  * 
  * {{{
- * <!ELEMENT configuration (version,ANY*)>
+ * <!ELEMENT configuration (version,(main|option)*,ANY*)>
  * <!ATTLIST configuration name CDATA #REQUIRED>
  * <!ATTLIST configuration maintainer CDATA #REQUIRED>
  * <!ATTLIST configuration web CDATA #REQUIRED>
@@ -84,6 +91,16 @@ package ornl.elision
  * <!ATTLIST version build CDATA #REQUIRED>
  * <!ATTLIST version trivial CDATA "0">
  * <!ATTLIST version status (alpha|beta|rc|final) "alpha">
+ * <!ELEMENT main (ANY*)>
+ * <!ATTLIST main name CDATA #REQUIRED>
+ * <!ATTLIST main class CDATA #REQUIRED>
+ * <!ATTLIST main description CDATA #REQUIRED>
+ * <!ATTLIST main gui (true|false) #REQUIRED>
+ * <!ELEMENT option (ANY*)>
+ * <!ATTLIST option name CDATA #REQUIRED>
+ * <!ATTLIST option class CDATA #REQUIRED>
+ * <!ATTLIST option description CDATA #REQUIRED>
+ * <!ATTLIST option value CDATA #REQUIRED>
  * }}}
  */
 object Version {
@@ -118,10 +135,15 @@ object Version {
   type CEntry = (HasMain, String, Boolean)
     
   /** The commands.  Map each command to its class and a description. */
-  private var commands:
-  Map[String,CEntry] =
+  private var commands: Map[String,CEntry] =
     Map("repl" -> ((ornl.elision.repl.ReplMain.getClass.asInstanceOf[HasMain],
         "Start the REPL.", false)))
+        
+  /** A type for an entry in the options catalog. */
+  type OEntry = (Class[_], String, String)
+  
+  /** The options.  Map each to its data. */
+  private var options: Map[String, OEntry] = Map()
 
   /**
    * An error occurred processing a main.

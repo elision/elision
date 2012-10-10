@@ -170,10 +170,6 @@ trait Applicable {
  *    val isConstant = children.forall(_.isConstant)
  *    }}}
  *    
- *  - Write code to compute the `constantPool`.  This is somewhat complex;
- *    see the documentation for the field for how to do this without going
- *    insane.
- *    
  *  - Specify whether this atom represents a term, or a metaterm.  If a term,
  *    then set `isTerm` to `true`.  Otherwise, set it to `false`.
  */
@@ -218,41 +214,6 @@ abstract class BasicAtom {
   
   /** If true then this atom denotes a term.  If false, a metaterm. */
   val isTerm: Boolean
-  
-  /**
-   * A mapping from known constant descendants to their child index.
-   * 
-   * This works as follows.  For constants, and for atoms that do not have any
-   * atom children, the constant pool is empty.  In fact, to conserve space the
-   * constant pool can be omitted by setting it to `None`.
-   * 
-   * For nodes that have atom children each child should be queried to determine
-   * if it is a constant.  If so, get its hash code, merge it with the atom's
-   * own top level code (the name of an operator or some other relevant item),
-   * and store it in the pool.
-   * 
-   * If a child is not a constant, get its constant pool and iterate over it,
-   * adding the atom's own top level code to each hash code, and putting the
-   * result in the pool.
-   * 
-   * See the function `buildConstantPool` in the companion object for help with
-   * all this.  That function should be sufficient for nearly all atoms.
-   * 
-   * Suppose you have a complicated case, such as two distinguished children
-   * alice and bob, and then a litter of others.  Your constructor might be
-   * {{{
-   * class Klaus(alice: BasicAtom, bob: BasicAtom, litter: BasicAtom*)
-   * }}}
-   * Computing the constant pool for this using the `buildConstantPool` works
-   * like this.
-   * {{{
-   * val constantPool =
-   *     Some(BasicAtom.buildConstantPool("Klaus".hashCode,
-   *         (pattern +: rewrite +: guards):_*))
-   * }}}
-   * Everything else should be significantly easier!
-   */
-  val constantPool: Option[Map[Int, Int]]
   
   /**
    * The depth of the atom.  An atom's depth is equal to the maximum depth
@@ -463,7 +424,16 @@ abstract class BasicAtom {
    * 
    * @return	The string.
    */
-  def toParseString: String
+  def toParseString = ElisionGenerator.apply(this).toString
+  
+  /**
+   * Generate a parseable string from this atom.  The string is immediately
+   * written ("streamed") to the given appendable.
+   * 
+   * @param app The appendable to get the string.
+   * @return  The appendable.
+   */
+  def toParseString(app: Appendable) = ElisionGenerator.apply(this, app)
   
   /**
    * Make a string that can be used to re-generate this atom.
@@ -537,32 +507,4 @@ object BasicAtom {
    * Note that full tracing takes precedence over terse tracing.
    */
   var traceTerse: (Any) => Boolean = ((obj: Any) => true)
-
-  /**
-   * Provide a convenience method to compute the constant pool map for an atom.
-   * Invoke this with your top-level hash (probably your operator name or some
-   * similar simple thing) and then provide the children as arguments, or just
-   * provide the list of children, expanded for the vararg method.
-   * 
-   * @param myhash		Your top-level hash.  The constant hash for constants.
-   * @param children	The children.
-   * @return	The constant pool map.
-   */
-  def buildConstantPool(myhash: Int, children: BasicAtom*): Map[Int,Int] = {
-    // Provide a specialized method to deal with the logic for children.  This
-    // could be folded into the expression later, but is broken out here for
-    // slightly improved readability.
-    def handleChild(child: BasicAtom, index: Int) =
-      if (child.isConstant)
-        List(hashify(myhash, child) -> index)
-      else
-        child.constantPool.getOrElse(Map.empty).keySet.map {
-        	(hashify(myhash,_) -> index)
-        }
-    
-    // Compute the map.
-    children.zip(0 until children.length).map {
-      pair => handleChild(pair._1, pair._2)
-    }.flatten.toMap
-  }
 }

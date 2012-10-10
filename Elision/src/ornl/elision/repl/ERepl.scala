@@ -34,7 +34,7 @@ import ornl.elision.parse._
 /**
  * Implement an interface to run the REPL from the prompt.
  */
-object ReplMain { // extends ERepl {
+object ReplMain {
   
   /**
    * Entry point when run from the prompt.
@@ -184,9 +184,8 @@ class ERepl extends Processor {
   //======================================================================
   // Define the REPL control fields.
   //======================================================================
-  
-  /** Should execution time be printed after every command. */
-  private var _timing = false
+      
+  // None yet.
  
   //======================================================================
   // Register handlers.

@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 import ornl.elision.ElisionException
 import ornl.elision.repl.ReplActor
@@ -163,8 +164,6 @@ class AlgProp(
   } + 1
   
   val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
-  
-  val constantPool = Some(BasicAtom.buildConstantPool(13, _proplist:_*))
   
   val isConstant = (associative match {
     case None => true
@@ -527,50 +526,6 @@ class AlgProp(
     if (list.length == 0) "no properties"
     else list.mkString(" and ")
   }
-
-  /**
-   * Generate a parse string representation of the atom.
-   * 
-   * The short properties string uses abbreviations.
-   *  - `A` for associative
-   *  - `C` for commutative
-   *  - `I` for idempotent
-   *  - `B[`''atom''`]` for absorber ''atom''
-   *  - `D[`''atom''`]` for identity ''atom''
-   *  
-   * Associativity, commutativity, and idempotency can be negated by prefixing
-   * them with an exclamation mark (`!`).  Thus `%A!C` denotes associativity
-   * and non-commutativity.
-   * 
-   * Other atoms (such as variables) can be specified for associativity,
-   * commutativity, and idempotency, by giving the atom in square brackets
-   * after the abbreviation.  Thus `%A[\$a]C` has a variable `\$a` for
-   * associativity, with commutativity true.
-   * 
-   * @return	The short string.
-   */
-  def toParseString = "%" + (associative match {
-    case Some(Literal.TRUE) => "A"
-    case Some(Literal.FALSE) => "!A"
-    case Some(atom) => "A[" + atom.toParseString + "]"
-    case _ => ""
-  }) + (commutative match {
-    case Some(Literal.TRUE) => "C"
-    case Some(Literal.FALSE) => "!C"
-    case Some(atom) => "C[" + atom.toParseString + "]"
-    case _ => ""
-  }) + (idempotent match {
-    case Some(Literal.TRUE) => "I"
-    case Some(Literal.FALSE) => "!I"
-    case Some(atom) => "I[" + atom.toParseString + "]"
-    case _ => ""
-  }) + (absorber match {
-    case None => ""
-    case Some(atom) => "B[" + atom.toParseString + "]"
-  }) + (identity match {
-    case None => ""
-    case Some(atom) => "D[" + atom.toParseString + "]"
-  })
 }
 
 /**

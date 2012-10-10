@@ -85,9 +85,7 @@ extends HashMap[String, BasicAtom] with Mutable {
   
   /** Creates a copy of this Bindings. */
   def cloneBinds : Bindings = {
-        val clone = new Bindings(this.self)
-        
-        clone
+    new Bindings(this.self)
   }
   
   /**

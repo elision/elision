@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 object MapPair {
@@ -77,7 +78,6 @@ with Rewriter {
   val theType = STRATEGY
   val isConstant = left.isConstant && right.isConstant
   val depth = (left.depth max right.depth) + 1
-  val constantPool = Some(BasicAtom.buildConstantPool(11, left, right))
   val isTerm = left.isTerm && right.isTerm
   val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
   override lazy val hashCode = left.hashCode * 31 + right.hashCode
@@ -86,7 +86,7 @@ with Rewriter {
       hints: Option[Any]): Outcome = subject match {
     case MapPair(oleft, oright) =>
       SequenceMatcher.tryMatch(Vector(left, right),
-          Vector(oleft, oright), binds)
+                               Vector(oleft, oright), binds)
     case _ =>
       Fail("Subject of match is not a pair.", this, subject)
   }
@@ -152,7 +152,4 @@ with Rewriter {
 		  }
 	  }
 	  //////////////////// end GUI changes
-
-  def toParseString = "(" + left.toParseString + " -> " +
-  		right.toParseString + ")"
 }

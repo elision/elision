@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core.matcher
 import ornl.elision.core._
+import scala.collection.immutable.Vector
 
 /**
  * Match two sequences whose elements can be re-ordered or re-grouped.  That is,
@@ -58,8 +59,6 @@ object ACMatcher {
                op: Option[OperatorRef]): Outcome = {
 
     // Check the length.
-    //println("** ACMatcher...")
-    //println("** original bindings = " + binds)
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -90,7 +89,53 @@ object ACMatcher {
           slist
       }, binds)
     }
-      
+
+    // Conduct a test to see if matching is even possible.  Try to match
+    // every pattern against some subject.  Note that this does not work
+    // in general, since a pattern might match a grouping of subjects.
+    // We should not have to worry about that case here, since such patterns
+    // would have been "flattened" earlier by associativity.  That is, the
+    // operator would have arisen because it is the "outer" operator and
+    // thus the list would be flattened.  This is hard to explain, but an
+    // example might help.
+    //
+    // Suppose we end up with the operator being foo, and the following
+    // patterns and subjects.
+    //
+    // patterns: foo($a,$b), $c, bar($a)
+    // subjects: $x, $y, $z, bar($x)
+    //
+    // We could group $x and $y to foo($x,$y) and then match the (unbindable)
+    // pattern foo($a,$b).  However the operator foo must have arisen as the
+    // original outer operator for the patterns; that is the original pattern
+    // was foo(foo($a,$b),$c,bar($a)), and since foo is associative (or we
+    // would not be here) lists get flattened, giving new pattern
+    // foo($a,$b,$c,bar($a)).  So we wind up with the following patterns and
+    // subjects.
+    //
+    // patterns: $a, $b, $c, bar($a)
+    // subjects: $x, $y, $z, bar($x)
+    //
+    // We match just as we should.
+    
+    // First see if there is at least 1 subject child that matches
+    // each item in the pattern.
+    var _pindex = 0
+    while (_pindex < plist.length) {
+      var _sindex = 0
+      var _matched = false
+      while ((!_matched) && (_sindex < slist.length)) {
+        plist(_pindex).tryMatch(slist(_sindex), binds) match {
+          case fail:Fail =>
+          case m1:Match => _matched = true
+          case m2:Many => _matched = true
+        }
+        _sindex += 1
+      } // Search for a matching subject.
+      if (!_matched) return Fail("Matching precheck failed.", plist, slist)
+      _pindex += 1
+    } // Test for a match for each pattern.
+
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
     var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
@@ -100,8 +145,29 @@ object ACMatcher {
     // atoms that are not variables, and so their matching is much more
     // restrictive.  We obtain an iterator over these, and then combine it
     // with the iterator for "everything else."
-    val um = new UnbindableMatcher(patterns, subjects, binds)
+    var um = new UnbindableMatcher(patterns, subjects, binds)
     
+    // If there is an unbindable, and the unbindable does not match, then the
+    // unbindable matcher will immediately fail, causing failure of the entire
+    // matching system.  There should be no need to do the following check; in
+    // fact, it will probably add time.
+    
+//    val foundUMMatches = um.hasNext
+//    
+//    // Does the pattern actually contain any unbindable items?
+//    if (patterns.indexWhere(!_.isBindable) >= 0) {
+//
+//      // The pattern contains at least 1 unbindable item. Were we able
+//      // to match all the unbindable items?
+//      if (!foundUMMatches) {
+//
+//        // We were not able to match up all the unbindable items in
+//        // the pattern. This pattern will never match and anything
+//        // more we do is wasted work.
+//        return Fail("Matching is impossible. Cannot match unbindables in pattern..", plist, slist)
+//      }
+//    }
+
     // This is not so simple.  We need to perform the match.
     val iter = um ~ (bindings => {
 
@@ -111,29 +177,152 @@ object ACMatcher {
       
       // If there is exactly one pattern then match it immediately.
       if (pats.atoms.length == 1) {
-        //println("** bindings = " + bindings)
-        //println("** binds = " + binds)
-        //println("** patterns = " + patterns)
-        //println("** pats = " + pats)
-        //println("** subjects = " + subjects)
-        //println("** subs = " + subs)
         return pats.atoms(0).tryMatch(op match {
           case Some(opref) =>
             Apply(opref, subs)
           case None =>
             subs
         }, (bindings ++ binds))
-        //return pats.atoms(0).tryMatch(subs,binds)
       }
       
       // If there are no patterns, there is nothing to do.
       if (pats.atoms.length == 0) {
-        //println("** new bindings (1) = " + bindings)
         MatchIterator(bindings ++ binds)
-      }
-      else {
+      } else {
+        // Merge the current bindings with the old bindings.
+        val newBinds = (bindings ++ binds)
+
+        // We are currently walking through the bindings generated by
+        // the unbindable match iterator. The unbindable match
+        // iterator matches ALL the unbindable things in the pattern,
+        // so all of the items in the current pattern should be
+        // bindable items, i.e., variables. In addition, some of these
+        // pattern variables may already be bound to subject items in
+        // the current binding.
+        //
+        // In an attemp to fail fast, we are going to check each
+        // pattern vartiable left and see if:
+        // 1. Is the left-over pattern variable currently bound in the
+        //    binding?
+        // 2. If so, is there an atom in the subject list is exactly
+        //    equal to the atom to which the pattern variable is
+        //    bound? If not, we can fail immediately.
+        var failFast = false
+        var newPats = scala.collection.immutable.Vector.empty[BasicAtom]
+        var discardSubs = scala.collection.immutable.Vector.empty[BasicAtom]
+        for (patItem <- pats) {
+          // Is the current pattern variable currently bound to
+          // something?
+          patItem match {
+            case patVar : Variable => {
+              
+              // The pattern item is a variable. This is what we
+              // expect.
+              newBinds.get(patVar.name) match {
+                
+                case None => {
+                  
+                  // Nothing is bound to this pattern variable, so we have
+                  // nothing to check. Since nothing is bound to this
+                  // pattern variable it must remain in the pattern
+                  // list.
+                  newPats = newPats :+ patItem
+                }
+                
+                case Some(atom) => {
+                  
+                  // The pattern variable is already bound to
+                  // something. That something MUST appear in the subject
+                  // list.
+                  //println("** Elision: Pattern variable '" + patVar.name +
+                  //        "' already bound to '" + atom.toParseString + "'")
+                  var gotIt = false
+                  for (subVal <- subs) {
+                    
+                    // Have we found the bound value?
+                    if (!gotIt) {
+                      if (subVal == atom) {
+                        //println("** Elision: Found subject match.")
+                        gotIt = true
+                        
+                        // We have now found a match in the subjects for
+                        // the prior match of this pattern variable. We
+                        // do not need to try to match this pattern
+                        // variable any more. The matched subject item
+                        // is also now out of play. Therefore we will
+                        // NOT add the pattern or subject to the new
+                        // pattern/subject list.
+                        //
+                        // Note that the pattern variable is already
+                        // bound to this subject value, so the bindings
+                        // do not need to be updated.
+                        discardSubs = discardSubs :+ subVal
+                      }
+                    }
+                  }
+                  
+                  // Did we find something in the subject list equal to
+                  // the already bound pattern variable?
+                  if (!gotIt) {
+                    
+                    // No, we did not. There is no way this can match.
+                    //println("FAST FAIL, Match already bound variables failed...")
+                    failFast = true
+                  }
+                }
+              }
+            }
+            
+            case _ => {
+              
+              // This is unexpected. We expect all the remaining
+              // things in the pattern to be variables.
+              //println("BOGUS!!: '" + patItem.toString + "' is not a
+              //variable!!!")
+
+              // Since nothing is bound to this pattern variable it
+              // must remain in the pattern list.
+              newPats = newPats :+ patItem
+            }
+          }
+        }
+        
+        // If we get here all of the previously bound pattern
+        // variables that still appear in the pattern have at least 1
+        // thing they match in the subject. Do the actual matching.
+        
         //println("** new bindings (2) = " + bindings)
-        new ACMatchIterator(pats, subs, (bindings ++ binds), op)
+        if (!failFast) {
+          
+          // We might have already discarded some patterns/subjects
+          // based on the bindings from the unbindable matcher. Make
+          // new pattern/subject sequences here.
+          var newSubs = scala.collection.immutable.Vector.empty[BasicAtom]
+          for (sub <- subs) {
+            
+            // Are we discarding this substitution (it has already
+            // been matched)?
+            if (!discardSubs.contains(sub)) {
+              
+              // The subject is not being discarded. Keep it.
+              newSubs = newSubs :+ sub
+            }
+          }
+          val pats1 = AtomSeq(plist.props, newPats)
+          val subs1 = AtomSeq(slist.props, newSubs)
+          new ACMatchIterator(pats1, subs1, newBinds, op)
+        } else {
+
+          // This set of bindings can never match. Return an empty iterator.
+          new MatchIterator {
+            _current = null
+            _local = null
+            _exhausted = true
+            def findNext = {
+              _exhausted = true
+            }
+          }
+        }
       }
     })
     if (iter.hasNext) return Many(iter)
@@ -159,7 +348,9 @@ object ACMatcher {
      * have `_current` set to the next match or we have exhausted the
      * iterator.
      */
-    protected def findNext {
+    import scala.annotation.tailrec
+    @tailrec
+    final protected def findNext {
       if (BasicAtom.traceMatching) print("AC Searching... ")
       _current = null
       if (_local != null && _local.hasNext) _current = _local.next

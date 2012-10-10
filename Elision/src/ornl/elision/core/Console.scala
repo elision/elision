@@ -149,6 +149,16 @@ trait Console {
   def quiet = _quiet
   
   /**
+   * Get a "line" string based on the current width.
+   * 
+   * @param ch  A string to repeat to make up the line.  By default this
+   *            is `-`.  As many full instances of this string will be
+   *            concatenated as the line allows.
+   * @return  The requested line.
+   */
+  def line(ch: String = "-") = ch*((if (_width > 0) _width else 80)/ch.length)
+  
+  /**
    * Send the given text to the appropriate destination.  This is the method
    * that controls where output goes, and which must be implemented.  *You
    * should not use this method.*  You want `send`, `sendln`, `warn` or
@@ -202,6 +212,14 @@ trait Console {
       } // Not a screenful case.
     } // Not paging case.
   }
+  
+  /**
+   * Perform whatever "pause" is configured for this console, and return
+   * whether the user elected to continue.
+   * 
+   * @return  True if the user wants to continue; false if not.
+   */
+  def doPause() = _pause()
   
   /**
    * Write followed by a newline.  This method is private, since there is no

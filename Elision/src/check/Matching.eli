@@ -33,47 +33,36 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
-package ornl.elision.core.matcher
-import ornl.elision.core._
+======================================================================*/
 
-/**
- * Provide some support methods for matching.
- */
-object MatchHelper {
+println("Reading Test...")
 
-  /**
-   * Given two lists of atoms, identify and remove any constants from the two
-   * lists, returning the resulting lists.
-   * 
-   * The atoms in the two lists are assumed to be unordered.  That is, this
-   * method is only suitable for use when performing commutative matching
-   * (whether or not associative).
-   *
-   * @param plist	The pattern list.
-   * @param slist	The subject list.
-   * @return  A triple that contains the new patterns, new subjects, and an
-   *          optional failure instance in the event matching does not succeed. 
-   */
-  def eliminateConstants(plist: AtomSeq, slist: AtomSeq):
-  		(OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
-    var patterns = plist.atoms
-    var subjects = slist.atoms
-    for ((pat, pindex) <- plist.constantMap) {
-      slist.constantMap.get(pat) match {
-        case None =>
-          return (patterns, subjects, Some(Fail("Element " + pindex +
-            " not found in subject list.", plist, slist)))
-        case Some(sindex) =>
-          patterns = patterns.omit(pindex)
-          subjects = subjects.omit(sindex)
-      }
-    } // Omit constants from the lists.
-    if (BasicAtom.traceMatching) {
-	    println("Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
-	    println("                    Subjects: " + subjects.mkParseString("", ",", ""))
-    }
-    (patterns, subjects, None)
-  }
-}
+inc("bootstrap/Test.eli")
+
+// Non-commutative, non-associative operators.
+{! f1($x: INTEGER): INTEGER}
+{! f2($x: INTEGER, $y: INTEGER): INTEGER}
+{! f3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER}
+
+// Commutative, non-associative operators.
+{! c1($x: INTEGER, $y: INTEGER): INTEGER is %C}
+{! c2($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER is %C}
+
+// Associative, non-commutative operators.
+{! a1($x: INTEGER, $y: INTEGER): INTEGER is %A}
+{! a2($x: INTEGER, $y: INTEGER): INTEGER is %A}
+
+// Associative, commutative operators.
+{! foo($x: INTEGER, $y: INTEGER): INTEGER is %AC}
+
+_test_init()
+
+// Straight matching.
+_test({match f1($x)}.f1(5), {binds x->5})
+_test({match f1($x)}.f2(2,3), NONE)
+_test({match f2($x,9)}.f2(5,9), {binds x->5})
+_test({match f2($x,9)}.f2(9,5), NONE)
+
+// Done.
+_test_status()
+

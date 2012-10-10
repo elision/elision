@@ -48,7 +48,12 @@ object Memo {
 
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
-  
+
+  /** Declare the Elision property for turning memoization on/off. */
+  knownExecutor.declareProperty("cache",
+                                "Whether to use memoization caching or not.",
+                                true)
+
   /** The user's home folder. */
   private val _home = {
     val root = System.getenv("ELISION_ROOT")
@@ -180,16 +185,35 @@ object Memo {
    *          the input atom is already in normal form.
    */
   def get(atom: BasicAtom, rulesets: Set[String]) = {
-    if (_normal.contains((atom,rulesets))) {
-      Some((atom, false))
-    } else {
-      _cache.get((atom, rulesets)) match {
-        case None =>
-          // Cache miss.
-          None
-        case Some((atom, level)) =>
-          // Cache hit.
-          Some((atom, true))
+
+    // Constants, variables, and symbols should never be
+    // rewritten. So, if we are trying to get one of those just
+    // return the original atom.
+    if (atom.isInstanceOf[Literal[_]] ||
+        atom.isInstanceOf[Variable]) {
+      Some((atom, true))
+    }
+
+    // Return nothing if caching is turned off.
+    else if (!knownExecutor.getProperty[Boolean]("cache")) {
+      None
+    }
+   
+    // We are doing caching. Actually look in the cache.
+    else {
+      if (_normal.contains((atom,rulesets))) {
+        //println("** Elision: Cache read rewrite " + atom.toParseString + " -> " + atom.toParseString + " for rulsests " + rulesets)
+        Some((atom, false))
+      } else {
+        _cache.get((atom, rulesets)) match {
+          case None =>
+            // Cache miss.
+            None
+          case Some((value, level)) =>
+            // Cache hit.
+            //println("** Elision: Cache read rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
+            Some((value, true))
+        }
       }
     }
   }
@@ -203,6 +227,13 @@ object Memo {
    * @param level     The lowest level of the rewrite.
    */
   def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
+
+    // Do nothing if caching is turned off.
+    if (!knownExecutor.getProperty[Boolean]("cache")) {
+      return
+    }
+
+    //println("** Elision: Cache add rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
     val lvl = 0 max level min (_LIMIT-1)
     if (atom eq value) {
       _normal.add(atom, rulesets)

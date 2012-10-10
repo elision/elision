@@ -37,15 +37,19 @@
 * */
 package ornl.elision.core.matcher
 import ornl.elision.core._
+import ornl.elision.Debugger._
 
 /**
  * Match two sequences, where the elements of the second sequence can be
- * grouped.
+ * grouped, but not re-ordered.
  */
 object AMatcher {
 
   /**
-   * Attempt to match two lists.  The second list can be re-grouped.
+   * Attempt to match two lists.  The second list can be re-grouped, but every
+   * group must be non-empty.  This restriction is easy to overcome, but
+   * provides better performance and results in more obvious (and expected)
+   * matching in many cases.
    * 
    * @param plist	The pattern list.
    * @param slist	The subject list.
@@ -57,7 +61,6 @@ object AMatcher {
                op: Option[OperatorRef]): Outcome = {
 
     // Check the length.
-    //println("** AMatcher...")
     if (plist.atoms.length > slist.atoms.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -95,6 +98,12 @@ object AMatcher {
    * There must be at least as many subjects as patterns.  If there is an
    * equal number, then we use the sequence matcher to perform the match.
    * Otherwise we need to group the items to perform the match.
+   * 
+   * We do not allow less subjects than patterns.  Technically we could,
+   * allowing patterns to match empty groups of subjects.  In practice, this
+   * just adds things to check and can result in non-obvious results from
+   * matching.  It is better (from an experience, performance, and expectation
+   * point of view) to require groups be non-empty.
    * 
    * Because we cannot re-order the atoms, we need a completely different
    * form of matching for associativity.
@@ -144,17 +153,19 @@ object AMatcher {
    * The last subject index is 7-1 = 6.  We are placing 4-1 = 3 markers,
    * so the last position for the first (i=0) marker is 6 - 3 = 3.  The last
    * position for the ith marker is 6 - 3 + i.
+   * 
+   * Note that all that would be necessary to allow empty group matching is
+   * to always reset markers equal to the prior marker.  Then the marker
+   * array would run 0,0,0 - 0,0,1 - 0,0,2 - 0,0,3 - 0,0,4 - 0,0,5 - 0,1,1 -
+   * and so forth to 5,5,5.  For 0,0,0, the first and second groups are
+   * empty and the third is everything.  For 5,5,5, the first group has
+   * everything and the second and third are empty.
    */
   
   /**
-   * Perform commutative matching on two lists.  The subjects can be
-   * arbitrarily re-ordered.
-   * 
-   * This implements phase one of the matching.  The idea is to match any
-   * non-bindable patterns.  Since this can happen in many ways, we use an
-   * iterator.
-   * 
-   * Phase two performs groupings of the remaining stuff against the bindables.
+   * Perform associative matching on the subjects and patterns, honoring any
+   * bindings we are given and optionally applying the given operator to any
+   * subgroups.
    * 
    * @param patterns	The patterns.
    * @param subjects	The subjects.
@@ -162,6 +173,7 @@ object AMatcher {
    */
   private class AMatchIterator(patterns: AtomSeq, subjects: AtomSeq,
       binds: Bindings, op: Option[OperatorRef]) extends MatchIterator {
+    
     /** An iterator over all groupings of the subjects. */
     private val _groups = new GroupingIterator(patterns, subjects, op)
     
@@ -170,34 +182,38 @@ object AMatcher {
      * have `_current` set to the next match or we have exhausted the
      * iterator.
      */
-    protected def findNext {
+    @scala.annotation.tailrec
+    final protected def findNext {
       if (BasicAtom.traceMatching) print("A Searching... ")
       _current = null
-      if (_local != null && _local.hasNext) _current = _local.next
-      else {
+      if (_local != null && _local.hasNext) {
+        _current = _local.next
+      } else {
         _local = null
-        if (_groups.hasNext)
+        if (_groups.hasNext) {
           SequenceMatcher.tryMatch(patterns.atoms, _groups.next, binds) match {
             case fail:Fail =>
               // We ignore this case.  We only fail if we exhaust all attempts.
               if (BasicAtom.traceMatching) println(fail)
-            findNext
-	    case Match(binds) =>
-	      // This case we care about.  Save the bindings as the current match.
-	      _current = binds
-	    if (BasicAtom.traceMatching) println("A Found.")
-	    case Many(iter) =>
-	      // We've potentially found many matches.  We save this as a local
-	      // iterator and then use it in the future.
-	      _local = iter
-	    findNext
-	  } else {
-	    // We have exhausted the permutations.  We have exhausted this
-	    // iterator.
-	    _exhausted = true
-	    if (BasicAtom.traceMatching) println("A Exhausted.")
-	  }
+              findNext
+            case Match(binds1) =>
+              // This case we care about.  Save the bindings as the current match.
+              _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
+                                               binds1.subjects.getOrElse(subjects))
+              if (BasicAtom.traceMatching) println("A Found.")
+            case Many(iter) =>
+              // We've potentially found many matches.  We save this as a local
+              // iterator and then use it in the future.
+              _local = iter
+              findNext
+          }
+        } else {
+          // We have exhausted the permutations.  We have exhausted this
+          // iterator.
+          _exhausted = true
+          if (BasicAtom.traceMatching) println("A Exhausted.")
+        }
       }
-    }
-  }
+    } // findNext method
+  } // AMatchIterator class
 }

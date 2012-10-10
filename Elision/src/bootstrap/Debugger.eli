@@ -1,0 +1,158 @@
+/*======================================================================
+ *       _ _     _
+ *   ___| (_)___(_) ___  _ __
+ *  / _ \ | / __| |/ _ \| '_ \
+ * |  __/ | \__ \ | (_) | | | |
+ *  \___|_|_|___/_|\___/|_| |_|
+ * The Elision Term Rewriter
+ * 
+ * Copyright (c) 2012 by UT-Battelle, LLC.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * Collection of administrative costs for redistribution of the source code or
+ * binary form is allowed. However, collection of a royalty or other fee in excess
+ * of good faith amount for cost recovery for such redistribution is prohibited.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER, THE DOE, OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+======================================================================*/
+
+println("Reading Debugger...")
+
+//======================================================================
+// Define access to debug level controls.
+//======================================================================
+
+decl.
+{! debugon($tag: STRING)
+#handler=
+"""
+  import ornl.elision.Debugger._
+  import ornl.elision.Debugger.Mode._
+  args match {
+    case Args(StringLiteral(_, tag)) =>
+      enableDebugModes(tag, ON)
+    case _ =>
+  }
+  _no_show
+"""
+#description="Enable debugging for a given debugging tag."
+#detail=
+"This turns on the debugging tag $tag.  Debugging modes are not otherwise ".
+"changed."
+}
+
+decl.
+{! debugoff($tag: STRING)
+#handler=
+"""
+  import ornl.elision.Debugger._
+  import ornl.elision.Debugger.Mode._
+  args match {
+    case Args(StringLiteral(_, tag)) =>
+      disableDebugModes(tag, ON)
+    case _ =>
+  }
+  _no_show
+"""
+#description="Disable debugging output for a given debugging tag."
+#detail=
+"This turns off the debugging tag $tag.  Debugging modes are not otherwise ".
+"changed."
+}
+
+decl.
+{! enabledebugmode($tag: STRING, $mode: STRING)
+#handler=
+"""
+  import ornl.elision.Debugger._
+  import ornl.elision.Debugger.Mode._
+  args match {
+    case Args(StringLiteral(_, tag), StringLiteral(_, mode)) =>
+      try {
+        enableDebugModes(tag, Mode.withName(mode))
+      } catch {
+        case e:NoSuchElementException => emitln("ERROR: Invalid mode.")
+      }
+    case _ =>
+  }
+  _no_show
+"""
+#description="Enable the given debugging option for the specified tag."
+#detail=
+"""Enable the option $opt for the debugging tag $tag.  Other options are not
+modified.  Debugging options are listed below.
+
+  ON .......... Enable output.
+  NONL ........ Suppress newline (if possible) after output.
+  CLASS ....... Print local class information.
+  STACK ....... Print a complete stack trace.
+  PAUSE ....... Try to pause for user response.
+  TICK ........ Measure and report time since last debug message.
+  START ....... Start a timer.
+  STOP ........ Stop the timer and report the elapsed time.
+  NOTAG ....... Suppress printing of the tag.
+"""
+}
+
+decl.
+{! disabledebugmode($tag: STRING, $mode: STRING)
+#handler=
+"""
+  import ornl.elision.Debugger._
+  import ornl.elision.Debugger.Mode._
+  args match {
+    case Args(StringLiteral(_, tag), StringLiteral(_, mode)) =>
+      try {
+        disableDebugModes(tag, Mode.withName(mode))
+      } catch {
+        case e:NoSuchElementException => emitln("ERROR: Invalid mode.")
+      }
+    case _ =>
+  }
+  _no_show
+"""
+#description="Disable the given debugging option for the specified tag."
+#detail=
+"Disable the option $opt for the debugging tag $tag.  Other options are not ".
+"modified."
+}
+
+decl.
+{! debug($msg: STRING, $tag: STRING)
+#handler=
+"""
+  import ornl.elision.Debugger._
+  import ornl.elision.Debugger.Mode._
+  args match {
+    case Args(StringLiteral(_, msg), StringLiteral(_, tag)) =>
+      debug(msg, tag)
+    case _ =>
+  }
+  _no_show
+"""
+#description="Send a debugging message."
+#detail=
+"Send the given message $msg as debugging output.  The tag $tag is used to ".
+"select options.  Use disabledebugmode and enabledebugmode to set options ".
+"for the specified tag.  Use debugon and debugoff to simply enable and ".
+"disable (respectively) debugging tags."
+}

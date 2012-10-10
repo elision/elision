@@ -65,8 +65,6 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
   override protected def matchTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = tryMatchWithoutTypes(subject, binds, hints)
     
-  override def toParseString = "^TYPE"
-    
   /**
    * Try to match this type against the provided atom.  Note that root types
    * match only themselves, so the match works iff the subject is equal to this

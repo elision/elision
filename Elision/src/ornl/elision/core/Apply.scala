@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import scala.collection.mutable.ListBuffer
@@ -60,7 +61,6 @@ import ornl.elision.repl.ReplActor
 abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   val isConstant = op.isConstant && arg.isConstant
   val isTerm = op.isTerm && arg.isTerm
-  val constantPool = Some(BasicAtom.buildConstantPool(2, op, arg))
   val depth = (op.depth max arg.depth) + 1
   val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
   
@@ -78,7 +78,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
     if (nof || naf) (Apply(nop, narg), true) else (this, false)
   }
   */
-  //////////////////// GUI changes
+  //  GUI changes
   
   def rewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "Apply rewrite")
@@ -108,7 +108,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
     }
   }
   
-  //////////////////// end GUI changes
+  //  end GUI changes
   
   /**
    * By default applications match iff their parts match.  The trick here is
@@ -197,7 +197,7 @@ object Apply {
             }} + ")"
     */
       
-    //////////////////// GUI changes
+    //  GUI changes
     ReplActor ! ("Eva","pushTable", "object Apply apply")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) // val rwNode = RWTree.addToCurrent("object Apply apply: ") 
@@ -206,7 +206,7 @@ object Apply {
     ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) // val argNode = RWTree.addTo(rwNode, "Argument: ", arg) 
     ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
     
-    //////////////////// end GUI changes
+    //  end GUI changes
         
     // Do not try to compute if metaterms are present.
     if (!op.evenMeta && !arg.isTerm) {
@@ -290,9 +290,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   val theType = op.operator.typ.rewrite(pabinds)._1
   
-  def toParseString = toESymbol(op.name) + "(" + arg.toNakedString + ")"
-  
-  //////////////////// GUI changes
+  // GUI changes
   override def rewrite(binds: Bindings) = {
 	ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
     // top node of this subtree
@@ -314,7 +312,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
         (this, false)
     }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
 }
 
 /**
@@ -336,16 +334,4 @@ case class SimpleApply protected[core] (override val op: BasicAtom,
    * might cause trouble with matching.
    */
   val theType = op.theType
-  
-  // When an integer literal is present, we have to surround it with parens
-  // so that the system does not interpret the applicative dot as a decimal
-  // point.  If a named root type is present, it can also cause trouble, so
-  // we must explicitly annotate it.
-  def toParseString = "(" +
-  	(if (op.isInstanceOf[IntegerLiteral])
-  	  "(" + op.toParseString + ")"
-	  else if (op.isInstanceOf[NamedRootType])
-	    op.toParseString + ":^TYPE"
-    else op.toParseString) +
-    "." + arg.toParseString + ")"
 }
