@@ -914,23 +914,27 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             // Found the absorber.  Nothing else to do.
             return absor
           }
-          // Omit identities.
+          
+          // Omit identities and check for associative lists to flatten.  If
+          // we remove an identity, do not increment the index.  If we insert
+          // items, we should not increment the index.  If we don't change the
+          // item at the current index, then we can advance the index pointer.
           if (ident == atom) {
             newseq = newseq.omit(index)
+          } else if (assoc) atom match {
+            case OpApply(opref, opargs, binds) if (opref.operator == this) =>
+              // Add the arguments directly to this list.  We can assume the
+              // sub-list has already been processed, so no deeper checking
+              // is needed.  This flattens associative lists, as required.
+              newseq = newseq.omit(index)
+              newseq = newseq.insert(index, opargs)
+            case _ =>
+              // Nothing to do except increment the pointer.
+              index += 1
           } else {
-            // Check for associative lists to flatten.
-            if (assoc) atom match {
-              case OpApply(opref, opargs, binds) if (opref.operator == this) =>
-                // Add the arguments directly to this list.  We can assume the
-                // sub-list has already been processed, so no deeper checking
-                // is needed.  This flattens associative lists, as required.
-                newseq = newseq.omit(index)
-                newseq = newseq.insert(index, opargs)
-              case _ =>
-                // Nothing to do.
-            }
+            // Since nothing at this position changed, increment the pointer.
+            index += 1
           }
-          index += 1
         } // Run through all arguments.
 
         // Handle actual operator application.
@@ -968,7 +972,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // the argument list is empty, but there is no identity, apply the
           // operator to the empty list.
           if (newseq.length == 0) {
-            if (ident == null) return handleApply(Bindings()) else ident
+            if (ident == null) return handleApply(Bindings()) else return ident
           }
         }
 
