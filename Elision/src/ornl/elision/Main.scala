@@ -63,6 +63,9 @@ object Main extends App {
            |
            |Global Switches:
            |""".stripMargin)
+    buf.append(
+        """|Command Switches:
+           |""".stripMargin)
   }
   
   /**
