@@ -65,8 +65,17 @@ object AMatcher {
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
           
-    // If there are no patterns, there is nothing to do.
-    if (plist.atoms.length == 0) return Match(binds)
+    // Watch for the case in which there are no patterns.
+    if (plist.atoms.length == 0) {
+      if (slist.atoms.length == 0) {
+        // Match.
+        return Match(binds)
+      } else {
+        // No match is possible.
+        return Fail("No patterns to bind to subjects.  No match is possible.",
+            plist, slist)
+      }
+    }
       
     // If there are the same number, then this is a simple case of matching.
     if (plist.atoms.length == slist.atoms.length)

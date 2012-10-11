@@ -492,7 +492,7 @@ object BasicAtom {
    * 
    * Note that full tracing takes precedence over terse tracing.
    */
-  var traceVerbose: (Any) => Boolean = ((obj: Any) => false)
+  var traceVerbose: (Any) => Boolean = ((obj: Any) => true)
   
   /**
    * Specify terse tracing for certain objects during matching.
@@ -506,5 +506,5 @@ object BasicAtom {
    * 
    * Note that full tracing takes precedence over terse tracing.
    */
-  var traceTerse: (Any) => Boolean = ((obj: Any) => true)
+  var traceTerse: (Any) => Boolean = ((obj: Any) => false)
 }
