@@ -10,11 +10,21 @@ object MakeContext extends App {
     print(help)
     System.exit(1)
   } else {
+    // bootstrap and read Experimental before changing the working dir
     repl.bootstrap()
-    repl.read(args(0), false)
     repl.read("bootstrap/Experimental.eli", false)
+    
+    // get the directory we're working in if given an absolute path
+    // otherwise keep using the current directory as the working path
+    val regex = "(.*/)?(.*)".r
+    val regex(dir,file) = args(0)
+    if(dir != null) repl.setProperty("path",dir)
+    
+    // read the file and export the context
+    repl.read(file, false)
     println("Exporting context to "+ args(1))
     repl.context.operatorLibrary("exportContext")(args(1))
+    
     println("Done.")
     System.exit(0)
   }
