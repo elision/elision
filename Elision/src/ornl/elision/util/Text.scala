@@ -39,14 +39,17 @@ package ornl.elision.util
  */
 class Text {
   
+  /** Access to system properties. */
+  private val _prop = new scala.sys.SystemProperties
+  
+  /** The end of line character. */
+  private final val _nl = _prop("line.separator")
+
   /** A buffer. */
   private var _buf = new StringBuilder
   
   /** Break lines at these characters.  Consume them. */
   private val _breakAt = " \t"
-    
-  /** A newline. */
-  private val _nl = "\n"
 
   /**
    * Add text to the end of the buffer.
@@ -151,6 +154,7 @@ class Text {
       while (ch == '\n') {
         point = index
         nextLine
+        if (index >= _buf.length) return lines
         ch = _buf(index)
       } // Consume newlines.
       
