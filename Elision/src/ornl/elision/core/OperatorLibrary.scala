@@ -137,7 +137,7 @@ class OperatorLibrary(
       
       if(i%5000==0 && needBrace) {
         buf append "\n  def apply(_context: Context):Unit = {\n"
-        for(j <- start until end)
+        for(j <- start to end)
           buf append "    op"+j+"(_context)\n"
         buf append "  }\n}\n"
         needBrace = false
@@ -156,7 +156,7 @@ class OperatorLibrary(
     }}
     if(needBrace) {
         buf append "  def apply(_context: Context):Unit = {\n"
-        for(j <- start until end)
+        for(j <- start to end)
           buf append "    op"+j+"(_context)\n"
         buf append "  }\n}\n"      
     }
@@ -165,6 +165,9 @@ class OperatorLibrary(
     // used in Ops get their compiled native handlers here
     buf append "object OpsNative {\n"
     buf append "  import ornl.elision.core._\n"
+    buf append "  import ornl.elision.repl.ERepl\n\n"
+    buf append "  implicit val exec = new ERepl\n"
+    buf append "  exec.context = LoadContext._context\n\n"
     
     // since operators can be defined multiple times, we need to take
     // the last occurrences of an operator from the operatorList while
@@ -180,7 +183,7 @@ class OperatorLibrary(
               new sun.misc.BASE64Decoder().decodeBuffer(tso.handlerB64))
           buf append "  def `native$"+tso.name+"`():Option[ApplyData => BasicAtom] = {\n\n" 
           buf append "def _handler(_data: ApplyData): BasicAtom = {\n"
-          buf append "import _data._\n"
+          buf append "import _data.{ exec => _, _ }\n"
           buf append "import ApplyData._\n"
           buf append "import console._\n"
           buf append handlertxt + "\n"

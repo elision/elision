@@ -876,7 +876,7 @@ extends Fickle with Mutable {
       
       if(i%5000==0 && needBrace) {
         buf append "\n  def apply(_context: Context):Unit = {\n"
-        for(j <- start until end)
+        for(j <- start to end)
           buf append "    rule"+j+"(_context)\n"
         buf append "  }\n}\n"
         needBrace = false
@@ -899,7 +899,7 @@ extends Fickle with Mutable {
     }}
     if(needBrace) {
         buf append "  def apply(_context: Context):Unit = {\n"
-        for(j <- start until end)
+        for(j <- start to end)
           buf append "    rule"+j+"(_context)\n"
         buf append "  }\n}\n"      
     }
