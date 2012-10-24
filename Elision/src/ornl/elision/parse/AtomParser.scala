@@ -1127,7 +1127,7 @@ class AtomParser(val context: Context, val trace: Boolean = false,
         case parser.Success(list, _) => {
           list match {
             case node: AstNode => Success(List(node))
-            case l: List[AstNode] => Success(l)
+            case l: List[_] => Success(l.asInstanceOf[List[AstNode]])
             case _ => Failure("shouldn't happen 1")
           }
         }
