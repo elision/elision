@@ -430,10 +430,14 @@ abstract class BasicAtom {
    * Generate a parseable string from this atom.  The string is immediately
    * written ("streamed") to the given appendable.
    * 
-   * @param app The appendable to get the string.
+   * @param app   The appendable to get the string.
+   * @param limit A limit on the depth of the returned string.  By default this
+   *              is negative one, for no limit.  Note that if the limit is
+   *              set, and is exceeded, the string will not be parseable.
    * @return  The appendable.
    */
-  def toParseString(app: Appendable) = ElisionGenerator.apply(this, app)
+  def toParseString(app: Appendable, limit: Int = -1) =
+    ElisionGenerator.apply(this, app, limit)
   
   /**
    * Make a string that can be used to re-generate this atom.
@@ -441,7 +445,7 @@ abstract class BasicAtom {
    * @return  The string.
    */
   override def toString = ScalaGenerator.apply(this, true).toString
-
+  
   /**
    * Recursively match the types.  This is unbounded recursion; it is expected
    * that a class (a type universe) will override this method to create a basis
