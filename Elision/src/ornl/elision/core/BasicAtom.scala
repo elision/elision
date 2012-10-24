@@ -232,6 +232,11 @@ abstract class BasicAtom {
   val evenMeta = false
   
   /**
+   * Construct and cache the spouse of this object.
+   */
+  lazy val spouse = BasicAtom.buildSpouse(this)
+  
+  /**
    * Attempt to match this atom, as a pattern, against the subject atom,
    * observing the bindings, if any.  The type is checked prior to trying
    * any matching.
@@ -483,6 +488,15 @@ object BasicAtom {
 
   /** Whether or not to print out information about rule applications. */
   var traceRules = false
+  
+  /**
+   * Every basic atom may have a "spouse" that is a different object.
+   * This field specifies a closure to create the spouse object.  The
+   * basic atom constructor calls this closure, passing the basic atom
+   * itself, and caching the returned object.
+   */
+  var buildSpouse: (BasicAtom) => T forSome {type T <: AnyRef} =
+    ((obj: BasicAtom) => obj)
 
   /**
    * Specify verbose tracing for certain objects during matching.
