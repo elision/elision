@@ -895,13 +895,11 @@ extends Fickle with Mutable {
         buf append "  def apply(_context: Context):Unit = {\n"
         for(j <- start to end)
           buf append "    rule"+j+"(_context)\n"
+        for (rsname <- _activeNames) {
+          buf append "    _context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
+        } // Enable rulesets.
         buf append "  }\n}\n"      
     }
-
-    // Enable the rulesets that should be enabled.
-    for (rsname <- _activeNames) {
-      buf append "_context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
-    } // Enable rulesets.
     
     buf.toString()  
   }
