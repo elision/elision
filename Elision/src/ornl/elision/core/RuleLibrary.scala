@@ -228,8 +228,6 @@ extends Fickle with Mutable {
    * @return	This context.
    */
   def enableRuleset(name: String) = {
-    actionList = EnableRS(name) :: actionList
-    
     _active += getRulesetBit(name)
     _activeNames += name
     if (BasicAtom.traceRules) {
@@ -245,8 +243,6 @@ extends Fickle with Mutable {
   * @return	This context.
   */
   def disableRuleset(name: String) = {
-    actionList = DisableRS(name) :: actionList
-    
     _active -= getRulesetBit(name)
     _activeNames -= name
     if (BasicAtom.traceRules) {
@@ -891,8 +887,6 @@ extends Fickle with Mutable {
       buf append "  def rule"+i+"(_context: Context):Unit = " +
       (v match {
         case AddRule(rule) => "_context.ruleLibrary.add("+ rule +")\n"
-        case EnableRS(ruleSet) => "_context.ruleLibrary.enableRuleset(\""+ ruleSet +"\")\n"
-        case DisableRS(ruleSet) => "_context.ruleLibrary.disableRuleset(\""+ ruleSet +"\")\n"
         case DeclareRS(ruleSet) => "_context.ruleLibrary.declareRuleset(\""+ ruleSet +"\")\n"
       })
       
@@ -903,6 +897,11 @@ extends Fickle with Mutable {
           buf append "    rule"+j+"(_context)\n"
         buf append "  }\n}\n"      
     }
+
+    // Enable the rulesets that should be enabled.
+    for (rsname <- _activeNames) {
+      "_context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
+    } // Enable rulesets.
     
     
     buf.toString()  
