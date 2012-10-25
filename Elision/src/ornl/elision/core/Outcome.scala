@@ -104,7 +104,7 @@ object Fail {
    * 
    * @param reason	The reason the match failed.
    */
-  def apply(reason: String) = new Fail(() => reason, 0)
+  def apply(reason: => String) = new Fail(() => reason, 0)
 
   /**
    * Construct a new Fail using the given reason string, showing the pattern
@@ -119,12 +119,15 @@ object Fail {
    * 								failures.  This value is optional.
    * @param index		An index.  This is useful when we are matching a sequence.
    */
-  def apply(reason: String, pattern: BasicAtom, subject: BasicAtom,
+  def apply(reason: => String, pattern: BasicAtom, subject: BasicAtom,
     prior: Option[Fail] = None, index: Int = 0): Fail =
-    new Fail(() => reason + "\n  pattern: " +
-      pattern.toParseString + "\n  subject: " + subject.toParseString +
-      (prior match {
-        case None => ""
-        case Some(_) => "\n\nCaused by:\n" + prior.get.toString
-      }), index)
+      new Fail(
+          () => {
+            reason + "\n  pattern: " + pattern.toParseString(5) +
+            "\n  subject: " + subject.toParseString(5) + (
+                prior match {
+                  case None => ""
+                  case Some(_) => "\n\nCaused by:\n" + prior.get.toString
+                })
+          }, 0)
 }
