@@ -410,41 +410,49 @@ with HasHistory {
    * @param th		An optional throwable.
    */
   protected def coredump(msg: String, th: Option[Throwable] = None) {
-    val cfile = new java.io.FileWriter("elision.core")
-    if (cfile != null) {
-      val binds = <binds>{context.binds.toParseString}</binds>
-      val ops = <operator-library>{context.operatorLibrary.toParseString}</operator-library>
-      val rules = <rule-library>{context.ruleLibrary.toParseString}</rule-library>
-      val err = th match {
-        case None => <error/>
-        case Some(ex) =>
-          <error message={ex.getMessage}>{
-            ex.getStackTrace map { item =>
-              <item>{item}</item>
-            }
-          }</error>
-      }
-      val date = (new java.util.Date).toString
-      val hist = <history>{
-        val buf = new StringBuffer()
-        val it = getHistoryIterator
-        while (it.hasNext) buf.append(it.next).append('\n')
-        buf.toString
-      }</history>
-      val all = <elision-core when={date} msg={msg}>
+    try {
+      val cfile = new java.io.FileWriter("elision.core")
+      if (cfile != null) {
+        val binds = <binds>{context.binds.toParseString}</binds>
+        val ops = <operator-library>{context.operatorLibrary.toParseString}</operator-library>
+        val rules = <rule-library>{context.ruleLibrary.toParseString}</rule-library>
+        val err = th match {
+          case None => <error/>
+          case Some(ex) =>
+            <error message={ex.getMessage}>{
+              ex.getStackTrace map { item =>
+                <item>{item}</item>
+              }
+            }</error>
+        }
+        val date = (new java.util.Date).toString
+        val hist = <history>{
+          val buf = new StringBuffer()
+          val it = getHistoryIterator
+          while (it.hasNext) buf.append(it.next).append('\n')
+          buf.toString
+        }</history>
+        val all = <elision-core when={date} msg={msg}>
       		{err}
       		{binds}
       		{ops}
       		{rules}
       		{hist}
       		</elision-core>
-  		scala.xml.XML.write(cfile,all,"utf-8",true,null)
-      //cfile.write(new scala.xml.PrettyPrinter(80, 2).format(all))
-      cfile.flush()
-      cfile.close()
-      console.emitln("Wrote core dump to elision.core.")
-    } else {
-      console.warn("Unable to save core dump.")
+    		scala.xml.XML.write(cfile,all,"utf-8",true,null)
+        //cfile.write(new scala.xml.PrettyPrinter(80, 2).format(all))
+        cfile.flush()
+        cfile.close()
+        console.emitln("Wrote core dump to elision.core.")
+      } else {
+        console.warn("Unable to save core dump.")
+      }
+    } catch {
+      case th: Throwable =>
+        // Core dumping failed.  Emit a full stack trace and stop the world.
+        println(th)
+        th.printStackTrace()
+        sys.exit(1)
     }
   } 
   
