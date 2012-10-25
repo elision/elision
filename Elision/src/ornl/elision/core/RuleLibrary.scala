@@ -900,9 +900,8 @@ extends Fickle with Mutable {
 
     // Enable the rulesets that should be enabled.
     for (rsname <- _activeNames) {
-      "_context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
+      buf append "_context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
     } // Enable rulesets.
-    
     
     buf.toString()  
   }
