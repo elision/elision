@@ -59,16 +59,16 @@ import ornl.elision.core._
  * version of Bindings is returned.
  * 
  * == Example ==
- * Consider the patterns `$x,$y,foo(4,$y),$z` and the subject lists:
+ * Consider the patterns `$``x,$``y,foo(4,$``y),$``z` and the subject lists:
  * - `foo(4,yar),9,21,yar` (which matches)
  * - `foo(4,yar),9,21,har` (which does not)
  * 
  * It could take a long time to determine that the second item does not match
  * the pattern, since the system will exhaustively try all orderings and
  * groupings before giving up.  The unbindable matcher will first scan the
- * patterns for unbindables, seeing `foo(4,$y)`.  It then tries to match this
+ * patterns for unbindables, seeing `foo(4,$``y)`.  It then tries to match this
  * against each of the subjects in the list.  For the first example above
- * it immediately matches against `foo(4,yar)` with the binding `$y -> yar`.
+ * it immediately matches against `foo(4,yar)` with the binding `$``y -> yar`.
  * This results in an almost immediate match.  In the second case no match
  * is possible, and the unbindable matcher immediately fails and stops any
  * further attempts.
