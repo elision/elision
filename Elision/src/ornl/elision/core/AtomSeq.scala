@@ -205,23 +205,23 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
     ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
     // top node of this subtree
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: ")) // val rwNode = RWTree.addToCurrent("AtomSeq rewrite")
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
     
     // Rewrite the properties.
-    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))  // val propsNode = RWTree.addTo(rwNode, "Properties: ",props)
-    ReplActor ! ("Eva", "setSubroot", "props")    //RWTree.current = propsNode
+    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
+    ReplActor ! ("Eva", "setSubroot", "props")
     val (newprop, pchanged) = props.rewrite(binds)
     
     // We must rewrite every child atom, and collect them into a new sequence.
-    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: ")) // RWTree.current = RWTree.addTo(rwNode, "Atoms: ")
+    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
     ReplActor ! ("Eva", "setSubroot", "atoms")
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-      ReplActor ! ("Eva", "setSubroot", "rwNode") //RWTree.current = rwNode
+      ReplActor ! ("Eva", "setSubroot", "rwNode")
       val newAS = new AtomSeq(newprop, newseq)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // rwNode.addChild(newAS)
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))
       
       ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (newAS, true)

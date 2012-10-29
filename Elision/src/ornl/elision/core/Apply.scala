@@ -292,24 +292,24 @@ case class OpApply protected[core] (override val op: OperatorRef,
   
   // GUI changes
   override def rewrite(binds: Bindings) = {
-	ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
+    ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
     // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: ")) //val rwNode = RWTree.current
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: ")) //val rwNode = RWTree.current
 	
     // Rewrite the argument, but not the operator.  In reality, operators
     // should protect their arguments using De Bruijn indices, but that's
     // not implemented just yet.
     val pair = arg.rewrite(binds)
     if (pair._2) {
-		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
-		val newApply = Apply(op, pair._1)
-		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) //RWTree.addTo(rwNode, newApply)
+      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+      val newApply = Apply(op, pair._1)
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply)) //RWTree.addTo(rwNode, newApply)
 		
-        ReplActor ! ("Eva", "popTable", "OpApply rewrite")
-        (newApply, true) 
-	} else {
-        ReplActor ! ("Eva", "popTable", "OpApply rewrite")
-        (this, false)
+      ReplActor ! ("Eva", "popTable", "OpApply rewrite")
+      (newApply, true) 
+    } else {
+      ReplActor ! ("Eva", "popTable", "OpApply rewrite")
+      (this, false)
     }
   }
   // end GUI changes
