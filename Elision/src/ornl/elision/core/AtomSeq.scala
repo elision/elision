@@ -303,38 +303,51 @@ object AtomSeq {
    * @return	The possibly-new sequence.
    */
   private def process(props: AlgProp,
-      atoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
+      xatoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
     // If the list is associative, has an identity, or has an absorber, we
     // process it.  Idempotency is handled at the very end.
     val assoc = props.isA(false)
-    val ident = props.identity.isDefined
-    val absor = props.absorber.isDefined
-    if (assoc || ident || absor) {
-      var newseq = OmitSeq[BasicAtom]()
-      for (atom <- atoms) {
-        if (absor && props.absorber.get == atom) {
-          // Found the absorber.  Nothing else to do.
-          newseq = OmitSeq[BasicAtom]() :+ atom
-          return newseq
+    val ident = props.identity.getOrElse(null)
+    val absor = props.absorber.getOrElse(null)
+    var atoms: OmitSeq[BasicAtom] = xatoms
+    if (assoc || ident != null || absor != null) {
+      var index = 0
+      while (index < atoms.size) {
+        val atom = atoms(index)
+        if (absor == atom) {
+          // Found the absorber.  It must be the only thing in the sequence.
+          return OmitSeq[BasicAtom]() :+ atom
         }
-        if (!ident || props.identity.get != atom) {
+        if (ident != atom) {
           if (assoc) atom match {
             case AtomSeq(oprops, args) if props == oprops =>
               // Add the arguments directly to this list.  We can assume this
               // list has already been processed, so no deeper checking is
               // needed.
-              newseq ++= args
+              atoms = atoms.omit(index)
+              atoms = atoms.insert(index, args)
             case _ =>
-              // Add this atom to the list.
-              newseq :+= atom
-          }
+              // Nothing to do in this case.
+          }          
         }
-      } // Loop over atoms.
-      if (props.isI(false)) newseq.distinct else newseq
-    } else {
-      // The list is fine as it is.
-      if (props.isI(false)) atoms.distinct else atoms
+        index += 1
+      } // Run through all arguments.
     }
+    
+    // Now handle idempotency.  If we change the sequence with idempotency,
+    // then we replace the old sequence with the new one, since we don't need
+    // to keep the old sequence around.  Othewise we leave as-is.
+    if (props.isA(false)) {
+      val testseq: OmitSeq[BasicAtom] = atoms.distinct
+      if (testseq.length != atoms.length) {
+        // Idempotency changed the sequence.  Replace the old one with the new
+        // one.
+        atoms = testseq
+      }
+    }
+    
+    // Done!
+    return atoms
   }
 }
 
