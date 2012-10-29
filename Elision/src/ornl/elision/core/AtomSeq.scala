@@ -337,7 +337,7 @@ object AtomSeq {
     // Now handle idempotency.  If we change the sequence with idempotency,
     // then we replace the old sequence with the new one, since we don't need
     // to keep the old sequence around.  Othewise we leave as-is.
-    if (props.isA(false)) {
+    if (props.isI(false)) {
       val testseq: OmitSeq[BasicAtom] = atoms.distinct
       if (testseq.length != atoms.length) {
         // Idempotency changed the sequence.  Replace the old one with the new
