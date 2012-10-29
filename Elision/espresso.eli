@@ -1,0 +1,508 @@
+// Some documentation: The following operator is used to generate truth tables.
+// The trick to doing this is identifying the variables/operators which need to
+// be enumerated. If we aren't choosy enough, then we'll just enumerate every
+// variable/operator in the given statement and accomplish nothing. It we are too
+// choosy the errors could be made. 
+// 
+// The big hangup is the untyped system. To keep things as safe as possible
+// we'll need to keep our list of assumptions short. The primary one is:
+// 
+// 1) All operands of a 'blessed' operator (and, or, xor, not) are of boolean type
+// 
+// Everything after this assumption may introduce errors, but should be unlikely.
+// 
+// 2) If an operator is an operand of a 'blessed' operator, then it is likely that
+// the operator takes that type in every instance.
+// 
+// This is not a safe assumption due to the ANY type and case operators. But, 
+// they are used so infrequently, and with operators unrelated to boolean algebra,
+// probably a assumption.
+//   and
+// /	|	\	\
+// x	y	z	foo
+// 			|	\
+// 			x	foo
+// 				|	\
+// 				x	t
+// 
+// here we can see that we need to enum x,y,z,t. We know enough about foo and its
+// operands 
+// 
+// 
+//   and
+// /	|	\	\
+// x	y	z	foo
+// 			|	\
+// 			x	goo
+// 				|	\
+// 				x	t
+// here we need to enumn x,y,z,foo since we don't know the type of goo.
+
+// these are operators needed for testing
+//      and
+//      /\
+//     x  foo
+//        /\
+//     goo  bar
+//     /\    / \
+//  and  t  goo t
+//  /\      /\
+// y  t    w  v
+
+// these are operators needed for testing
+//      and
+//      /\     \
+//     x  foo   bar
+//        /\       |\
+//     goo  bar    v c
+//     /\    / \
+//  and  t  goo v
+//  /\      /\
+// y  t    w  v
+
+// need to add support for varargs, take advantage of %AC all types are the same
+// needs more testing
+// can always be more efficient
+decl.({!
+espresso($x)
+#handler="""
+import scala.collection.mutable.{ HashMap => Map }
+import scala.collection.mutable.MultiMap
+import scala.collection.mutable.Queue
+import scala.collection.mutable.{ Set => MSet }
+import scala.collection.mutable.{ MutableList => MList }
+
+val fxDir = System.getenv("FX_DIR")
+val espressoCmd = if(fxDir != null) fxDir+"/bin/espresso" else "espresso"
+val t0 = System.nanoTime
+
+class BoolIterator(len:Int) extends Iterator[List[Boolean]] {
+  import scala.collection.mutable.{ MutableList => List }
+  
+  var state:List[Boolean] = List((for(i <- 1 to len) yield false): _*)
+  var i: Int = 0
+  
+  
+  def next() = {
+    i = i+1
+    val oldState = List(state: _*)
+    
+    state.zipWithIndex.foldRight(true){ case ((e,i),v) =>
+      state(i) = v^e
+      if(v&e) true else false
+    }
+    
+    oldState.toList
+  }
+  
+  def hasNext(): Boolean = i < (1 << len)
+}
+
+abstract class Node(val opName: String, val atom: BasicAtom, val children: List[Node] = Nil) {
+  var bad = false
+  var known = false
+  
+  def eval(): BasicAtom
+
+  override def toString(): String = "Node("+ atom.toParseString +")"
+}
+
+class AndNode(atom: BasicAtom, children: List[Node] = Nil) extends Node("and", atom, children) {
+  def eval() = children.foldLeft(true)(_&_.eval().asInstanceOf[Boolean])
+}
+class NotNode(atom: BasicAtom, children: List[Node] = Nil) extends Node("not", atom, children) {
+  def eval() = !children(0).eval.asInstanceOf[Boolean]
+}
+class OrNode(atom: BasicAtom, children: List[Node] = Nil) extends Node("or", atom, children) {
+  def eval() = children.foldLeft(false)(_|_.eval().asInstanceOf[Boolean])
+}
+class XorNode(atom: BasicAtom, children: List[Node] = Nil) extends Node("xor", atom, children) {
+  def eval() = children.foldLeft(false)(_^_.eval().asInstanceOf[Boolean])
+}
+class OpNode(opName: String, atom: BasicAtom, val context: Context, children: List[Node] = Nil) extends Node(opName, atom, children) {
+  def eval() = context.operatorLibrary(opName)(children.map(_.atom).toSeq:_*)
+}
+class VarNode(atom: BasicAtom) extends Node("_var", atom) {
+  def eval() = atom
+}
+class LitNode(atom: BasicAtom) extends Node("_lit", atom) {
+  def eval() = atom
+}
+
+
+// Globals
+val debug = false
+val opNames = List("and", "or", "xor", "not")
+val queue = Queue[BasicAtom]()
+// goodRets contains variables which we know the return type of and OPREFs
+// for operators that have KNOWN return types, not necessarily boolean return
+// type
+val goodRets = MSet[BasicAtom]()
+
+// holds vars which need iteration
+var iterVars = scala.collection.mutable.MutableList[BasicAtom]()
+
+// the table is composed of the function name -> boolean for whether this is 'good or not', and the argument list
+val table = new Map[String, MSet[(Node,MList[Node])]] with MultiMap[String, (Node,MList[Node])]
+
+def makeTree(a: BasicAtom): Node = {
+  a match {
+    case Apply(op0: OperatorRef, args0: AtomSeq) => {
+      if(debug) println("Operator: "+ op0.name)
+      // if we have an and, or, xor, not then add whatever the operands are to the goodRets list
+      // if an operand is an operator application, we just add the OPREF. Otherwise, equality tests
+      // would only succeed if every operator application had the same parameters
+      if(opNames.contains(op0.name)) {
+        args0.filter(!goodRets.contains(_)) foreach(_ match {
+          case Apply(op1: OperatorRef, args1: AtomSeq) => goodRets += op1
+          case x => goodRets += x
+        })
+        op0.name match {
+          //case "and" => new AndNode(a, args0.map(e => makeTree(e)).toList)
+          //case "or" => new OrNode(a, args0.map(e => makeTree(e)).toList)
+          //case "xor" => new XorNode(a, args0.map(e => makeTree(e)).toList)
+          //case "not" => new NotNode(a, args0.map(e => makeTree(e)).toList)
+          case "and" => new OpNode(op0.name, a, context, args0.map(e => makeTree(e)).toList)
+          case "or" =>  new OpNode(op0.name, a, context, args0.map(e => makeTree(e)).toList)
+          case "xor" => new OpNode(op0.name, a, context, args0.map(e => makeTree(e)).toList)
+          case "not" => new OpNode(op0.name, a, context, args0.map(e => makeTree(e)).toList)
+        }
+      } else {
+        // if we're here then we need to add the prototype for this function to the table
+        val thisNode = new OpNode(op0.name, a, context, args0.map(e => makeTree(e)).toList)
+
+        table.addBinding(op0.name, (thisNode -> MList(thisNode.children:_*)))
+
+        thisNode
+      }
+    }
+    case v: Variable => if(debug) println("Variable: "+ v); new VarNode(v)
+    case l: Literal[_] => if(debug) println("Literal: "+ l); new LitNode(l)
+    case _ => println("ERROR Something else"); new LitNode("ERROR")
+  }
+}
+ 
+def postProcess(root: Node): Unit = {
+  // OK here is the algorithm used for figuring out what needs to be
+  // enumerated
+
+  // first, mark all nodes which are in goodRets as known
+  // look at every parameter in every parameterlist. If a parameter is
+  // an and,or,not,xor then we know return value. Mark it.
+  table.valuesIterator.foreach(  operator =>
+              operator.foreach{  case (opNode,paramList) => 
+              paramList.foreach{ paramNode =>
+    paramNode.atom match {
+      case Apply(op: OperatorRef, args: AtomSeq) => {
+        if(opNames.contains(op.name)) paramNode.known = true
+        else if(goodRets.contains(op)) paramNode.known = true
+      }
+      case v: Variable => if(goodRets.contains(v)) paramNode.known = true
+      case l: Literal[_] => paramNode.known = true
+      case _ => println("ERROR SOMETHING ELSE 1")
+    }
+  }})
+
+  // second, we look in every paramList and for every param that 
+  // is marked as known, in every other paramList we mark that position
+  // as known. So, if we have foo(G,x,z) and foo(w,y,t) where G represents
+  // a node marked as known, we know z=G, z is Boolean type
+  val knownMap = new Map[String, MSet[Int]] with MultiMap[String, Int]
+
+
+  var changed = false
+  do {
+    changed = false
+
+    table.valuesIterator.foreach(  operator =>
+                operator.foreach{  case (opNode,paramList) => 
+                paramList.indices.foreach{ i =>
+      if(paramList(i).known) {
+        knownMap.addBinding(opNode.opName, i)
+      }
+    }})
+
+    if(debug) knownMap foreach println
+    if(debug) knownMap.keys foreach println
+
+    table.valuesIterator.foreach(  operator =>
+                operator.foreach{  case (opNode,paramList) => 
+                paramList.indices.foreach{ i =>
+      if(knownMap.contains(opNode.opName) && 
+         !knownMap.get(opNode.opName).isEmpty &&
+         knownMap.get(opNode.opName).get.contains(i) &&
+         !paramList(i).known) {
+
+          if(debug) println("CHANGING1: "+ paramList(i).atom.toParseString)
+          paramList(i).known = true
+          paramList(i).atom match {
+            case Apply(op1: OperatorRef, args1: AtomSeq) => goodRets += op1
+            case x => goodRets += x
+          }
+
+          changed = true
+      }
+    }})
+
+    // repeat of the first step, we may have picked up new things
+    // for goodRets
+    table.valuesIterator.foreach(  operator =>
+                operator.foreach{  case (opNode,paramList) => 
+                paramList.foreach{ paramNode =>
+      paramNode.atom match {
+        case Apply(op: OperatorRef, args: AtomSeq) => {
+          if(opNames.contains(op.name) && paramNode.known == false) {
+            paramNode.known = true
+            if(debug) println("CHANGING2: "+ paramNode.atom.toParseString)
+            changed = true
+          } else if(goodRets.contains(op) && paramNode.known == false) {
+            paramNode.known = true
+            if(debug) println("CHANGING3: "+ paramNode.atom.toParseString)
+            changed = true
+          }
+        }
+        case v: Variable => if(goodRets.contains(v) && paramNode.known == false) {
+          paramNode.known = true
+          if(debug) println("CHANGING4: "+ paramNode.atom.toParseString)
+          changed = true
+        }
+        case l: Literal[_] => paramNode.known = true
+        case _ => if(debug) println("SOMETHING ELSE 1"); ()
+      }
+    }})
+    
+  } while(changed)
+
+
+  // that was a doozy. Now, we bubble up badness so when we look at leaf
+  // nodes we get things that need iteration
+  bubbleBad(root)
+
+  // getvars
+  if(debug) println("-----")
+  getVars(root)
+  if(debug) println("-----")
+}
+
+def bubbleBad(root: Node): Unit = {
+  // if root is a leaf and unknown, mark for
+  // enum, otherwise leave as known
+  if(root.children.isEmpty) {
+    val a: BasicAtom = root.atom match {
+      case Apply(op1: OperatorRef, args1: AtomSeq) => op1
+      case x => x
+    }
+
+    if(!goodRets.contains(a)) {
+      root.bad = true
+    }
+  } else {
+    root.children.foreach(e => bubbleBad(e))
+
+    // if not a leaf node, then we're bad if
+    // one of our children is bad and unknown
+    root.children.foreach(e => {
+      val a: BasicAtom = e.atom match {
+        case Apply(op1: OperatorRef, args1: AtomSeq) => op1
+        case x => x
+      }
+      if(e.bad && !goodRets.contains(a)) root.bad = true
+      //if(e.bad && !root.known && !goodRets.contains(e)) root.bad = true
+    }) 
+  }
+}
+
+def getVars(root: Node): Unit = {
+  if(root.children.isEmpty || root.bad) {
+    if(debug) println(root.atom.toParseString)
+    iterVars += root.atom
+  } else {
+    root.children.foreach(e => getVars(e)) 
+  }
+}
+
+def enum(root: Node): List[Int] = {
+  println("enum begin: "+ iterVars.distinct.length)
+  val boolIter = new BoolIterator(iterVars.distinct.length)
+  var l = new MList[Int]()
+
+  if(debug) println("!!!")
+  // val l = boolIter.next
+  // val a = eval(root, l)  
+  // println(a.toParseString)
+  boolIter.zipWithIndex.foreach { case (v,i) =>
+    val a = eval(root, v)  
+    if(debug) println(v.foldLeft("")((v,e) => if(e==true) v ++ "1" else v ++ "0") +": "+ a.toParseString)
+    a match {
+      case BooleanLiteral(_, v0) => if(v0) l += i
+      case _ => return List(-1)
+    }
+  }  
+
+  println("enum done.")
+  l.toList
+}
+
+def eval(root: Node, list: List[Boolean]): BasicAtom = {
+  // if there is should be a binding for this node return it
+  if(root.children.isEmpty || root.bad) {
+    if(debug) println("Getting binding... "+ root.atom)
+    if(debug) println(iterVars.distinct.indexOf(root.atom))
+    list(iterVars.distinct.indexOf(root.atom))
+  } else {
+    context.operatorLibrary(root.opName)(root.children.map(e => eval(e, list)):_*)
+  }
+}
+def espresso(numInputs: Int, list: List[Int]): String = {
+  import sys.process._
+
+  val sb = new StringBuilder()
+  sb.append(".i "+ numInputs +"\n")
+  sb.append(".o 1\n")
+  list.foreach(e => { var s = e.toBinaryString; while (s.length < numInputs) { s = "0" ++ s }; sb.append(s + "\t1\n") })
+  
+  // Write espresso input to unique tmp file.
+  println("** Doing espresso...") 
+  val cmd = Seq(espressoCmd, "-Dexact")
+  var ret = ""
+
+  val pio = new ProcessIO(
+    stdin => { 
+      stdin.write(sb.toString.getBytes("UTF-8"))
+      stdin.close
+    },
+    stdout => 
+      ret = scala.io.Source.fromInputStream(stdout).getLines.mkString("\n"),
+    _ => ()
+  )
+
+  val p = cmd.run(pio)
+  p.exitValue
+
+  val t1 = System.nanoTime
+  println("** espresso() time = " + (t1.toDouble-t0.toDouble)/1000000000)
+
+  ret
+}
+
+def makeNot(a: BasicAtom): BasicAtom = {
+  context.operatorLibrary("not")(a) 
+}
+def makeAnd(l: BasicAtom*): BasicAtom = {
+  context.operatorLibrary("and")(l: _*)
+}
+def makeOr(l: BasicAtom*): BasicAtom = {
+  context.operatorLibrary("or")(l: _*)
+}
+
+def parseEspresso(retString: String, iterVars: List[BasicAtom]): BasicAtom = {
+  import scala.collection.immutable.StringOps
+
+  if(debug) println(retString) 
+
+  val so = new StringOps(retString)
+  var piList = List[BasicAtom]()
+
+  val Regex = "([01-]+) ([01])".r
+  so.lines.foreach { line =>
+    line match {
+      case Regex(vars, _) => {
+        // vList contains variables which need to be kept around to be 
+        // anded into this prime implicant
+        var vList = List[BasicAtom]()
+
+        vars.zipWithIndex.foreach { case (c,i) => 
+          if(debug) println(i +" "+c)
+          c match {
+              case '0' => vList = makeNot(iterVars(i)) :: vList 
+              case '1' => vList = iterVars(i) :: vList 
+              case '-' => ()
+              case _   => println("ERROR asdfb")
+          }
+        }
+
+        // ok, we now have all of the variables involved in this PI
+        // if we only have 1 var then we don't need to and anything
+        piList = makeAnd(vList: _*) :: piList
+      }
+      case _ => ()
+    }
+  }
+
+  makeOr(piList: _*)
+}
+
+args match {
+	case Args(Apply(op0: OperatorRef, args0: AtomSeq)) => 
+    if(opNames.contains(op0.name)) {
+      val root = makeTree(args(0))
+      postProcess(root)
+
+      if(debug) {
+        println("")
+        goodRets foreach println
+        println("")
+        iterVars.distinct foreach println
+      }
+
+      val vars = iterVars.distinct.toList
+	if(vars.length > 9) {
+		val t1 = System.nanoTime
+		println("** espresso() time fail = " + (t1.toDouble-t0.toDouble)/1000000000)
+		return args(0)
+	}
+
+      val l = enum(root)
+
+      // if l == Nil then there are no cases where this
+      // evaluates to true, so return false
+      if(l == Nil) false
+      else if(l.contains(-1)) {
+        if(debug) println("FAIL")
+        println("FAIL: espresso failure in identifying what to enum")
+	  println(iterVars.distinct.length +" vars identified:")
+        iterVars.distinct foreach(e => println(e.toParseString))
+	  println("FAIL: end here")
+
+        args(0)
+      }
+      else {
+        val ret = espresso(vars.length, l)
+        parseEspresso(ret, vars.toList)
+      }
+    } else {
+      args(0)
+    }
+    case _ => args(0)
+    //case Args(BooleanLiteral(a1,a2)) => BooleanLiteral(a1,a2)
+    //case _ => as_is
+}
+"""
+})
+
+// good tests
+// and($x, foo(goo(and($y, $t), $t), bar(goo($w, $v), $t)))
+// test(and($x, foo(goo(and($y, $t), $t), bar(goo($w, $v), $t))))
+// test(and($x,bar($v,$c),foo(goo(and($x,$t), $t), bar(goo($w,$v),$v))))
+// test(and(not(int_equal($ESP, 0)), int_equal($ESP, 0), not(int_equal(unsigned_32(signed_8(acc_8(perform_updates($M, merge(mem_32(add_32($ESP, -28), add_32($EBP, -40004)), mem_32(add_32($ESP, -16), 4199137), mem_32(add_32($ESP, -12), add_32($EBP, -30004)), mem_32(add_32($ESP, -24), add_32($EBP, -30004)), mem_32(add_32($ESP, -8), add_32($EBP, -40004)), mem_32(add_32($ESP, -20), $EBP), mem_32(add_32($ESP, -36), 4200770), mem_32(add_32($ESP, -32), 4203016), mem_32(add_32($ESP, -4), unsigned_32(signed_8(acc_8(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4199094), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4199023), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198987), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202803))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202797))), add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202805))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198987), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202803))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202797))), add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202803))), add($EBP, 12)), 8))), mem_32(add_32($ESP, -4), 4202807))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4199023), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198987), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202803))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202797))), add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202805))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198987), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202803))), add_32(acc_32(perform_updates($M, merge(mem_32(add_32($ESP, -12), 4198825), mem_32(add_32($ESP, -8), acc_32(perform_updates($M, mem_32(add_32($ESP, -4), 4202797)), add_32(acc_32($M, add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202797))), add($EBP, 12)), 4))), mem_32(add_32($ESP, -4), 4202803))), add($EBP, 12)), 8))), mem_32(add_32($ESP, -4), 4202805))), add($EBP, 12)), 8))), mem_32(add_32($ESP, -4), 4202807))), 4202749)))))), add_32($EBP, -30004)))), 0))))
+
+//decl.({!
+//  foo($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true] 
+//})
+//decl.({!
+//  goo($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true] 
+//})
+//decl.({!
+//  bar($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true] 
+//  //bar($x, $y)
+//})
+//decl.({!
+//  test1($x)
+//#handler="""
+//args match {
+//	case Args(Apply(op: OperatorRef, args: AtomSeq)) => 
+//  args.map(_.toString) foreach println
+//}
+//1
+//"""
+//})
