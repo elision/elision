@@ -9,9 +9,9 @@ import sage2D._
 import sage2D.sprites._
 
 /** Eva's welcome mode visualization. All it does is display the Eva logo and visualize a quadtree structure for demonstrating collision detections between sprites. */
-class WelcomePanel extends GamePanel {
-	background = new Color(0xffffff)
-	preferredSize = new Dimension(640,480)
+class WelcomePanel(game : GamePanel) extends Level(game) {
+	// background = new Color(0xffffff)
+	// preferredSize = new Dimension(640,480)
 	
     /** The collection of BallSprites used in the demo. */
 	val balls = new ListBuffer[BallSprite]
@@ -33,9 +33,15 @@ class WelcomePanel extends GamePanel {
     /** evaIcon's pixel height */
     var iconHeight = 0.0
     
-	def timerLoop : Unit = {
+    def loadData : Unit = {}
+    
+    def clean : Unit = {}
+    
+    
+    
+	override def logic : Unit = {
 		// create a new quadtree
-		val quadTree = new QuadTree(0,0,this.size.width,this.size.height)
+		val quadTree = new QuadTree(0,0,game.size.width,game.size.height)
 		quadSprite.quadTree = quadTree
 		
 		// populate the quadtree
@@ -51,11 +57,11 @@ class WelcomePanel extends GamePanel {
 					if(ball.collision(otherBall)) ball.isColliding = true
 				case _ =>
 			}
-			ball.move(this)
+			ball.move(game)
 		}
 	}
 	
-	def mainPaint(g : Graphics2D) : Unit = {
+	def render(g : Graphics2D) : Unit = {
 		// store affine transforms for later use
 		val origTrans = g.getTransform
 		
@@ -65,10 +71,10 @@ class WelcomePanel extends GamePanel {
 		
 		quadSprite.render(g)
 		
-        iconWidth = evaIcon.getWidth(this.peer)
-        iconHeight = evaIcon.getHeight(this.peer)
+        iconWidth = evaIcon.getWidth(game.peer)
+        iconHeight = evaIcon.getHeight(game.peer)
         
-        g.translate(size.width/2, size.height/2)
+        g.translate(game.size.width/2, game.size.height/2)
         g.scale(2.0, 2.0)
         g.translate(0-iconWidth/2, 0-iconHeight/2)
         g.setColor(Color.BLACK)
@@ -80,15 +86,10 @@ class WelcomePanel extends GamePanel {
 		
 		// display HUD information
 		g.setColor(new Color(0x000000))
-		g.drawString("" + timer.fpsCounter, 10,32)
+		g.drawString("" + game.timer.fpsCounter, 10,32)
 	}
 	
-    /** This demonstration doesn't have a loading screen. */
-	def loadingPaint(g : Graphics2D) : Unit = {
-	
-	}
-	
-	start()
+	// start()
    // timer.setDelay(6)
    System.out.println("Welcome to Eva - Elision Visualization Assistant!")
    System.out.println("------------------------------------------------------")

@@ -512,12 +512,12 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 	
 	
 	/**
-	 * Computes an ARGB Color from an RGB color using the NodeSprite's alphaMaster value.
-	 * @param color		The color we are applying this sprite's alphaMaster to.
-	 * @return		A new Color with RGB identical to color's RGB, but using alphaMaster as its alpha color.
+	 * Computes an ARGB Color from an RGB color using the NodeSprite's opacity value.
+	 * @param color		The color we are applying this sprite's opacity to.
+	 * @return		A new Color with RGB identical to color's RGB, but using opacity as its alpha component.
 	 */
 	private def alphaColor(color : Color) : Color = {
-		new Color(color.getRed, color.getGreen, color.getBlue, (255 * alphaMaster).toInt)
+		new Color(color.getRed, color.getGreen, color.getBlue, (255 * opacity).toInt)
 	}
 	
 	

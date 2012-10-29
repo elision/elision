@@ -56,20 +56,13 @@ import ornl.elision.gui._
  * This panel shall display a tree structure showing the rewriting hierarchy 
  * of the last atom string passed to the REPL as input.
  */
-class TreeVisPanel extends GamePanel with HasCamera {
-	background = new Color(0xffffff)
-	preferredSize = new Dimension(640, 480)
+class TreeVisPanel(game : GamePanel) extends Level(game) with HasCamera {
+	//background = new Color(0xffffff)
+	//preferredSize = new Dimension(640, 480)
 	
 	/** The panel's camera for panning around and zooming in the visualization */
 	val camera = new Camera(0, 0, 640, 480)
 	NodeSprite.camera = camera
-	
-	/** The mouse input interface for the panel */
-	val mouseIn = new MouseInput(this)
-	
-    /** The keyboard input interface for the panel */
-	val keyboardIn = new KeyboardInput(this)
-//    focusable = true
 	
 	/** Keeps track of the mouse's position in world coordinates */
 	var mouseWorldPosition : java.awt.geom.Point2D = new java.awt.geom.Point2D.Double(0,0)
@@ -82,38 +75,44 @@ class TreeVisPanel extends GamePanel with HasCamera {
 	var loadingThingAngle = 0
     
     /** A SwingWorker thread used for concurrently rendering the panel's image. */
-    val renderThread = new TreeVisThread(this,timer)
+    val renderThread = new TreeVisThread(this,game.timer)
     renderThread.start // execute
     
     /** The Image containing the latest rendering of the visualization tree. */
     var renderedImage : Image = new BufferedImage(640,480, TreeVisPanel.imageType)
 	
 	
+    var timerLock = false
+    var isLoading = false
+    
     /** 
 	 * Overridden GamePanel event handler for the timer object. 
 	 * It runs an iteration through the timerLoop method if it isn't currently loading something, and it tells the panel to repaint.
 	 */
-	
-	override def actionPerformed(event : java.awt.event.ActionEvent) : Unit = event.getSource() match {
-		case gt : GameTimer => {
-            // if we're still processing a previous frame, just return.
-            if(!timerLock) {
-                timerLock = true
-                renderThread._continue = true
-            }
-            repaint
-		}
-		case _ =>
+	def logic : Unit = {
+        // if we're still processing a previous frame, just return.
+        if(!timerLock) {
+            timerLock = true
+            renderThread._continue = true
+        }
+
 	}
     
+    def loadData : Unit = {}
     
     /** 
      * Cleans up the TreeVis panel when we're done with it. 
      * Most importantly, it causes its worker thread to exit after its current iteration.
      */
-    
-    override def clean : Unit = {
+    def clean : Unit = {
         renderThread.exitFlag = true
+    }
+    
+    
+    /** Top level rendering for the TreeVis Level*/
+    def render(g : Graphics2D) : Unit = {
+		if(!isLoading) 	mainPaint(g)
+		else 			loadingPaint(g)
     }
     
 	/** 
@@ -142,6 +141,8 @@ class TreeVisPanel extends GamePanel with HasCamera {
 		g.drawLine(-300,0,300,0)
 		g.drawLine(0,-300,0,300)
 	}
+    
+    
 	
 	/** 
 	 * The method invoked for painting the tree visualization.
@@ -155,7 +156,7 @@ class TreeVisPanel extends GamePanel with HasCamera {
         
         // display HUD information
 		g.setColor(new Color(0x000000))
-		g.drawString("frame rate: " + timer.fpsCounter, 10,32)
+		g.drawString("frame rate: " + game.timer.fpsCounter, 10,32)
         g.drawString("camera zoom: " + camera.zoom, 10,52)
 	}
     
@@ -168,31 +169,6 @@ class TreeVisPanel extends GamePanel with HasCamera {
 	 */
 	
 	def loadingPaint(g : Graphics2D) : Unit = {
-		val centerX = this.size.width/2
-		val centerY = this.size.height/2
-		val radius = centerX / 4
-		
-		for(i <- 0 to 360 if i % 60 == 0) {
-			val alpha : Float = i/360.0f
-			val red : Float = alpha*0.8f + (1-alpha)*0.3f
-			val green : Float = alpha*0.8f + (1-alpha)*0.0f
-			val blue = 1.0f
-			
-			import java.awt.geom.Ellipse2D
-			val circle = new Ellipse2D.Double(centerX + radius*GameMath.cos(i + loadingThingAngle) - 20, centerY + radius*GameMath.sin(i + loadingThingAngle) - 20, 40, 40)
-			g.setColor(new Color(red,green,blue))
-			g.fill(circle)
-		}
-		
-		g.setColor(new Color(0x000000))
-		if(isLoading)
-			g.drawString("Loading...", centerX-50, centerY)
-		
-		loadingThingAngle += 5
-		
-		// display HUD information
-		g.setColor(new Color(0x000000))
-		g.drawString("" + timer.fpsCounter, 10,32)
 	}
 	
 	/**
@@ -221,42 +197,37 @@ class TreeVisPanel extends GamePanel with HasCamera {
 	 * Performs one iteration through the visualization panel's logic. 
 	 * It's mostly just processing mouse input for controlling the camera and selecting nodes.
 	 */
-	def timerLoop : Unit = {
-		keyboardIn.poll
+	def threadlogic : Unit = {
 		
-		// handle mouse input.
-		
-		mouseIn.poll
-		
-		if(mouseIn.justLeftPressed) {
+		if(mouse.justLeftPressed) {
         //    requestFocusInWindow
 			val clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
 			selectNode(clickedNode)
-			camera.startDrag(mouseIn.position)
+			camera.startDrag(mouse.position)
 		}
-		if(mouseIn.isLeftPressed) {
-			camera.drag(mouseIn.position)
-			camera.startDrag(mouseIn.position)
+		if(mouse.isLeftPressed) {
+			camera.drag(mouse.position)
+			camera.startDrag(mouse.position)
 		}
-		if(mouseIn.wheel == -1)
-			camera.zoomAtScreen(10.0/7.0, mouseIn.position) // camera.zoomAtScreen(1.25, mouseIn.position)
-		if(mouseIn.wheel == 1)
-			camera.zoomAtScreen(7.0/10.0, mouseIn.position) // camera.zoomAtScreen(0.8, mouseIn.position)
+		if(mouse.wheel == -1)
+			camera.zoomAtScreen(10.0/7.0, mouse.position) // camera.zoomAtScreen(1.25, mouse.position)
+		if(mouse.wheel == 1)
+			camera.zoomAtScreen(7.0/10.0, mouse.position) // camera.zoomAtScreen(0.8, mouse.position)
 		
 		// update the camera's transform based on its new state.
-		camera.pWidth = this.size.width
-		camera.pHeight = this.size.height
+		camera.pWidth = game.size.width
+		camera.pHeight = game.size.height
 		camera.updateTransform
 		
 		// update the mouse's current world coordinates
 		
-		mouseWorldPosition = camera.screenToWorldCoords(mouseIn.position)
+		mouseWorldPosition = camera.screenToWorldCoords(mouse.position)
 		
 	}
 	
 	// Once the panel is set up, start the timer.
 	// The timer will call timerLoop and repaint periodically
-	start()
+	// start()
 }
 
 /** */
@@ -282,7 +253,7 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
             }
             try {
                 // run the panel's logic before rendering it.
-                treeVis.timerLoop
+                treeVis.threadlogic
                 
                 // Create the rendered image.
                 val image = render 
@@ -306,13 +277,13 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
     }
     
     def render : Image = {
-        val image = treeVis.peer.createVolatileImage(treeVis.size.width, treeVis.size.height) // new BufferedImage(treeVis.size.width, treeVis.size.height, TreeVisPanel.imageType)
+        val image = treeVis.game.peer.createVolatileImage(treeVis.game.size.width, treeVis.game.size.height) // new BufferedImage(treeVis.size.width, treeVis.size.height, TreeVisPanel.imageType)
             
         var g = image.createGraphics
 
         // white background
         g.setColor(new Color(0xffffff))
-        g.fillRect(0,0,treeVis.size.width, treeVis.size.height)
+        g.fillRect(0,0,treeVis.game.size.width, treeVis.game.size.height)
         
         // store affine transforms for later use
 		val camTrans = treeVis.camera.getTransform

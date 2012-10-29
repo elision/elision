@@ -1,0 +1,495 @@
+<?xml version='1.0' encoding='utf-8'?>
+<elision-core msg="Internal error." when="Wed Jul 25 14:27:43 EDT 2012">
+      		<error ><item>java.lang.Thread.stop(Thread.java:813)</item><item>ornl.elision.gui.GUIActor$$anonfun$act$1$$anonfun$apply$1.apply(GUIActor.scala:79)</item><item>ornl.elision.gui.GUIActor$$anonfun$act$1$$anonfun$apply$1.apply(GUIActor.scala:67)</item><item>scala.actors.ReactorTask.run(ReactorTask.scala:31)</item><item>scala.actors.Reactor$class.resumeReceiver(Reactor.scala:129)</item><item>ornl.elision.gui.GUIActor$.scala$actors$ReplyReactor$$super$resumeReceiver(GUIActor.scala:47)</item><item>scala.actors.ReplyReactor$class.resumeReceiver(ReplyReactor.scala:68)</item><item>ornl.elision.gui.GUIActor$.resumeReceiver(GUIActor.scala:47)</item><item>scala.actors.Actor$class.searchMailbox(Actor.scala:500)</item><item>ornl.elision.gui.GUIActor$.searchMailbox(GUIActor.scala:47)</item><item>scala.actors.Reactor$$anonfun$startSearch$1$$anonfun$apply$mcV$sp$1.apply$mcV$sp(Reactor.scala:117)</item><item>scala.actors.Reactor$$anonfun$startSearch$1$$anonfun$apply$mcV$sp$1.apply(Reactor.scala:114)</item><item>scala.actors.Reactor$$anonfun$startSearch$1$$anonfun$apply$mcV$sp$1.apply(Reactor.scala:114)</item><item>scala.actors.ReactorTask.run(ReactorTask.scala:33)</item><item>scala.actors.threadpool.ThreadPoolExecutor.runWorker(Unknown Source)</item><item>scala.actors.threadpool.ThreadPoolExecutor$Worker.run(Unknown Source)</item><item>java.lang.Thread.run(Thread.java:722)</item></error>
+      		<binds>{ binds  }</binds>
+      		<operator-library>{: operator:SYMBOL { binds name -&gt; def:SYMBOL description -&gt; &quot;Add the named operator to the context.&quot; evenmeta -&gt; true params -&gt; %($op) detail -&gt; &quot;This will add the operator op to the current context.  This makes the operator available by name, or through an OPREF.&quot; type -&gt; ANY handler -&gt; &quot;\r\n  console.warn(\&quot;The def operator is deprecated.  Please use decl instead.\&quot;)\r\n  args match {\r\n    case Args(op: Operator) =&gt;\r\n      // Add the operator to the library.\r\n      context.operatorLibrary.add(op)\r\n      console.emitln(\&quot;Defined operator \&quot; + toESymbol(op.name) + \&quot;.\&quot;)\r\n      ApplyData._no_show\r\n    case Args(op) =&gt;\r\n      console.error(\&quot;Atom is not a named operator: \&quot; + op.toParseString)\r\n      ApplyData._no_show\r\n    case _ =&gt;\r\n      ApplyData._no_show\r\n  }\r\n&quot; } :}
+{: operator:SYMBOL { binds name -&gt; LIST:SYMBOL description -&gt; &quot;List type constructor.&quot; evenmeta -&gt; false params -&gt; %($type) detail -&gt; &quot;This operator is used to indicate the type of a list.  It takes a single argument that is the type of the atoms in the list.  For heterogeneous lists this will be ANY.\n \nDeclared in: bootstrap/Boot.eli&quot; type -&gt; ANY } :}
+{: operator:SYMBOL { binds name -&gt; xx:SYMBOL description -&gt; &quot;Cross product.&quot; evenmeta -&gt; false params -&gt; %A($x, $y) detail -&gt; &quot;This operator is used to construct types for operators.  It indicates the cross product of two atoms (typically types).  These originate from the types of the parameters of an operator.\n \nDeclared in: bootstrap/Boot.eli&quot; type -&gt; ANY } :}
+{: operator:SYMBOL { binds name -&gt; _decl:SYMBOL description -&gt; &quot;Declare a rule or operator in the current context.&quot; evenmeta -&gt; true params -&gt; %($item) detail -&gt; &quot;Given a rewrite rule, add the rewrite rule to the rule library in the current context.  Given an operator, add the operator to the operator library in the current context.&quot; type -&gt; ANY handler -&gt; &quot;\r\n  args(0) match {\r\n    case op: Operator =&gt;\r\n      context.operatorLibrary.add(op)\r\n      console.emitln(\&quot;Declared operator \&quot; + toESymbol(op.name) + \&quot;.\&quot;)\r\n      _no_show\r\n    case rule: RewriteRule =&gt;\r\n      context.ruleLibrary.add(rule)\r\n      console.emitln(\&quot;Declared rule.\&quot;)\r\n      _no_show\r\n    case _ =&gt;\r\n      as_is\r\n  }\r\n&quot; } :}
+{: operator:SYMBOL { binds name -&gt; MAP:SYMBOL description -&gt; &quot;Mapping constructor.&quot; evenmeta -&gt; false params -&gt; %($domain, $codomain) detail -&gt; &quot;This operator is used to construct types for operators.  It indicates a mapping from one type (the domain) to another type (the codomain).\n \nDeclared in: bootstrap/Boot.eli&quot; type -&gt; ANY } :}
+{: operator:SYMBOL { binds name -&gt; decl:SYMBOL description -&gt; &quot;Declare a rule or operator in the current context.&quot; evenmeta -&gt; true detail -&gt; &quot;Given a rewrite rule, add the rewrite rule to the rule library in the current context.  Given an operator, add the operator to the operator library in the current context.&quot; cases -&gt; %((%($item) -&gt; _decl($$item)), ($item -&gt; _decl($$item))) } :}
+</operator-library>
+      		<rule-library>// Rules for class ornl.elision.core.SymbolLiteral.
+
+</rule-library>
+      		<history>0: // New Session: Fri Jun 29 15:42:53 EDT 2012 Running: 0.2, build 201206291542
+1: help(typeof)
+2: help(decl)
+3: help
+4: help()
+5: help(unbind)
+6: // New Session: Fri Jun 29 15:51:35 EDT 2012 Running: 0.2, build 201206291550
+7: help(decl)
+8: help(typeof)
+9: // New Session: Fri Jun 29 15:54:25 EDT 2012 Running: 0.2, build 201206291553
+10: help(decl)
+11: context()
+12: // New Session: Fri Jun 29 16:03:21 EDT 2012 Running: 0.2, build 201206291602
+13: // New Session: Fri Jun 29 16:05:06 EDT 2012 Running: 0.2, build 201206291604
+14: help(mod_NN_16)
+15: help(intel_instruction)
+16: help(OPERAND)
+17: help(empty_list)
+18: // New Session: Fri Jun 29 16:08:58 EDT 2012 Running: 0.2, build 201206291604
+19: help(decl)
+20: help()
+21: read(&quot;
+22: eli-files/files_inc.eli&quot;)
+23: read(&quot;./eli-files/files_inc.eli&quot;)
+24: help(add)
+25: read(&quot;bootstrap/math.eli&quot;)
+26: help(typeof)
+27: help()
+28: help(gcd)
+29: help(abs)
+30: :quit
+31: // Ended normally: Fri Jun 29 16:13:12 EDT 2012
+32: // New Session: Fri Jun 29 16:15:42 EDT 2012 Running: 0.2, build 201206291604
+33: help()
+34: help(println)
+35: help(help)
+36: help(context)
+37: help(print)
+38: help(println)
+39: :quit
+40: // Ended normally: Fri Jun 29 16:23:36 EDT 2012
+41: // New Session: Fri Jun 29 16:24:40 EDT 2012 Running: 0.2, build 201206291622
+42: help(print)
+43: help(println)
+44: :quit
+45: // Ended normally: Fri Jun 29 16:25:10 EDT 2012
+46: // New Session: Mon Jul 02 10:15:04 EDT 2012 Running: 0.2, build 201206291622
+47: help(intel_sem_2)
+48: // New Session: Mon Jul 02 10:37:22 EDT 2012 Running: 0.2, build 201206291622
+49: // New Session: Mon Jul 02 10:40:17 EDT 2012 Running: 0.2, build 201206291622
+50: help(mod_NN_8)
+51: // New Session: Mon Jul 02 10:47:45 EDT 2012 Running: 0.2, build 201206291622
+52: // New Session: Mon Jul 02 11:04:44 EDT 2012 Running: 0.2, build 201207021103
+53: // New Session: Thu Jul 05 10:34:23 EDT 2012 Running: 0.2, build 201207021103
+54: help(fail)
+55: fail()
+56: // New Session: Thu Jul 05 12:36:40 EDT 2012 Running: 0.2, build 201207051205
+57: // New Session: Thu Jul 05 13:07:25 EDT 2012 Running: 0.2, build 201207051306
+58: // Ended normally: Thu Jul 05 13:07:34 EDT 2012
+59: // New Session: Thu Jul 05 13:08:56 EDT 2012 Running: 0.2, build 201207051308
+60: :quit
+61: // Ended normally: Thu Jul 05 13:09:11 EDT 2012
+62: // New Session: Thu Jul 05 13:11:14 EDT 2012 Running: 0.2, build 201207051310
+63: // Ended normally: Thu Jul 05 13:11:23 EDT 2012
+64: // New Session: Thu Jul 05 13:12:07 EDT 2012 Running: 0.2, build 201207051311
+65: loadcoredump
+66: loadcoredump()
+67: loadcoredump(&quot;elision.core&quot;)
+68: :quit
+69: // Ended normally: Thu Jul 05 13:28:33 EDT 2012
+70: // New Session: Thu Jul 05 13:35:45 EDT 2012 Running: 0.2, build 201207051335
+71: // Ended normally: Thu Jul 05 13:35:55 EDT 2012
+72: // New Session: Thu Jul 05 13:56:51 EDT 2012 Running: 0.2, build 201207051356
+73: // Ended normally: Thu Jul 05 13:57:01 EDT 2012
+74: // New Session: Thu Jul 05 14:04:23 EDT 2012 Running: 0.2, build 201207051357
+75: loadcoredump(
+76: &quot;elision.core&quot;)
+77: fail()
+78: loadcoredump(&quot;elision.core&quot;)
+79: :quit
+80: // Ended normally: Thu Jul 05 14:11:32 EDT 2012
+81: // New Session: Thu Jul 05 14:12:55 EDT 2012 Running: 0.2, build 201207051412
+82: loadcoredump(&quot;elision.core&quot;)
+83: :quit
+84: // Ended normally: Thu Jul 05 14:13:47 EDT 2012
+85: // New Session: Thu Jul 05 14:19:44 EDT 2012 Running: 0.2, build 201207051419
+86: loadcoredump(&quot;elision.core&quot;)
+87: :quit
+88: // Ended normally: Thu Jul 05 14:21:11 EDT 2012
+89: // New Session: Thu Jul 05 14:21:51 EDT 2012 Running: 0.2, build 201207051421
+90: loadcoredump(&quot;elision.core&quot;)
+91: :quit
+92: // Ended normally: Thu Jul 05 14:43:23 EDT 2012
+93: // New Session: Thu Jul 05 14:44:49 EDT 2012 Running: 0.2, build 201207051444
+94: loadcoredump(&quot;elision.core&quot;)
+95: :quit
+96: // Ended normally: Thu Jul 05 14:46:06 EDT 2012
+97: // New Session: Thu Jul 05 15:06:36 EDT 2012 Running: 0.2, build 201207051505
+98: loadcoredump(&quot;elision.core&quot;)
+99: :quit
+100: // Ended normally: Thu Jul 05 15:08:28 EDT 2012
+101: // New Session: Thu Jul 05 15:14:56 EDT 2012 Running: 0.2, build 201207051514
+102: loadcoredump(&quot;elision.core&quot;)
+103: :quit
+104: // Ended normally: Thu Jul 05 15:15:29 EDT 2012
+105: // New Session: Thu Jul 05 15:24:11 EDT 2012 Running: 0.2, build 201207051523
+106: loadcoredump(&quot;elision.core&quot;)
+107: :quit
+108: // Ended normally: Thu Jul 05 15:29:16 EDT 2012
+109: // New Session: Thu Jul 05 15:37:35 EDT 2012 Running: 0.2, build 201207051536
+110: loadcoredump(&quot;elision.core&quot;)
+111: :quit
+112: // Ended normally: Thu Jul 05 15:38:53 EDT 2012
+113: // New Session: Thu Jul 05 15:39:55 EDT 2012 Running: 0.2, build 201207051536
+114: loadcoredump(&quot;elision.core&quot;)
+115: :quit
+116: // Ended normally: Thu Jul 05 15:43:39 EDT 2012
+117: // New Session: Thu Jul 05 15:44:46 EDT 2012 Running: 0.2, build 201207051543
+118: loadcoredump(&quot;elision.core&quot;)
+119: :quit
+120: // Ended normally: Thu Jul 05 15:45:47 EDT 2012
+121: // New Session: Thu Jul 05 15:52:21 EDT 2012 Running: 0.2, build 201207051546
+122: loadcoredump(&quot;elision.core&quot;)
+123: :quit
+124: // Ended normally: Thu Jul 05 16:22:14 EDT 2012
+125: // New Session: Thu Jul 05 16:22:18 EDT 2012 Running: 0.2, build 201207051621
+126: loadcoredump(&quot;elision.core&quot;)
+127: :quit
+128: // Ended normally: Thu Jul 05 16:23:07 EDT 2012
+129: // New Session: Thu Jul 05 16:38:26 EDT 2012 Running: 0.2, build 201207051637
+130: loadcoredump(&quot;elision.core&quot;)
+131: :quit
+132: // Ended normally: Thu Jul 05 16:45:10 EDT 2012
+133: // New Session: Thu Jul 05 16:45:18 EDT 2012 Running: 0.2, build 201207051644
+134: loadcoredump(&quot;elision.core&quot;)
+135: :quit
+136: // Ended normally: Thu Jul 05 16:47:36 EDT 2012
+137: // New Session: Thu Jul 05 16:47:38 EDT 2012 Running: 0.2, build 201207051646
+138: // New Session: Thu Jul 05 16:52:41 EDT 2012 Running: 0.2, build 201207051652
+139: loadcoredump(&quot;elision.core&quot;)
+140: inc(&quot;files_inc.eli&quot;)
+141: fail()
+142: :quit
+143: // Ended normally: Thu Jul 05 16:55:03 EDT 2012
+144: // New Session: Thu Jul 05 16:55:05 EDT 2012 Running: 0.2, build 201207051652
+145: // New Session: Thu Jul 05 17:00:55 EDT 2012 Running: 0.2, build 201207051700
+146: inc(&quot;files_inc.eli&quot;)
+147: fail()
+148: :quit
+149: // Ended normally: Thu Jul 05 17:01:57 EDT 2012
+150: // New Session: Thu Jul 05 17:02:06 EDT 2012 Running: 0.2, build 201207051700
+151: loadcoredump(&quot;elision.core&quot;)
+152: :quit
+153: // Ended normally: Thu Jul 05 17:02:45 EDT 2012
+154: // New Session: Fri Jul 06 10:57:08 EDT 2012 Running: 0.2, build 201207061056
+155: // New Session: Fri Jul 06 11:01:07 EDT 2012 Running: 0.2, build 201207061100
+156: loadcoredump(&quot;elision.core&quot;)
+157: context()
+158: help()
+159: showbinds()
+160: :quit
+161: // Ended normally: Fri Jul 06 11:05:29 EDT 2012
+162: // New Session: Fri Jul 06 11:06:28 EDT 2012 Running: 0.2, build 201207061105
+163: loadcoredump(&quot;elision.core&quot;)
+164: :quit
+165: // Ended normally: Fri Jul 06 11:09:33 EDT 2012
+166: // New Session: Fri Jul 06 11:10:34 EDT 2012 Running: 0.2, build 201207061109
+167: loadcoredump(&quot;elision.core&quot;)
+168: :quit
+169: // Ended normally: Fri Jul 06 11:15:37 EDT 2012
+170: // New Session: Fri Jul 06 11:16:13 EDT 2012 Running: 0.2, build 201207061115
+171: loadcoredump(&quot;elision.core&quot;)
+172: :quit
+173: // Ended normally: Fri Jul 06 11:28:35 EDT 2012
+174: // New Session: Fri Jul 06 11:28:59 EDT 2012 Running: 0.2, build 201207061128
+175: loadcoredump(&quot;elision.core&quot;)
+176: :quit
+177: // Ended normally: Fri Jul 06 11:59:43 EDT 2012
+178: // New Session: Fri Jul 06 11:59:52 EDT 2012 Running: 0.2, build 201207061128
+179: :quit
+180: // Ended normally: Fri Jul 06 12:00:05 EDT 2012
+181: // New Session: Fri Jul 06 12:02:23 EDT 2012 Running: 0.2, build 201207061201
+182: inc(&quot;files_inc.eli&quot;)
+183: fail()
+184: :quit
+185: // Ended normally: Fri Jul 06 12:03:33 EDT 2012
+186: // New Session: Fri Jul 06 12:03:37 EDT 2012 Running: 0.2, build 201207061201
+187: reloadcoredump(&quot;elision.core&quot;)
+188: loadcoredump(&quot;elision.core&quot;)
+189: :quit
+190: // Ended normally: Fri Jul 06 12:06:51 EDT 2012
+191: // New Session: Fri Jul 06 12:07:56 EDT 2012 Running: 0.2, build 201207061206
+192: loadcoredump(&quot;elision.core&quot;)
+193: :quit
+194: // Ended normally: Fri Jul 06 13:28:56 EDT 2012
+195: // New Session: Fri Jul 06 13:29:09 EDT 2012 Running: 0.2, build 201207061328
+196: loadcoredump(&quot;elision.core&quot;)
+197: :quit
+198: // Ended normally: Fri Jul 06 13:34:51 EDT 2012
+199: // New Session: Fri Jul 06 13:43:22 EDT 2012 Running: 0.2, build 201207061342
+200: loadcoredump(&quot;elision.core&quot;)
+201: :quit
+202: // Ended normally: Fri Jul 06 13:47:52 EDT 2012
+203: // New Session: Fri Jul 06 13:47:59 EDT 2012 Running: 0.2, build 201207061342
+204: help()
+205: :quit
+206: // Ended normally: Fri Jul 06 13:52:24 EDT 2012
+207: // New Session: Fri Jul 06 13:54:09 EDT 2012 Running: 0.2, build 201207061353
+208: inc(&quot;files_inc.eli&quot;)
+209: fail()
+210: :quit
+211: // Ended normally: Fri Jul 06 13:55:26 EDT 2012
+212: // New Session: Fri Jul 06 13:55:30 EDT 2012 Running: 0.2, build 201207061353
+213: loadcoredump(&quot;elision.core&quot;)
+214: :quit
+215: // Ended normally: Fri Jul 06 13:59:18 EDT 2012
+216: // New Session: Fri Jul 06 14:00:52 EDT 2012 Running: 0.2, build 201207061359
+217: inc(&quot;file_inc.eli&quot;)
+218: inc(&quot;files_inc.eli&quot;)
+219: fail()
+220: :quit
+221: // Ended normally: Fri Jul 06 14:02:18 EDT 2012
+222: // New Session: Fri Jul 06 14:02:20 EDT 2012 Running: 0.2, build 201207061359
+223: loadcoredump(&quot;elision.core&quot;)
+224: :quit
+225: // Ended normally: Fri Jul 06 14:05:52 EDT 2012
+226: // New Session: Fri Jul 06 14:05:56 EDT 2012 Running: 0.2, build 201207061359
+227: :quit
+228: // New Session: Fri Jul 06 14:06:59 EDT 2012 Running: 0.2, build 201207061359
+229: $alice = true
+230: bind($alice, true)
+231: bind($bob, 11)
+232: bind($carol, false)
+233: bind($dave, 42)
+234: fail()
+235: :quit
+236: // New Session: Fri Jul 06 14:08:56 EDT 2012 Running: 0.2, build 201207061359
+237: loadcoredump(&quot;elision.core&quot;)
+238: // New Session: Fri Jul 06 14:14:52 EDT 2012 Running: 0.2, build 201207061414
+239: bind($alice,true)
+240: bind($bob,11)
+241: bind($carol,false)
+242: bind($dave,42)
+243: fail()
+244: :quit
+245: // New Session: Fri Jul 06 14:15:53 EDT 2012 Running: 0.2, build 201207061414
+246: loadcoredump(&quot;elision.core&quot;)
+247: // New Session: Fri Jul 06 14:25:32 EDT 2012 Running: 0.2, build 201207061414
+248: fail()
+249: // New Session: Thu Jul 12 16:20:15 EDT 2012 Running: 0.2, build 201207121619
+250: // Ended normally: Thu Jul 12 16:20:26 EDT 2012
+251: // New Session: Thu Jul 12 16:22:03 EDT 2012 Running: 0.2, build 201207121619
+252: // Ended normally: Thu Jul 12 16:22:14 EDT 2012
+253: // New Session: Thu Jul 12 16:26:58 EDT 2012 Running: 0.2, build 201207121619
+254: // Ended normally: Thu Jul 12 16:27:09 EDT 2012
+255: // New Session: Thu Jul 12 16:28:18 EDT 2012 Running: 0.2, build 201207121619
+256: // Ended normally: Thu Jul 12 16:28:28 EDT 2012
+257: // New Session: Thu Jul 12 16:29:08 EDT 2012 Running: 0.2, build 201207121628
+258: // Ended normally: Thu Jul 12 16:29:18 EDT 2012
+259: // New Session: Thu Jul 12 16:30:07 EDT 2012 Running: 0.2, build 201207121629
+260: // Ended normally: Thu Jul 12 16:30:18 EDT 2012
+261: // New Session: Thu Jul 12 16:31:18 EDT 2012 Running: 0.2, build 201207121630
+262: help()
+263: savecheckpt
+264: savecheckpt()
+265: displaycheckpts()
+266: inc(&quot;files_inc.eli&quot;)
+267: savecheckpt()
+268: help()
+269: loadcheckpt(0)
+270: help()
+271: loadcheckpt(1)
+272: help()
+273: help(abs)
+274: abs(-5)
+275: binds()
+276: bindings()
+277: showbinds()
+278: bind($alice, true)
+279: bind($bob, 11)
+280: bind($carol, false)
+281: bind($dave, 42)
+282: showbinds()
+283: savecheckpt()
+284: loadcheckpt(0)
+285: displaycheckpts()
+286: showbinds()
+287: $alice
+288: bind($alice, false)
+289: $alice
+290: abs(-5)
+291: help()
+292: add(1,1)
+293: :quit
+294: // Ended normally: Thu Jul 12 16:37:00 EDT 2012
+295: // New Session: Thu Jul 12 16:37:02 EDT 2012 Running: 0.2, build 201207121630
+296: abs(-5)
+297: :quit
+298: // Ended normally: Thu Jul 12 16:37:20 EDT 2012
+299: // New Session: Thu Jul 12 16:39:59 EDT 2012 Running: 0.2, build 201207121639
+300: help()
+301: showbinds()
+302: savecheckpt()
+303: inc(&quot;files_inc.eli&quot;)
+304: help()
+305: savecheckpt()
+306: bind($alice, true)
+307: bind($bob, 11)
+308: bind($carol, false)
+309: bind($dave, 42)
+310: savecheckpt()
+311: showbinds
+312: showbinds()
+313: displaycheckpts()
+314: loadcheckpt(0)
+315: help()
+316: abs(-5)
+317: $alice
+318: showbinds()
+319: add(1,1)
+320: loadcheckpt(2)
+321: loadcheckpt(5)
+322: showbinds()
+323: $alice
+324: help()
+325: :quit
+326: // Ended normally: Thu Jul 12 16:44:12 EDT 2012
+327: // New Session: Thu Jul 12 16:44:43 EDT 2012 Running: 0.2, build 201207121639
+328: // New Session: Thu Jul 12 16:45:37 EDT 2012 Running: 0.2, build 201207121639
+329: displaycheckpts()
+330: savecheckpt()
+331: inc(&quot;files_inc.eli&quot;)
+332: bind($alice, true)
+333: showbinds()
+334: savecheckpt()
+335: loadcheckpt(0)
+336: abs(-5)
+337: // New Session: Fri Jul 13 12:53:11 EDT 2012 Running: 0.2, build 201207131251
+338: help()
+339: :quit
+340: // Ended normally: Fri Jul 13 12:53:41 EDT 2012
+341: // New Session: Fri Jul 13 12:55:22 EDT 2012 Running: 0.2, build 201207131254
+342: // New Session: Thu Jul 19 10:27:49 EDT 2012 Running: 0.2, build 201207191015
+343: // New Session: Thu Jul 19 10:28:02 EDT 2012 Running: 0.2, build 201207191015
+344: herp
+345: derp
+346: merp
+347: // New Session: Thu Jul 19 10:29:15 EDT 2012 Running: 0.2, build 201207191015
+348: lolwut
+349: // New Session: Thu Jul 19 10:34:48 EDT 2012 Running: 0.2, build 201207191034
+350: herp
+351: // New Session: Thu Jul 19 10:35:04 EDT 2012 Running: 0.2, build 201207191034
+352: derp
+353: herp
+354: // New Session: Thu Jul 19 10:39:02 EDT 2012 Running: 0.2, build 201207191034
+355: // New Session: Thu Jul 19 11:00:55 EDT 2012 Running: 0.2, build 201207191100
+356: inc(&quot;files_inc.eli&quot;)
+357: // New Session: Thu Jul 19 11:13:56 EDT 2012 Running: 0.2, build 201207191113
+358: inc(&quot;files_inc.eli&quot;)
+359: help()
+360: // New Session: Thu Jul 19 11:20:34 EDT 2012 Running: 0.2, build 201207191119
+361: help()
+362: :quit
+363: // New Session: Thu Jul 19 11:21:07 EDT 2012 Running: 0.2, build 201207191119
+364: help()
+365: :quit
+366: // Ended normally: Thu Jul 19 11:21:28 EDT 2012
+367: // New Session: Thu Jul 19 11:24:49 EDT 2012 Running: 0.2, build 201207191119
+368: help()
+369: // New Session: Thu Jul 19 11:33:18 EDT 2012 Running: 0.2, build 201207191119
+370: help()
+371: // New Session: Thu Jul 19 12:19:59 EDT 2012 Running: 0.2, build 201207191217
+372: // New Session: Thu Jul 19 12:21:52 EDT 2012 Running: 0.2, build 201207191221
+373: help()
+374: // New Session: Thu Jul 19 12:28:03 EDT 2012 Running: 0.2, build 201207191222
+375: herp
+376: help()
+377: // New Session: Thu Jul 19 12:31:51 EDT 2012 Running: 0.2, build 201207191231
+378: help()
+379: // New Session: Thu Jul 19 12:37:28 EDT 2012 Running: 0.2, build 201207191237
+380: help()
+381: // New Session: Thu Jul 19 12:41:51 EDT 2012 Running: 0.2, build 201207191240
+382: // New Session: Thu Jul 19 12:50:04 EDT 2012 Running: 0.2, build 201207191248
+383: help()
+384: // New Session: Thu Jul 19 12:53:13 EDT 2012 Running: 0.2, build 201207191252
+385: help()
+386: // New Session: Thu Jul 19 13:04:22 EDT 2012 Running: 0.2, build 201207191303
+387: // New Session: Thu Jul 19 13:06:13 EDT 2012 Running: 0.2, build 201207191305
+388: help()
+389: // New Session: Thu Jul 19 16:22:37 EDT 2012 Running: 0.2, build 201207191621
+390: herp
+391: // New Session: Thu Jul 19 16:25:10 EDT 2012 Running: 0.2, build 201207191624
+392: // New Session: Thu Jul 19 16:25:41 EDT 2012 Running: 0.2, build 201207191624
+393: // New Session: Thu Jul 19 16:28:00 EDT 2012 Running: 0.2, build 201207191627
+394: // New Session: Thu Jul 19 16:29:03 EDT 2012 Running: 0.2, build 201207191628
+395: // New Session: Thu Jul 19 16:33:31 EDT 2012 Running: 0.2, build 201207191633
+396: herp derp
+397: // New Session: Thu Jul 19 16:35:16 EDT 2012 Running: 0.2, build 201207191634
+398: // New Session: Thu Jul 19 16:42:49 EDT 2012 Running: 0.2, build 201207191641
+399: // New Session: Thu Jul 19 16:46:05 EDT 2012 Running: 0.2, build 201207191645
+400: // New Session: Thu Jul 19 16:47:01 EDT 2012 Running: 0.2, build 201207191646
+401: // New Session: Thu Jul 19 16:57:15 EDT 2012 Running: 0.2, build 201207191656
+402: // New Session: Thu Jul 19 16:59:28 EDT 2012 Running: 0.2, build 201207191659
+403: // New Session: Thu Jul 19 17:00:30 EDT 2012 Running: 0.2, build 201207191700
+404: // New Session: Thu Jul 19 17:00:57 EDT 2012 Running: 0.2, build 201207191700
+405: // New Session: Thu Jul 19 17:01:01 EDT 2012 Running: 0.2, build 201207191700
+406: // New Session: Thu Jul 19 17:01:16 EDT 2012 Running: 0.2, build 201207191700
+407: // New Session: Thu Jul 19 17:01:35 EDT 2012 Running: 0.2, build 201207191700
+408: // New Session: Thu Jul 19 17:02:55 EDT 2012 Running: 0.2, build 201207191702
+409: // New Session: Thu Jul 19 17:03:28 EDT 2012 Running: 0.2, build 201207191702
+410: // New Session: Thu Jul 19 17:03:36 EDT 2012 Running: 0.2, build 201207191702
+411: // New Session: Thu Jul 19 17:03:51 EDT 2012 Running: 0.2, build 201207191702
+412: // New Session: Thu Jul 19 17:04:09 EDT 2012 Running: 0.2, build 201207191702
+413: herp derp
+414: // New Session: Thu Jul 19 17:05:05 EDT 2012 Running: 0.2, build 201207191702
+415: // New Session: Fri Jul 20 09:04:57 EDT 2012 Running: 0.2, build 201207191702
+416: herp derp
+417: // New Session: Fri Jul 20 09:05:27 EDT 2012 Running: 0.2, build 201207191702
+418: // New Session: Fri Jul 20 09:30:36 EDT 2012 Running: 0.2, build 201207200920
+419: // New Session: Fri Jul 20 09:30:50 EDT 2012 Running: 0.2, build 201207200920
+420: herp derp
+421: // New Session: Fri Jul 20 09:31:03 EDT 2012 Running: 0.2, build 201207200920
+422: derp herp
+423: // New Session: Fri Jul 20 09:31:44 EDT 2012 Running: 0.2, build 201207200920
+424: herp derp
+425: // New Session: Fri Jul 20 09:33:42 EDT 2012 Running: 0.2, build 201207200933
+426: herp derp
+427: // New Session: Fri Jul 20 09:34:04 EDT 2012 Running: 0.2, build 201207200933
+428: // New Session: Fri Jul 20 09:38:22 EDT 2012 Running: 0.2, build 201207200937
+429: herp derp
+430: // New Session: Fri Jul 20 09:38:42 EDT 2012 Running: 0.2, build 201207200937
+431: // New Session: Fri Jul 20 09:39:57 EDT 2012 Running: 0.2, build 201207200939
+432: herp derp
+433: // New Session: Fri Jul 20 09:40:13 EDT 2012 Running: 0.2, build 201207200939
+434: derp herp
+435: // New Session: Fri Jul 20 09:40:29 EDT 2012 Running: 0.2, build 201207200939
+436: // New Session: Fri Jul 20 10:11:03 EDT 2012 Running: 0.2, build 201207201009
+437: herp derp
+438: // New Session: Fri Jul 20 10:11:42 EDT 2012 Running: 0.2, build 201207201009
+439: herp derp
+440: // New Session: Fri Jul 20 10:35:31 EDT 2012 Running: 0.2, build 201207201034
+441: // New Session: Fri Jul 20 10:39:36 EDT 2012 Running: 0.2, build 201207201038
+442: // New Session: Fri Jul 20 10:39:56 EDT 2012 Running: 0.2, build 201207201038
+443: // New Session: Fri Jul 20 10:46:09 EDT 2012 Running: 0.2, build 201207201044
+444: // New Session: Fri Jul 20 10:52:08 EDT 2012 Running: 0.2, build 201207201051
+445: // New Session: Fri Jul 20 11:02:18 EDT 2012 Running: 0.2, build 201207201100
+446: herp derp
+447: // New Session: Fri Jul 20 11:20:24 EDT 2012 Running: 0.2, build 201207201119
+448: // New Session: Fri Jul 20 11:25:32 EDT 2012 Running: 0.2, build 201207201125
+449: // New Session: Fri Jul 20 12:58:24 EDT 2012 Running: 0.2, build 201207201256
+450: herp derp
+451: // New Session: Fri Jul 20 13:04:41 EDT 2012 Running: 0.2, build 201207201302
+452: :quit
+453: // New Session: Fri Jul 20 13:04:59 EDT 2012 Running: 0.2, build 201207201302
+454: // New Session: Fri Jul 20 13:46:22 EDT 2012 Running: 0.2, build 201207201344
+455: // New Session: Fri Jul 20 13:48:17 EDT 2012 Running: 0.2, build 201207201347
+456: // New Session: Fri Jul 20 13:55:22 EDT 2012 Running: 0.2, build 201207201354
+457: // New Session: Fri Jul 20 14:17:04 EDT 2012 Running: 0.2, build 201207201415
+458: herp derp
+459: // New Session: Fri Jul 20 14:22:18 EDT 2012 Running: 0.2, build 201207201420
+460: // New Session: Mon Jul 23 12:41:14 EDT 2012 Running: 0.2, build 201207231240
+461: // New Session: Mon Jul 23 12:41:19 EDT 2012 Running: 0.2, build 201207231240
+462: // New Session: Mon Jul 23 12:43:56 EDT 2012 Running: 0.2, build 201207231243
+463: // New Session: Mon Jul 23 12:44:21 EDT 2012 Running: 0.2, build 201207231243
+464: herp derp
+465: // New Session: Mon Jul 23 12:45:30 EDT 2012 Running: 0.2, build 201207231243
+466: herp derp
+467: // New Session: Mon Jul 23 12:45:59 EDT 2012 Running: 0.2, build 201207231243
+468: // New Session: Mon Jul 23 13:31:24 EDT 2012 Running: 0.2, build 201207231330
+469: inc(&quot;files_inc.eli&quot;)
+470: // New Session: Wed Jul 25 12:44:26 EDT 2012 Running: 0.2, build 201207231330
+471: inc(&quot;files_inc.eli&quot;)
+472: mod(3,0)
+473: // New Session: Wed Jul 25 13:22:31 EDT 2012 Running: 0.2, build 201207251321
+474: // New Session: Wed Jul 25 14:04:45 EDT 2012 Running: 0.2, build 201207251402
+475: :quit
+476: // Ended normally: Wed Jul 25 14:04:58 EDT 2012
+477: // New Session: Wed Jul 25 14:05:08 EDT 2012 Running: 0.2, build 201207251402
+478: // New Session: Wed Jul 25 14:27:39 EDT 2012 Running: 0.2, build 201207251426
+</history>
+      		</elision-core>

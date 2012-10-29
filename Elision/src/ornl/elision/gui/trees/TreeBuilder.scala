@@ -630,7 +630,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     System.out.println("\nLoading tree from: " + file.getPath + "\n")
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
+                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
                         case tvp : TreeVisPanel =>
                             tvp
                         case _ =>
@@ -655,7 +655,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     if(!filePath.endsWith(".treexml")) filePath += ".treexml"
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
+                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
                         case tvp : TreeVisPanel =>
                             tvp
                         case _ =>
@@ -687,7 +687,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                 }
             case "finishTree" => // FINISH HIM. FATALITY. KO!
                 // get a reference to the tree visualization panel
-                val treeVisPanel : TreeVisPanel = mainGUI.visPanel match {
+                val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
                     case tvp : TreeVisPanel =>
                         tvp
                     case _ =>
