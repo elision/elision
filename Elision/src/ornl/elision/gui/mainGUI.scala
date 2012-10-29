@@ -76,7 +76,7 @@ object mainGUI extends SimpleSwingApplication {
 	val sidePanel = new SidePanel
 	
 	/** The panel housing Eva's current visualization. */
-	var visPanel : GamePanel = null
+	var visPanel : GamePanel = new EvaVisPanel
 	
 	GUIActor.start
 	
@@ -87,6 +87,12 @@ object mainGUI extends SimpleSwingApplication {
     val frame = new MainFrame {
 		title = defaultTitle // This may change depending on Eva's mode.
 		menuBar = guiMenuBar
+        
+        contents = new BorderPanel {
+			layout( visPanel) = Center
+			layout( consolePanel) = South
+			layout( sidePanel) = East
+        }
         
 		size = new Dimension(1024,800)
 		visible = true
@@ -103,13 +109,13 @@ object mainGUI extends SimpleSwingApplication {
         mode match {
             case "Elision" => 
                 syntax.SyntaxFormatter.regexes = elision.EliRegexes
-                visPanel = new elision.EliTreeVisPanel
+                visPanel.changeLevel("EliTreeVis") // = new elision.EliTreeVisPanel
             case "Welcome" =>
                 syntax.SyntaxFormatter.regexes = null
-                visPanel = new welcome.WelcomePanel
+                visPanel.changeLevel("welcome") // = new welcome.WelcomePanel
             case _ =>
                 syntax.SyntaxFormatter.regexes = null
-                visPanel = new welcome.WelcomePanel
+                visPanel.changeLevel("welcome") // = new welcome.WelcomePanel
                 mode = "Welcome"
         }
         
@@ -128,15 +134,10 @@ object mainGUI extends SimpleSwingApplication {
         // Change the window's title
         frame.title = defaultTitle + " (" + mode + " mode)"
         
-        frame.contents = new BorderPanel {
-			layout( visPanel) = Center
-			layout( consolePanel) = South
-			layout( sidePanel) = East
-        }
-        frame.size = new Dimension(1024,800)
-        
         // get focus in the REPL panel
 		consolePanel.console.requestFocusInWindow
+        
+        frame.repaint
     }
     
     // start in whatever mode was used last.
@@ -190,7 +191,7 @@ class GuiMenuBar extends MenuBar {
 		// Reset Camera : reset's the camera in the visualization panel.
 		
 		val resetCameraItem = new MenuItem(Action("Reset Camera") {
-            mainGUI.visPanel match {
+            mainGUI.visPanel.curLevel match {
                 case camPanel : sage2D.HasCamera =>
                     camPanel.camera.reset
             }

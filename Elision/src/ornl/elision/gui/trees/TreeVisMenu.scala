@@ -187,7 +187,7 @@ class DepthDialog extends Dialog {
             if(fieldInt > 0) {
                 mainGUI.config.decompDepth = fieldInt
                 mainGUI.config.save
-                mainGUI.visPanel match {
+                mainGUI.visPanel.curLevel match {
                     case treeVisPanel : TreeVisPanel => 
                         treeVisPanel.selectNode(treeVisPanel.treeSprite.selectedNode)
                 }  

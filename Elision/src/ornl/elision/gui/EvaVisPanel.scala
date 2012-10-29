@@ -35,42 +35,60 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.elision
+package ornl.elision.gui
 
 import java.awt._
-import ornl.elision.gui._
-import ornl.elision.gui.trees._
-import sage2D.GamePanel
+import sage2D._
 
-/** An extension of TreeVisPanel that handles some Elision-specific functions. */
-class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
-    var selectingRuleLHS = false
+
+class EvaVisPanel extends GamePanel {
+    background = new Color(0xffffff)
+	preferredSize = new Dimension(640,480)
     
-    override def selectNode(clickedNode : NodeSprite) : Unit = {
-        super.selectNode(clickedNode)
-        
-        // Interactive rule creation: User selects an atom node for the LHS and then 
-        // inputs the RHS and saves it to an eli file.
-        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
-            val ruleDia = new RulePredDialog(clickedNode.term)
-            selectingRuleLHS = false
-        }
+    /** A variable used only by the loading screen animation. It's not important. */
+	var loadingThingAngle = 0
+    
+    /** Painting just delegates to the current level's rendering. */
+    def mainPaint(g : Graphics2D) : Unit = {
+        if(curLevel != null)
+            curLevel.render(g)
+    }
+	
+    /** Loading animation. */
+	def loadingPaint(g : Graphics2D) : Unit = {
+        val centerX = this.size.width/2
+		val centerY = this.size.height/2
+		val radius = centerX / 4
+		
+		for(i <- 0 to 360 if i % 60 == 0) {
+			val alpha : Float = i/360.0f
+			val red : Float = alpha*0.8f + (1-alpha)*0.3f
+			val green : Float = alpha*0.8f + (1-alpha)*0.0f
+			val blue = 1.0f
+			
+			import java.awt.geom.Ellipse2D
+			val circle = new Ellipse2D.Double(centerX + radius*GameMath.cos(i + loadingThingAngle) - 20, centerY + radius*GameMath.sin(i + loadingThingAngle) - 20, 40, 40)
+			g.setColor(new Color(red,green,blue))
+			g.fill(circle)
+		}
+		
+		g.setColor(new Color(0x000000))
+		if(isLoading)
+			g.drawString("Loading...", centerX-50, centerY)
+		
+		loadingThingAngle += 5
     }
     
-    override def mainPaint(g : Graphics2D) : Unit = {
-        super.mainPaint(g)
-        
-        val helpPromptY = (this.game.size.getHeight-10).toInt
-        g.setColor(new Color(0x000000))
-        if(selectingRuleLHS) {
-            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
-        }
+    
+    /** Each "Level" represents one of Eva's modes. */
+    override def makeLevelInstance(levelName : String) : Level = {
+        if(levelName == "EliTreeVis")
+            new elision.EliTreeVisPanel(this)
+        else // default takes the user to the Welcome screen.
+            new welcome.WelcomePanel(this)
     }
+    
+    start()
 }
-
-
-
-
-
 
 
