@@ -48,11 +48,28 @@ object Memo {
 
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
+  
+  /** Always cache miss if an object's depth is greater than this limit. */
+  private var _maxdepth: BigInt = 100
+  
+  /** Set whether the cache is being used or not. */
+  private var _usingcache = true
 
   /** Declare the Elision property for turning memoization on/off. */
   knownExecutor.declareProperty("cache",
-                                "Whether to use memoization caching or not.",
-                                true)
+      "Whether to use memoization caching or not.",
+      _usingcache,
+      (pm: PropertyManager) => {
+        _usingcache = pm.getProperty[Boolean]("cache")
+      })
+                                
+  /** Declare the Elision property for the maximum depth of atoms to memoize. */
+  knownExecutor.declareProperty("maxcachedepth",
+      "The maximum depth of atoms to memoize.",
+      _maxdepth,
+      (pm: PropertyManager) => {
+        _maxdepth = pm.getProperty[BigInt]("maxcachedepth")
+      })
 
   /** The user's home folder. */
   private val _home = {
@@ -115,9 +132,6 @@ object Memo {
   /** Cache size that triggers write.  Careful!  Low values are bad. */
   private val _SIZE = 10000
   
-  /** Always cache miss if an object's depth is greater than this limit. */
-  private val _MAXDEPTH = 10
-  
   //======================================================================
   // The online cache.
   //======================================================================
@@ -134,7 +148,7 @@ object Memo {
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
-  private var _normal = new HashSet[(BasicAtom,Set[String])]()
+  private var _normal = new HashMap[(BasicAtom,Set[String]),Unit]()
   
   /**
    * Track whether anything has been added at a particular cache level.  If
@@ -189,6 +203,12 @@ object Memo {
    */
   def get(atom: BasicAtom, rulesets: Set[String]): Option[(BasicAtom, Boolean)] = {
 
+    // Return nothing if caching is turned off.
+    if (! _usingcache) return None
+   
+    // Never check for atoms whose depth is greater than the maximum.
+    if (atom.depth > _maxdepth) return None
+
     // Constants, variables, and symbols should never be
     // rewritten. So, if we are trying to get one of those just
     // return the original atom.
@@ -197,12 +217,6 @@ object Memo {
       return Some((atom, true))
     }
     
-    // Never check for atoms whose depth is greater than the maximum.
-    if (atom.depth > _MAXDEPTH) return None
-
-    // Return nothing if caching is turned off.
-    if (!knownExecutor.getProperty[Boolean]("cache")) return None
-   
     // We are doing caching. Actually look in the cache.
     if (_normal.contains((atom,rulesets))) {
       return Some((atom, false))
@@ -229,16 +243,15 @@ object Memo {
   def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
 
     // Do nothing if caching is turned off.
-    if (!knownExecutor.getProperty[Boolean]("cache")) return
+    if (! _usingcache) return
     
     // Never cache atoms whose depth is greater than the maximum.
-    if (atom.depth > _MAXDEPTH) return
+    if (atom.depth > _maxdepth) return
 
-    //println("** Elision: Cache add rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
+    // Store the item in the cache.
     val lvl = 0 max level min (_LIMIT-1)
-    if (atom eq value) {
-      _normal.add(atom, rulesets)
-    } else {
+    _normal((value, rulesets)) = Unit
+    if (!(atom eq value)) {
       _cache((atom, rulesets)) = (value, level)
     }
   }

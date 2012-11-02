@@ -30,6 +30,7 @@
 package ornl.elision.core
 import ornl.elision.ElisionException
 import scala.util.Properties
+import scala.collection.mutable.{OpenHashMap => HashMap}
 
 /**
  * The cache contains the wrong type of item for the requested key.
@@ -42,8 +43,9 @@ class CacheException(msg: String) extends ElisionException(msg)
  * Manage a collection of properties.
  */
 trait PropertyManager {
-  val _prop2val = scala.collection.mutable.OpenHashMap[String,Any]()
-  val _prop2desc = scala.collection.mutable.OpenHashMap[String,String]()
+  val _prop2val = HashMap[String,Any]()
+  val _prop2desc = HashMap[String,String]()
+  val _prop2close = HashMap[String,(PropertyManager => Unit)]()
   
   /**
    * Declare a property.
@@ -51,9 +53,15 @@ trait PropertyManager {
    * @param name        The property name.
    * @param description Human-readable description of the property.
    * @param default     The default value of the property.
+   * @param onchange    A closure to execute when the property is changed
+   *                    via the `setProperty` methods.  Can be omitted.
+   *                    The property manager instance is passed, not the new
+   *                    property value, as this provides access to all
+   *                    properties.
    * @return  The default value.
    */
-  def declareProperty[TYPE](name: String, description: String, default: TYPE) {
+  def declareProperty[TYPE](name: String, description: String, default: TYPE,
+      onchange: (PropertyManager => Unit) = null) {
     default match {
       case str: String =>
       case value: BigInt =>
@@ -68,6 +76,7 @@ trait PropertyManager {
     }
     _prop2val(name) = default
     _prop2desc(name) = description
+    _prop2close(name) = onchange
     default
   }
   
@@ -112,6 +121,10 @@ trait PropertyManager {
         throw new CacheException("No such property: " + toEString(name) + ".")
       case Some(item) =>
         _prop2val(name) = value
+        _prop2close(name) match {
+          case null =>
+          case x => x(this)
+        }
         value
 //        if (Manifest.classType(item.getClass) <:< mTYPE) {
 //          _prop2val(name) = value
