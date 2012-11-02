@@ -115,6 +115,9 @@ object Memo {
   /** Cache size that triggers write.  Careful!  Low values are bad. */
   private val _SIZE = 10000
   
+  /** Always cache miss if an object's depth is greater than this limit. */
+  private val _MAXDEPTH = 10
+  
   //======================================================================
   // The online cache.
   //======================================================================
@@ -184,36 +187,33 @@ object Memo {
    * @return  The optional fully-rewritten atom and a flag indicating whether
    *          the input atom is already in normal form.
    */
-  def get(atom: BasicAtom, rulesets: Set[String]) = {
+  def get(atom: BasicAtom, rulesets: Set[String]): Option[(BasicAtom, Boolean)] = {
 
     // Constants, variables, and symbols should never be
     // rewritten. So, if we are trying to get one of those just
     // return the original atom.
     if (atom.isInstanceOf[Literal[_]] ||
         atom.isInstanceOf[Variable]) {
-      Some((atom, true))
+      return Some((atom, true))
     }
+    
+    // Never check for atoms whose depth is greater than the maximum.
+    if (atom.depth > _MAXDEPTH) return None
 
     // Return nothing if caching is turned off.
-    else if (!knownExecutor.getProperty[Boolean]("cache")) {
-      None
-    }
+    if (!knownExecutor.getProperty[Boolean]("cache")) return None
    
     // We are doing caching. Actually look in the cache.
-    else {
-      if (_normal.contains((atom,rulesets))) {
-        //println("** Elision: Cache read rewrite " + atom.toParseString + " -> " + atom.toParseString + " for rulsests " + rulesets)
-        Some((atom, false))
-      } else {
-        _cache.get((atom, rulesets)) match {
-          case None =>
-            // Cache miss.
-            None
-          case Some((value, level)) =>
-            // Cache hit.
-            //println("** Elision: Cache read rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
-            Some((value, true))
-        }
+    if (_normal.contains((atom,rulesets))) {
+      return Some((atom, false))
+    } else {
+      _cache.get((atom, rulesets)) match {
+        case None =>
+          // Cache miss.
+          return None
+        case Some((value, level)) =>
+          // Cache hit.
+          return Some((value, true))
       }
     }
   }
@@ -229,9 +229,10 @@ object Memo {
   def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
 
     // Do nothing if caching is turned off.
-    if (!knownExecutor.getProperty[Boolean]("cache")) {
-      return
-    }
+    if (!knownExecutor.getProperty[Boolean]("cache")) return
+    
+    // Never cache atoms whose depth is greater than the maximum.
+    if (atom.depth > _MAXDEPTH) return
 
     //println("** Elision: Cache add rewrite " + atom.toParseString + " -> " + value.toParseString + " for rulsests " + rulesets)
     val lvl = 0 max level min (_LIMIT-1)
