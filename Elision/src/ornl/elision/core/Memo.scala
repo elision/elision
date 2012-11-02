@@ -49,8 +49,10 @@ object Memo {
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
   
-  /** Always cache miss if an object's depth is greater than this limit. */
-  private var _maxdepth: BigInt = 100
+  /**
+   * The maximum depth of atoms to memoize, or -1 for no limit.
+   */
+  private var _maxdepth: BigInt = -1
   
   /** Set whether the cache is being used or not. */
   private var _usingcache = true
@@ -207,7 +209,7 @@ object Memo {
     if (! _usingcache) return None
    
     // Never check for atoms whose depth is greater than the maximum.
-    if (atom.depth > _maxdepth) return None
+    if (_maxdepth >= 0 && atom.depth > _maxdepth) return None
 
     // Constants, variables, and symbols should never be
     // rewritten. So, if we are trying to get one of those just
@@ -246,7 +248,7 @@ object Memo {
     if (! _usingcache) return
     
     // Never cache atoms whose depth is greater than the maximum.
-    if (atom.depth > _maxdepth) return
+    if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
     val lvl = 0 max level min (_LIMIT-1)
