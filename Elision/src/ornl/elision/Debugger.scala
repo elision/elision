@@ -41,6 +41,9 @@ package ornl.elision
  * by name, so you can use this to avoid construction costs by deferring method
  * invocation.
  * 
+ * The tag is the second element to the debug statement to enable omitting it;
+ * if omitted, the tag is treated as the empty string.
+ * 
  * {{{
  * import ornl.elision.Debugger._
  * import ornl.elision.Debugger.Mode._
@@ -55,6 +58,17 @@ package ornl.elision
  * debug("Starting timer.", "start")
  * ...
  * debug("Reporting elapsed time.", "stop")
+ * }}}
+ * 
+ * Alternately, include the things you want to do in an `ifon` block.
+ * 
+ * {{{
+ * import ornl.elision.Debugger._
+ * 
+ * ifon("simple") {
+ *   println("The simple mode is enabled.")
+ *   for (i <- 1 upto 1000) println(i)
+ * }
  * }}}
  * 
  * There are several things you can do; see [ornl.elision.Debugger.Mode] for
@@ -155,6 +169,27 @@ object Debugger {
    */
   def disableDebugModes(tag: String, modes: Int) {
     if (modes != 0) _modes(tag) = (_modes.getOrElse(tag, 0) | modes) % modes
+  }
+  
+  /**
+   * Perform some action if the specified debugging tag is enabled, and only
+   * if the tag is enabled.  Use this by specifying the tag, and then giving
+   * the actions in brackets after.
+   * 
+   * {{{
+   * ifon("tim") {
+   *   println("Tim is go!")
+   * }
+   * }}}
+   * 
+   * @param tag     The debugging tag.
+   * @param action  The action to perform.  This is only evaluated iff the tag
+   *                is enabled.
+   */
+  def ifdebug(tag: String = "")(action: =>Unit) {
+    if ((_modes.getOrElse(tag,0) & ON) != 0) {
+      action
+    }
   }
   
   /**

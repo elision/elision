@@ -76,31 +76,31 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * just means the sequence was not marked as associative; it's associativity
    * may be unspecified.
    */
-  val associative = props.isA(false)
+  lazy val associative = props.isA(false)
   
   /**
    * Whether this sequence is specified to be commutative.  Note that false here
    * just means the sequence was not marked as commutative; it's associativity
    * may be unspecified.
    */
-  val commutative = props.isC(false)
+  lazy val commutative = props.isC(false)
   
   /**
    * Whether this sequence is specified to be idempotent.  Note that false here
    * just means the sequence was not marked as idempotent; it's associativity
    * may be unspecified.
    */
-  val idempotent = props.isI(false)
+  lazy val idempotent = props.isI(false)
   
   /**
    * The absorber for this sequence, if any.
    */
-  val absorber = props.absorber
+  lazy val absorber = props.absorber
   
   /**
    * The identity for this sequence, if any.
    */
-  val identity = props.identity
+  lazy val identity = props.identity
   
   /**
    * The atoms in this sequence.
@@ -111,7 +111,8 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * This is a mapping from constants in the sequence to the (zero-based)
    * index of the constant.
    */
-  lazy val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
+  val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
+  // Because it is used right here, the constant map cannot be lazy.
   for (i <- 0 until atoms.length)
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
   
@@ -131,7 +132,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     }
   lazy val isConstant = atoms.forall(_.isConstant)
   lazy val isTerm = atoms.forall(_.isTerm)
-  val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
+  lazy val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
   val depth = atoms.foldLeft(0)(_ max _.depth) + 1
   
   /**
@@ -204,29 +205,26 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   // GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
     ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
-    // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
-    
-    // Rewrite the properties.
     ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
     ReplActor ! ("Eva", "setSubroot", "props")
-    val (newprop, pchanged) = props.rewrite(binds)
     
-    // We must rewrite every child atom, and collect them into a new sequence.
+    // Rewrite the properties.
+    val (newprop, pchanged) = props.rewrite(binds)
     ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
     ReplActor ! ("Eva", "setSubroot", "atoms")
+    
+    // We must rewrite every child atom, and collect them into a new sequence.
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
       ReplActor ! ("Eva", "setSubroot", "rwNode")
       val newAS = new AtomSeq(newprop, newseq)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))
-      
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))      
       ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (newAS, true)
-    }
-    else {
+    } else {
       ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (this, false)
     }

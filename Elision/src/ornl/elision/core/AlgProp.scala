@@ -229,14 +229,13 @@ class AlgProp(
 	
 	//////////////////// GUI changes
   /**
-   * Apply this to the given atom.  If the provided atom is an atom sequence,
-   * then this will override the properties of the atom sequence.
+   * Apply this property specification to the given atom.  If the provided
+   * atom is an atom sequence, then this will override the properties of the
+   * atom sequence.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
-    // construct the root for this subtree and create a new table for nodes in this scope.
     ReplActor ! ("Eva","pushTable", "AlgProp doApply")
     ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) 
-    
   	rhs match {
   		/* A Note to Maintainers
   		 * Remember that for the "and" method the properties of the second
