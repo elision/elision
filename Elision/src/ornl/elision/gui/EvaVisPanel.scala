@@ -123,7 +123,7 @@ class EvaVisPanel extends GamePanel {
                         val ext = name.drop(lastDot+1)
                         if(ext == "eli") 
                             GUIActor ! file
-                        if(ext == "treexml")
+                        if(ext == "treexml" || ext == "treejson")
                             GUIActor ! ("OpenTree", file)
                     case _ => 
                         

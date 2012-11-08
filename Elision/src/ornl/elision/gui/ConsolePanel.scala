@@ -422,17 +422,17 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			
 			// keyboard menu shortcuts
 			
-			if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
-				mainGUI.guiMenuBar.openItem.doClick
+		//	if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
+		//		mainGUI.guiMenuBar.openItem.doClick
             if(e.key == swing.event.Key.F1)
                 mainGUI.guiMenuBar.helpItem.doClick
                 
             
-            mainGUI.visPanel match {
+            mainGUI.visPanel.curLevel match {
                 case etvp : elision.EliTreeVisPanel =>
-                    if(e.key == swing.event.Key.R && e.modifiers == swing.event.Key.Modifier.Control) {
-                        etvp.selectingRuleLHS = true
-                    }
+                //    if(e.key == swing.event.Key.R && e.modifiers == //swing.event.Key.Modifier.Control) {
+                    //    etvp.selectingRuleLHS = true
+                //    }
                     if(e.key == swing.event.Key.Escape) {
                         etvp.selectingRuleLHS = false
                     }

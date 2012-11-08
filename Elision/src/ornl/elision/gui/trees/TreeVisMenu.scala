@@ -51,18 +51,18 @@ object TreeVisMenu {
         
         val openTreeItem = new MenuItem(Action("Open Tree Visualization") {
 			val fc = new FileChooser(new java.io.File(openDirectory))
-            fc.fileFilter = new TreeXMLFileFilter
+            fc.fileFilter = new TreeFileFilter
 			val result = fc.showOpenDialog(null)
 			val selFile = fc.selectedFile
 			if(selFile != null && result == FileChooser.Result.Approve) {
 				openDirectory = selFile.getParent
 				mainGUI.config.lastOpenPath = openDirectory
 				mainGUI.config.save
-				GUIActor ! ("OpenTree", selFile)
+                GUIActor ! ("OpenTree", selFile)
 			}
 		} )
         
-        val saveTreeItem = new MenuItem(Action("Save Tree Visualization") {
+        val saveTreeItem = new MenuItem(Action("Save Tree Visualization as XML") {
 			val fc = new FileChooser(new java.io.File(openDirectory))
             fc.fileFilter = new TreeXMLFileFilter
 			val result = fc.showSaveDialog(null)
@@ -72,6 +72,19 @@ object TreeVisMenu {
 				mainGUI.config.lastOpenPath = openDirectory
 				mainGUI.config.save
 				GUIActor ! ("SaveTree", selFile)
+			}
+		} )
+        
+        val saveJSONTreeItem = new MenuItem(Action("Save Tree Visualization as JSON") {
+			val fc = new FileChooser(new java.io.File(openDirectory))
+            fc.fileFilter = new TreeJSONFileFilter
+			val result = fc.showSaveDialog(null)
+			val selFile = fc.selectedFile
+			if(selFile != null && result == FileChooser.Result.Approve) {
+				openDirectory = selFile.getParent
+				mainGUI.config.lastOpenPath = openDirectory
+				mainGUI.config.save
+				GUIActor ! ("SaveTreeJSON", selFile)
 			}
 		} )
 
@@ -324,6 +337,41 @@ class TreeXMLFileFilter extends javax.swing.filechooser.FileFilter  {
     
     def getDescription : String = {
         "Eva treexml files"
+    }
+}
+
+/** A FileFilter that only accepts .treejson files */
+class TreeJSONFileFilter extends javax.swing.filechooser.FileFilter  {
+    def accept(f : java.io.File) : Boolean = {
+        if(f.isDirectory) return true
+        
+        val name = f.getName
+        val lastDot = name.lastIndexOf('.')
+        val ext = name.drop(lastDot+1)
+        if(ext == "treejson") true
+        else false
+    }
+    
+    def getDescription : String = {
+        "Eva treejson files"
+    }
+}
+
+
+/** A FileFilter that only accepts .treexml and .treejson files */
+class TreeFileFilter extends javax.swing.filechooser.FileFilter  {
+    def accept(f : java.io.File) : Boolean = {
+        if(f.isDirectory) return true
+        
+        val name = f.getName
+        val lastDot = name.lastIndexOf('.')
+        val ext = name.drop(lastDot+1)
+        if(ext == "treejson" || ext == "treexml") true
+        else false
+    }
+    
+    def getDescription : String = {
+        "Eva treejson and treexml files"
     }
 }
 
