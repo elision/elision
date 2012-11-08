@@ -159,17 +159,23 @@ class GuiMenuBar extends MenuBar {
 		var openDirectory = mainGUI.config.lastOpenPath //"."
 		var fileFilter : javax.swing.filechooser.FileFilter = null
         
-		val openItem = new MenuItem(Action("Open      Ctrl+ O") {
-			val fc = new FileChooser(new File(openDirectory))
-            if(fileFilter != null) fc.fileFilter = fileFilter
-			val result = fc.showOpenDialog(null)
-			val selFile = fc.selectedFile
-			if(selFile != null && result == FileChooser.Result.Approve) {
-				openDirectory = selFile.getParent
-				mainGUI.config.lastOpenPath = openDirectory
-				mainGUI.config.save
-				GUIActor ! selFile
-			}
+		val openItem = new MenuItem(new Action("Open") {
+            import javax.swing.KeyStroke
+            import java.awt.event._
+            accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK))
+            
+            def apply = {
+                val fc = new FileChooser(new File(openDirectory))
+                if(fileFilter != null) fc.fileFilter = fileFilter
+                val result = fc.showOpenDialog(null)
+                val selFile = fc.selectedFile
+                if(selFile != null && result == FileChooser.Result.Approve) {
+                    openDirectory = selFile.getParent
+                    mainGUI.config.lastOpenPath = openDirectory
+                    mainGUI.config.save
+                    GUIActor ! selFile
+                }
+            }
 		} )
 		openItem.mnemonic = event.Key.O
 		fileMenu.contents += openItem
@@ -261,6 +267,7 @@ class GuiMenuBar extends MenuBar {
                     fileMenu.contents += openItem
                     fileMenu.contents += trees.TreeVisMenu.openTreeItem
                     fileMenu.contents += trees.TreeVisMenu.saveTreeItem
+                    fileMenu.contents += trees.TreeVisMenu.saveJSONTreeItem
                     fileMenu.contents += quitItem
                 
                 this.contents += viewMenu

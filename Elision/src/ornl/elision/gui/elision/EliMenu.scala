@@ -50,11 +50,17 @@ object EliMenu {
         
         // Create Rule from Node : Create a new rule from an Elision atom in an Eva tree.
 		
-		val makeRuleItem = new MenuItem(Action("Create Rule from Node     Ctrl+ R") {
-			mainGUI.visPanel match {
-                case etvp : EliTreeVisPanel => 
-                    etvp.selectingRuleLHS = true
-                case _ =>
+		val makeRuleItem = new MenuItem(new Action("Create Rule from Node") {
+            import javax.swing.KeyStroke
+            import java.awt.event._
+            accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK))
+            
+            def apply = {
+                mainGUI.visPanel.curLevel match {
+                    case etvp : EliTreeVisPanel => 
+                        etvp.selectingRuleLHS = true
+                    case _ =>
+                }
             }
 		} )
 		makeRuleItem.mnemonic = event.Key.R

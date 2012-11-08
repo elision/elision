@@ -530,10 +530,264 @@ class TreeBuilder extends Thread {
         }
     }
     
-    /** Saves a TreeSprite to a file. */
+    /** Loads a TreeSprite from a treejson file. */
+    def loadFromFileJSON(file : java.io.File) : TreeSprite = {
+        
+        import scala.util.parsing.json._
+        
+        // replaces new lines with special characters
+        def unreplaceNLs(str : String) : String = {
+            val toks = str.split("""&#13;""")
+            var result = ""
+            
+            for(tok <- toks) {
+                result += tok + "\n"
+            }
+            result
+        }
+        
+        def unReplaceQuotes(str : String) : String = {
+            str.replaceAllLiterally("""&#14;""", "\"")
+        }
+        
+        
+        def toMap(obj : Any) : Map[String, Any] = {
+            obj match {
+                case toMap : Map[String, Any] =>
+                    toMap
+                case _ =>
+                    null
+            }
+        }
+        
+        def anyToInt(obj : Any) : Int = {
+            obj match {
+                case i : Double =>
+                    i.toInt
+                case _ =>
+                    -1
+            }
+        }
+        
+        def anyToBoolean(obj : Any) : Boolean = {
+            obj match {
+                case i : Boolean =>
+                    i
+                case _ =>
+                    false
+            }
+        }
+        
+        def toList(obj : Any) : List[Any] = {
+            obj match {
+                case toList : List[Any] =>
+                    toList
+                case _ => 
+                    null
+            }
+        }
+        
+        // Creates our tree from the top-level JSON representing this tree.
+        def readTop(top : Map[String,Any]) : TreeSprite = {
+            // load the label map
+            val labels : Map[String, Any] = toMap(top("labelMap"))
+            val labelMap = new HashMap[Int, String]
+            for((key, value) <- labels) {
+                labelMap += (key.toInt -> unReplaceQuotes(unreplaceNLs(value.toString)))
+            }
+            
+            // load the properties map
+            val props : Map[String, Any] =  toMap(top("propsMap"))
+            val propsMap = new HashMap[Int, String]
+            for((key, value) <- props) {
+                propsMap += (key.toInt -> unReplaceQuotes(unreplaceNLs(value.toString)))
+            }
+            
+            // Get the root node's data
+            val rootMap : Map[String, Any] =  toMap(top("tree"))
+            val rLabelKey = anyToInt(rootMap("label"))
+            val rPropsKey = anyToInt(rootMap("props"))
+            
+            // construct the root node.
+            val rootNode = new NodeSprite(labelMap(rLabelKey))
+            rootNode.properties = propsMap(rPropsKey)
+            
+            
+            // recursively parses the json to construct the tree.
+            def recLoadTree(subroot : NodeSprite, subrootMap : Map[String,Any]) : Unit = {
+                val nodes = toList(subrootMap("tree"))
+                if(nodes == null)
+                    return
+                
+                for(nodeAny <- nodes) {
+                    val nodeMap = toMap(nodeAny)
+                    if(nodeMap == null)
+                        return
+                    
+                    // get this node's data
+                    val labelKey = anyToInt(nodeMap("label"))
+                    val nodeLabel = labelMap(labelKey)
+                    
+                    val propsKey = anyToInt(nodeMap("props"))
+                    val nodeProps = propsMap(propsKey)
+                    
+                    val nodeIsComment = anyToBoolean(nodeMap("com"))
+                    
+                    // construct this node and add it as a child to its parent node
+                    val node = new NodeSprite(nodeLabel, subroot, nodeIsComment)
+                    node.properties = nodeProps
+                    subroot.addChild(node)
+                    
+                    // recursive call
+                    recLoadTree(node, nodeMap)
+                }
+            }
+            
+            // Recursively construct the rest of the tree
+            recLoadTree(rootNode, rootMap)
+            
+            new TreeSprite(0,0,rootNode)
+        }
+        
+        
+        try {
+            // construct our JSON string from the file.
+            val bf = new java.io.BufferedReader(new java.io.FileReader(file))
+            var jsonStr = ""
+            var line = bf.readLine
+            while(line != null) {
+                jsonStr += line
+                line = bf.readLine
+            }
+            
+            // Parse the JSON string
+            val topOp = JSON.parseFull(jsonStr)
+            
+            topOp match {
+                case Some(map : Map[String,Any]) =>
+                    val topAny = map("treejson")
+                    
+                    val topMap = toMap(topAny)
+                    if(topMap != null) {
+                    //    System.err.println("json file read success")
+                        readTop(topMap)
+                    }
+                    else {
+                    //    System.err.println("json file read fail")
+                        null
+                    }
+                case _ =>
+                //    System.err.println("json file read fail")
+                    null
+            }
+        }
+        catch {
+            case ex : Throwable => 
+                System.out.println("" + ex)
+                null
+        }
+    }
+    
+    /** Saves a TreeSprite to a file as JSON.*/
+    def saveToFileJSON(treeSprite : TreeSprite, path : String) : Boolean = {
+        val labelMap = new HashMap[String, Int]
+        var labelsNext = 0
+        val propsMap = new HashMap[String, Int]
+        var propsNext = 0
+        
+        def recNodeSpriteJSON(subroot : NodeSprite) : String = {
+            if(subroot.children.isEmpty)
+                return "\"Empty\""
+            var result = ""
+            var isFirst = true
+            for(child <- subroot.children) {
+                val labelKey = if(labelMap.contains(child.term)) labelMap(child.term)
+                    else {
+                        labelMap += (child.term -> labelsNext)
+                        val res = labelsNext
+                        labelsNext += 1
+                        res
+                    }
+
+                val propsKey = if(propsMap.contains(child.properties)) propsMap(child.properties)
+                    else {
+                        propsMap += (child.properties -> propsNext)
+                        val res = propsNext
+                        propsNext += 1
+                        res
+                    }
+                    
+                if(!isFirst)
+                    result += ","
+                isFirst = false
+                
+                result += "{\"label\":" + labelKey + ", \"props\":" + propsKey + ", \"com\":" + child.isComment + ", \"tree\":[" + recNodeSpriteJSON(child) + "]}"
+            }
+            result
+        }
+        
+        def replaceNLs(str : String) : String = {
+            val toks = str.split("\n")
+            var result = ""
+            
+            for(tok <- toks) {
+                result += tok + """&#13;"""
+            }
+            result
+        }
+        
+        def replaceQuotes(str : String) : String = {
+            str.replaceAllLiterally("\"", """&#14;""")
+        }
+        
+        try {
+            labelMap += (treeSprite.root.term -> 0)
+            labelsNext = 1
+            propsMap += (treeSprite.root.properties -> 0)
+            propsNext = 1
+            
+            val rootJSON = "\"tree\" : {\"label\":0, \"props\":0, \"tree\":[" + recNodeSpriteJSON(treeSprite.root) + "]}"
+            
+            var labelMapJSON = "\"labelMap\":{"
+            var isFirst = true
+            for( (value, key) <- labelMap) {
+                if(!isFirst)
+                    labelMapJSON += ","
+                isFirst = false
+                
+                labelMapJSON += "\"" + key + "\":\"" + replaceQuotes(replaceNLs(value)) + "\""
+            }
+            labelMapJSON += "}"
+            
+            var propsMapJSON = "\"propsMap\":{"
+            isFirst = true
+            for( (value, key) <- propsMap) {
+                if(!isFirst)
+                    propsMapJSON += ","
+                isFirst = false
+                
+                propsMapJSON += "\"" + key + "\":\"" + replaceQuotes(replaceNLs(value)) + "\""
+            }
+            propsMapJSON += "}"
+
+            val all = "{\"treejson\":{" + labelMapJSON + "," + propsMapJSON + "," + rootJSON + "}}"
+            
+            val writer = new java.io.PrintWriter(new java.io.File(path))
+            writer.write(all)
+            writer.close
+            
+            true
+        }
+        catch {
+            case _ => false
+        }
+    }
+    
+    
+    
+    
+    /** Saves a TreeSprite to a file as XML. */
     def saveToFile(treeSprite : TreeSprite, path : String) : Boolean = {
-        
-        
         val labelMap = new HashMap[String, Int]
         var labelsNext = 0
         val propsMap = new HashMap[String, Int]
@@ -581,8 +835,6 @@ class TreeBuilder extends Thread {
                 recNodeSpriteXML(treeSprite.root)
             }</root>
             
-            
-            
             val labelMapXML = <labelMap>{
                 for( (value, key) <- labelMap) yield <label key={key.toString} value={value}/>
             }</labelMap>
@@ -590,8 +842,6 @@ class TreeBuilder extends Thread {
             val propsMapXML = <propsMap>{
                 for( (value, key) <- propsMap) yield <props key={key.toString} value={replaceNLs(value)}/>
             }</propsMap>
-            
-            
             
             val all = <treexml>
                     {labelMapXML}
@@ -639,12 +889,20 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     if(treeVisPanel != null) {
                         GUIActor ! ("loading", true)
                         
-                        val treeSprite = treeBuilder.loadFromFile(file)
-                        treeVisPanel.treeSprite = treeSprite
+                        var filePath = file.getPath
+                        var treeSprite : TreeSprite = null
+                        if(filePath.endsWith(".treexml"))
+                            treeSprite = treeBuilder.loadFromFile(file)
+                        if(filePath.endsWith(".treejson"))
+                            treeSprite = treeBuilder.loadFromFileJSON(file)
                         
-                        // once the tree visualization is built, select its root node and center the camera on it.
-                        treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
-                        treeVisPanel.camera.reset
+                        if(treeSprite != null) {
+                            treeVisPanel.treeSprite = treeSprite
+                        
+                            // once the tree visualization is built, select its root node and center the camera on it.
+                            treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
+                            treeVisPanel.camera.reset
+                        }
                         
                         GUIActor ! ("loading", false)
                     }
@@ -664,6 +922,26 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     if(treeVisPanel != null) {
                         GUIActor ! ("loading", true)
                         val success = treeBuilder.saveToFile(treeVisPanel.treeSprite, filePath)
+                        GUIActor ! ("loading", false)
+                        if(success) System.out.println("\nSaved the current tree to: " + filePath + "\n")
+                        else System.out.println("Failed to save the current tree.\n")
+                    }
+                    GUIActor ! "newPrompt"
+                case ("SaveTreeJSON", file : java.io.File) =>
+                    // make the correct treexml file path to save the tree to.
+                    var filePath = file.getPath
+                    if(!filePath.endsWith(".treejson")) filePath += ".treejson"
+                    
+                    // get a reference to the tree visualization panel
+                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisPanel =>
+                            tvp
+                        case _ =>
+                            null
+                    }
+                    if(treeVisPanel != null) {
+                        GUIActor ! ("loading", true)
+                        val success = treeBuilder.saveToFileJSON(treeVisPanel.treeSprite, filePath)
                         GUIActor ! ("loading", false)
                         if(success) System.out.println("\nSaved the current tree to: " + filePath + "\n")
                         else System.out.println("Failed to save the current tree.\n")
