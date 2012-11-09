@@ -116,7 +116,7 @@ trait PropertyManager {
    */
   def setProperty[TYPE](name: String, value: TYPE)
   (implicit mTYPE: scala.reflect.Manifest[TYPE]) = {
-    println("** knownExecutor = " + knownExecutor)
+//    println("** knownExecutor setProp = " + knownExecutor)
     _prop2val.get(name) match {
       case None =>
         throw new CacheException("No such property: " + toEString(name) + ".")

@@ -54,8 +54,10 @@ with ToggleableParser
 with Timeable
 with HasHistory {
   // We are the implicit executor.
+//  System.out.println("** Processor1 knownExecutor = " + ornl.elision.core.knownExecutor);
   ornl.elision.core.knownExecutor = this
-  
+//  System.out.println("** Processor2 knownExecutor = " + ornl.elision.core.knownExecutor);
+
   // Set up the stacktrace property.
   declareProperty("stacktrace",
       "Print a stack trace on all (non-Elision) exceptions.", false)
@@ -67,7 +69,15 @@ with HasHistory {
       "Whether to use the class path to locate files.", true)
   declareProperty("path",
       "The search path to use to locate files.", FileResolver.defaultPath)
-  
+
+  /** Declare the Elision property for setting the max rewrite time. */
+  declareProperty("rewrite_timeout",
+      "The maximum time to try rewriting an atom. In seconds.",
+      BasicAtom._maxRewriteTime,
+      (pm: PropertyManager) => {
+        BasicAtom._maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+      })
+      
   /** Whether to trace the parser. */
   private var _trace = false
 

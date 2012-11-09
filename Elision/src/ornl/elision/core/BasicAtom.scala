@@ -524,15 +524,15 @@ object BasicAtom {
    * The maximum time allowed (in seconds) to rewrite an atom. Set to
    * 0 to allow unlimited time.
    */
-  private var _maxRewriteTime: BigInt = -1;
+  var _maxRewriteTime: BigInt = -1;
 
-  /** Declare the Elision property for setting the max rewrite time. */
-  knownExecutor.declareProperty("rewrite_timeout",
-      "The maximum time to try rewriting an atom. In seconds.",
-      _maxRewriteTime,
-      (pm: PropertyManager) => {
-        _maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-      })
+//  /** Declare the Elision property for setting the max rewrite time. */
+//  knownExecutor.declareProperty("rewrite_timeout",
+//      "The maximum time to try rewriting an atom. In seconds.",
+//      _maxRewriteTime,
+//      (pm: PropertyManager) => {
+//        _maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+//      })
 
   /**
    * Set the wall clock time at which the current rewrite will time
