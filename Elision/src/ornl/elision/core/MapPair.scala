@@ -76,10 +76,10 @@ class MapPair(val left: BasicAtom, val right: BasicAtom) extends BasicAtom
 with Rewriter {
 	/** A map pair is actually a strategy. */
   val theType = STRATEGY
-  val isConstant = left.isConstant && right.isConstant
-  val depth = (left.depth max right.depth) + 1
-  val isTerm = left.isTerm && right.isTerm
-  val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
+  lazy val isConstant = left.isConstant && right.isConstant
+  lazy val depth = (left.depth max right.depth) + 1
+  lazy val isTerm = left.isTerm && right.isTerm
+  lazy val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
   override lazy val hashCode = left.hashCode * 31 + right.hashCode
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
@@ -91,65 +91,65 @@ with Rewriter {
       Fail("Subject of match is not a pair.", this, subject)
   }
 	
-	//////////////////// GUI changes
+	// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
-	ReplActor ! ("Eva","pushTable", "MapPair rewrite")
+	// ReplActor ! ("Eva","pushTable", "MapPair rewrite")
     // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair rewrite: ")) //val rwNode = RWTree.addToCurrent("MapPair rewrite: ")
+	// ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair rewrite: ")) //val rwNode = RWTree.addToCurrent("MapPair rewrite: ")
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left)) // RWTree.current = RWTree.addTo(rwNode, "left: ", left)
-    ReplActor ! ("Eva", "setSubroot", "left")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left)) // RWTree.current = RWTree.addTo(rwNode, "left: ", left)
+    // ReplActor ! ("Eva", "setSubroot", "left")
     val newleft = left.rewrite(binds)
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) // RWTree.current = RWTree.addTo(rwNode, "right: ", right) 
-    ReplActor ! ("Eva", "setSubroot", "right")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) // RWTree.current = RWTree.addTo(rwNode, "right: ", right) 
+    // ReplActor ! ("Eva", "setSubroot", "right")
     val newright = right.rewrite(binds)
 	
     if (newleft._2 || newright._2) {
-		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+		// ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
 		val newMP = MapPair(newleft._1, newright._2)
-		ReplActor ! ("Eva", "addTo", ("rwNode", "", newMP)) // RWTree.addTo(rwNode, newMP)
-        ReplActor ! ("Eva", "popTable", "MapPair rewrite")
+		// ReplActor ! ("Eva", "addTo", ("rwNode", "", newMP)) // RWTree.addTo(rwNode, newMP)
+        // ReplActor ! ("Eva", "popTable", "MapPair rewrite")
 		(newMP, true)
 	}
     else {
-        ReplActor ! ("Eva", "popTable", "MapPair rewrite")
+        // ReplActor ! ("Eva", "popTable", "MapPair rewrite")
         (this, false)
     }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
 	
-	//////////////////// GUI changes
+	// GUI changes
   /**
    * Apply this map pair to the given atom, yielding a potentially new atom.
    * The first match with the left-hand side is used to rewrite the right.
    */
   def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable", "MapPair doRewrite")
+		// ReplActor ! ("Eva","pushTable", "MapPair doRewrite")
         // top node of this subtree
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair doRewrite: ", atom)) // val rwNode = RWTree.addToCurrent("MapPair doRewrite: ", atom)
-		ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left)) // val leftNode = RWTree.addTo(rwNode, "left: ", left)
-		ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) // val rightNode = RWTree.addTo(rwNode, "right: ", right)
-		ReplActor ! ("Eva", "setSubroot", "left") //RWTree.current = leftNode
+		// ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair doRewrite: ", atom)) // val rwNode = RWTree.addToCurrent("MapPair doRewrite: ", atom)
+		// ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left)) // val leftNode = RWTree.addTo(rwNode, "left: ", left)
+		// ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) // val rightNode = RWTree.addTo(rwNode, "right: ", right)
+		// ReplActor ! ("Eva", "setSubroot", "left") //RWTree.current = leftNode
 		
 		left.tryMatch(atom, Bindings(), hint) match {
 			case file:Fail => {
-                ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
+                // ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
                 (atom, false)
             }
 			case Match(binds) =>
-				ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
+				// ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
 				val res = right.rewrite(binds)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1)) // RWTree.addTo(rwNode, "new right: ", res._1)
-                ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
+				// ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1)) // RWTree.addTo(rwNode, "new right: ", res._1)
+                // ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
 				(res._1, true)
 			case Many(iter) =>
-				ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
+				// ReplActor ! ("Eva", "setSubroot", "right") // RWTree.current = rightNode
 				val res = right.rewrite(iter.next)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1)) // RWTree.addTo(rwNode, "new right: ", res._1)
-                ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
+				// ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1)) // RWTree.addTo(rwNode, "new right: ", res._1)
+                // ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
 				(res._1, true)
 		  }
 	  }
-	  //////////////////// end GUI changes
+	  // end GUI changes
 }

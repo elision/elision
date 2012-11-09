@@ -36,7 +36,10 @@
 ======================================================================
 * */
 package ornl.elision.core
+
 import scala.collection.immutable.HashMap
+import scala.collection.mutable.{OpenHashMap => MutableHashMap}
+import scala.collection.mutable.SynchronizedMap
 
 /**
  * Bindings are used to store variable / value maps used during matching, and
@@ -73,6 +76,12 @@ extends HashMap[String, BasicAtom] with Mutable {
   def +(kv: (String, BasicAtom)): Bindings = new Bindings(self + kv)
   def ++(other: Bindings): Bindings = new Bindings(self ++ other.self)
   override def -(key: String): Bindings = new Bindings(self - key)
+
+  // @@@ JUST FOR DEBUGGING!!!
+  var rewrites: MutableHashMap[BasicAtom, (BasicAtom, Boolean)] = new 
+  MutableHashMap[BasicAtom, (BasicAtom, Boolean)]() with
+  SynchronizedMap[BasicAtom, (BasicAtom, Boolean)];
+
   
   /** This is a cache used during associative / commutative matching. */
   private var _patcache: OmitSeq[BasicAtom] = null

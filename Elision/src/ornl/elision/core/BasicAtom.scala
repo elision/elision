@@ -36,7 +36,10 @@
 ======================================================================
 * */
 package ornl.elision.core
-import scala.collection.immutable.HashMap
+
+import scala.collection.immutable.HashSet
+import scala.collection.mutable.{HashSet => MutableHashSet}
+import scala.compat.Platform
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -235,6 +238,29 @@ abstract class BasicAtom {
    * Construct and cache the spouse of this object.
    */
   lazy val spouse = BasicAtom.buildSpouse(this)
+
+  /**
+   * Get all the variables referenced in an atom. Override this if the
+   * atom can actually contain variables.
+   *
+   * @return A set of the variables referenced in the atom, if it has
+   * any. 
+   */
+  def getVariables() : Option[MutableHashSet[BasicAtom]] = {
+    return None
+  }
+
+  /**
+   * Get all the named operators referenced in an atom. Override this if the
+   * atom can actually contain operator expressions.
+   *
+   * @param opNames The names of the operators to look for.
+   * @return A set of the operators referenced in the atom, if it has
+   * any. 
+   */
+  def getOperators(opNames : MutableHashSet[String]) : Option[MutableHashSet[BasicAtom]] = {
+    return None
+  }
   
   /**
    * Attempt to match this atom, as a pattern, against the subject atom,
@@ -390,7 +416,6 @@ abstract class BasicAtom {
       // we invoke the implementation of tryMatchWithoutTypes.
       matchTypes(subject, binds, hints) match {
 	      case fail: Fail => {
-                //println("Type matching failed.")
                 fail
               }
 	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
@@ -491,6 +516,71 @@ abstract class BasicAtom {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+
+  /** The clock time at which the current rewrite will time out.*/
+  private var timeoutTime = -1L
+
+  /**
+   * The maximum time allowed (in seconds) to rewrite an atom. Set to
+   * 0 to allow unlimited time.
+   */
+  private var _maxRewriteTime: BigInt = -1;
+
+  /** Declare the Elision property for setting the max rewrite time. */
+  knownExecutor.declareProperty("rewrite_timeout",
+      "The maximum time to try rewriting an atom. In seconds.",
+      _maxRewriteTime,
+      (pm: PropertyManager) => {
+        _maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+      })
+
+  /**
+   * Set the wall clock time at which the current rewrite will time
+   * out.
+   */
+  def setTimeoutTime = {
+    
+    // Are we timing rewrites out? Also, are we already trying to time
+    // out a rewrite?
+    val time = knownExecutor.getProperty[BigInt]("rewrite_timeout")
+    if ((time > 0) && (timeoutTime == -1)) {
+
+      // The time at which things time out is the current time plus
+      // the maximum amount of time to rewrite things.
+      timeoutTime = Platform.currentTime + (time.longValue * 1000)
+    }
+    
+    // No timeouts.
+    else {
+      timeoutTime = -1L
+    }
+  }
+
+  /**
+   * Clear the wall clock time at which the current rewrite will time
+   * out. This indicates that we are no longer trying to time out a
+   * rewrite.
+   */
+  def clearTimeoutTime = {
+    timeoutTime = -1L
+  }
+
+  /**
+   * Check to see if the current rewrite has timed out.
+   */
+  def rewriteTimedOut = {
+
+    if (timeoutTime > 0) {
+      if (Platform.currentTime >= timeoutTime) {
+        println("** TIMED OUT")
+      }
+      (Platform.currentTime >= timeoutTime)
+    }
+    else {
+      false
+    }
+  }
+
   /** Enable (if true) or disable (if false) match tracing. */
   var traceMatching = false
   

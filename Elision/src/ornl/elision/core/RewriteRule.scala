@@ -74,11 +74,11 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     if (!_conc) {
       return (SimpleApply(this, atom), false)
     } else {
-      ReplActor ! ("Eva","pushTable","RulesetStrategy doRewrite")
+      // ReplActor ! ("Eva","pushTable","RulesetStrategy doRewrite")
       // top node of this subtree
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RulesetStrategy doRewrite: ")) 
-      ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) 
-      ReplActor ! ("Eva", "setSubroot", "atom") 
+      // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RulesetStrategy doRewrite: ")) 
+      // ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) 
+      // ReplActor ! ("Eva", "setSubroot", "atom") 
       
       // Get the rules.
       val rules = context.ruleLibrary.getRules(atom, _namelist)
@@ -86,12 +86,12 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
       for (rule <- rules) {
         val (newatom, applied) = rule.doRewrite(atom, hint)
         if (applied) {
-          ReplActor ! ("Eva", "addTo", ("atom", "", newatom))
-          ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
+          // ReplActor ! ("Eva", "addTo", ("atom", "", newatom))
+          // ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
           return (newatom, applied)
         }
       } // Try all rules.
-      ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
+      // ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
       return (atom, false)
     }
   }
@@ -182,11 +182,11 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 	*/
 	// ***************** GUI changes
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable","MapStrategy doRewrite")
+		// ReplActor ! ("Eva","pushTable","MapStrategy doRewrite")
         // top node of this subtree
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapStrategy doRewrite: ")) // val rwNode = RWTree.addToCurrent("MapStrategy doRewrite: ")
-		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
-		ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
+		// ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapStrategy doRewrite: ")) // val rwNode = RWTree.addToCurrent("MapStrategy doRewrite: ")
+		// ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) // val atomNode = RWTree.addTo(rwNode, atom)
+		// ReplActor ! ("Eva", "setSubroot", "atom") // RWTree.current = atomNode
 	
 		atom match {
 		  // We only process two kinds of atoms here: atom lists and operator
@@ -194,24 +194,24 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
 		  case AtomSeq(props, atoms) =>
 			// All we can do is apply the lhs to each atom in the list.
 			val newAS = AtomSeq(props, atoms.map(Apply(lhs,_)))
-			ReplActor ! ("Eva", "addTo", ("atom", "", newAS)) // RWTree.addTo(atomNode, newAS)
-            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
+			// ReplActor ! ("Eva", "addTo", ("atom", "", newAS)) // RWTree.addTo(atomNode, newAS)
+            // ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 			(newAS, true)
 		  case Apply(op, seq: AtomSeq) => op match {
 			case so: SymbolicOperator => 
 				val newApply = _apply(so, seq)
-				ReplActor ! ("Eva", "addTo", ("atom", "", newApply._1)) // RWTree.addTo(atomNode, newApply._1)
-                ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
+				// ReplActor ! ("Eva", "addTo", ("atom", "", newApply._1)) // RWTree.addTo(atomNode, newApply._1)
+                // ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 				newApply
 			case _ => 
 				val newApply = Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_))))
-				ReplActor ! ("Eva", "addTo", ("atom", "", newApply)) // RWTree.addTo(atomNode, newApply)
-                ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
+				// ReplActor ! ("Eva", "addTo", ("atom", "", newApply)) // RWTree.addTo(atomNode, newApply)
+                // ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 				(newApply, true)
 		  }
 		  case _ =>
 			// Do nothing in this case.
-            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
+            // ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
 			(atom, false)
 		}
 	}

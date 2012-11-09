@@ -121,6 +121,12 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     // If we had either a current match or a local iterator, then the matching
     // infrastructure would use it up before calling this method.  Since we
     // have arrived here, we do not have either.
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      _exhausted = true
+      return
+    }
     
     // If there are no more patterns, this matcher is exhausted.  This can
     // happen if there were no suitable patterns to start with.

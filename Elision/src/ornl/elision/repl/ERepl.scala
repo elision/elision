@@ -80,9 +80,9 @@ class ERepl extends Processor {
   
   
 	//////////////////// GUI changes
-  ReplActor.start
-  ReplActor.peer = this
-	ReplActor ! ("disableGUIComs", true)
+  //ReplActor.start
+  //ReplActor.peer = this
+	//ReplActor ! ("disableGUIComs", true)
 	//////////////////// end GUI changes
   
   //======================================================================
@@ -197,21 +197,21 @@ class ERepl extends Processor {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     
-	//////////////////// GUI changes
-	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-		ReplActor.guiActor ! ("replFormat",true)
-	, "formatting on") 
+	//  GUI changes
+	//if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+  //ReplActor.guiActor ! ("replFormat",true)
+	//, "formatting on") 
 //    ReplActor ! ("guiReplFormat", true, "formatting on")
-	//////////////////// end GUI changes
+	//  end GUI changes
 	
     console.emitln(prefix + atom.toParseString)
 	
-	//////////////////// GUI changes
-	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-		ReplActor.guiActor ! ("replFormat",false)
-	, "formatting off") 
+	//  GUI changes
+	//if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+	//	ReplActor.guiActor ! ("replFormat",false)
+	//, "formatting off") 
 //    ReplActor ! ("guiReplFormat", false, "formatting off")
-	//////////////////// end GUI changes
+	//  end GUI changes
   }
   
   this.register(
@@ -430,7 +430,7 @@ class ERepl extends Processor {
     } catch {
       case _ =>     
         if (!bootstrap()) {
-        ReplActor ! (":quit", true)
+        //ReplActor ! (":quit", true)
         return
         }
     }
@@ -440,14 +440,14 @@ class ERepl extends Processor {
     stopTimer
     printf("Startup Time: " + getLastTimeString + "\n")
 	
-    //////////////////// GUI changes
+    //  GUI changes
 	
     // activates communications with the GUI if we are using it.
-    if(ReplActor.guiMode) {
-        ReplActor ! ("disableGUIComs", false)
-    }
+    //if(ReplActor.guiMode) {
+    //    ReplActor ! ("disableGUIComs", false)
+    //}
 	
-    //////////////////// end GUI changes
+    //  end GUI changes
 	
     // Configure the console and history.
     val cr = new ConsoleReader
@@ -474,8 +474,8 @@ class ERepl extends Processor {
       def fetchline(p1: String, p2: String): Boolean = {
         Processor.fileReadStack.clear
         Processor.fileReadStack.push("Console")
-      	//////////////////// GUI changes
-		segment = 	if (ReplActor.guiMode) {  
+      	//  GUI changes
+		segment = 	if (false) {  
                 println()
 				print("" + (if (console.quiet > 0) p2 else p1))
 				
@@ -533,8 +533,8 @@ class ERepl extends Processor {
       // Watch for the end of stream or the special :quit token.
       if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
         // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
-        ReplActor.exitFlag = true
-        ReplActor ! (":quit", true)
+        //ReplActor.exitFlag = true
+        //ReplActor ! (":quit", true)
         return
       }
       
@@ -543,20 +543,20 @@ class ERepl extends Processor {
       
       // Run the line.
       try {
-        //////////////////// GUI changes
+        //  GUI changes
 	
         // Create the root of our rewrite tree it contains a String of the REPL input.
-        ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
+        //ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
         
-        //////////////////// end GUI changes
+        //  end GUI changes
         execute(line)
-        //////////////////// GUI changes
+        //  GUI changes
 	
         // send the completed rewrite tree to the GUI's actor
-        if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
-            ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
+        //if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
+        //    ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
 
-        //////////////////// end GUI changes
+        //  end GUI changes
       } catch {
         case ornl.elision.ElisionException(msg) =>
           console.error(msg)

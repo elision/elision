@@ -943,9 +943,11 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           val newargs = AtomSeq(params.props, newseq)
           // See if we are bypassing the native handler.
           if (!bypass) {
-            // Run any native handler.
-            val ad = new ApplyData(this, newargs, binds)
-            if (handler.isDefined) return handler.get(ad)
+            // Run any native handler.            
+            if (handler.isDefined) {
+              val ad = new ApplyData(this, newargs, binds)
+              return handler.get(ad)
+            }
           }
           // No native handler.
           return OpApply(OperatorRef(this), newargs, binds)
@@ -1007,10 +1009,13 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           }
         }
 
+        /*
+         * @@@@ PROBLEM!!!!:
         // If the operator is associative, we pad the parameter list to get faster
         // matching.  Otherwise we just match as-is.  In any case, when we are done
         // we can just use the sequence matcher.
         val newparams = if (assoc) {
+          println("** Making assoc list of size " + newseq.length)
           var newatoms: OmitSeq[BasicAtom] = EmptySeq
           val atom = params(0)
           // While loops are faster than for comprehensions.
@@ -1025,19 +1030,86 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           params.atoms
         }
 
-        // We've run out of special cases to handle.  Now just try to match the
-        // arguments against the parameters.
-        SequenceMatcher.tryMatch(newparams, newseq) match {
-          case Fail(reason, index) =>
-            throw new ArgumentListException("Incorrect argument for operator " +
-              toESymbol(name) + " at position " + index + ": " +
-              newseq(index).toParseString + ".  " + reason())
-          case Match(binds1) =>
-            // The argument list matches.
-            return handleApply(binds1)
-          case Many(iter) =>
-            // The argument list matches.
-            return handleApply(iter.next)
+         * 
+         * The above creates a temporary list for every associative
+         * operator created. In the pewter example this leads to over
+         * 4 million temporary list creations.
+         */
+
+        // Is the current operator associative?
+        if (assoc) {
+
+          // Handle type checking of an associative operator. All
+          // formal parameters of an associative operator must have
+          // the same type, so type checking of an associative
+          // operator will be performed by checking:
+          //
+          // 1. That all arguments of the operator we are trying to
+          //    create have the same type.
+          // 2. That the type of 1 of the arguments matches the type
+          //    of 1 of the formal parameters of the associative
+          //    operator.
+
+          // Check to see if all arguments have the same type.
+          val anArg = newseq(0)
+          val aParam = params.atoms(0)
+          while (index < newseq.length) {
+              
+            // Does the current argument have the same type as the
+            // other arguments?
+            if (newseq(index).theType != anArg.theType) {
+
+              // No, bomb out.
+              throw new ArgumentListException("Incorrect argument for operator " +
+                                              toESymbol(name) + " at position " + index + ": " +
+                                              newseq(index).toParseString + ".  " + 
+                                              "All arguments must have " +
+                                              "the same type (" + 
+                                              newseq(index).theType.toParseString +
+                                              " != " + anArg.theType.toParseString +
+                                              ").")
+            }
+          }
+
+          // All arguments have the same type. Now try to match the
+          // parameter type with the argument type. Note that the
+          // bindings returned by the match are only used for
+          // inferring the value of type variables. Since all
+          // arguments/formal parameters have the same type, matching
+          // 1 formal parameter with 1 argument gives us all the
+          // binding information needed to do type inference.
+          aParam.tryMatch(anArg) match {
+            case Fail(reason, index) =>
+              throw new ArgumentListException("Incorrect argument for operator " +
+                                              toESymbol(name) + " at position " + index + ": " +
+                                              newseq(index).toParseString + ".  " + reason())
+            case Match(binds1) =>
+              // The argument matches.
+              return handleApply(binds1)
+            case Many(iter) =>
+              // The argument matches.
+              return handleApply(iter.next)
+          }
+        }
+      
+        // The current operator is not associative.
+        else {
+
+          // We've run out of special cases to handle.  Now just try to match the
+          // arguments against the parameters.
+          val newparams = params.atoms
+          SequenceMatcher.tryMatch(newparams, newseq) match {
+            case Fail(reason, index) =>
+              throw new ArgumentListException("Incorrect argument for operator " +
+                                              toESymbol(name) + " at position " + index + ": " +
+                                              newseq(index).toParseString + ".  " + reason())
+            case Match(binds1) =>
+              // The argument list matches.
+              return handleApply(binds1)
+            case Many(iter) =>
+              // The argument list matches.
+              return handleApply(iter.next)
+          }
         }
 
       case _ => SimpleApply(this, rhs)

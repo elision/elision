@@ -454,13 +454,17 @@ extends Fickle with Mutable {
     if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
     else if (atom.isInstanceOf[Variable]) (atom, false)
     else {
-      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+      // ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
       // top node of this subtree
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+      // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+      // ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
       val tempDisabled = ReplActor.disableGUIComs
-      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-      
+      //if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+
+      // Set the time at which rewriting the atom will time out, if we
+      // are timing rewrites out.
+      BasicAtom.setTimeoutTime
+
       // Check the cache.
       val (newatom, flag) = Memo.get(atom, _activeNames) match {
         case None =>
@@ -478,11 +482,36 @@ extends Fickle with Mutable {
         }
       }
       
-      ReplActor.disableGUIComs = tempDisabled
-      if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+      //ReplActor.disableGUIComs = tempDisabled
+      //if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+      //ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
       
-      (newatom, flag)
+      // Did rewriting this atom time out?
+      if (BasicAtom.rewriteTimedOut) {
+
+        // Clear the time at which rewriting the atom will time out, if we
+        // are timing rewrites out.
+        println("** Rewrite timeout!")
+        BasicAtom.clearTimeoutTime
+        if (BasicAtom.traceRules) {
+          println("Rewriting of atom '" + atom.toParseString + "' timed out.")
+        }
+
+        // Return the original atom, with the rewrite flag set to true
+        // to indicate a timeout.
+        (atom, true)
+      }
+
+      // No timeout.
+      else {
+
+        // Clear the time at which rewriting the atom will time out, if we
+        // are timing rewrites out.
+        BasicAtom.clearTimeoutTime
+
+        // Return the rewrite results.
+        (newatom, flag)
+      }
     }
   }
   // *************** end GUI changes
@@ -505,13 +534,18 @@ extends Fickle with Mutable {
     if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
     else if (atom.isInstanceOf[Variable]) (atom, false)
     else {
-      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+      // ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
       // top node of this subtree
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
-      val tempDisabled = ReplActor.disableGUIComs
-      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-      
+      // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+      // ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
+      //val tempDisabled = ReplActor.disableGUIComs
+
+      //if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+
+      // Set the time at which rewriting the atom will time out, if we
+      // are timing rewrites out.
+      BasicAtom.setTimeoutTime
+
       // Check the cache.
       val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
       val (newatom, flag) = Memo.get(atom, usedRulesets) match {
@@ -530,11 +564,36 @@ extends Fickle with Mutable {
         }
       }
       
-      ReplActor.disableGUIComs = tempDisabled
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
-      
-      (newatom, flag)
+      //ReplActor.disableGUIComs = tempDisabled
+      // ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+      // ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+
+      // Did rewriting this atom time out?
+      if (BasicAtom.rewriteTimedOut) {
+
+        // Clear the time at which rewriting the atom will time out, if we
+        // are timing rewrites out.
+        println("** Rewrite timeout!")
+        BasicAtom.clearTimeoutTime
+        if (BasicAtom.traceRules) {
+          println("Rewriting of atom '" + atom.toParseString + "' timed out.")
+        }
+
+        // Return the original atom, with the rewrite flag set to true
+        // to indicate a timeout.
+        (atom, true)
+      }
+
+      // No timeout.
+      else {
+
+        // Clear the time at which rewriting the atom will time out, if we
+        // are timing rewrites out.
+        BasicAtom.clearTimeoutTime
+
+        // Return the rewrite results.
+        (newatom, flag)
+      }
     }
   }
   // *************** end GUI changes

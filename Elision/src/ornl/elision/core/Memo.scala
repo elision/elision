@@ -30,7 +30,9 @@
 package ornl.elision.core
 
 import com.strangegizmo.cdb._
-import scala.collection.mutable.{WeakHashMap => HashMap}
+// KIRK: Using a weak hashmap REALLY slows things down.
+//import scala.collection.mutable.{WeakHashMap => HashMap}
+import scala.collection.mutable.{OpenHashMap => HashMap}
 import scala.collection.mutable.HashSet
 
 /**
@@ -209,7 +211,7 @@ object Memo {
     if (! _usingcache) return None
    
     // Never check for atoms whose depth is greater than the maximum.
-    if (_maxdepth >= 0 && atom.depth > _maxdepth) return None
+    //if (_maxdepth >= 0 && atom.depth > _maxdepth) return None
 
     // Constants, variables, and symbols should never be
     // rewritten. So, if we are trying to get one of those just
@@ -248,7 +250,7 @@ object Memo {
     if (! _usingcache) return
     
     // Never cache atoms whose depth is greater than the maximum.
-    if (_maxdepth >= 0 && atom.depth > _maxdepth) return
+    //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
     val lvl = 0 max level min (_LIMIT-1)

@@ -159,16 +159,16 @@ class AlgProp(
   
   val theType = TypeUniverse
   
-  val depth = _plist.foldLeft(0) {
+  lazy val depth = _plist.foldLeft(0) {
     (dbi: Int, opt: Option[BasicAtom]) => dbi max (opt match {
       case None => 0
       case Some(atom) => atom.depth
     })
   } + 1
   
-  val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
+  lazy val isTerm = _plist.foldLeft(true)(_ && _.getOrElse(Literal.TRUE).isTerm)
   
-  val isConstant = (associative match {
+  lazy val isConstant = (associative match {
     case None => true
     case Some(atom) => atom.isConstant
   }) && (commutative match {
@@ -185,7 +185,7 @@ class AlgProp(
     case Some(atom) => atom.isConstant
   })
   
-  val deBruijnIndex =
+  lazy val deBruijnIndex =
     _plist.foldLeft(0)(_ max _.getOrElse(Literal.TRUE).deBruijnIndex)
   
   /**
@@ -248,8 +248,8 @@ class AlgProp(
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
 	// construct the root for this subtree and create a new table for nodes in this scope.
-    ReplActor ! ("Eva","pushTable", "AlgProp doApply") //val rwNode = RWTree.current
-    ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) // RWTree.addToCurrent("AlgProp doApply: ") // 
+    // ReplActor ! ("Eva","pushTable", "AlgProp doApply") //val rwNode = RWTree.current
+    // ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) // RWTree.addToCurrent("AlgProp doApply: ") // 
     
 	rhs match {
 		/* A Note to Maintainers
@@ -259,13 +259,13 @@ class AlgProp(
 		case ap: AlgProp => (ap and this)
 		case as: AtomSeq => 
 			val newAS = AtomSeq(as.props and this, as.atoms)
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // RWTree.addTo(rwNode, newAS) // 
-            ReplActor ! ("Eva", "popTable", "AlgProp doApply")
+			// ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) // RWTree.addTo(rwNode, newAS) // 
+            // ReplActor ! ("Eva", "popTable", "AlgProp doApply")
 			newAS
 		case _ => 
 			val newSA = SimpleApply(this, rhs)
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) // RWTree.addTo(rwNode, newSA) // 
-            ReplActor ! ("Eva", "popTable", "AlgProp doApply")
+			// ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) // RWTree.addTo(rwNode, newSA) // 
+            // ReplActor ! ("Eva", "popTable", "AlgProp doApply")
 			newSA
 	}
   }
@@ -297,22 +297,22 @@ class AlgProp(
    */
   
   private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable","AlgProp _rewrite") //val rwNode = RWTree.current
+    // ReplActor ! ("Eva","pushTable","AlgProp _rewrite") //val rwNode = RWTree.current
 	
 	opt match {
 		case None => 
-			ReplActor ! ("Eva","addToSubroot",("","n/a")) // RWTree.addTo(rwNode,"n/a")
-            ReplActor ! ("Eva","popTable","AlgProp _rewrite")
+			// ReplActor ! ("Eva","addToSubroot",("","n/a")) // RWTree.addTo(rwNode,"n/a")
+            // ReplActor ! ("Eva","popTable","AlgProp _rewrite")
 			(None, false)
 		case Some(atom) => {
-            ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) // val atomNode = RWTree.addTo(rwNode,atom)
+            // ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) // val atomNode = RWTree.addTo(rwNode,atom)
 			
             
-            ReplActor ! ("Eva", "setSubroot", "atomNode") // RWTree.current =  atomNode
+            // ReplActor ! ("Eva", "setSubroot", "atomNode") // RWTree.current =  atomNode
             val newatom = atom.rewrite(binds)
-            ReplActor ! ("Eva", "addTo", ("atomNode", "", newatom._1)) //RWTree.addTo(atomNode,newatom._1)
+            // ReplActor ! ("Eva", "addTo", ("atomNode", "", newatom._1)) //RWTree.addTo(atomNode,newatom._1)
             
-            ReplActor ! ("Eva","popTable","AlgProp _rewrite")
+            // ReplActor ! ("Eva","popTable","AlgProp _rewrite")
             (Some(newatom._1), newatom._2)
 		}
 	}
@@ -334,38 +334,38 @@ class AlgProp(
   //////////////////// GUI changes
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
-	ReplActor ! ("Eva","pushTable","AlgProp rewrite")
+	// ReplActor ! ("Eva","pushTable","AlgProp rewrite")
     // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: ")) // val rwNode = RWTree.addToCurrent("AlgProp rewrite: ")
+	// ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: ")) // val rwNode = RWTree.addToCurrent("AlgProp rewrite: ")
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: ")) // RWTree.current = RWTree.addTo(rwNode, "associative: ")
-    ReplActor ! ("Eva", "setSubroot", "A")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: ")) // RWTree.current = RWTree.addTo(rwNode, "associative: ")
+    // ReplActor ! ("Eva", "setSubroot", "A")
     val assoc = _rewrite(associative, binds)
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: ")) // RWTree.current = RWTree.addTo(rwNode, "commutative: ")
-    ReplActor ! ("Eva", "setSubroot", "C")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: ")) // RWTree.current = RWTree.addTo(rwNode, "commutative: ")
+    // ReplActor ! ("Eva", "setSubroot", "C")
     val commu = _rewrite(commutative, binds)
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: ")) // RWTree.current = RWTree.addTo(rwNode, "idempotent: ")
-    ReplActor ! ("Eva", "setSubroot", "I")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: ")) // RWTree.current = RWTree.addTo(rwNode, "idempotent: ")
+    // ReplActor ! ("Eva", "setSubroot", "I")
 	val idemp = _rewrite(idempotent, binds)
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: ")) // RWTree.current = RWTree.addTo(rwNode, "absorber: ")
-    ReplActor ! ("Eva", "setSubroot", "B")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: ")) // RWTree.current = RWTree.addTo(rwNode, "absorber: ")
+    // ReplActor ! ("Eva", "setSubroot", "B")
 	val absor = _rewrite(absorber, binds)
 	
-	ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: ")) // RWTree.current = RWTree.addTo(rwNode, "identity: ")
-    ReplActor ! ("Eva", "setSubroot", "D")
+	// ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: ")) // RWTree.current = RWTree.addTo(rwNode, "identity: ")
+    // ReplActor ! ("Eva", "setSubroot", "D")
 	val ident = _rewrite(identity, binds)
     
     if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
         val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
-        ReplActor ! ("Eva", "addTo", ("rwNode", "", newAlgProp)) // RWTree.addTo(rwNode, newAlgProp)
+        // ReplActor ! ("Eva", "addTo", ("rwNode", "", newAlgProp)) // RWTree.addTo(rwNode, newAlgProp)
         
-        ReplActor ! ("Eva","popTable","AlgProp rewrite")
+        // ReplActor ! ("Eva","popTable","AlgProp rewrite")
         (newAlgProp, true)
 	} else {
-        ReplActor ! ("Eva","popTable","AlgProp rewrite")
+        // ReplActor ! ("Eva","popTable","AlgProp rewrite")
         (this, false)
     }
   }

@@ -53,6 +53,12 @@ object CMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings): Outcome = {
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      return Fail("Timed out", plist, slist)
+    }
+
     // Check the length.
     if (plist.length != slist.length)
       return Fail("Lists are different sizes, so no match is possible.",
