@@ -116,6 +116,10 @@ object GUIActor extends Actor {
                         treeBuilder.tbActor ! ("OpenTree", file)
                     case ("SaveTree", file : java.io.File) =>
                         treeBuilder.tbActor ! ("SaveTree", file)
+                    case ("OpenTreeJSON", file : java.io.File) =>
+                        treeBuilder.tbActor ! ("OpenTreeJSON", file)
+                    case ("SaveTreeJSON", file : java.io.File) =>
+                        treeBuilder.tbActor ! ("SaveTreeJSON", file)
                     case "IgnoreNextTree" => 
                         treeBuilder.tbActor ! "IgnoreNextTree"
                     case selFile : java.io.File => 
