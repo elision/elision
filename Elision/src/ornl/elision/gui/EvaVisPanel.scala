@@ -38,6 +38,10 @@
 package ornl.elision.gui
 
 import java.awt._
+import java.awt.datatransfer.DataFlavor
+import java.io.File
+import java.util.List
+import javax.swing.TransferHandler
 import sage2D._
 
 
@@ -87,6 +91,54 @@ class EvaVisPanel extends GamePanel {
         else // default takes the user to the Welcome screen.
             new welcome.WelcomePanel(this)
     }
+    
+    
+    /** Handler for drag and drop */
+    val transferHandler = new TransferHandler {
+        override def canImport(info : TransferHandler.TransferSupport) : Boolean = {
+            true
+        }
+        
+        
+        override def importData(info : TransferHandler.TransferSupport) : Boolean = {
+            if(!canImport(info))
+                return false
+                
+            val t = info.getTransferable
+            
+            try {
+                /*
+                for(flavor <- t.getTransferDataFlavors) {
+                    System.err.println("Drag and drop type: " + flavor)
+                }*/
+                
+                val droppedObj = t.getTransferData(DataFlavor.javaFileListFlavor)
+                
+                droppedObj match {
+                    case list : java.util.List[File] =>
+                        val file = list.get(0)
+                        
+                        val name = file.getName
+                        val lastDot = name.lastIndexOf('.')
+                        val ext = name.drop(lastDot+1)
+                        if(ext == "eli") 
+                            GUIActor ! file
+                        if(ext == "treexml" || ext == "treejson")
+                            GUIActor ! ("OpenTree", file)
+                    case _ => 
+                        
+                }
+                
+                true
+            }
+            catch {
+                case _ => System.err.println("Drag and drop not successful.")
+                false
+            }
+        }
+    }
+    
+    this.peer.setTransferHandler(transferHandler)
     
     start()
 }
