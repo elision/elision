@@ -39,6 +39,7 @@ package ornl.elision.core
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.Stack
 import ornl.elision.repl.ReplActor
 
 /**
@@ -334,13 +335,40 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * Get the variables in the operator arguments.
    */
   override def getVariables() : Option[HashSet[BasicAtom]] = {
+
+    // Make the result set to hold the variables.
     var r = new HashSet[BasicAtom]
-    for (a <- arg) {
-      a.getVariables match {
-        case Some(vars) => r ++= vars
+
+    // This is used a lot, so it needs to be fast. We will find all
+    // the variables here with a stack to avoid recursive calls.
+    var work = new Stack[BasicAtom]
+    var done = new HashSet[BasicAtom]
+    work.push(this)
+    while (!work.isEmpty) {
+      work.pop match {
+
+        // Are we working on an operator instance?
+        case op: OpApply => {
+          // Push all the operator arguments on the stack to check, if
+          // we have not already checked this operator instance.
+          if (!(done contains op)) {
+            for (a <- op.arg) work.push(a)
+            done += op
+          }
+        }
+
+        // Did we find a variable?
+        case v: Variable => {
+
+          // Save the variable.
+          r.add(v)
+        }
+        
+        // Any other type of atom we ignore.
         case _ => {}
       }
     }
+
     return Some(r)
   }
 
@@ -348,14 +376,37 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * Get the operators in the operator arguments, plus this operator.
    */
   override def getOperators(opNames : HashSet[String]) : Option[HashSet[BasicAtom]] = {
+
+    // Make the result set to hold the variables.
     var r = new HashSet[BasicAtom]
-    if (opNames contains op.operator.name) r.add(this)
-    for (a <- arg) {
-      a.getOperators(opNames) match {
-        case Some(ops) => r ++= ops
+
+    // This is used a lot, so it needs to be fast. We will find all
+    // the operators here with a stack to avoid recursive calls.
+    var work = new Stack[BasicAtom]
+    var done = new HashSet[BasicAtom]
+    work.push(this)
+    while (!work.isEmpty) {
+      work.pop match {
+
+        // Are we working on an operator instance?
+        case currOp: OpApply => {
+
+          // Is this one of the operators we are looking for?
+          if (opNames contains currOp.op.operator.name) r.add(currOp)
+
+          // Push all the operator arguments on the stack to check, if
+          // we have not already checked this operator instance.
+          if (!(done contains currOp)) {
+            for (a <- currOp.arg) work.push(a)
+            done += currOp
+          }
+        }
+        
+        // Any other type of atom we ignore.
         case _ => {}
       }
     }
+
     return Some(r)
   }
 }
