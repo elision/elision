@@ -152,9 +152,21 @@ with HasHistory {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
         false
-      case Some(reader) =>
+      case Some((reader, dir)) =>
         Processor.fileReadStack.push(filename)
+        
+        // try to prepend our file's directory to our search path if it isn't already in it.
+        if(!path.contains(dir)) {
+            val _prop = new scala.sys.SystemProperties
+            setProperty[String]("path", dir + _prop("path.separator") + path) 
+        }
+        
+        // proceed with reading the file's stream.
         read(scala.io.Source.fromInputStream(reader), filename)
+        
+        // restore our original path
+        setProperty[String]("path", path)
+        
         Processor.fileReadStack.pop
         true
     }

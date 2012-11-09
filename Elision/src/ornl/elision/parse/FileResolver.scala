@@ -132,15 +132,15 @@ class FileResolver(usePath: Boolean = true, useClassPath: Boolean = true,
    * created and returned.  Otherwise `None` is returned.
    * 
    * @param name    The file name, possibly including leading path.
-   * @return  None if not found, or a reader to read the file.
+   * @return  None if not found, or a reader to read the file and the path of the file's parent directory.
    */
-  def find(name: String): Option[InputStream] = {
+  def find(name: String): Option[(InputStream, String)] = {
     try {
       // If the filename is absolute, we just try to open it and do not search.
       var file = new File(name)
       if (file.isAbsolute) {
         // The provided path is absolute.  Just open it.
-        return Some(new FileInputStream(file))
+        return Some(new FileInputStream(file),file.getParentFile.getCanonicalPath)
       }
       
       // See if we should look in the search path.  We always look there first
@@ -154,7 +154,7 @@ class FileResolver(usePath: Boolean = true, useClassPath: Boolean = true,
           // See if it exists.
           if (file.exists) {
             // The file has been found.  Just open it.
-            return Some(new FileInputStream(file))
+            return Some(new FileInputStream(file), file.getParentFile.getCanonicalPath)
           }
         } // Search the path.
       }
@@ -166,7 +166,7 @@ class FileResolver(usePath: Boolean = true, useClassPath: Boolean = true,
         val fn = (if (name.startsWith("/")) name else "/"+name)
         val stream = getClass.getResourceAsStream(fn)
         if (stream != null) {
-          return Some(stream)
+          return Some(stream, "")
         }
       }
     } catch {
