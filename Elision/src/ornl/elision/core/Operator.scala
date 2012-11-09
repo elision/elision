@@ -212,7 +212,7 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
   /**
    * Operator references cannot be rewritten.  This is actually why they exist!
    */
-  def rewrite(binds: Bindings) = (this, false)
+  def doRewrite(binds: Bindings) = (this, false)
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
     if (subject == this) Match(binds)

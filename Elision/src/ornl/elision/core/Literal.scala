@@ -215,7 +215,7 @@ extends Literal[BigInt](typ) {
   def this(value: Int) = this(INTEGER, value)
   
   //////////////////// GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "IntegerLiteral rewrite")
         // top node of this subtree
 		// val rwNode = RWTree.current
@@ -249,7 +249,7 @@ extends Literal[String](typ) {
   def this(value: String) = this(STRING, value)
   
   //////////////////// GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "StringLiteral rewrite")
         // top node of this subtree
 		//val rwNode = RWTree.current
@@ -283,7 +283,7 @@ extends Literal[Symbol](typ) {
   def this(value: Symbol) = this(SYMBOL, value)
   
   //////////////////// GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "SymbolLiteral rewrite")
         // top node of this subtree
 		//val rwNode = RWTree.current
@@ -324,7 +324,7 @@ extends Literal[Boolean](typ) {
   def this(value: Boolean) = this(BOOLEAN, value)
   
   //////////////////// GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "BooleanLiteral rewrite")
         // top node of this subtree
 		//val rwNode = RWTree.current
@@ -525,7 +525,7 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     this(FLOAT, significand, exponent, radix)
 	
 	//////////////////// GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "FloatLiteral rewrite")
         // top node of this subtree
 		// val rwNode = RWTree.current

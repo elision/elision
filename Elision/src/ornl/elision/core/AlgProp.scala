@@ -284,7 +284,7 @@ class AlgProp(
   //////////////////// end GUI changes
 
   //////////////////// GUI changes  
-  def rewrite(binds: Bindings): (AlgProp, Boolean) = {
+  def doRewrite(binds: Bindings): (AlgProp, Boolean) = {
     ReplActor ! ("Eva","pushTable","AlgProp rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: "))
     ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: "))

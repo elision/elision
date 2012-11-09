@@ -420,7 +420,19 @@ abstract class BasicAtom {
    * @return	The result of rewriting this atom, and whether or not anything
    * 					changed.
    */
-  def rewrite(binds: Bindings): (BasicAtom, Boolean)
+  final def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+    binds.get(this, doRewrite(binds))
+  }
+  
+  /**
+   * Rewrite this atom with the specified bindings.  If types are involved, it
+   * is expected that overriding types will handle rewriting those, as well.
+   * 
+   * @param binds   The bindings.
+   * @return  The result of rewriting this atom, and whether or not anything
+   *          changed.
+   */
+  protected def doRewrite(binds: Bindings): (BasicAtom, Boolean)
 
   /**
    * Generate a parseable string from this atom.  The returned string should

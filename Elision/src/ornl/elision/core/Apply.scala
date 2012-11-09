@@ -73,7 +73,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   }
 
   //  GUI changes  
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "Apply rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: "))
     ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: "))
@@ -259,7 +259,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
   lazy val theType = op.operator.typ.rewrite(pabinds)._1
   
   // GUI changes
-  override def rewrite(binds: Bindings) = {
+  override def doRewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: "))
 	

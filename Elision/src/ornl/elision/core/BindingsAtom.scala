@@ -108,7 +108,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
 	
 	//////////////////// GUI changes
 	
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 	ReplActor ! ("Eva", "pushTable", "BindingsAtom rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom rewrite: ")) // val rwNode = RWTree.addToCurrent("BindingsAtom")

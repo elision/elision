@@ -274,7 +274,7 @@ extends BasicAtom {
   }
 	
   // **** GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
     ReplActor ! ("Eva","pushTable","SpecialForm rewrite")
     // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SpecialForm rewrite: ")) // val rwNode = RWTree.addToCurrent("SpecialForm rewrite: ")

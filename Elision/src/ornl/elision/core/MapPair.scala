@@ -92,7 +92,7 @@ with Rewriter {
   }
 	
 	//////////////////// GUI changes
-  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+  def doRewrite(binds: Bindings): (BasicAtom, Boolean) = {
 	ReplActor ! ("Eva","pushTable", "MapPair rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair rewrite: ")) //val rwNode = RWTree.addToCurrent("MapPair rewrite: ")

@@ -79,7 +79,7 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
   /**
    * The root types cannot be rewritten, as they do not have children.
    */
-  override def rewrite(binds: Bindings) = (this, false)
+  override def doRewrite(binds: Bindings) = (this, false)
 
     
   /** Compute the hash code. */

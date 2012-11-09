@@ -165,7 +165,7 @@ extends BasicAtom with Applicable {
 	}
 
 	//////////////////// GUI changes
-  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
+  def doRewrite(binds: Bindings): (BasicAtom, Boolean) = {
 	ReplActor ! ("Eva", "pushTable", "Lambda rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda rewrite: ")) // val rwNode = RWTree.addToCurrent("Lambda rewrite: ")

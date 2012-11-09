@@ -88,7 +88,7 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   /**
    * The root types cannot be rewritten, as they do not have children.
    */
-  override def rewrite(binds: Bindings) = (this, false)
+  override def doRewrite(binds: Bindings) = (this, false)
   
   /** Generate the hash code. */
   override lazy val hashCode = name.hashCode()

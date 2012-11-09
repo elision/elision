@@ -169,7 +169,7 @@ class Variable(typ: BasicAtom, val name: String,
   }
 	  
 	/*
-	def rewrite(binds: Bindings) = {
+	def doRewrite(binds: Bindings) = {
     // If this variable is bound in the provided bindings, replace it with the
     // bound value.
     binds.get(name) match {
@@ -186,7 +186,7 @@ class Variable(typ: BasicAtom, val name: String,
   }
   */
 	  //////////////////// GUI changes
-  def rewrite(binds: Bindings) = {
+  def doRewrite(binds: Bindings) = {
 	ReplActor ! ("Eva","pushTable","Variable rewrite")
     // top node of this subtree
 	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: ")) // val rwNode = RWTree.addToCurrent("Variable rewrite: ")

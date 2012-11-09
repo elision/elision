@@ -90,7 +90,7 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   /**
    * Ruleset references cannot be rewritten.
    */
-  def rewrite(binds: Bindings) = (this, false)
+  def doRewrite(binds: Bindings) = (this, false)
     
   override def hashCode = 61*name.hashCode
   

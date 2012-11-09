@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core
 import scala.collection.immutable.HashMap
+import scala.collection.mutable.OpenHashMap
 
 /**
  * Bindings are used to store variable / value maps used during matching, and
@@ -74,6 +75,10 @@ extends HashMap[String, BasicAtom] with Mutable {
   def ++(other: Bindings): Bindings = new Bindings(self ++ other.self)
   override def -(key: String): Bindings = new Bindings(self - key)
   
+  /** This is a cache used during rewriting. */
+  private var _rewcache: OpenHashMap[BasicAtom, (BasicAtom, Boolean)] =
+    OpenHashMap[BasicAtom, (BasicAtom, Boolean)]()
+  
   /** This is a cache used during associative / commutative matching. */
   private var _patcache: OmitSeq[BasicAtom] = null
   
@@ -86,6 +91,33 @@ extends HashMap[String, BasicAtom] with Mutable {
   /** Creates a copy of this Bindings. */
   def cloneBinds : Bindings = {
     new Bindings(this.self)
+  }
+  
+  /**
+   * Store a rewrite in the rewrite cache.
+   * 
+   * @param original    The un-rewritten atom.
+   * @param rewrite     The rewritten atom, and true if anything changed.
+   * @return  This bindings.
+   */
+  def set(original: BasicAtom, rewrite: (BasicAtom, Boolean)) = {
+    _rewcache(original) = rewrite
+    this
+  }
+  
+  /**
+   * Check for a value stored in the rewrite cache.
+   * 
+   * @param original    The un-rewritten atom.
+   * @param otherwise   A value to return if the requested value is not in
+   *                    the cache.  This value is stored in the cache for the
+   *                    original atom.
+   * @return  An pair consisting of the rewritten atom and true iff
+   *          anything changed (from the cache) or the provided otherwise
+   *          value (if not in the cache).
+   */
+  def get(original: BasicAtom, otherwise: (BasicAtom, Boolean)): (BasicAtom, Boolean) = {
+    _rewcache.getOrElseUpdate(original, otherwise)
   }
   
   /**

@@ -203,14 +203,14 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   }
 	
   // GUI changes
-  def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
+  def doRewrite(binds: Bindings): (AtomSeq, Boolean) = {
     ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
     ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
     ReplActor ! ("Eva", "setSubroot", "props")
     
     // Rewrite the properties.
-    val (newprop, pchanged) = props.rewrite(binds)
+    val (newprop, pchanged) = props.doRewrite(binds)
     ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
     ReplActor ! ("Eva", "setSubroot", "atoms")
     
