@@ -33,6 +33,7 @@ import com.strangegizmo.cdb._
 // KIRK: Using a weak hashmap REALLY slows things down.
 //import scala.collection.mutable.{WeakHashMap => HashMap}
 import scala.collection.mutable.{OpenHashMap => HashMap}
+import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashSet
 
 /**
@@ -146,13 +147,17 @@ object Memo {
    * the completely rewritten atom and the cache level.  No knowledge of the
    * rewrite limit is stored!
    */
-  private var _cache = new HashMap[(BasicAtom,Set[String]),(BasicAtom,Int)]()
+  private var _cache = 
+    new HashMap[(BasicAtom,Set[String]),(BasicAtom,Int)]() with
+    SynchronizedMap[(BasicAtom,Set[String]),(BasicAtom,Int)]
   
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
-  private var _normal = new HashMap[(BasicAtom,Set[String]),Unit]()
+  private var _normal = 
+    new HashMap[(BasicAtom,Set[String]),Unit]() with
+    SynchronizedMap[(BasicAtom,Set[String]),Unit]
   
   /**
    * Track whether anything has been added at a particular cache level.  If
