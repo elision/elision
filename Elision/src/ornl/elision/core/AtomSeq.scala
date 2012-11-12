@@ -155,52 +155,62 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = {
-    // We only care if the hint is an operator.  We do this in two steps, since
-    // the "obvious" way to do it doesn't work because of type erasure.  Boo!
-    val operator = hints match {
-      case Some(value) => value match {
-        case oper: Operator => Some(OperatorRef(oper))
-        case oper: OperatorRef => Some(oper)
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      Fail("Timed out", this, subject)
+    }
+
+    // No timeout.
+    else {
+
+      // We only care if the hint is an operator.  We do this in two steps, since
+      // the "obvious" way to do it doesn't work because of type erasure.  Boo!
+      val operator = hints match {
+        case Some(value) => value match {
+          case oper: Operator => Some(OperatorRef(oper))
+          case oper: OperatorRef => Some(oper)
+          case _ => None
+        }
         case _ => None
       }
-      case _ => None
-    }
-    
-    // Atom sequences only match other atom sequences.
-    subject match {
-      case as: AtomSeq =>
-        // Local function to complete sequence matching by matching the actual
-        // sequences using the appropriate matching algorithm based on the
-        // properties.
-        def doMatchSequences(usebinds: Bindings): Outcome = {
-        	// Now we have to decide how to compare the two sequences.  Note that
-          // if the properties matching changes, this will like have to change,
-          // too, to use the matched properties.
-          if (associative)
-            if (commutative)
-              ACMatcher.tryMatch(this, as, usebinds, operator)
-            else
-              AMatcher.tryMatch(this, as, usebinds, operator)
-          else
-            if (commutative)
-              CMatcher.tryMatch(this, as, usebinds)
-            else
-              SequenceMatcher.tryMatch(this, as, usebinds)
-        }
-
+      
+      // Atom sequences only match other atom sequences.
+      subject match {
+        case as: AtomSeq =>
+          // Local function to complete sequence matching by matching the actual
+          // sequences using the appropriate matching algorithm based on the
+          // properties.
+          def doMatchSequences(usebinds: Bindings): Outcome = {
+        	  // Now we have to decide how to compare the two sequences.  Note that
+            // if the properties matching changes, this will like have to change,
+            // too, to use the matched properties.
+            if (associative)
+              if (commutative)
+                ACMatcher.tryMatch(this, as, usebinds, operator)
+              else
+                AMatcher.tryMatch(this, as, usebinds, operator)
+              else
+                if (commutative)
+                  CMatcher.tryMatch(this, as, usebinds)
+                else
+                  SequenceMatcher.tryMatch(this, as, usebinds)
+          }
+        
         // Match properties.  This may alter the bindings.
         props.tryMatch(as.props, binds) match {
           case fail: Fail => Fail("Sequence properties do not match.",
-          		this, subject, Some(fail))
+          		                    this, subject, Some(fail))
           case Match(newbinds) => doMatchSequences(newbinds)
           case Many(iter) => Outcome.convert(iter ~> (doMatchSequences _),
-              Fail("Sequence properties do not match.", this, subject))
+                                             Fail("Sequence properties do not match.", this, subject))
         }
-      case _ => Fail("An atom sequence may only match another atom sequence.",
-          this, subject)
+        case _ => Fail("An atom sequence may only match another atom sequence.",
+                       this, subject)
+      }
     }
-  }
-	
+	}
+
   // GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
     // ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")

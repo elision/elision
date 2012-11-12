@@ -392,7 +392,13 @@ abstract class BasicAtom {
    * @return	The matching outcome.
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-    if (subject == ANY && !this.isBindable)
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      Fail("Timed out.", this, subject)
+    }
+  
+    else if (subject == ANY && !this.isBindable)
       // Any pattern is allowed to match the subject ANY.  In the matching
       // implementation for ANY, any subject is allowed to match ANY.
       // Thus ANY is a kind of wild card.  Note that no bindings are
@@ -554,7 +560,6 @@ object BasicAtom {
 
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
-      //println("** Compute timeout == " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
     }
     
@@ -562,13 +567,11 @@ object BasicAtom {
     else if (timeoutTime.value > -1) {
 
       // Return the previously computed timeout value.
-      //println("** Compute timeout == " + timeoutTime.value)
       timeoutTime.value
     }
 
     // No timeouts.
     else {
-      //println("** Compute timeout == " + -1L)
       -1L
     }
   }

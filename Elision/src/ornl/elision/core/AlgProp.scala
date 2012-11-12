@@ -417,11 +417,20 @@ class AlgProp(
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = subject match {
-    case ap: AlgProp =>
-      _matchAll(
+    case ap: AlgProp => {
+
+      // Has rewriting timed out?
+      if (BasicAtom.rewriteTimedOut) {
+        Fail("Timed out", this, subject)
+      }
+
+      else {
+        _matchAll(
           List(associative, commutative, idempotent, absorber, identity),
           List(ap.associative, ap.commutative, ap.idempotent, ap.absorber, ap.identity),
           binds)
+      }
+    }
     case _ => Fail("Properties only match other properties.", this, subject)
   }
   

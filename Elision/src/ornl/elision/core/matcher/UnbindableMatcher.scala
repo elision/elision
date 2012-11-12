@@ -169,10 +169,27 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     // we have an iterator over the matches.  Now we must combine this with
     // the subsequent unbindable matches (if any).
     _local = iterator ~ (bindings => 
-      new UnbindableMatcher(
-            patterns.omit(_patindex), 
-            subjects.omit(subindex), 
-            bindings ++ binds)
-      )
+
+      // Have we timed out since the unbindable match iterator was
+      // created?
+      if (bindings == null) {
+
+        // This set of bindings can never match. Return an empty iterator.
+        new MatchIterator {
+          _current = null
+          _local = null
+          _exhausted = true
+          def findNext = {
+            _exhausted = true
+          }
+        }
+      }
+
+      else {
+        new UnbindableMatcher(
+          patterns.omit(_patindex), 
+          subjects.omit(subindex), 
+          bindings ++ binds)
+      })
   }
 }

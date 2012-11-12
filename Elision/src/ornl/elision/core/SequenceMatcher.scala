@@ -78,7 +78,11 @@ object SequenceMatcher {
           }
         }
 
-        if (patterns.length != subjects.length) {
+        // Has rewriting timed out?
+        if (BasicAtom.rewriteTimedOut) {
+          Fail("Timed out")
+        }
+        else if (patterns.length != subjects.length) {
           Fail("Sequences are not the same length.")
         }
         else {

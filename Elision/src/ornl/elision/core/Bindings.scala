@@ -94,7 +94,9 @@ extends HashMap[String, BasicAtom] with Mutable {
   
   /** Creates a copy of this Bindings. */
   def cloneBinds : Bindings = {
-    new Bindings(this.self)
+    this.synchronized {
+      new Bindings(this.self)
+    }
   }
   
   /**
@@ -108,11 +110,13 @@ extends HashMap[String, BasicAtom] with Mutable {
    * @return This binding instance, for chaining.
    */
   def set(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom]) = {
-    if (_patcache == null) {
-      _patcache = patterns
-      _subcache = subjects
+    this.synchronized {
+      if (_patcache == null) {
+        _patcache = patterns
+        _subcache = subjects
+      }
+      this
     }
-    this
   }
   
   /**
@@ -122,10 +126,12 @@ extends HashMap[String, BasicAtom] with Mutable {
    * @return	The cached patterns.
    */
   def patterns: Option[OmitSeq[BasicAtom]] = {
-    val pc = _patcache
-    if (pc == null) None else {
-      _patcache = null
-      Some(pc)
+    this.synchronized {
+      val pc = _patcache
+      if (pc == null) return None else {
+        _patcache = null
+        return Some(pc)
+      }
     }
   }
   
@@ -136,10 +142,12 @@ extends HashMap[String, BasicAtom] with Mutable {
    * @return	The cached subjects.
    */
   def subjects: Option[OmitSeq[BasicAtom]] = {
-    val sc = _subcache
-    if (sc == null) None else {
-      _subcache = null
-      Some(sc)
+    this.synchronized {
+      val sc = _subcache
+      if (sc == null) return None else {
+        _subcache = null
+        return Some(sc)
+      }
     }
   }
 } 

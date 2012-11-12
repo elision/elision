@@ -154,12 +154,20 @@ extends BasicAtom with Applicable {
       hints: Option[Any]) =
     subject match {
 	  case Lambda(olvar, obody) => if (olvar == lvar) {
-	    body.tryMatch(obody, binds, hints) match {
-	      case fail: Fail =>
-	        Fail("Lambda bodies do not match.", this, subject)
-	      case mat: Match => mat
-	      case mat: Many => mat
-	    }
+
+      // Has rewriting timed out?
+      if (BasicAtom.rewriteTimedOut) {
+        Fail("Timed out", this, subject)
+      }
+
+      else {
+	      body.tryMatch(obody, binds, hints) match {
+	        case fail: Fail =>
+	          Fail("Lambda bodies do not match.", this, subject)
+	        case mat: Match => mat
+	        case mat: Many => mat
+	      }
+      }
 	  } else Fail("Lambda variables do not match.", this, subject)
 	  case _ => Fail("Lambdas only match other lambdas.", this, subject)
 	}

@@ -199,6 +199,13 @@ object AMatcher {
     @scala.annotation.tailrec
     final protected def findNext {
       if (BasicAtom.traceMatching) print("A Searching... ")
+
+      // Has rewriting timed out?
+      if (BasicAtom.rewriteTimedOut) {
+        _exhausted = true
+        return
+      }
+
       _current = null
       if (_local != null && _local.hasNext) {
         _current = _local.next

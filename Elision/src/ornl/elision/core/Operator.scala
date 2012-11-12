@@ -888,6 +888,11 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    * @return  The constructed atom.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
+
+    // Temporarily disable rewrite timeouts.
+    val oldTimeout = BasicAtom.timeoutTime.value
+    BasicAtom.timeoutTime.value = -1L
+
     rhs match {
       case args: AtomSeq =>
         // Things have to happen in the correct order here.  First increase
@@ -911,6 +916,10 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         while (index < newseq.size) {
           val atom = newseq(index)
           if (absor == atom) {
+
+            // Resume timing out rewrites.
+            BasicAtom.timeoutTime.value = oldTimeout
+
             // Found the absorber.  Nothing else to do.
             return absor
           }
@@ -974,7 +983,21 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // the argument list is empty, but there is no identity, apply the
           // operator to the empty list.
           if (newseq.length == 0) {
-            if (ident == null) return handleApply(Bindings()) else return ident
+            if (ident == null) {
+              val r = handleApply(Bindings())
+
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+              
+              return r
+            }
+            else {
+
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+
+              return ident
+            }
           }
         }
 
@@ -999,12 +1022,22 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
                 throw new ArgumentListException("Incorrect argument " +
                   "for operator " + toESymbol(name) + " at position 0: " +
                   atom.toParseString + ".  " + reason())
-              case mat: Match =>
+              case mat: Match => {
+
+                // Resume timing out rewrites.
+                BasicAtom.timeoutTime.value = oldTimeout
+
                 // The argument matches.
                 return atom
-              case many: Many =>
+              }
+              case many: Many => {
+
+                // Resume timing out rewrites.
+                BasicAtom.timeoutTime.value = oldTimeout
+
                 // The argument matches.
                 return atom
+              }
             }
           }
         }
@@ -1083,12 +1116,24 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               throw new ArgumentListException("Incorrect argument for operator " +
                                               toESymbol(name) + " at position " + index + ": " +
                                               newseq(index).toParseString + ".  " + reason())
-            case Match(binds1) =>
+            case Match(binds1) => {
               // The argument matches.
-              return handleApply(binds1)
-            case Many(iter) =>
+              val r = handleApply(binds1)
+
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+              
+              return r
+            }
+            case Many(iter) => {
               // The argument matches.
-              return handleApply(iter.next)
+              val r =  handleApply(iter.next)
+
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+
+              return r
+            }
           }
         }
       
@@ -1103,16 +1148,35 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               throw new ArgumentListException("Incorrect argument for operator " +
                                               toESymbol(name) + " at position " + index + ": " +
                                               newseq(index).toParseString + ".  " + reason())
-            case Match(binds1) =>
+            case Match(binds1) => {
               // The argument list matches.
-              return handleApply(binds1)
-            case Many(iter) =>
+              val r = handleApply(binds1)
+
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+
+              return r
+            }
+            case Many(iter) => {
               // The argument list matches.
-              return handleApply(iter.next)
+              val r = handleApply(iter.next)
+
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+
+              return r
+            }
           }
         }
 
-      case _ => SimpleApply(this, rhs)
+      case _ => {
+        val r = SimpleApply(this, rhs)
+
+        // Resume timing out rewrites.
+        BasicAtom.timeoutTime.value = oldTimeout
+
+        return r
+      }
     }
   }
 }
