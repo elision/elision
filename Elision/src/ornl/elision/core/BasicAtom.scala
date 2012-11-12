@@ -40,6 +40,7 @@ package ornl.elision.core
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.{HashSet => MutableHashSet}
 import scala.compat.Platform
+import scala.util.DynamicVariable
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -518,7 +519,7 @@ abstract class BasicAtom {
 object BasicAtom {
 
   /** The clock time at which the current rewrite will time out.*/
-  private var timeoutTime = -1L
+  var timeoutTime: DynamicVariable[Long] = new DynamicVariable[Long](-1L)
 
   /**
    * The maximum time allowed (in seconds) to rewrite an atom. Set to
@@ -526,43 +527,50 @@ object BasicAtom {
    */
   var _maxRewriteTime: BigInt = -1;
 
-//  /** Declare the Elision property for setting the max rewrite time. */
-//  knownExecutor.declareProperty("rewrite_timeout",
-//      "The maximum time to try rewriting an atom. In seconds.",
-//      _maxRewriteTime,
-//      (pm: PropertyManager) => {
-//        _maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-//      })
+  /** Declare the Elision property for setting the max rewrite time. */
+  knownExecutor.declareProperty("rewrite_timeout",
+      "The maximum time to try rewriting an atom. In seconds.",
+      _maxRewriteTime,
+      (pm: PropertyManager) => {
+        _maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+      })
 
   /**
-   * Set the wall clock time at which the current rewrite will time
+   * Compute the wall clock time at which the current rewrite will time
    * out.
    */
-  def setTimeoutTime = {
+  def computeTimeout = {
     
     // Are we timing rewrites out? Also, are we already trying to time
     // out a rewrite?
-    val time = knownExecutor.getProperty[BigInt]("rewrite_timeout")
-    if ((time > 0) && (timeoutTime == -1)) {
+    //
+    // NOTE: We have to explicitly go out to the current executor to
+    // get the timeout value rather than using _maxRewriteTime since
+    // the closure used in the above declaration for the
+    // rewrite_timeout property can wind up referencing a different
+    // executor than what Elision is actually using.
+    val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+    if ((rewrite_timeout > 0) && (timeoutTime.value == -1)) {
 
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
-      timeoutTime = Platform.currentTime + (time.longValue * 1000)
+      //println("** Compute timeout == " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
+      Platform.currentTime + (rewrite_timeout.longValue * 1000)
     }
     
+    // Are we already timing out a rewrite?
+    else if (timeoutTime.value > -1) {
+
+      // Return the previously computed timeout value.
+      //println("** Compute timeout == " + timeoutTime.value)
+      timeoutTime.value
+    }
+
     // No timeouts.
     else {
-      timeoutTime = -1L
+      //println("** Compute timeout == " + -1L)
+      -1L
     }
-  }
-
-  /**
-   * Clear the wall clock time at which the current rewrite will time
-   * out. This indicates that we are no longer trying to time out a
-   * rewrite.
-   */
-  def clearTimeoutTime = {
-    timeoutTime = -1L
   }
 
   /**
@@ -570,11 +578,11 @@ object BasicAtom {
    */
   def rewriteTimedOut = {
 
-    if (timeoutTime > 0) {
-      if (Platform.currentTime >= timeoutTime) {
-        println("** TIMED OUT")
-      }
-      (Platform.currentTime >= timeoutTime)
+    //println("** Checking timeout. " +
+    //        Platform.currentTime + ">=" + timeoutTime.value +
+    //        " == " + (Platform.currentTime >= timeoutTime.value))
+    if (timeoutTime.value > 0) {
+      (Platform.currentTime >= timeoutTime.value)
     }
     else {
       false
