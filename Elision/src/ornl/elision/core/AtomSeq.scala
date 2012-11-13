@@ -258,9 +258,47 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   /**
    * Two sequences are equal iff their properties and atoms are equal.
    */
-  override def equals(other: Any) = other match {
-    case AtomSeq(oprops, oatoms) if (oatoms == atoms && oprops == props) => true
-    case _ => false
+  override def equals(other: Any) = {
+
+    val t0 = System.nanoTime
+    val r = other match {
+      //case AtomSeq(oprops, oatoms) if (oatoms == atoms && oprops == props) => true
+      case AtomSeq(oprops, oatoms) => {
+        
+        // Try to short circuit checking equality.
+        
+        // Easy case 1st. Are they refering to exactly the same set of
+        // atoms? If so, they are equal.
+        if ((atoms eq oatoms) && (oprops == props)) true
+        
+        // If the # of atoms in the 2 atom sequences is different, they
+        // are not equal.
+        else if (atoms.length != oatoms.length) false
+        
+        // If the depth of the 2 atom sequences is different, they are
+        // not equal.
+        else if (depth != other.asInstanceOf[AtomSeq].depth) false
+        
+        // If the hash codes of the atoms are different, they are not
+        // equal.
+        else if (atoms.hashCode != oatoms.hashCode) false
+        
+        // If we get here the # of atoms in both sequences is the same
+        // and they have the same hash code. There could be a hash
+        // collision, so now check for full equality. Check the
+        // properties first since that check should be faster than
+        // checking the atoms.
+        else (oprops == props && oatoms == atoms)
+        //else (oprops == props)
+      }
+      case _ => false
+    }
+
+    val t1 = System.nanoTime
+    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
+      println("** AtomSeq: equals time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    }
+    r
   }
 }
 

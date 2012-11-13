@@ -192,6 +192,10 @@ extends Fickle with Mutable {
     for(mapping <- this._active) {
         clone._active += mapping
     }
+
+    for(mapping <- this._activeNames) {
+        clone._activeNames += mapping
+    }
     
     clone._nextrs = this._nextrs
     clone._descend = this._descend
@@ -491,18 +495,24 @@ extends Fickle with Mutable {
 
       // Check the cache.
       var timedOut = false
-      val (newatom, flag) = Memo.get(atom, _activeNames) match {
+      val (newatom, flag) = Memo.get(atom, _active) match {
         case None => {
 
           // Set the time at which rewriting the atom will time out, if we
           // are timing rewrites out.
           var pair: (ornl.elision.core.BasicAtom, Boolean) = null      
-          BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
-            pair = _doRewrite(atom, Set.empty)
-            timedOut = BasicAtom.rewriteTimedOut
+          if (BasicAtom.timingOut) {
+            BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
+              pair = _doRewrite(atom, Set.empty)
+              timedOut = BasicAtom.rewriteTimedOut
+            }
           }
-          Memo.put(atom, _activeNames, pair._1, 0)
-          Memo.put(pair._1, _activeNames, pair._1, 0)
+          else {
+            pair = _doRewrite(atom, Set.empty)
+            timedOut = false
+          }
+          Memo.put(atom, _active, pair._1, 0)
+          Memo.put(pair._1, _active, pair._1, 0)
           pair
         }
         case Some(pair) => {
@@ -574,20 +584,33 @@ extends Fickle with Mutable {
       //if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
 
       // Check the cache.
+      val usedRulesetsBits = 
+        if (rulesets.isEmpty) _active 
+        else {
+          var r = new BitSet()
+          for (rs <- rulesets) r += getRulesetBit(rs)
+          r
+        }
       val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
       var timedOut = false
-      val (newatom, flag) = Memo.get(atom, usedRulesets) match {
+      val (newatom, flag) = Memo.get(atom, usedRulesetsBits) match {
         case None =>
 
           // Set the time at which rewriting the atom will time out, if we
           // are timing rewrites out.
           var pair: (ornl.elision.core.BasicAtom, Boolean) = null
-          BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
-            pair = _doRewrite(atom, usedRulesets)
-            timedOut = BasicAtom.rewriteTimedOut
+          if (BasicAtom.timingOut) {
+            BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
+              pair = _doRewrite(atom, usedRulesets)
+              timedOut = BasicAtom.rewriteTimedOut
+            }
           }
-          Memo.put(atom, usedRulesets, pair._1, 0)
-          Memo.put(pair._1, usedRulesets, pair._1, 0)
+          else {
+            pair = _doRewrite(atom, usedRulesets)
+            timedOut = false
+          }
+          Memo.put(atom, usedRulesetsBits, pair._1, 0)
+          Memo.put(pair._1, usedRulesetsBits, pair._1, 0)
           pair
         case Some(pair) => {
             if (BasicAtom.traceRules) {
@@ -755,7 +778,7 @@ extends Fickle with Mutable {
     def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
 
       // Check the cache.
-      Memo.get(atom, _activeNames) match {
+      Memo.get(atom, _active) match {
         case None => {
           
           // We do not have a cached value for the current atom. We will

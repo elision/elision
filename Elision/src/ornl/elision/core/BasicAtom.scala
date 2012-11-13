@@ -531,7 +531,7 @@ object BasicAtom {
    * The maximum time allowed (in seconds) to rewrite an atom. Set to
    * 0 to allow unlimited time.
    */
-  var _maxRewriteTime: BigInt = -1;
+  var _maxRewriteTime: BigInt = 0;
 
   /** Declare the Elision property for setting the max rewrite time. */
   knownExecutor.declareProperty("rewrite_timeout",
@@ -556,10 +556,12 @@ object BasicAtom {
     // rewrite_timeout property can wind up referencing a different
     // executor than what Elision is actually using.
     val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+    //println("** rewrite_timeout == " + rewrite_timeout)
     if ((rewrite_timeout > 0) && (timeoutTime.value == -1)) {
 
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
+      //println("** 1. computeTimeout == " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
     }
     
@@ -567,13 +569,23 @@ object BasicAtom {
     else if (timeoutTime.value > -1) {
 
       // Return the previously computed timeout value.
+      //println("** 2. computeTimeout == " + timeoutTime.value)
       timeoutTime.value
     }
 
     // No timeouts.
     else {
+      //println("** 2. computeTimeout == " + -1L)
       -1L
     }
+  }
+
+  /**
+   * Check to see if we are timing out rewrites.
+   */
+  def timingOut = {
+    val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+    (rewrite_timeout > 0)
   }
 
   /**
@@ -584,7 +596,7 @@ object BasicAtom {
     //println("** Checking timeout. " +
     //        Platform.currentTime + ">=" + timeoutTime.value +
     //        " == " + (Platform.currentTime >= timeoutTime.value))
-    if (timeoutTime.value > 0) {
+    if (timingOut && (timeoutTime.value > 0)) {
       (Platform.currentTime >= timeoutTime.value)
     }
     else {

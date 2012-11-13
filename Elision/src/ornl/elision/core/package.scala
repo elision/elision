@@ -255,7 +255,14 @@ package object core {
    * The omit sequence class.
    */
   abstract class OmitSeq[A] extends IndexedSeq[A] {
-    
+
+    /**
+     * Hash code for an OmitSeq. It looks like the default hashCode
+     * computation for an IndexedSeq uses toString (which is bad), so
+     * hashCode has been overwritten.
+     */
+    override lazy val hashCode = this.foldLeft(0)(hashify)
+
     /**
      * Omit a single element from this list, returning a new list.  This is
      * done "in place" so it should be fast.  As omits mount, lookup time

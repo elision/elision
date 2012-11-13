@@ -35,6 +35,7 @@ import com.strangegizmo.cdb._
 import scala.collection.mutable.{OpenHashMap => HashMap}
 import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.BitSet
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are
@@ -148,16 +149,16 @@ object Memo {
    * rewrite limit is stored!
    */
   private var _cache = 
-    new HashMap[(BasicAtom,Set[String]),(BasicAtom,Int)]() with
-    SynchronizedMap[(BasicAtom,Set[String]),(BasicAtom,Int)]
+    new HashMap[(BasicAtom,BitSet),(BasicAtom,Int)]() 
+    //with SynchronizedMap[(BasicAtom,Set[String]),(BasicAtom,Int)]
   
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
   private var _normal = 
-    new HashMap[(BasicAtom,Set[String]),Unit]() with
-    SynchronizedMap[(BasicAtom,Set[String]),Unit]
+    new HashMap[(BasicAtom,BitSet),Unit]() 
+    //with SynchronizedMap[(BasicAtom,Set[String]),Unit]
   
   /**
    * Track whether anything has been added at a particular cache level.  If
@@ -210,7 +211,7 @@ object Memo {
    * @return  The optional fully-rewritten atom and a flag indicating whether
    *          the input atom is already in normal form.
    */
-  def get(atom: BasicAtom, rulesets: Set[String]): Option[(BasicAtom, Boolean)] = {
+  def get(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
 
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
@@ -227,18 +228,27 @@ object Memo {
     }
     
     // We are doing caching. Actually look in the cache.
+    var r: Option[(BasicAtom, Boolean)] = None
+    val t0 = System.nanoTime
     if (_normal.contains((atom,rulesets))) {
-      return Some((atom, false))
+      r = Some((atom, false))
     } else {
       _cache.get((atom, rulesets)) match {
         case None =>
           // Cache miss.
-          return None
+          r = None
         case Some((value, level)) =>
           // Cache hit.
-          return Some((value, true))
+          r = Some((value, true))
       }
     }
+
+    // Return the cache lookup result.
+    val t1 = System.nanoTime
+    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
+      println("** Memo: lookup time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    }
+    return r
   }
   
   /**
@@ -249,7 +259,7 @@ object Memo {
    * @param value     The final rewritten atom.
    * @param level     The lowest level of the rewrite.
    */
-  def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
+  def put(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
 
     // Do nothing if caching is turned off.
     if (! _usingcache) return
@@ -258,10 +268,19 @@ object Memo {
     //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
+    val t0 = System.nanoTime
     val lvl = 0 max level min (_LIMIT-1)
-    _normal((value, rulesets)) = Unit
+    _normal.synchronized {
+      _normal((value, rulesets)) = Unit
+    }
     if (!(atom eq value)) {
-      _cache((atom, rulesets)) = (value, level)
+      _cache.synchronized {
+        _cache((atom, rulesets)) = (value, level)
+      }
+    }
+    val t1 = System.nanoTime
+    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
+      println("** Memo: add time = " + (t1.toDouble-t0.toDouble)/1000000000)
     }
   }
 }
