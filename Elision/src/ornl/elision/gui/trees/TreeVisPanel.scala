@@ -85,9 +85,15 @@ class TreeVisPanel(game : GamePanel) extends Level(game) with HasCamera {
     var timerLock = false
     var isLoading = false
     
+    
+    /** A right-click menu that appears when you right-click a node. */
+    val nodeRClickMenu = new NodeRightClickMenu
+    
+    
+    
+    
     /** 
-	 * Overridden GamePanel event handler for the timer object. 
-	 * It runs an iteration through the timerLoop method if it isn't currently loading something, and it tells the panel to repaint.
+	 * We actually run the logic for this level is a thread separate from the EDT. Here, we just tell the thread that it's safe to run another iteration.
 	 */
 	def logic : Unit = {
         // if we're still processing a previous frame, just return.
@@ -190,6 +196,10 @@ class TreeVisPanel(game : GamePanel) extends Level(game) with HasCamera {
 			
 			camera.x = clickedNode.worldX
 			camera.y = clickedNode.worldY
+            
+            if(mouse.justRightPressed) {
+                nodeRClickMenu.show(game.peer, mouse.position.getX.toInt, mouse.position.getY.toInt, clickedNode)
+            }
 		}
 	}
 	
@@ -199,7 +209,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game) with HasCamera {
 	 */
 	def threadlogic : Unit = {
 		
-		if(mouse.justLeftPressed) {
+		if(mouse.justLeftPressed || mouse.justRightPressed) {
         //    requestFocusInWindow
 			val clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
 			selectNode(clickedNode)
@@ -301,6 +311,41 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
         image
     }
 }
+
+
+import javax.swing.JPopupMenu
+import javax.swing.JMenuItem
+import java.awt.event.ActionListener
+import java.awt.event.ActionEvent
+
+/** A menu that appears when a node is right-clicked. */
+class NodeRightClickMenu extends JPopupMenu with ActionListener {
+    
+    /** Will open dialog for making a rewrite rule for the node. */
+    val createRuleItem = new JMenuItem("Create rewrite rule")
+    add(createRuleItem)
+    createRuleItem.addActionListener(this)
+    
+    /** A reference to the node that this menu is currently displayed for */
+    var node : NodeSprite = null
+    
+    def actionPerformed(e : ActionEvent) : Unit = {
+        val source = e.getSource
+        
+        if(source == createRuleItem) {
+            val ruleDia = new ornl.elision.gui.elision.RulePredDialog(node.term)
+            //selectingRuleLHS = false
+        }
+    }
+    
+    /** Displays the popup (see JPopupMenu.show) */
+    def show(invoker : java.awt.Component, x : Int, y : Int, node : NodeSprite) : Unit = {
+        super.show(invoker, x, y)
+        this.node = node
+    }
+    
+}
+
 
 
 
