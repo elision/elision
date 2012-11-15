@@ -253,7 +253,8 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
   
-  override lazy val hashCode = atoms.hashCode
+  override lazy val hashCode = atoms.hashCode * 31 + props.hashCode
+  lazy val otherHashCode = atoms.otherHashCode + 8191*props.otherHashCode
 
   /**
    * Two sequences are equal iff their properties and atoms are equal.
@@ -269,7 +270,9 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         
         // Easy case 1st. Are they refering to exactly the same set of
         // atoms? If so, they are equal.
-        if ((atoms eq oatoms) && (oprops == props)) true
+        if ((atoms eq oatoms) && (oprops == props)) {
+          true
+        }
         
         // If the # of atoms in the 2 atom sequences is different, they
         // are not equal.
@@ -277,19 +280,40 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         
         // If the depth of the 2 atom sequences is different, they are
         // not equal.
-        else if (depth != other.asInstanceOf[AtomSeq].depth) false
+        //else if (depth != other.asInstanceOf[AtomSeq].depth) false
         
-        // If the hash codes of the atoms are different, they are not
+        // If the hash codes of the atom sequences are different, they are not
         // equal.
-        else if (atoms.hashCode != oatoms.hashCode) false
+        else if ((hashCode != other.asInstanceOf[AtomSeq].hashCode) ||
+                 (otherHashCode != other.asInstanceOf[AtomSeq].otherHashCode)) false
         
         // If we get here the # of atoms in both sequences is the same
         // and they have the same hash code. There could be a hash
         // collision, so now check for full equality. Check the
         // properties first since that check should be faster than
         // checking the atoms.
-        else (oprops == props && oatoms == atoms)
-        //else (oprops == props)
+        //else (oprops == props && oatoms == atoms)
+        else {
+          /*
+          if (this.toParseString != other.asInstanceOf[AtomSeq].toParseString) {
+            println("BOGUS: this = " + this.toParseString)
+            println("BOGUS: other = " + other.asInstanceOf[AtomSeq].toParseString)
+            println("BOGUS: this.length = " + atoms.length)
+            println("BOGUS: other.length = " + oatoms.length)
+            println("BOGUS: this.depth = " + depth)
+            println("BOGUS: others.depth = " + other.asInstanceOf[AtomSeq].depth)
+            println("BOGUS: this.hashCode = " + hashCode)
+            println("BOGUS: others.hashCode = " + other.asInstanceOf[AtomSeq].hashCode)
+            println("BOGUS: this.otherHashCode = " + otherHashCode)
+            println("BOGUS: others.otherHashCode = " + other.asInstanceOf[AtomSeq].otherHashCode)
+            println("BOGUS: atoms.hashCode = " + atoms.hashCode)
+            println("BOGUS: oatoms.hashCode = " + oatoms.hashCode)
+            println("BOGUS: atoms.otherHashCode = " + atoms.otherHashCode)
+            println("BOGUS: oatoms.otherHashCode = " + oatoms.otherHashCode)
+          }
+          */
+          true
+        }
       }
       case _ => false
     }

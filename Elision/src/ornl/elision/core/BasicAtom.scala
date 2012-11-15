@@ -187,6 +187,15 @@ abstract class BasicAtom {
   val deBruijnIndex: Int
 
   /**
+   * An alternate hash code for a BasicAtom. An
+   * alternate hash code is used in some cases to provide 2 different
+   * hash codes for an Elision object. These 2 hash codes are used to
+   * lower the chances of a hash collision (both different hash codes
+   * will need to collide for a hash collision to occur).
+   */
+  val otherHashCode: BigInt
+
+  /**
    * If true then this atom can be bound.  Only variables should be bound, so
    * override this for variables; it is `false` by default.
    */

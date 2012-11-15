@@ -250,6 +250,7 @@ class Variable(typ: BasicAtom, val name: String,
       // end GUI changes
       
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
+  lazy val otherHashCode = typ.otherHashCode + 8191*name.hashCode
   
   override def equals(varx: Any) = varx match {
     case ovar:Variable => ovar.theType == theType &&

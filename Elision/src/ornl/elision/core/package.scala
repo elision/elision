@@ -97,6 +97,23 @@ package object core {
    * @param obj			The next object whose hash should be added.
    */
   def hashify(hash: Int = 0, obj: Any) = hash * 31 + obj.hashCode
+
+  /**
+   * Compute an alternate hash code from many different objects. An
+   * alternate hash code is used in some cases to provide 2 different
+   * hash codes for an Elision object. These 2 hash codes are used to
+   * lower the chances of a hash collision (both different hash codes
+   * will need to collide for a hash collision to occur).
+   *
+   * @param hash		The initial hash code.
+   * @param obj			The next object whose hash should be added.
+   */
+  def other_hashify(hash: BigInt = 0, obj: Any): BigInt = {
+    obj match {
+      case atom: BasicAtom => hash + 8191*atom.otherHashCode
+      case _ => hash + 8191*obj.hashCode
+    }
+  }
   
   /**
    * Attempt to parse the given string and return an atom.
@@ -256,12 +273,7 @@ package object core {
    */
   abstract class OmitSeq[A] extends IndexedSeq[A] {
 
-    /**
-     * Hash code for an OmitSeq. It looks like the default hashCode
-     * computation for an IndexedSeq uses toString (which is bad), so
-     * hashCode has been overwritten.
-     */
-    override lazy val hashCode = this.foldLeft(0)(hashify)
+    val otherHashCode: BigInt
 
     /**
      * Omit a single element from this list, returning a new list.  This is
@@ -292,6 +304,8 @@ package object core {
    * (implicit) transformation of indexed collections to an omit sequence.
    */
   object OmitSeq {
+
+    var debug = false
     /**
      * Convert an indexed sequence to an omit sequence.
      * 
@@ -324,12 +338,24 @@ package object core {
    * @param backing	The backing sequence.
    */
   private class OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
+
     // Proxy to backing sequence.
-    lazy val length = backing.length
+    override val length = backing.length
+
+    /**
+     * Hash code for an OmitSeq. It looks like the default hashCode
+     * computation for an IndexedSeq uses toString (which is bad), so
+     * hashCode has been overwritten.
+     */
+    override lazy val hashCode = backing.hashCode
+    lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
     
     // Proxy to backing sequence.
     def apply(index: Int) = {
-      backing(index)
+      val r = backing(index)
+      if (OmitSeq.debug) println("OmitSeq1[" + index + "] = " + 
+                                 r + ", len = " + this.length)
+      r
     }
   }
   
@@ -342,12 +368,20 @@ package object core {
    */
   private class OmitSeq2[A](backing: IndexedSeq[A], omit: Int)
   extends OmitSeq[A] {
+
+    override lazy val hashCode = this.foldLeft(0)(hashify)+1
+    lazy val otherHashCode = this.foldLeft(BigInt(0))(other_hashify)+1
+
     /** Length is one less than the backing sequence. */
-		override lazy val length = backing.length - 1
+		override val length = backing.length - 1
 		
 		/** Return the requested element by zero-based index. */
-		override def apply(index: Int) =
-		  if (index >= omit) backing(index+1) else backing(index)
+		override def apply(index: Int) = {
+		  val r = if (index >= omit) backing(index+1) else backing(index)
+      if (OmitSeq.debug) println("OmitSeq2[" + index + "] = " + 
+                                 r + ", len = " + this.length)
+      r
+    }
 	}
   
   /**
@@ -360,20 +394,32 @@ package object core {
    */
   private class OmitSeq3[A](backing: IndexedSeq[A], insert: Int,
       items: IndexedSeq[A]) extends OmitSeq[A] {
+
     // Some stored constants for fast reference.
     private val _il = items.length
     private val _tip = _il + insert
     
     /** Length is the backing sequence plus the inserted items. */
-    override lazy val length = backing.length + _il
+    override val length = backing.length + _il
+
+    override lazy val hashCode = this.foldLeft(0)(hashify)+1
+    lazy val otherHashCode = this.foldLeft(BigInt(0))(other_hashify)+1
     
     /** Return the requested element by zero-based index. */
-    override def apply(index: Int) =
-      if (index < insert) backing(index)
-      else {
-        if (index < _tip) items(index - insert)
-        else backing(index - _il)
+    override def apply(index: Int) = {
+      val r = if (index < insert) backing(index)
+              else {
+                if (index < _tip) items(index - insert)
+                else backing(index - _il)
+              }
+      if (OmitSeq.debug) {
+        println("OmitSeq3 part1 = " + backing)
+        println("OmitSeq3 part2 = " + items)
+        println("OmitSeq3[" + index + "] = " + 
+                r + ", len = " + this.length)
       }
+      r
+    }
   }
 
   //======================================================================

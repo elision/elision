@@ -172,7 +172,7 @@ extends BasicAtom with Applicable {
 	  case _ => Fail("Lambdas only match other lambdas.", this, subject)
 	}
 
-	//////////////////// GUI changes
+	// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
 	// ReplActor ! ("Eva", "pushTable", "Lambda rewrite")
     // top node of this subtree
@@ -197,9 +197,10 @@ extends BasicAtom with Applicable {
             (this, false)
 	  }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
   
   override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
+  lazy val otherHashCode = lvar.otherHashCode + 8191*body.otherHashCode
   
   override def equals(other: Any) = other match {
     case lambda:Lambda =>
@@ -208,7 +209,7 @@ extends BasicAtom with Applicable {
     case _ => false
   }
   
-  //////////////////// GUI changes
+  // GUI changes
   def doApply(atom: BasicAtom, bypass: Boolean) = {
 	// ReplActor ! ("Eva", "pushTable", "Lambda doApply")
     // top node of this subtree
@@ -252,7 +253,7 @@ extends BasicAtom with Applicable {
         throw new LambdaUnboundedRecursionException(errorString)
     }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
   
 }
 
@@ -277,7 +278,7 @@ object Lambda {
   def unapply(lambda: Lambda) = Some(lambda.lvar, lambda.body)
   
   
-  //////////////////// GUI changes
+  // GUI changes
   /**
    * Make a lambda from the provided parameter and body.
    *
@@ -342,5 +343,5 @@ object Lambda {
         new Lambda(lvar, body, false)
     }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
 }

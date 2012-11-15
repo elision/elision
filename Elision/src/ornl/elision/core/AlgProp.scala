@@ -105,6 +105,8 @@ class AlgProp(
     val absorber: Option[BasicAtom] = None,
     val identity: Option[BasicAtom] = None) extends BasicAtom with Applicable {
   
+  lazy val otherHashCode = BigInt(8191*hashCode)
+
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {
     case Some(ANY) => false
@@ -241,7 +243,7 @@ class AlgProp(
     case _ => default
   }
 	
-	//////////////////// GUI changes
+	// GUI changes
   /**
    * Apply this to the given atom.  If the provided atom is an atom sequence,
    * then this will override the properties of the atom sequence.
@@ -269,7 +271,7 @@ class AlgProp(
 			newSA
 	}
   }
-	//////////////////// end GUI changes
+	// end GUI changes
   
   /**
    * Rewrite an optional atom.
@@ -286,7 +288,7 @@ class AlgProp(
     }
   }*/
   
-  //////////////////// GUI changes
+  // GUI changes
   
   /**
    * Rewrite an optional atom.
@@ -318,7 +320,7 @@ class AlgProp(
 	}
   }
   
-  //////////////////// end GUI changes
+  // end GUI changes
   /*
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
     val assoc = _rewrite(associative, binds)
@@ -331,7 +333,7 @@ class AlgProp(
     else (this, false)
   }
   */
-  //////////////////// GUI changes
+  // GUI changes
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
 	// ReplActor ! ("Eva","pushTable","AlgProp rewrite")
@@ -370,7 +372,7 @@ class AlgProp(
     }
   }
   
-  //////////////////// end GUI changes
+  // end GUI changes
   
   /**
    * Match two optional atoms against one another.  A match is really only

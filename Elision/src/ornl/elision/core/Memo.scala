@@ -149,16 +149,14 @@ object Memo {
    * rewrite limit is stored!
    */
   private var _cache = 
-    new HashMap[(BasicAtom,BitSet),(BasicAtom,Int)]() 
-    //with SynchronizedMap[(BasicAtom,Set[String]),(BasicAtom,Int)]
+    new HashMap[((Int,BigInt),BitSet),(BasicAtom,Int)]() 
   
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
   private var _normal = 
-    new HashMap[(BasicAtom,BitSet),Unit]() 
-    //with SynchronizedMap[(BasicAtom,Set[String]),Unit]
+    new HashMap[((Int,BigInt),BitSet),Unit]() 
   
   /**
    * Track whether anything has been added at a particular cache level.  If
@@ -188,9 +186,9 @@ object Memo {
       _cache.get(pair) match {
         case None =>
         case Some((newatom, level)) =>
-          makers(level).add(
-              (pair._1.toParseString + ";" + pair._2.toString).getBytes(),
-              newatom.toParseString.getBytes())
+          //makers(level).add(
+          //    (pair._1.toParseString + ";" + pair._2.toString).getBytes(),
+          //    newatom.toParseString.getBytes())
       }
     } // Add all entries.
     
@@ -230,10 +228,10 @@ object Memo {
     // We are doing caching. Actually look in the cache.
     var r: Option[(BasicAtom, Boolean)] = None
     val t0 = System.nanoTime
-    if (_normal.contains((atom,rulesets))) {
+    if (_normal.contains(((atom.hashCode, atom.otherHashCode),rulesets))) {
       r = Some((atom, false))
     } else {
-      _cache.get((atom, rulesets)) match {
+      _cache.get(((atom.hashCode, atom.otherHashCode), rulesets)) match {
         case None =>
           // Cache miss.
           r = None
@@ -271,11 +269,11 @@ object Memo {
     val t0 = System.nanoTime
     val lvl = 0 max level min (_LIMIT-1)
     _normal.synchronized {
-      _normal((value, rulesets)) = Unit
+      _normal(((value.hashCode, value.otherHashCode), rulesets)) = Unit
     }
     if (!(atom eq value)) {
       _cache.synchronized {
-        _cache((atom, rulesets)) = (value, level)
+        _cache(((atom.hashCode, atom.otherHashCode), rulesets)) = (value, level)
       }
     }
     val t1 = System.nanoTime

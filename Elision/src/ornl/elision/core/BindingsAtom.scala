@@ -71,6 +71,8 @@ import ornl.elision.repl.ReplActor
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
+  lazy val otherHashCode = BigInt(8191*hashCode)
+
   /** The type of a bindings atom is the special bindings type. */
   val theType = ANY
   lazy val isConstant = mybinds.values.forall(_.isConstant)

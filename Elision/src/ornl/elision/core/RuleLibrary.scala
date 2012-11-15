@@ -78,6 +78,9 @@ class LiteralPatternException(msg: String) extends ElisionException(msg)
  * A ruleset reference.
  */
 abstract class RulesetRef extends BasicAtom with Rewriter {
+
+  lazy val otherHashCode = BigInt(8191*hashCode)
+
   val depth = 0
   val deBruijnIndex = 0
   val constantPool = None

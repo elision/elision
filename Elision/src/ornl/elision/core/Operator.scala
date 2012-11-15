@@ -240,7 +240,8 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
     case _ => false
   }
 
-  override lazy val hashCode = 83 * operator.hashCode
+  override lazy val hashCode = 31 * operator.hashCode
+  lazy val otherHashCode = 8191 * operator.otherHashCode
 }
 
 /**
@@ -935,8 +936,13 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               // Add the arguments directly to this list.  We can assume the
               // sub-list has already been processed, so no deeper checking
               // is needed.  This flattens associative lists, as required.
+              //println("ASSOC: Add args " + opargs)
+              //println("ASSOC: Old seq " + newseq)
               newseq = newseq.omit(index)
               newseq = newseq.insert(index, opargs)
+              //OmitSeq.debug = true
+              //println("ASSOC: New seq " + newseq)
+              //OmitSeq.debug = false
             case _ =>
               // Nothing to do except increment the pointer.
               index += 1

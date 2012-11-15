@@ -80,7 +80,9 @@ with Rewriter {
   lazy val depth = (left.depth max right.depth) + 1
   lazy val isTerm = left.isTerm && right.isTerm
   lazy val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
+
   override lazy val hashCode = left.hashCode * 31 + right.hashCode
+  lazy val otherHashCode = left.otherHashCode + 8191*right.otherHashCode
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = subject match {
