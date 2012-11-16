@@ -79,8 +79,6 @@ class LiteralPatternException(msg: String) extends ElisionException(msg)
  */
 abstract class RulesetRef extends BasicAtom with Rewriter {
 
-  lazy val otherHashCode = BigInt(8191*hashCode)
-
   val depth = 0
   val deBruijnIndex = 0
   val constantPool = None
@@ -96,6 +94,7 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   def rewrite(binds: Bindings) = (this, false)
     
   override def hashCode = 61*name.hashCode
+  lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(other: Any) =
     (other match {

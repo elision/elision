@@ -105,7 +105,7 @@ class AlgProp(
     val absorber: Option[BasicAtom] = None,
     val identity: Option[BasicAtom] = None) extends BasicAtom with Applicable {
   
-  lazy val otherHashCode = BigInt(8191*hashCode)
+  lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
 
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {
