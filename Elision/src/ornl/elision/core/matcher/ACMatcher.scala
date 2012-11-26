@@ -64,6 +64,7 @@ object ACMatcher {
     }
 
     // Check the length.
+    //println("plist = " + plist + "\nslist = " + slist)
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -175,7 +176,9 @@ object ACMatcher {
         // Get the patterns and subjects that remain.
         val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
         val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
-        
+        //println("pats = " + pats + "\nsubs = " + subs)        
+        //println("patterns = " + patterns + "\nsubjects = " + subjects)
+
         // If there is exactly one pattern then match it immediately.
         if (pats.atoms.length == 1) {
           return pats.atoms(0).tryMatch(op match {
@@ -186,10 +189,28 @@ object ACMatcher {
           }, (bindings ++ binds))
         }
         
-        // If there are no patterns, there is nothing to do.
-        if (pats.atoms.length == 0) {
+        // If there are no patterns, and all subjects have been
+        // matched, there is nothing to do.
+        if ((pats.atoms.length == 0) && (subs.atoms.length == 0)) {
           MatchIterator(bindings ++ binds)
-        } else {
+        }
+
+        // If there are no patterns, and all subjects have NOT been
+        // matched, there is no match.
+        else if ((pats.atoms.length == 0) && (subs.atoms.length == 0)) {
+          
+          // Return an empty iterator.
+          new MatchIterator {
+            _current = null
+            _local = null
+            _exhausted = true
+            def findNext = {
+              _exhausted = true
+            }
+          }
+        }
+
+        else {
           // Merge the current bindings with the old bindings.
           val newBinds = (bindings ++ binds)
             
@@ -202,7 +223,7 @@ object ACMatcher {
             // the current binding.
             //
             // In an attemp to fail fast, we are going to check each
-            // pattern vartiable left and see if:
+            // pattern variable left and see if:
             // 1. Is the left-over pattern variable currently bound in the
             //    binding?
             // 2. If so, is there an atom in the subject list is exactly
