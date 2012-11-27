@@ -63,6 +63,15 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
 		editorKit = new javax.swing.text.html.HTMLEditorKit
 		text = """<div style="font-family:Lucida Console;font-size:12pt">"""
 	}
+    console.listenTo(console.mouse.clicks)
+    console.reactions += {
+        case e : swing.event.MouseClicked =>
+            val btn = e.peer.getButton
+            if(btn == java.awt.event.MouseEvent.BUTTON3) {
+                val copypasta = new CopyPastaMenu(console)
+                copypasta.show(console.peer, e.point.x, e.point.y)
+            }
+    }
 	ConsolePanel.textArea = console
     
     

@@ -488,12 +488,12 @@ extends Fickle with Mutable {
     else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
     else if (atom.isInstanceOf[Variable]) (atom, false)
     else {
-      // ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+       ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
       // top node of this subtree
-      // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
-      // ReplActor ! ("Eva", "setSubroot", "rwNode")
+       ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
+       ReplActor ! ("Eva", "setSubroot", "rwNode")
       val tempDisabled = ReplActor.disableGUIComs
-      //if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
 
       // Check the cache.
       var timedOut = false
@@ -527,9 +527,9 @@ extends Fickle with Mutable {
         }
       }
 
-      //ReplActor.disableGUIComs = tempDisabled
-      //if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-      //ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+      ReplActor.disableGUIComs = tempDisabled
+      if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
       
       // Did rewriting this atom time out?
       if (timedOut) {
@@ -577,13 +577,13 @@ extends Fickle with Mutable {
     else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
     else if (atom.isInstanceOf[Variable]) (atom, false)
     else {
-      // ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-      // top node of this subtree
-      // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-      // ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
-      //val tempDisabled = ReplActor.disableGUIComs
+       ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+       // top node of this subtree
+       ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+       ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
+      val tempDisabled = ReplActor.disableGUIComs
 
-      //if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
 
       // Check the cache.
       val usedRulesetsBits = 
@@ -624,9 +624,9 @@ extends Fickle with Mutable {
         }
       }
         
-      //ReplActor.disableGUIComs = tempDisabled
-      // ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-      // ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+      ReplActor.disableGUIComs = tempDisabled
+       ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+       ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
       
       // Did rewriting this atom time out?
       if (timedOut) {
