@@ -198,10 +198,10 @@ class Variable(typ: BasicAtom, val name: String,
 
   // GUI changes
   def rewrite(binds: Bindings) = {
-	  // ReplActor ! ("Eva","pushTable","Variable rewrite")
+	  ReplActor ! ("Eva","pushTable","Variable rewrite")
     // top node of this subtree
-	  // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: "))
-	  // ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType))
+	  ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: "))
+	  ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType))
 
     // If we have no bindings, don't rewrite the variable.
     if (binds == null) {
@@ -215,31 +215,31 @@ class Variable(typ: BasicAtom, val name: String,
       // bound value.
       binds.get(name) match {
         case Some(atom) => {
-          // ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
           
-          // ReplActor ! ("Eva", "popTable", "Variable rewrite")
+          ReplActor ! ("Eva", "popTable", "Variable rewrite")
 	        (atom, true)
         }
         case None => {
-	        // ReplActor ! ("Eva", "setSubroot", "type")
+	        ReplActor ! ("Eva", "setSubroot", "type")
           // While the atom is not bound, its type might have to be rewritten.
           theType.rewrite(binds) match {
             case (newtype, changed) => {
-	            // ReplActor ! ("Eva", "addTo", ("type", "", newtype))
+	            ReplActor ! ("Eva", "addTo", ("type", "", newtype))
               if (changed) { 
-	              // ReplActor ! ("Eva", "setSubroot", "rwNode")
+	              ReplActor ! ("Eva", "setSubroot", "rwNode")
 	              val newVar = Variable(newtype, name)
-	              // ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar))
+	              ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar))
                 
-                // ReplActor ! ("Eva", "popTable", "Variable rewrite")
+                  ReplActor ! ("Eva", "popTable", "Variable rewrite")
 	              (newVar, true) 
 	            } else {
-                // ReplActor ! ("Eva", "popTable", "Variable rewrite")
+                 ReplActor ! ("Eva", "popTable", "Variable rewrite")
                 (this, false)
               }
             }
             case _ => {
-              // ReplActor ! ("Eva", "popTable", "Variable rewrite")
+              ReplActor ! ("Eva", "popTable", "Variable rewrite")
               (this, false)
             }
           }

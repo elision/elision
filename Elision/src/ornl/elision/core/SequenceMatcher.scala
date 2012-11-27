@@ -100,29 +100,29 @@ object SequenceMatcher {
    * 					that is true if any rewrites succeeded.
    */
   def rewrite(subjects: OmitSeq[BasicAtom], binds: Bindings) = {
-    // ReplActor ! ("Eva","pushTable","obj SequenceMatcher rewrite")
+    ReplActor ! ("Eva","pushTable","obj SequenceMatcher rewrite")
     // top node of this subtree
-    // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object SequenceMatcher rewrite: ")) // val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
-    // ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object SequenceMatcher rewrite: ")) // val rwNode = RWTree.addToCurrent("object SequenceMatcher rewrite: ")
+    ReplActor ! ("Eva", "addTo", ("rwNode", "seq", "sequence: ")) // val seqNode = RWTree.addTo(rwNode, "sequence: ")
     
     var changed = false
     var index = 0
     var newseq = OmitSeq[BasicAtom]()
     while (index < subjects.size) {
-      // ReplActor ! ("Eva", "addTo", ("seq", "head", subjects(index))) // val headNode = seqNode.addChild(atoms.head)
+      ReplActor ! ("Eva", "addTo", ("seq", "head", subjects(index))) // val headNode = seqNode.addChild(atoms.head)
 
-      // ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
+      ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
 
       val (newatom, change) = subjects(index).rewrite(binds)
 
-      // ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
+      ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
 
       changed |= change
       newseq :+= newatom
       index += 1
     } // Rewrite the subjects.
     
-    // ReplActor ! ("Eva", "popTable", "obj SequenceMatcher rewrite")
+    ReplActor ! ("Eva", "popTable", "obj SequenceMatcher rewrite")
     if (changed) (newseq, changed) else (subjects, false)
   }
   //  end GUI changes

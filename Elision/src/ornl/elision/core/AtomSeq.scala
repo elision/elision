@@ -213,31 +213,31 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 
   // GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-    // ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
+    ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
     // top node of this subtree
-    // ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
     
     // Rewrite the properties.
-    // ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
-    // ReplActor ! ("Eva", "setSubroot", "props")
+    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
+    ReplActor ! ("Eva", "setSubroot", "props")
     val (newprop, pchanged) = props.rewrite(binds)
     
     // We must rewrite every child atom, and collect them into a new sequence.
-    // ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
-    // ReplActor ! ("Eva", "setSubroot", "atoms")
+    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
+    ReplActor ! ("Eva", "setSubroot", "atoms")
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-      // ReplActor ! ("Eva", "setSubroot", "rwNode")
+      ReplActor ! ("Eva", "setSubroot", "rwNode")
       val newAS = new AtomSeq(newprop, newseq)
-      // ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))
       
-      // ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
+      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (newAS, true)
     }
     else {
-      // ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
+      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (this, false)
     }
   }
