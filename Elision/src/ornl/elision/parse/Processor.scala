@@ -192,11 +192,11 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-    // ReplActor ! ("Eva", "pushTable", "Processor read")
-    // ReplActor ! ("Eva", "addToSubroot", ("read", "Reading: " + filename))
-    // ReplActor ! ("Eva", "setSubroot", "read")
+    ReplActor ! ("Eva", "pushTable", "Processor read")
+    ReplActor ! ("Eva", "addToSubroot", ("read", "Reading: " + filename))
+    ReplActor ! ("Eva", "setSubroot", "read")
     _execute(_parser.parseAtoms(source)) 
-    // ReplActor ! ("Eva", "popTable", "Processor read")
+    ReplActor ! ("Eva", "popTable", "Processor read")
   }
   
   /**
@@ -232,18 +232,8 @@ with HasHistory {
       console.emitln(lline)
     }
 	
-	// GUI changes
-	// Create the root of our rewrite tree it contains a String of the REPL input.
-//	// ReplActor ! ("Eva", "newTree", lline) // val treeRoot = RWTree.createNewRoot(lline) 
-	// end GUI changes
-	
     _execute(_parser.parseAtoms(lline))
 	
-	// GUI changes
-	// send the completed rewrite tree to the GUI's actor
-//	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
-//		ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
-	// end GUI changes
   }
   
   def parse(text: String) = {
@@ -257,7 +247,7 @@ with HasHistory {
     import ornl.elision.ElisionException
     startTimer
 	
-    // ReplActor ! ("Eva","pushTable","Processor _execute")
+    ReplActor ! ("Eva","pushTable","Processor _execute")
     
     try {
     	result match {
@@ -267,27 +257,27 @@ with HasHistory {
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
 				// GUI changes
-                // ReplActor ! ("Eva", "setSubroot", "subroot")
+                ReplActor ! ("Eva", "setSubroot", "subroot")
                 var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
-                // ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
-				// ReplActor ! ("Eva", "setSubroot", "lineNode") //RWTree.current = lineNode
+                ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
+				ReplActor ! ("Eva", "setSubroot", "lineNode") //RWTree.current = lineNode
 				
 				
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
-                    // ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
-                    // ReplActor ! ("Eva", "setSubroot", "interpret") // RWTree.current = lineNode // GUI changes
+                    ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
+                    ReplActor ! ("Eva", "setSubroot", "interpret") // RWTree.current = lineNode // GUI changes
   			        val atom = newnode.interpret
                     
-                    // ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
-                    // ReplActor ! ("Eva", "setSubroot", "handle")
+                    ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
+                    ReplActor ! ("Eva", "setSubroot", "handle")
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
-                        // ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
-                        // ReplActor ! ("Eva", "setSubroot", "result") //RWTree.current = lineNode
+                        ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
+                        ReplActor ! ("Eva", "setSubroot", "result") //RWTree.current = lineNode
   			            // Hand off the node.
   			            _result(newatom)
   			        }
@@ -315,7 +305,7 @@ with HasHistory {
         coredump("Internal error.", Some(th))
     }
     
-    // ReplActor ! ("Eva","popTable","Processor _execute")
+    ReplActor ! ("Eva","popTable","Processor _execute")
     
     stopTimer
     showElapsed
@@ -338,23 +328,23 @@ with HasHistory {
     var theAtom = atom
 	
 	// GUI changes
-	// ReplActor ! ("Eva", "pushTable", "_handleAtom")
+	ReplActor ! ("Eva", "pushTable", "_handleAtom")
 	// add this atom as a child to the root node
-	// ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) //val atomNode = RWTree.addTo(rwNode, atom)
+	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) //val atomNode = RWTree.addTo(rwNode, atom)
 	
 	// end GUI changes
 	
     for (handler <- _queue) {
-      // ReplActor ! ("Eva", "setSubroot", "atomNode") //RWTree.current = atomNode // GUI change
+      ReplActor ! ("Eva", "setSubroot", "atomNode") //RWTree.current = atomNode
       handler.handleAtom(theAtom) match {
         case None => 
-            // ReplActor ! ("Eva", "popTable", "_handleAtom") // GUI change
+            ReplActor ! ("Eva", "popTable", "_handleAtom")
             return None
         case Some(alt) => theAtom = alt
       }
     } // Perform all handlers.
     
-    // ReplActor ! ("Eva", "popTable", "_handleAtom") // GUI change
+    ReplActor ! ("Eva", "popTable", "_handleAtom")
     return Some(theAtom)
   }
   
