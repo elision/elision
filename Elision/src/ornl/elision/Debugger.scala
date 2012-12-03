@@ -60,12 +60,12 @@ package ornl.elision
  * debug("Reporting elapsed time.", "stop")
  * }}}
  * 
- * Alternately, include the things you want to do in an `ifon` block.
+ * Alternately, include the things you want to do in an `ifdebug` block.
  * 
  * {{{
  * import ornl.elision.Debugger._
  * 
- * ifon("simple") {
+ * ifdebug("simple") {
  *   println("The simple mode is enabled.")
  *   for (i <- 1 upto 1000) println(i)
  * }
@@ -177,7 +177,7 @@ object Debugger {
    * the actions in brackets after.
    * 
    * {{{
-   * ifon("tim") {
+   * ifdebug("tim") {
    *   println("Tim is go!")
    * }
    * }}}
