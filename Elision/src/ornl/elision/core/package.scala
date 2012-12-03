@@ -67,8 +67,8 @@ package object core {
     val console = PrintConsole 
     val context = new Context()
     def parse(text: String): ParseResult = ParseFailure(
-        "This default executor cannot parse text; override this with a full" +
-        "executor implementation to properly support parsing from within" +
+        "This default executor cannot parse text; override this with a full " +
+        "executor implementation to properly support parsing from within " +
         "native operators.")
   }
   
@@ -104,9 +104,12 @@ package object core {
    * @param str			The string to parse.
    * @param context	The context.
    * @param trace		Whether to trace the parse.
+   * @param toggle  Choose whether to use the Parboiled parser (false) or the
+   *                Scala parser combinator parser (true).
    * @return	The result of parsing, which may be None.
    */
-  def parse(str: String, context: Context, trace: Boolean = false, toggle: Boolean = false) = {
+  def parse(str: String, context: Context, trace: Boolean = false,
+      toggle: Boolean = false) = {
     val ap = new AtomParser(context, trace, toggle)
     try {
       ap.parseAtoms(str) match {
@@ -158,7 +161,9 @@ package object core {
 		        case '\\' => buf ++= """\\"""
 		        case _ => buf ++= ch.toString
           }
-        } else buf ++= ch.toString
+        } else {
+          buf ++= ch.toString
+        }
     }
     if (bad) "`" + buf.toString + "`" else buf.toString
   }
