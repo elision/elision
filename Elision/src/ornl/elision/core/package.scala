@@ -38,6 +38,7 @@
 package ornl.elision
 
 import scala.collection.immutable.HashMap
+import scala.collection.mutable.HashSet
 import org.parboiled.errors.ParsingException
 import ornl.elision.parse.AtomParser
 
@@ -265,7 +266,9 @@ package object core {
 	   * @param index	The zero-based index to omit.
 	   * @return	The new list.
 	   */
-    def omit(index: Int) = new OmitSeq2[A](seq, index)
+    def omit(index: Int) = {
+      new OmitSeq2[A](seq, index)
+    }
   }
   
   /**
@@ -283,7 +286,11 @@ package object core {
      * @param index The zero-based index to omit.
      * @return  The new list.
      */
-    def omit(index: Int): IndexedSeq[A] = new OmitSeq2(this, index)
+    def omit(index: Int): IndexedSeq[A] = {
+      var r = new OmitSeq2(this, index)
+      r.isDistinct = this.isDistinct
+      r
+    }
     
     /**
      * Insert a sequence into the list starting at the given (zero-based) index.
@@ -296,6 +303,51 @@ package object core {
      */
     def insert(index: Int, items: IndexedSeq[A]): IndexedSeq[A] = {
       if (items.size == 0) this else new OmitSeq3(this, index, items)
+    }
+
+    var isDistinct = false
+
+    override def distinct: IndexedSeq[A] = {
+      
+      // Is this sequence already distinct?
+      if (this.isDistinct) this
+
+      // Is this sequence empty? If so we are already distinct.
+      else if (this.size == 0) this
+
+      // Are we handling a sequence of BasicAtoms?
+      else if (this(0).isInstanceOf[BasicAtom]) {
+
+        // Use the BasicAtom hash code pair to test for uniqueness.
+        var tmp = scala.collection.immutable.Vector.empty[BasicAtom]
+        var index = 0
+        var seenElems = new HashSet[(Int,BigInt)]
+        while (index < this.size) {
+          val elem = this(index).asInstanceOf[BasicAtom]
+          if (!seenElems.contains((elem.hashCode, elem.otherHashCode))) {
+            tmp = tmp :+ elem
+            seenElems += new Tuple2(elem.hashCode, elem.otherHashCode)
+          }
+          index += 1
+        }
+        
+        // The result is known to be distinct.
+        var r = new OmitSeq1(tmp)
+        r.isDistinct = true
+        r.asInstanceOf[IndexedSeq[A]]
+      }
+      
+      // We are not handling basic atoms. Use the default
+      // implementation.
+      else {
+        
+        // Compute the distinct omit sequence.
+        var r = new OmitSeq1(super.distinct)
+
+        // The result is known to be distinct.
+        r.isDistinct = true
+        r
+      }
     }
   }
   

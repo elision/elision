@@ -197,7 +197,7 @@ object ACMatcher {
 
         // If there are no patterns, and all subjects have NOT been
         // matched, there is no match.
-        else if ((pats.atoms.length == 0) && (subs.atoms.length == 0)) {
+        else if ((pats.atoms.length == 0) && (subs.atoms.length != 0)) {
           
           // Return an empty iterator.
           new MatchIterator {
