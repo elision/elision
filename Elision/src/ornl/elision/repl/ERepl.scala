@@ -549,11 +549,7 @@ class ERepl extends Processor {
         ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
         
         //  end GUI changes
-        val startTime = System.currentTimeMillis
         execute(line)
-        val endTime = System.currentTimeMillis
-        val timeEllapsed = endTime-startTime
-        console.emitln("Time: " + timeEllapsed + "ms")
         //  GUI changes
 	
         // send the completed rewrite tree to the GUI's actor
