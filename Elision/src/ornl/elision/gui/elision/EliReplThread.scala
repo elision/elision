@@ -66,7 +66,7 @@ class EliReplThread extends ReplThread {
 	def runNewRepl : Unit = {
 		val myRepl = new ornl.elision.repl.ERepl
     
-    Console.pause = evaPause
+    myRepl.console.pause = evaPause
     
 		myRepl.run()
         myRepl.clean()
