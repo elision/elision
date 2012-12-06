@@ -41,11 +41,20 @@ import scala.concurrent.ops._
 import sys.process._
 
 import ornl.elision.gui._
+import ornl.elision.repl.ReplActor
+import ornl.elision.util.Console
 
 
 /** A thread to run the Elision REPL in */
 class EliReplThread extends ReplThread {
 	
+  /** A closure for pausing the repl. */
+  def evaPause(): Boolean = {
+    write("--More--")
+    ReplActor.waitOnGUI()
+    true
+  }
+  
 	/** Starts a new thread in which the REPL will run in. */
 	override def run : Unit = {
 		ornl.elision.repl.ReplActor.guiMode = true
@@ -56,6 +65,9 @@ class EliReplThread extends ReplThread {
 	/** Creates an instance of and begins running the new REPL */
 	def runNewRepl : Unit = {
 		val myRepl = new ornl.elision.repl.ERepl
+    
+    Console.pause = evaPause
+    
 		myRepl.run()
         myRepl.clean()
 	}
