@@ -27,7 +27,9 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision
+package ornl.elision.util
+
+import ornl.elision.core.Timeable
 
 /**
  * This is a class for managing and printing debug output during execution
