@@ -27,9 +27,7 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision
-import scala.util.Sorting
-import scala.math.Ordering
+package ornl.elision.cli
 import ornl.elision.util.Text
 
 /**
@@ -64,6 +62,15 @@ object Switches {
    * returned, or to discard (`false`) the argument.
    * 
    * The default argument handler always returns `(None, true)`.
+   * 
+   * Switches come in the following forms:
+   *  - Single-character switches, such as `-d` and `-x`.  These may be combined
+   *    as `-dx`.  If an argument is required, it may be provided immediately
+   *    after the switch, or it may be the next argument: `-dFoo` and  `-d Foo`.
+   *    Because of this, a switch taking an argument must be the last switch
+   *    given on a single dash.
+   *  - Simple long switches, such as `--clear` and `--help`.
+   *  - Long switches that take an argument, such as `--debug=Foo`.
    * 
    * @param args      The command line arguments.
    * @param switches  Known command line switches.
