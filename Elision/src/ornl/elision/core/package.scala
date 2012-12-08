@@ -40,6 +40,7 @@ package ornl.elision
 import scala.collection.immutable.HashMap
 import org.parboiled.errors.ParsingException
 import ornl.elision.parse.AtomParser
+import ornl.elision.util.PrintConsole
 
 /**
  * The core classes and definitions that make up the Elision runtime.
@@ -236,6 +237,8 @@ package object core {
       seq.map(_.toParseString).mkString(pre, mid, post)
   }
   
+  import ornl.elision.util.OmitSeq
+  
   /**
    * Invoking the `omit` method on an indexed sequence automagically transforms
    * it into an omit sequence with the original sequence as its backing store.
@@ -253,125 +256,7 @@ package object core {
 	   * @param index	The zero-based index to omit.
 	   * @return	The new list.
 	   */
-    def omit(index: Int) = new OmitSeq2[A](seq, index)
-  }
-  
-  /**
-   * The omit sequence class.
-   */
-  abstract class OmitSeq[A] extends IndexedSeq[A] {
-    
-    /**
-     * Omit a single element from this list, returning a new list.  This is
-     * done "in place" so it should be fast.  As omits mount, lookup time
-     * can suffer, approaching linear time.
-     * 
-     * @param index The zero-based index to omit.
-     * @return  The new list.
-     */
-    def omit(index: Int): IndexedSeq[A] = new OmitSeq2(this, index)
-    
-    /**
-     * Insert a sequence into the list starting at the given (zero-based) index.
-     * This is done "in place" so it should be fast.  As inserts mount, lookup
-     * time can suffer, as with omits.
-     * 
-     * @param index The zero-based index of the first inserted element.
-     * @param items The items to insert.  If this is empty, nothing is done.
-     * @return  The new list.
-     */
-    def insert(index: Int, items: IndexedSeq[A]): IndexedSeq[A] = {
-      if (items.size == 0) this else new OmitSeq3(this, index, items)
-    }
-  }
-  
-  /**
-   * Provide convenient construction of an omit sequence and automatic
-   * (implicit) transformation of indexed collections to an omit sequence.
-   */
-  object OmitSeq {
-    /**
-     * Convert an indexed sequence to an omit sequence.
-     * 
-     * @param backing	The backing sequence.
-     * @return	The new omit sequence.
-     */
-    implicit def fromIndexedSeq[A](backing: IndexedSeq[A]): OmitSeq[A] =
-      new OmitSeq1[A](backing)
-      
-    /**
-     * Make a new omit sequence that is initially empty.
-     * 
-     * @return An empty sequence.
-     */
-    def apply[A](): OmitSeq[A] = new OmitSeq1(Seq[A]().toIndexedSeq)
-    
-    /**
-     * Make a new omit sequence from the given items.
-     * 
-     * @param items	The items of the new sequence.
-     * @return	The new sequence.
-     */
-    def apply[A](items: A*): OmitSeq[A] = new OmitSeq1[A](items.toIndexedSeq)
-  }
-  
-  /**
-   * Construct an omit sequence that simply wraps a backing sequence but does
-   * not actually omit or insert anything.
-   * 
-   * @param backing	The backing sequence.
-   */
-  private class OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
-    // Proxy to backing sequence.
-    lazy val length = backing.length
-    
-    // Proxy to backing sequence.
-    def apply(index: Int) = {
-      backing(index)
-    }
-  }
-  
-  /**
-   * Construct an omit sequence that omits a single element from the backing
-   * sequence.
-   * 
-   * @param backing	The backing sequence.
-   * @param omit		The (zero-based) index of the item to omit.
-   */
-  private class OmitSeq2[A](backing: IndexedSeq[A], omit: Int)
-  extends OmitSeq[A] {
-    /** Length is one less than the backing sequence. */
-		override lazy val length = backing.length - 1
-		
-		/** Return the requested element by zero-based index. */
-		override def apply(index: Int) =
-		  if (index >= omit) backing(index+1) else backing(index)
-	}
-  
-  /**
-   * Construct an omit sequence that inserts another sequence of elements at
-   * a given index.
-   * 
-   * @param backing The backing sequence.
-   * @param insert  The (zero-based) index of the items to insert.
-   * @param items   The sequence of items to be inserted.
-   */
-  private class OmitSeq3[A](backing: IndexedSeq[A], insert: Int,
-      items: IndexedSeq[A]) extends OmitSeq[A] {
-    // Some stored constants for fast reference.
-    private val _il = items.length
-    private val _tip = _il + insert
-    
-    /** Length is the backing sequence plus the inserted items. */
-    override lazy val length = backing.length + _il
-    
-    /** Return the requested element by zero-based index. */
-    override def apply(index: Int) =
-      if (index < insert) backing(index)
-      else {
-        if (index < _tip) items(index - insert)
-        else backing(index - _il)
-      }
+    def omit(index: Int) = OmitSeq(seq, index)
   }
 
   //======================================================================
