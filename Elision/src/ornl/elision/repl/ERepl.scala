@@ -50,6 +50,9 @@ object ReplMain {
    */
   def runRepl {
     val erepl = new ERepl
+    ReplActor.start
+    ReplActor.peer = erepl
+    ReplActor ! ("disableGUIComs", true)
     erepl.run()
     erepl.clean()
   }
@@ -77,13 +80,6 @@ class ERepl extends Processor {
 	import scala.tools.jline.console.history.FileHistory
 	import scala.tools.jline.console.ConsoleReader
 	import java.io.{File, FileWriter, FileReader, BufferedReader}
-  
-  
-	//////////////////// GUI changes
-  ReplActor.start
-  ReplActor.peer = this
-	ReplActor ! ("disableGUIComs", true)
-	//////////////////// end GUI changes
   
   //======================================================================
   // Figure out where to read and store the history, and where to store
@@ -456,27 +452,27 @@ class ERepl extends Processor {
     cr.setHistory(_hist)
     
     // Start main loop.
-    while(true) {
-      // Hold the accumulted line.
-      var line = ""
-      
-      // Hold the next segment read from the prompt.
-      var segment = ""
+    while(true) { {
+        // Hold the accumulted line.
+        var line = ""
         
-      // A line state parser to determine when the line ends.
-      val ls = new LineState
-      
-      // The number of blank lines seen.
-      var blanks = 0
-      
-      // A little function to prompt for, and read, the next segment.  The
-      // segment is accumulated into the line. 
-      def fetchline(p1: String, p2: String): Boolean = {
-        Processor.fileReadStack.clear
-        Processor.fileReadStack.push("Console")
-      	//////////////////// GUI changes
+        // Hold the next segment read from the prompt.
+        var segment = ""
+          
+        // A line state parser to determine when the line ends.
+        val ls = new LineState
+        
+        // The number of blank lines seen.
+        var blanks = 0
+        
+        // A little function to prompt for, and read, the next segment.  The
+        // segment is accumulated into the line. 
+        def fetchline(p1: String, p2: String): Boolean = {
+          Processor.fileReadStack.clear
+          Processor.fileReadStack.push("Console")
+        	//////////////////// GUI changes
 		segment = 	if (ReplActor.guiMode) {  
-                println()
+                  println()
 				print("" + (if (console.quiet > 0) p2 else p1))
 				
 				// make the Repl wait for GUI Input
@@ -489,10 +485,10 @@ class ERepl extends Processor {
 				// Reset the terminal size now, if we can, and if the user wants to
 				// use the pager.
 				if (getProperty[Boolean]("usepager")) {
-          console.height_=(
-              scala.tools.jline.TerminalFactory.create().getHeight()-1)
-          console.width_=(
-              scala.tools.jline.TerminalFactory.create().getWidth())
+            console.height_=(
+                scala.tools.jline.TerminalFactory.create().getHeight()-1)
+            console.width_=(
+                scala.tools.jline.TerminalFactory.create().getWidth())
 				} else {
 				  console.height_=(0)
 				  console.width_=(0)
@@ -503,78 +499,79 @@ class ERepl extends Processor {
 		
 		//segment = cr.readLine(if (console.quiet > 0) p2 else p1)
 		
-      	if (segment == null) {
-      	  return true
-      	}
-      	segment = segment.trim()
-      	
-      	// Watch for blank lines that terminate the parse.
-      	if (segment == "") blanks += 1 else blanks = 0
-      	
-      	// Capture newlines.
-      	if (line != "") line += "\n"
-      	line += segment
-      	
-      	// Process the line to determine if the input is complete.
-      	ls.process(segment)
-      }
-      
-      // Read the first segment.
-      if (!fetchline("e> ", "q> ")) {
-      	// Read any additional segments.  Everything happens in the while loop,
-        // but the loop needs a body, so that's the zero.
-        while (!fetchline(" > ", " > ") && blanks < 3) 0
+        	if (segment == null) {
+        	  return true
+        	}
+        	segment = segment.trim()
+        	
+        	// Watch for blank lines that terminate the parse.
+        	if (segment == "") blanks += 1 else blanks = 0
+        	
+        	// Capture newlines.
+        	if (line != "") line += "\n"
+        	line += segment
+        	
+        	// Process the line to determine if the input is complete.
+        	ls.process(segment)
+        }
+        
+        // Read the first segment.
+        if (!fetchline("e> ", "q> ")) {
+        	// Read any additional segments.  Everything happens in the while loop,
+          // but the loop needs a body, so that's the zero.
+          while (!fetchline(" > ", " > ") && blanks < 3) 0
 	      if (blanks >= 3) {
 	        console.emitln("Entry terminated by three blank lines.")
 	        line = ""
 	      }
-      }
-      
-      // Watch for the end of stream or the special :quit token.
-      if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-        // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
-        ReplActor.exitFlag = true
-        ReplActor ! (":quit", true)
-        return
-      }
-      
-      // Flush the console.  Is this necessary?
-      cr.flush()
-      
-      // Run the line.
-      try {
-        //////////////////// GUI changes
-	
-        // Create the root of our rewrite tree it contains a String of the REPL input.
-        ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
+        }
         
-        //////////////////// end GUI changes
-        execute(line)
-        //////////////////// GUI changes
+        // Watch for the end of stream or the special :quit token.
+        if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+          // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
+          ReplActor.exitFlag = true
+          ReplActor ! (":quit", true)
+          return
+        }
+        
+        // Flush the console.  Is this necessary?
+        cr.flush()
+        
+        // Run the line.
+        try {
+          //////////////////// GUI changes
 	
-        // send the completed rewrite tree to the GUI's actor
-        if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
-            ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
+          // Create the root of our rewrite tree it contains a String of the REPL input.
+          ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
+          
+          //////////////////// end GUI changes
+          execute(line)
+          //////////////////// GUI changes
+	
+          // send the completed rewrite tree to the GUI's actor
+          if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
+              ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
 
-        //////////////////// end GUI changes
-      } catch {
-        case ornl.elision.ElisionException(msg) =>
-          console.error(msg)
-        case ex: Exception =>
-          console.error("(" + ex.getClass + ") " + ex.getMessage())
-          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
-        case oom: java.lang.OutOfMemoryError =>
-          System.gc()
-          console.error("Memory exhausted.  Trying to recover...")
-          val rt = Runtime.getRuntime()
-          val mem = rt.totalMemory()
-          val free = rt.freeMemory()
-          val perc = free.toDouble / mem.toDouble * 100
-          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
-        case th: Throwable =>
-          console.error("(" + th.getClass + ") " + th.getMessage())
-          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-          coredump("Internal error.", Some(th))
+          //////////////////// end GUI changes
+        } catch {
+          case ornl.elision.util.ElisionException(msg) =>
+            console.error(msg)
+          case ex: Exception =>
+            console.error("(" + ex.getClass + ") " + ex.getMessage())
+            if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+          case oom: java.lang.OutOfMemoryError =>
+            System.gc()
+            console.error("Memory exhausted.  Trying to recover...")
+            val rt = Runtime.getRuntime()
+            val mem = rt.totalMemory()
+            val free = rt.freeMemory()
+            val perc = free.toDouble / mem.toDouble * 100
+            console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+          case th: Throwable =>
+            console.error("(" + th.getClass + ") " + th.getMessage())
+            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+            coredump("Internal error.", Some(th))
+        }
       }
     } // Forever read, eval, print.
   }
