@@ -42,14 +42,22 @@ import scala.collection.immutable.BitSet
  * Elision is a term rewriter.
  * 
  * This is the root package of the Elision system, and it contains classes
- * and definitions shared by everything else in the system.
+ * and definitions shared by everything else in the system, as well as the
+ * code run at start-up from the command line.
+ * 
+ * Starting the Elision system is the job of [[ornl.elision.Main]].
  * 
  * == Packages ==
  * There are several sub-packages.
  *  - [[ornl.elision.core]] is the core package that contains the primary classes.
+ *  - [[ornl.elision.gui]] contains the Elision GUI, Eva.
  *  - [[ornl.elision.parse]] contains the Elision parser(s).
  *  - [[ornl.elision.repl]] contains the Elision REPL(s) and related classes.
  *  - [[ornl.elision.test]] contains tests to verify Elision functionality.
+ *  - [[ornl.elision.util]] contains common utilities used by the Elision system.
+ * 
+ * Packages in Elision are organized into a use hierarchy.  In general, packages
+ * may use sub-packages, but not the reverse. 
  *  
  * == Punch List ==
  * This is the current punch list for Elision.  This list gets picked up by
@@ -58,13 +66,9 @@ import scala.collection.immutable.BitSet
  *  - TODO Implicit corecions. Mark.
  *  - TODO Infix. DEFER.
  *  - TODO Need parser context for error messages. Stacy.
- *  - TODO Check all recursion in matching. Stacy.
  *  - TODO Need package.scala files for all packages.  Stacy.
- *  - TODO Need better documentation of the matcher.  Stacy.
  *  - TODO Need support for command-line overrides.  Stacy.
  *  - TODO Need simple output configuration.  Stacy.
  *  
  */
-package object elision {
-	// No content at the present time.
-}
+package object elision
