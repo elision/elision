@@ -37,7 +37,7 @@
 package ornl.elision.core
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.immutable.List
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 
 /**
  * Indicate an attempt to re-define an already-known operator.

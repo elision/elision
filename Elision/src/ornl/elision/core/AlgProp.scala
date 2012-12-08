@@ -36,7 +36,7 @@
 ======================================================================
 * */
 package ornl.elision.core
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 import ornl.elision.repl.ReplActor
 
 /**

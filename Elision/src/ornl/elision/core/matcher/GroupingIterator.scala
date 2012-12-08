@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core.matcher
 import ornl.elision.core._
+import ornl.elision.util.OmitSeq
 
 /**
  * Iterate over all associative groupings of items.

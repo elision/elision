@@ -39,10 +39,11 @@ package ornl.elision.core
 
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 import ornl.elision.repl.ReplActor
 import scala.collection.immutable.List
 import scala.collection.immutable.HashSet
+import ornl.elision.util.OmitSeq
 
 /**
  * Indicate an attempt to use an undeclared ruleset.

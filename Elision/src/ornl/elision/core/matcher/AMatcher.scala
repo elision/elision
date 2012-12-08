@@ -37,7 +37,8 @@
 * */
 package ornl.elision.core.matcher
 import ornl.elision.core._
-import ornl.elision.Debugger._
+import ornl.elision.util.OmitSeq
+import ornl.elision.util.Debugger._
 
 /**
  * Match two sequences, where the elements of the second sequence can be

@@ -38,6 +38,7 @@
 package ornl.elision.core
 
 import scala.collection.IndexedSeq
+import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher._
 import ornl.elision.repl.ReplActor
 

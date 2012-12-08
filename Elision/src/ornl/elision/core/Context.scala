@@ -37,7 +37,7 @@
 * */
 package ornl.elision.core
 
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 
 /**
  * A context provides access to operator libraries and rules, along with

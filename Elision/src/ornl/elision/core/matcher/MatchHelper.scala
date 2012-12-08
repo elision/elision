@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core.matcher
 import ornl.elision.core._
+import ornl.elision.util.OmitSeq
 
 /**
  * Provide some support methods for matching.

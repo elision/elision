@@ -40,6 +40,7 @@ package ornl.elision.core
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.OmitSeq
 
 /**
  * Encapsulate a set of bindings as an atom.

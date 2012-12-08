@@ -39,8 +39,9 @@ package ornl.elision.core
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 import scala.tools.nsc.interpreter.Results
+import ornl.elision.util.OmitSeq
 
 /**
  * An incorrect argument list was supplied to an operator.

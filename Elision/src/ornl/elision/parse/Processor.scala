@@ -32,6 +32,8 @@ package ornl.elision.parse
 import ornl.elision.core._
 import ornl.elision.repl.ReplActor
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
+import ornl.elision.util.PrintConsole
+import ornl.elision.util.FileResolver
 
 /**
  * A processor is responsible for reading and handling atoms.
@@ -53,9 +55,6 @@ with TraceableParse
 with ToggleableParser
 with Timeable
 with HasHistory {
-  // We are the implicit executor.
-  ornl.elision.core.knownExecutor = this
-  
   // Set up the stacktrace property.
   declareProperty("stacktrace",
       "Print a stack trace on all (non-Elision) exceptions.", false)
@@ -232,7 +231,7 @@ with HasHistory {
   }
   
   private def _execute(result: Presult) {
-    import ornl.elision.ElisionException
+    import ornl.elision.util.ElisionException
     startTimer
 	
     ReplActor ! ("Eva","pushTable","Processor _execute")

@@ -28,9 +28,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package ornl.elision.core
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 import scala.util.Properties
 import scala.collection.mutable.{OpenHashMap => HashMap}
+import ornl.elision.util.Console
 
 /**
  * The cache contains the wrong type of item for the requested key.
@@ -126,15 +127,6 @@ trait PropertyManager {
           case x => x(this)
         }
         value
-//        if (Manifest.classType(item.getClass) <:< mTYPE) {
-//          _prop2val(name) = value
-//          value
-//        } else {
-//          throw new CacheException(
-//              "The property " + toEString(name) +
-//              " is of the wrong type.  Expected " + mTYPE.toString +
-//              " but got " + Manifest.classType(item.getClass) + ".")
-//        }
     }
   }
   
@@ -392,7 +384,6 @@ trait Timeable {
 
 /**
  * An executor is a class that can convert a string into a sequence of atoms.
- * 
  * This can be done by parsing the usual Elision representation of atoms, or
  * by some other means.
  */

@@ -36,7 +36,7 @@
 ======================================================================
 * */
 package ornl.elision.core
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 import ornl.elision.repl.ReplActor
 
 /* Notes on De Bruijn indices.
@@ -49,7 +49,7 @@ import ornl.elision.repl.ReplActor
  *               
  * We rewrite this in the De Bruijn notation as:
  * 
- * λ.λ.λ.3 1 (2 1)
+ * \.\.\.3 1 (2 1)
  * 
  * (This is the S combinator from SKI calculus.)
  * 
@@ -58,7 +58,7 @@ import ornl.elision.repl.ReplActor
  * \$x.\$y.$x
  *         2
  * 
- * λ.λ.2
+ * \.\.2
  * 
  * (This is the K combinator from SKI calculus.)
  * 
