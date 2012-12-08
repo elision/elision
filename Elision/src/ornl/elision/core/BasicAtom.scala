@@ -123,15 +123,17 @@ trait Applicable {
  *    
  *  - Implement `rewrite`.
  *  
- *  - Implement `toParseString`.  This must return a string that is parseable by
+ *  - Visit [[ornl.elision.core.ElisionGenerator]] and add code to create a
+ *    string from the new atom.  This must return a string that is parseable by
  *    [[ornl.elision.core.AtomParser]] to re-create the atom.
  *    
- *  - If necessary, override `toString`.  This must return a string that is
- *    parseable by Scala to re-create the atom.  In many cases making the class
- *    into a `case class` will be sufficient, but if there are arguments that
- *    are primitive types, such as strings, whose toString method does not
- *    produce a parseable result, this must be adjusted.  Be sure to see the
- *    implicitly added `mkParseString` method found in the package object
+ *  - Visit [[ornl.elision.core.ScalaGenerator]] and add code to create a
+ *    string from the new atom.  This must return a string that is parseable by
+ *    Scala to re-create the atom.  In many cases making the class into a
+ *    `case class` will be sufficient, but if there are arguments that are
+ *    primitive types, such as strings, whose toString method does not produce
+ *    a parseable result, this must be adjusted.  Be sure to see the implicitly
+ *    added `mkParseString` method found in the package object
  *    [[ornl.elision.core.package]], as this can help.
  *    
  *  - Write code to specify the De Bruijn index of the instance and add
@@ -145,7 +147,7 @@ trait Applicable {
  *      implement lambdas.
  *    {{{
  *    // Common implementation with children.
- *    val deBruijnIndex = children.foldLeft(0)(_ max _.deBruijnIndex)
+ *    lazy val deBruijnIndex = children.foldLeft(0)(_ max _.deBruijnIndex)
  *    }}}
  *      
  *  - Write code to compute the depth of the instance.  This can be computed
@@ -155,7 +157,7 @@ trait Applicable {
  *      depth of their children, plus one.
  *    {{{
  *    // Common implementation with children.
- *    val depth = children.foldLeft(0)(_ max _.depth) + 1
+ *    lazy val depth = children.foldLeft(0)(_ max _.depth) + 1
  *    }}}
  *      
  *  - Write code to determine if the instance is a constant.  A constant can be
@@ -167,11 +169,17 @@ trait Applicable {
  *      constant.
  *    {{{
  *    // Common implementation with children.
- *    val isConstant = children.forall(_.isConstant)
+ *    lazy val isConstant = children.forall(_.isConstant)
  *    }}}
  *    
  *  - Specify whether this atom represents a term, or a metaterm.  If a term,
- *    then set `isTerm` to `true`.  Otherwise, set it to `false`.
+ *    then set `isTerm` to `true`.  Otherwise, set it to `false`.  An atom is
+ *    a metaterm if it simply ''is'', or if it contains a metaterm.  In general
+ *    the following will work.
+ *    {{{
+ *    // Common implementation of isTerm with children.
+ *    lazy val isTerm = children.forall(_.isTerm)
+ *    }}}
  */
 abstract class BasicAtom {
   import scala.collection.mutable.{Map => MMap}

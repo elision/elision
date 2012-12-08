@@ -34,6 +34,7 @@ import ornl.elision.repl.ReplActor
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
+import ornl.elision.util.Timeable
 
 /**
  * A processor is responsible for reading and handling atoms.

@@ -29,8 +29,6 @@
  */
 package ornl.elision.util
 
-import ornl.elision.core.Timeable
-
 /**
  * This is a class for managing and printing debug output during execution
  * in a manner that "agrees" with Elision.
@@ -113,8 +111,6 @@ object Debugger {
    * constants in this object [ornl.elision.Debugger.Mode].
    */
   private var _modes = scala.collection.mutable.Map[String,Int]()
-  
-  import ornl.elision.core.Timeable
   
   /** The last tick time. */
   private var _tick = new Timeable() {
