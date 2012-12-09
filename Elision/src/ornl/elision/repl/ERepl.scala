@@ -50,6 +50,7 @@ object ReplMain {
    */
   def runRepl {
     val erepl = new ERepl
+    ornl.elision.core.knownExecutor = erepl
     ReplActor.start
     ReplActor.peer = erepl
     ReplActor ! ("disableGUIComs", true)

@@ -32,6 +32,7 @@ package ornl.elision.core
 import com.strangegizmo.cdb._
 import scala.collection.mutable.{WeakHashMap => HashMap}
 import scala.collection.mutable.HashSet
+import ornl.elision.util.PropertyManager
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are

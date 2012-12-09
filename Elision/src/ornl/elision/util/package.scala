@@ -34,7 +34,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package util
+package ornl.elision
 
 /**
  * This is the utility package for Elision.
@@ -43,4 +43,36 @@ package util
  * Elision system.  Any part of Elision may use it, but it must not use other
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
-package object util
+package object util {
+  /**
+   * Turn a string into a properly-escaped double-quoted string.  The following
+   * transformations are performed.
+   * {{{
+   * double quotation mark   -> \"
+   * newline                 -> \n
+   * tab                     -> \t
+   * carriage return         -> \r
+   * backslash               -> \\
+   * }}}
+   * The resulting string is enclosed in double quotation marks.
+   * 
+   * @param str The string.
+   * @return  The string with special character escaped.
+   */
+  def toQuotedString(str: String) = {
+    var buf = new scala.collection.mutable.StringBuilder
+    buf ++= "\""
+    for (ch <- str) {
+      ch match {
+        case '"' => buf ++= """\""""
+        case '\n' => buf ++= """\n"""
+        case '\t' => buf ++= """\t"""
+        case '\r' => buf ++= """\r"""
+        case '\\' => buf ++= """\\"""
+        case _ => buf ++= ch.toString
+      }
+    }
+    buf ++= "\""
+    buf.toString
+  }
+}

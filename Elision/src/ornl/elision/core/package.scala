@@ -184,22 +184,7 @@ package object core {
    * @param str	The string.
    * @return	The string with special character escaped.
    */
-  def toEString(str: String) = {
-    var buf = new scala.collection.mutable.StringBuilder
-    buf ++= "\""
-    for (ch <- str) {
-      ch match {
-        case '"' => buf ++= """\""""
-        case '\n' => buf ++= """\n"""
-        case '\t' => buf ++= """\t"""
-        case '\r' => buf ++= """\r"""
-        case '\\' => buf ++= """\\"""
-        case _ => buf ++= ch.toString
-      }
-    }
-    buf ++= "\""
-    buf.toString
-  }
+  def toEString(str: String) = ornl.elision.util.toQuotedString(str)
   
   /**
    * Issue a warning.  This should be wired to whatever error reporting

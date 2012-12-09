@@ -392,25 +392,19 @@ with HasHistory {
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
     // Pass the atom to the handlers.  If any returns None, we are done.
     var theAtom = atom
-	
-	//////////////////// GUI changes
-	ReplActor ! ("Eva", "pushTable", "_handleAtom")
-	// add this atom as a child to the root node
-	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) //val atomNode = RWTree.addTo(rwNode, atom)
-	
-	//////////////////// end GUI changes
-	
+  	ReplActor ! ("Eva", "pushTable", "_handleAtom")
+  	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
     for (handler <- _queue) {
-      ReplActor ! ("Eva", "setSubroot", "atomNode") //RWTree.current = atomNode // GUI change
+      ReplActor ! ("Eva", "setSubroot", "atomNode")
       handler.handleAtom(theAtom) match {
         case None => 
-            ReplActor ! ("Eva", "popTable", "_handleAtom") // GUI change
-            return None
-        case Some(alt) => theAtom = alt
+          ReplActor ! ("Eva", "popTable", "_handleAtom")
+          return None
+        case Some(alt) =>
+          theAtom = alt
       }
     } // Perform all handlers.
-    
-    ReplActor ! ("Eva", "popTable", "_handleAtom") // GUI change
+    ReplActor ! ("Eva", "popTable", "_handleAtom")
     return Some(theAtom)
   }
   
