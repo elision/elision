@@ -237,7 +237,6 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
    */
   override def equals(other: Any) = other match {
     case OperatorRef(oop) if (oop == operator) => true
-    //case oop: Operator if (oop == operator) => true
     case _ => false
   }
 

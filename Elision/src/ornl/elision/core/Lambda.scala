@@ -203,9 +203,10 @@ extends BasicAtom with Applicable {
   
   override def equals(other: Any) = other match {
     case lambda:Lambda =>
-      lvar == lambda.lvar &&
-      body == lambda.body
-    case _ => false
+      feq(lambda, this, lvar == lambda.lvar && body == lambda.body)
+      
+    case _ =>
+      false
   }
   
   // GUI changes

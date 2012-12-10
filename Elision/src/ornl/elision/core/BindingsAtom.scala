@@ -145,8 +145,11 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   //////////////////// end GUI changes
     
   override def equals(other: Any) = other match {
-    case BindingsAtom(obinds) if (obinds == mybinds) => true
-    case _ => false
+    case oba: BindingsAtom =>
+      feq(oba, this, (oba.mybinds == mybinds))
+      
+    case _ =>
+      false
   }
   
   //////////////////// GUI changes

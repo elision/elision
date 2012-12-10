@@ -70,15 +70,9 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
   
-  override def equals(other: Any) = (this eq other.asInstanceOf[AnyRef]) ||
-    (other match {
-      case Apply(oop, oarg) =>
-        (oop.depth == op.depth) &&
-        (oarg.depth == arg.depth) &&
-        (oop.hashCode == op.hashCode) &&
-        (oop.otherHashCode == op.otherHashCode) &&
-        (oarg.hashCode == arg.hashCode) &&
-        (oarg.otherHashCode == arg.otherHashCode)
+  override def equals(other: Any) = (other match {
+      case oapp: Apply =>
+        feq(oapp, this, (op == oapp.op) && (arg == oapp.arg))
         
       case _ =>
         false

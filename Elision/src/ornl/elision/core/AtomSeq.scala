@@ -261,32 +261,9 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   override def equals(other: Any) = {
     val t0 = System.nanoTime
     val result = other match {
-      case AtomSeq(oprops, oatoms) =>
-        // Properties must match.
-        if ((oprops ne props) || oprops != props) {
-          // Different.
-          false
-        } else {
-          // The properties are the same.  The argument lists must match.  Check
-          // if they are identically the same.
-          if (atoms eq oatoms) {
-            // Yes.  They are the same.
-            true
-          } else {
-            // No.  Now we have to check the actual details.  Check length, then
-            // depth, then hash codes.  Then accept.
-            if (atoms.length == oatoms.length &&
-                atoms.hashCode == oatoms.hashCode &&
-                atoms.otherHashCode == oatoms.otherHashCode) {
-              // Assume they are the same.  Note that we never actually checked
-              // the atoms themselves.
-              true
-            } else {
-              // Definitive no equal in this case.
-              false
-            }
-          }
-        }
+      case oseq: AtomSeq =>
+        feq(oseq, this, (props == oseq.props) && (atoms == oseq.atoms))
+        
       case _ => false
     }
 

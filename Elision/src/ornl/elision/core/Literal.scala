@@ -152,8 +152,11 @@ extends BasicAtom {
    * equal.
    */
   override def equals(other: Any) = other match {
-    case lit: Literal[_] => typ == lit.theType && value == lit.value
-    case _ => false
+    case lit: Literal[_] =>
+      feq(lit, this, typ == lit.theType && value == lit.value)
+      
+    case _ =>
+      false
   }
 }
 
