@@ -307,9 +307,8 @@ class ERepl extends Processor {
                   atoms.mkParseString("  ","\n","\n"))
             } else if (atoms(0) != atom) {
               console.error("Round trip testing failed for atom:\n  " + string +
-                  ":"+atom.otherHashCode+
                   "\nAtom returned by parser not equal to original:\n  " +
-                  atoms(0).toParseString + ":"+atoms(0).otherHashCode+"\n")
+                  atoms(0).toParseString)
             }
         }
       }
