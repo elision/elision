@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.parse
 
 import java.nio.charset.Charset
@@ -245,13 +246,14 @@ object AtomParser {
 	    // If the operator is a naked symbol, we try to interpret it as an
 	    // operator.  Otherwise we just interpret it.
 	    val atom = op match {
-	      case NakedSymbolNode(name) => context.operatorLibrary(name)
-	      case SymbolLiteralNode(None, name) => context.operatorLibrary(name)
-	      case _ => op.interpret
+	      case NakedSymbolNode(name) =>
+          context.operatorLibrary(name)
+	      case SymbolLiteralNode(None, name) =>
+	        context.operatorLibrary(name)
+	      case _ =>
+	        op.interpret
 	    }
-      val argInt = arg.interpret
-      val result = Apply(atom, argInt)
-      
+      val result = Apply(atom, arg.interpret)
   		ReplActor ! ("Eva", "addTo", ("op", "oprw", atom))
       ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "argument: "))
       ReplActor ! ("Eva", "setSubroot", "arg")

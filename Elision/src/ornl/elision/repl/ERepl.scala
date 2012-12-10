@@ -194,21 +194,21 @@ class ERepl extends Processor {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     
-	//////////////////// GUI changes
+	//  GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-		ReplActor.guiActor ! ("replFormat",true)
+  ReplActor.guiActor ! ("replFormat",true)
 	, "formatting on") 
-//    ReplActor ! ("guiReplFormat", true, "formatting on")
-	//////////////////// end GUI changes
+    ReplActor ! ("guiReplFormat", true, "formatting on")
+	//  end GUI changes
 	
     console.emitln(prefix + atom.toParseString)
 	
-	//////////////////// GUI changes
+	//  GUI changes
 	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
 		ReplActor.guiActor ! ("replFormat",false)
 	, "formatting off") 
-//    ReplActor ! ("guiReplFormat", false, "formatting off")
-	//////////////////// end GUI changes
+    ReplActor ! ("guiReplFormat", false, "formatting off")
+	//  end GUI changes
   }
   
   this.register(
@@ -228,6 +228,7 @@ class ERepl extends Processor {
           showatom("", atom)
         }
         if (getProperty[Boolean]("applybinds")) {
+          val na = atom.rewrite(context.binds)
           Some(atom.rewrite(context.binds)._1)
         } else {
           Some(atom)
@@ -306,8 +307,9 @@ class ERepl extends Processor {
                   atoms.mkParseString("  ","\n","\n"))
             } else if (atoms(0) != atom) {
               console.error("Round trip testing failed for atom:\n  " + string +
+                  ":"+atom.otherHashCode+
                   "\nAtom returned by parser not equal to original:\n  " +
-                  atoms(0).toParseString + "\n")
+                  atoms(0).toParseString + ":"+atoms(0).otherHashCode+"\n")
             }
         }
       }
@@ -437,14 +439,14 @@ class ERepl extends Processor {
     stopTimer
     printf("Startup Time: " + getLastTimeString + "\n")
 	
-    //////////////////// GUI changes
+    //  GUI changes
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
         ReplActor ! ("disableGUIComs", false)
     }
 	
-    //////////////////// end GUI changes
+    //  end GUI changes
 	
     // Configure the console and history.
     val cr = new ConsoleReader

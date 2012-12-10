@@ -73,35 +73,35 @@ object ElisionGenerator {
         // Handle anything else.
         case _ =>
           buf.append(toESymbol(sl.value.name))
-          apply(sl.typ, buf.append(": "), limit)
+          apply(sl.typ, buf.append(":"), limit)
       }
         
       // Process other literals.
       case IntegerLiteral(typ, value) =>
         buf.append(value.toString)
         if (typ != INTEGER || BasicAtom.printTypeInfo) {
-          apply(typ, buf.append(": "), limit)
+          apply(typ, buf.append(":"), limit)
         } else {
           buf
         }
       case StringLiteral(typ, value) =>
         buf.append(toEString(value))
         if (typ != STRING || BasicAtom.printTypeInfo) {
-          apply(typ, buf.append(": "), limit)
+          apply(typ, buf.append(":"), limit)
         } else {
           buf
         }
       case BooleanLiteral(typ, value) =>
         buf.append(value.toString)
         if (typ != BOOLEAN || BasicAtom.printTypeInfo) {
-          apply(typ, buf.append(": "), limit)
+          apply(typ, buf.append(":"), limit)
         } else {
           buf
         }
       case fl:FloatLiteral =>
         buf.append(fl.numberString)
         if (fl.theType != FLOAT || BasicAtom.printTypeInfo) {
-          apply(fl.theType, buf.append(": "), limit)
+          apply(fl.theType, buf.append(":"), limit)
         } else {
           buf
         }
@@ -158,8 +158,8 @@ object ElisionGenerator {
    * @return        The result.
    */
   private def _gen(atom: SpecialForm, buf: Appendable, limit: Int): Appendable = {
-    apply(atom.tag, buf.append("{: "), limit-1).append(" ")
-    apply(atom.content, buf, limit-1).append(" :}")
+    apply(atom.tag, buf.append("{:"), limit-1).append(" ")
+    apply(atom.content, buf, limit-1).append(":}")
   }
   
   /**
@@ -191,7 +191,7 @@ object ElisionGenerator {
       
       // Process specialized operators.
       case OperatorRef(operator) =>
-        buf.append(toESymbol(operator.name)).append(": OPREF")
+        buf.append(toESymbol(operator.name)).append(":OPREF")
         
       // Process all atoms.
       case OpApply(op, args, _) =>
@@ -203,7 +203,7 @@ object ElisionGenerator {
         } else {
           var index = 0
           while (index < args.size) {
-            if (index > 0) buf.append(", ")
+            if (index > 0) buf.append(",")
             apply(args(index), buf, limit-1)
             index += 1
           } // Add all arguments.
@@ -230,7 +230,7 @@ object ElisionGenerator {
         } else {
           var index = 0
           while (index < atoms.size) {
-            if (index > 0) buf.append(", ")
+            if (index > 0) buf.append(",")
             apply(atoms(index), buf, limit-1)
             index += 1
           } // Add all atoms.
@@ -267,7 +267,7 @@ object ElisionGenerator {
         }
         
       case RulesetRef(name) =>
-        buf.append(toESymbol(name)).append(": RSREF")
+        buf.append(toESymbol(name)).append(":RSREF")
         
       case vari: Variable =>
         buf.append(vari.prefix).append(toESymbol(vari.name))
@@ -275,11 +275,11 @@ object ElisionGenerator {
           apply(vari.guard, buf.append("{"), limit-1).append("}")
         }
         if ((vari.theType != ANY) || BasicAtom.printTypeInfo) {
-          apply(vari.theType, buf.append(": "), limit-1)
+          apply(vari.theType, buf.append(":"), limit-1)
         }
         vari.labels foreach {
           label =>
-            buf.append(" @").append(toESymbol(label))
+            buf.append("@").append(toESymbol(label))
         }
     }
     buf

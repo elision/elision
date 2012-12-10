@@ -39,6 +39,7 @@ package ornl.elision.core
 
 import scala.collection.immutable.HashMap
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Represent a literal.  This is the common root class for all literals.
@@ -125,7 +126,26 @@ extends BasicAtom {
   /**
    * The hash code is computed from the type and the value.
    */
-  override lazy val hashCode = theType.hashCode * 31 + value.hashCode
+  override lazy val hashCode = {
+    (theType, value) match {
+      case (null, null) => throw new ArgumentListException("type and value are null.")
+      case (typ, null) => typ.hashCode * 31
+      case (null, aval) => aval.hashCode
+      case _ => theType.hashCode * 31 + value.hashCode
+    }
+  }
+  lazy val otherHashCode = {
+    (theType, value) match {
+      case (null, null) => throw new ArgumentListException("type and value are null.")
+      case (typ, null) => {
+        typ.otherHashCode
+      }
+      case (null, aval) => 8191*(value.toString).foldLeft(BigInt(0))(other_hashify)
+      case _ => {
+        theType.otherHashCode + 8191*(value.toString).foldLeft(BigInt(0))(other_hashify)
+      }
+    }
+  }
   
   /**
    * Two literals are equal iff their types are equal and their values are
@@ -214,11 +234,10 @@ extends Literal[BigInt](typ) {
    */
   def this(value: Int) = this(INTEGER, value)
   
-  //////////////////// GUI changes
+  // GUI changes
   def rewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "IntegerLiteral rewrite")
         // top node of this subtree
-		// val rwNode = RWTree.current
 		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
         ReplActor ! ("Eva", "setSubroot", "type")
 		
@@ -234,7 +253,7 @@ extends Literal[BigInt](typ) {
 			(this, false)
 		}
 	}
-	//////////////////// end GUI changes
+	// end GUI changes
 }
 
 /**
@@ -248,11 +267,10 @@ extends Literal[String](typ) {
    */
   def this(value: String) = this(STRING, value)
   
-  //////////////////// GUI changes
+  // GUI changes
   def rewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "StringLiteral rewrite")
         // top node of this subtree
-		//val rwNode = RWTree.current
 		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
         ReplActor ! ("Eva", "setSubroot", "type")
 		
@@ -268,7 +286,7 @@ extends Literal[String](typ) {
 			(this, false)
 		}
 	}
-	//////////////////// end GUI changes
+	// end GUI changes
 }
 
 /**
@@ -282,11 +300,12 @@ extends Literal[Symbol](typ) {
    */
   def this(value: Symbol) = this(SYMBOL, value)
   
-  //////////////////// GUI changes
+  override lazy val otherHashCode = (value.toString).foldLeft(BigInt(0))(other_hashify)
+
+  // GUI changes
   def rewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "SymbolLiteral rewrite")
         // top node of this subtree
-		//val rwNode = RWTree.current
 		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
         ReplActor ! ("Eva", "setSubroot", "type")
 		
@@ -302,7 +321,7 @@ extends Literal[Symbol](typ) {
 			(this, false)
 		}
 	}
-	//////////////////// end GUI changes
+	// end GUI changes
 }
 
 /**
@@ -316,6 +335,10 @@ extends Literal[Symbol](typ) {
  */
 case class BooleanLiteral(typ: BasicAtom, value: Boolean)
 extends Literal[Boolean](typ) {
+
+  override lazy val hashCode = theType.hashCode * 31 + value.hashCode
+  override lazy val otherHashCode = typ.otherHashCode + 8191*(value.toString).foldLeft(BigInt(0))(other_hashify)
+
   override val isTrue = value == true
   override val isFalse = value == false
   /**
@@ -323,11 +346,10 @@ extends Literal[Boolean](typ) {
    */
   def this(value: Boolean) = this(BOOLEAN, value)
   
-  //////////////////// GUI changes
+  // GUI changes
   def rewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "BooleanLiteral rewrite")
         // top node of this subtree
-		//val rwNode = RWTree.current
 		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode,theType) 
         ReplActor ! ("Eva", "setSubroot", "type")
 		
@@ -343,7 +365,7 @@ extends Literal[Boolean](typ) {
 			(this, false)
 		}
 	}
-	//////////////////// end GUI changes
+	// end GUI changes
 }
 
 /**
@@ -524,11 +546,10 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
   def this(significand: BigInt, exponent: Int, radix: Int) =
     this(FLOAT, significand, exponent, radix)
 	
-	//////////////////// GUI changes
+	// GUI changes
   def rewrite(binds: Bindings) = {
 		ReplActor ! ("Eva", "pushTable", "FloatLiteral rewrite")
         // top node of this subtree
-		// val rwNode = RWTree.current
 		ReplActor ! ("Eva", "addToSubroot", ("type", theType)) // RWTree.current = RWTree.addTo(rwNode, theType)
         ReplActor ! ("Eva", "setSubroot", "type")
 		
@@ -544,7 +565,7 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
 			(this, false)
 		}
 	}
-	//////////////////// end GUI changes
+	// end GUI changes
 }
 
 /**

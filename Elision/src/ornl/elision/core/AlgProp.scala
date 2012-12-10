@@ -38,6 +38,7 @@
 package ornl.elision.core
 import ornl.elision.util.ElisionException
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Indicate a properties specification is illegal.  This typically indicates a
@@ -105,6 +106,8 @@ class AlgProp(
     val absorber: Option[BasicAtom] = None,
     val identity: Option[BasicAtom] = None) extends BasicAtom with Applicable {
   
+  lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {
     case Some(ANY) => false
@@ -227,7 +230,7 @@ class AlgProp(
     case _ => default
   }
 	
-	//////////////////// GUI changes
+	// GUI changes
   /**
    * Apply this property specification to the given atom.  If the provided
    * atom is an atom sequence, then this will override the properties of the
@@ -254,7 +257,7 @@ class AlgProp(
   			newSA
   	}
   }
-	//////////////////// end GUI changes
+	// end GUI changes
   
   //////////////////// GUI changes
   /**
@@ -359,11 +362,20 @@ class AlgProp(
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = subject match {
-    case ap: AlgProp =>
-      _matchAll(
+    case ap: AlgProp => {
+
+      // Has rewriting timed out?
+      if (BasicAtom.rewriteTimedOut) {
+        Fail("Timed out", this, subject)
+      }
+
+      else {
+        _matchAll(
           List(associative, commutative, idempotent, absorber, identity),
           List(ap.associative, ap.commutative, ap.idempotent, ap.absorber, ap.identity),
           binds)
+      }
+    }
     case _ => Fail("Properties only match other properties.", this, subject)
   }
   

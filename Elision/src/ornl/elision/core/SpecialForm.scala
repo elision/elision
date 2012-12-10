@@ -254,7 +254,9 @@ extends BasicAtom {
   /** All special forms use the type ANY as their type. */
   val theType: BasicAtom = ANY
   lazy val isTerm = tag.isTerm && content.isTerm
+
   override lazy val hashCode = tag.hashCode * 31 + content.hashCode
+  lazy val otherHashCode = tag.otherHashCode + 8191*content.otherHashCode
   
   override def equals(other: Any) = other match {
     case sf:SpecialForm => tag == sf.tag && content == sf.content

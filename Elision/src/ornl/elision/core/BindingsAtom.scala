@@ -41,6 +41,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import ornl.elision.repl.ReplActor
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.other_hashify
 
 /**
  * Encapsulate a set of bindings as an atom.
@@ -72,12 +73,14 @@ import ornl.elision.util.OmitSeq
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
+  lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+
   /** The type of a bindings atom is the special bindings type. */
   val theType = ANY
-  val isConstant = mybinds.values.forall(_.isConstant)
-  val isTerm = mybinds.values.forall(_.isTerm)
-  val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
-  val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
+  lazy val isConstant = mybinds.values.forall(_.isConstant)
+  lazy val isTerm = mybinds.values.forall(_.isTerm)
+  lazy val deBruijnIndex = mybinds.values.foldLeft(0)(_ max _.deBruijnIndex)
+  lazy val depth = mybinds.values.foldLeft(0)(_ max _.depth) + 1
     
   /**
    * Match this bindings atom against the provided atom.

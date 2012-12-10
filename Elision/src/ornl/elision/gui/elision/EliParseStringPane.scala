@@ -57,6 +57,15 @@ class EliParseStringPane extends ScrollPane {
 		focusable = true
 		editorKit = new javax.swing.text.html.HTMLEditorKit 
 	}
+    textArea.listenTo(textArea.mouse.clicks)
+    textArea.reactions += {
+        case e : swing.event.MouseClicked =>
+            val btn = e.peer.getButton
+            if(btn == java.awt.event.MouseEvent.BUTTON3) {
+                val copypasta = new CopyPastaMenu(textArea)
+                copypasta.show(textArea.peer, e.point.x, e.point.y)
+            }
+    }
     contents = textArea
     
     
@@ -90,6 +99,15 @@ class EliAtomPropsPane extends ScrollPane {
 		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
 		focusable = true
 	}
+    textArea.listenTo(textArea.mouse.clicks)
+    textArea.reactions += {
+        case e : swing.event.MouseClicked =>
+            val btn = e.peer.getButton
+            if(btn == java.awt.event.MouseEvent.BUTTON3) {
+                val copypasta = new CopyPastaMenu(textArea)
+                copypasta.show(textArea.peer, e.point.x, e.point.y)
+            }
+    }
     contents = textArea 
 }
 

@@ -122,6 +122,12 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     // If we had either a current match or a local iterator, then the matching
     // infrastructure would use it up before calling this method.  Since we
     // have arrived here, we do not have either.
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      _exhausted = true
+      return
+    }
     
     // If there are no more patterns, this matcher is exhausted.  This can
     // happen if there were no suitable patterns to start with.
@@ -164,10 +170,27 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
     // we have an iterator over the matches.  Now we must combine this with
     // the subsequent unbindable matches (if any).
     _local = iterator ~ (bindings => 
-      new UnbindableMatcher(
-            patterns.omit(_patindex), 
-            subjects.omit(subindex), 
-            bindings ++ binds)
-      )
+
+      // Have we timed out since the unbindable match iterator was
+      // created?
+      if (bindings == null) {
+
+        // This set of bindings can never match. Return an empty iterator.
+        new MatchIterator {
+          _current = null
+          _local = null
+          _exhausted = true
+          def findNext = {
+            _exhausted = true
+          }
+        }
+      }
+
+      else {
+        new UnbindableMatcher(
+          patterns.omit(_patindex), 
+          subjects.omit(subindex), 
+          bindings ++ binds)
+      })
   }
 }

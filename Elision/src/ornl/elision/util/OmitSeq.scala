@@ -38,8 +38,8 @@ package ornl.elision.util
  * 
  * @author Stacy Prowell (prowellsj@ornl.gov)
  */
-abstract class OmitSeq[A] extends IndexedSeq[A] {
-  
+abstract class OmitSeq[A] extends IndexedSeq[A] with HasOtherHash {
+
   /**
    * Omit a single element from this list, returning a new list.  This is
    * done "in place" so it should be fast.  As omits mount, lookup time
@@ -69,6 +69,7 @@ abstract class OmitSeq[A] extends IndexedSeq[A] {
  * (implicit) transformation of indexed collections to an omit sequence.
  */
 object OmitSeq {
+
   /**
    * Convert an indexed sequence to an omit sequence.
    * 
@@ -115,6 +116,18 @@ private class _OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
   // Proxy to backing sequence.
   lazy val length = backing.length
   
+  /**
+   * Hash code for an OmitSeq. It looks like the default hashCode
+   * computation for an IndexedSeq uses toString (which is bad), so
+   * hashCode has been overwritten.
+   */
+  override lazy val hashCode = backing.hashCode
+  
+  /**
+   * Alternate hash code for an OmitSeq.
+   */
+  lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
+    
   // Proxy to backing sequence.
   def apply(index: Int) = {
     backing(index)
@@ -131,7 +144,19 @@ private class _OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
 private class _OmitSeq2[A](backing: IndexedSeq[A], omit: Int)
 extends OmitSeq[A] {
   /** Length is one less than the backing sequence. */
-  override lazy val length = backing.length - 1
+  lazy val length = backing.length - 1
+
+  /**
+   * Hash code for an OmitSeq. It looks like the default hashCode
+   * computation for an IndexedSeq uses toString (which is bad), so
+   * hashCode has been overwritten.
+   */
+  override lazy val hashCode = backing.hashCode
+  
+  /**
+   * Alternate hash code for an OmitSeq.
+   */
+  lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
   
   /** Return the requested element by zero-based index. */
   override def apply(index: Int) =
@@ -154,6 +179,18 @@ private class _OmitSeq3[A](backing: IndexedSeq[A], insert: Int,
   
   /** Length is the backing sequence plus the inserted items. */
   override lazy val length = backing.length + _il
+  
+  /**
+   * Hash code for an OmitSeq. It looks like the default hashCode
+   * computation for an IndexedSeq uses toString (which is bad), so
+   * hashCode has been overwritten.
+   */
+  override lazy val hashCode = backing.hashCode
+  
+  /**
+   * Alternate hash code for an OmitSeq.
+   */
+  lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
   
   /** Return the requested element by zero-based index. */
   override def apply(index: Int) =

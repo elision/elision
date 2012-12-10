@@ -64,7 +64,7 @@ package object util {
     buf ++= "\""
     for (ch <- str) {
       ch match {
-        case '"' => buf ++= """\""""
+        case '"' => buf ++= "\\\""
         case '\n' => buf ++= """\n"""
         case '\t' => buf ++= """\t"""
         case '\r' => buf ++= """\r"""
@@ -74,5 +74,52 @@ package object util {
     }
     buf ++= "\""
     buf.toString
+  }
+  
+  /**
+   * Provide a convenient method to compute a hash code from many different
+   * objects.  This is intended to be suitable for a few basic cases.
+   * 
+   * If you want to create a hash code for two objects alice and bob, try this.
+   * {{{
+   * 0 hashify alice hashify bob
+   * }}}
+   * 
+   * If you want to create a hash code for a sequence of objects in stuff, try
+   * this.
+   * {{{
+   * stuff.foldLeft(0)(_ hashify _)
+   * }}}
+   * 
+   * If you want to combine your hash code with your children's hash codes,
+   * try this.
+   * {{{
+   * children.hashify(hashCode)(_ hashfiy _)
+   * }}}
+   * 
+   * @param hash    The initial hash code.
+   * @param obj     The next object whose hash should be added.
+   */
+  def hashify(hash: Int = 0, obj: Any) = hash * 31 + obj.hashCode
+
+  /**
+   * Compute an alternate hash code from many different objects. An
+   * alternate hash code is used in some cases to provide 2 different
+   * hash codes for an Elision object. These 2 hash codes are used to
+   * lower the chances of a hash collision (both different hash codes
+   * will need to collide for a hash collision to occur).
+   * 
+   * If the object provides an "other" hash code, it must have a field or
+   * a field-like method `otherHashCode` that returns a `BigInt`.  This is
+   * used to compute the hash code returned by this method.
+   *
+   * @param hash    The initial hash code.
+   * @param obj     The next object whose hash should be added.
+   */
+  def other_hashify(hash: BigInt = 0, obj: Any): BigInt = {
+    obj match {
+      case ohc: HasOtherHash => hash + 8191*ohc.otherHashCode
+      case _ => hash + 8191*obj.hashCode
+    }
   }
 }

@@ -37,8 +37,10 @@
 * */
 package ornl.elision.core
 
+import scala.collection.mutable.HashSet
 import scala.collection.mutable.OpenHashMap
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Represent a variable.
@@ -101,6 +103,15 @@ class Variable(typ: BasicAtom, val name: String,
   val depth = 0
   /** By default, variables can be bound. */
   override val isBindable = true
+
+  /**
+   * This contains a single variable, itself.
+   */
+  override def getVariables() : Option[HashSet[BasicAtom]] = {
+    val r = new HashSet[BasicAtom]
+    r.add(this)
+    return Some(r)
+  }
 
   /**
    * Attempt to bind the variable.  The potential variable binding is added
@@ -185,48 +196,62 @@ class Variable(typ: BasicAtom, val name: String,
     }
   }
   */
-	  //////////////////// GUI changes
+
+  // GUI changes
   def rewrite(binds: Bindings) = {
-	ReplActor ! ("Eva","pushTable","Variable rewrite")
+	  ReplActor ! ("Eva","pushTable","Variable rewrite")
     // top node of this subtree
-	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: ")) // val rwNode = RWTree.addToCurrent("Variable rewrite: ")
-	ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType)) // val typeNode = RWTree.addTo(rwNode, theType)
-	
-    // If this variable is bound in the provided bindings, replace it with the
-    // bound value.
-    binds.get(name) match {
-      case Some(atom) =>
-        ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
-        
-        ReplActor ! ("Eva", "popTable", "Variable rewrite")
-		(atom, true)
-      case None =>
-		ReplActor ! ("Eva", "setSubroot", "type") // RWTree.current = typeNode
-        // While the atom is not bound, its type might have to be rewritten.
-        theType.rewrite(binds) match {
-          case (newtype, changed) =>
-			ReplActor ! ("Eva", "addTo", ("type", "", newtype)) // RWTree.addTo(typeNode, newtype)
-            if (changed) { 
-				ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
-				val newVar = Variable(newtype, name)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar)) // RWTree.addTo(rwNode, newVar) 
+	  ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: "))
+	  ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType))
+
+    // If we have no bindings, don't rewrite the variable.
+    if (binds == null) {
+      (this, false)
+    }
+	  
+    // We have bindings. Check to see if we can rewrite the variable.
+    else {
+
+      // If this variable is bound in the provided bindings, replace it with the
+      // bound value.
+      binds.get(name) match {
+        case Some(atom) => {
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
+          
+          ReplActor ! ("Eva", "popTable", "Variable rewrite")
+	        (atom, true)
+        }
+        case None => {
+	        ReplActor ! ("Eva", "setSubroot", "type")
+          // While the atom is not bound, its type might have to be rewritten.
+          theType.rewrite(binds) match {
+            case (newtype, changed) => {
+	            ReplActor ! ("Eva", "addTo", ("type", "", newtype))
+              if (changed) { 
+	              ReplActor ! ("Eva", "setSubroot", "rwNode")
+	              val newVar = Variable(newtype, name)
+	              ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar))
                 
-                ReplActor ! ("Eva", "popTable", "Variable rewrite")
-				(newVar, true) 
-			} else {
-                ReplActor ! ("Eva", "popTable", "Variable rewrite")
+                  ReplActor ! ("Eva", "popTable", "Variable rewrite")
+	              (newVar, true) 
+	            } else {
+                 ReplActor ! ("Eva", "popTable", "Variable rewrite")
                 (this, false)
+              }
             }
-          case _ => {
-            ReplActor ! ("Eva", "popTable", "Variable rewrite")
-            (this, false)
+            case _ => {
+              ReplActor ! ("Eva", "popTable", "Variable rewrite")
+              (this, false)
+            }
           }
         }
+      }
     }
   }
-  //////////////////// end GUI changes
-  
+      // end GUI changes
+      
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
+  lazy val otherHashCode = typ.otherHashCode + 8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(varx: Any) = varx match {
     case ovar:Variable => ovar.theType == theType &&

@@ -166,7 +166,7 @@ class OperatorLibrary(
     buf append "object OpsNative {\n"
     buf append "  import ornl.elision.core._\n"
     buf append "  import ornl.elision.repl.ERepl\n\n"
-    buf append "  implicit val exec = new ERepl\n"
+    buf append "  implicit val exec = knownExecutor match { case x: ERepl => x; case _ => new ERepl }\n"
     buf append "  exec.context = LoadContext._context\n\n"
     
     // since operators can be defined multiple times, we need to take

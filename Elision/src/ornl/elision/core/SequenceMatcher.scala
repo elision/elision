@@ -67,22 +67,30 @@ object SequenceMatcher {
    */
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
       binds: Bindings = Bindings()): Outcome = {
-    if (BasicAtom.traceMatching) {
-      if (BasicAtom.traceVerbose(this)) {
-        println("Sequence Matcher called: ")
-        println("    Patterns: " + patterns.mkParseString("",",",""))
-        println("    Subjects: " + subjects.mkParseString("",",",""))
-        println("    Bindings: " + binds.toParseString)
-      } else if (BasicAtom.traceTerse(this)) {
-        println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
-            subjects.mkParseString("(",",",") ") + binds.toParseString)
-      }
-    }
-    if (patterns.length != subjects.length)
-      Fail("Sequences are not the same length.")
-      else _tryMatch(patterns, subjects, binds, 0)
-  }
+        if (BasicAtom.traceMatching) {
+          if (BasicAtom.traceVerbose(this)) {
+            println("Sequence Matcher called: ")
+            println("    Patterns: " + patterns.mkParseString("",",",""))
+            println("    Subjects: " + subjects.mkParseString("",",",""))
+            println("    Bindings: " + binds.toParseString)
+          } else if (BasicAtom.traceTerse(this)) {
+            println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
+                    subjects.mkParseString("(",",",") ") + binds.toParseString)
+          }
+        }
 
+        // Has rewriting timed out?
+        if (BasicAtom.rewriteTimedOut) {
+          Fail("Timed out")
+        }
+        else if (patterns.length != subjects.length) {
+          Fail("Sequences are not the same length.")
+        }
+        else {
+          _tryMatch(patterns, subjects, binds, 0)
+        }
+      }
+  
   //  GUI changes
   /**
    * Rewrite a sequence of atoms by applying the given bindings to each.
@@ -103,9 +111,13 @@ object SequenceMatcher {
     var newseq = OmitSeq[BasicAtom]()
     while (index < subjects.size) {
       ReplActor ! ("Eva", "addTo", ("seq", "head", subjects(index))) // val headNode = seqNode.addChild(atoms.head)
+
       ReplActor ! ("Eva", "setSubroot", "head") // RWTree.current = headNode
+
       val (newatom, change) = subjects(index).rewrite(binds)
+
       ReplActor ! ("Eva", "addTo", ("head", "", newatom)) // RWTree.addTo(headNode, newatom)
+
       changed |= change
       newseq :+= newatom
       index += 1
@@ -128,6 +140,7 @@ object SequenceMatcher {
    */
   private def _tryMatch(patterns: OmitSeq[BasicAtom],
                         subjects: OmitSeq[BasicAtom], binds: Bindings, position: Int): Outcome = {
+
     // Watch for the basis case.  If the patterns list is empty, we are done
     // and return a successful match.
     if (patterns.isEmpty) return Match(binds)

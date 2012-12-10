@@ -76,11 +76,13 @@ class MapPair(val left: BasicAtom, val right: BasicAtom) extends BasicAtom
 with Rewriter {
 	/** A map pair is actually a strategy. */
   val theType = STRATEGY
-  val isConstant = left.isConstant && right.isConstant
-  val depth = (left.depth max right.depth) + 1
-  val isTerm = left.isTerm && right.isTerm
-  val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
+  lazy val isConstant = left.isConstant && right.isConstant
+  lazy val depth = (left.depth max right.depth) + 1
+  lazy val isTerm = left.isTerm && right.isTerm
+  lazy val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
+
   override lazy val hashCode = left.hashCode * 31 + right.hashCode
+  lazy val otherHashCode = left.otherHashCode + 8191*right.otherHashCode
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = subject match {
@@ -91,7 +93,7 @@ with Rewriter {
       Fail("Subject of match is not a pair.", this, subject)
   }
 	
-	//////////////////// GUI changes
+	// GUI changes
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
 	ReplActor ! ("Eva","pushTable", "MapPair rewrite")
     // top node of this subtree
@@ -117,9 +119,9 @@ with Rewriter {
         (this, false)
     }
   }
-  //////////////////// end GUI changes
+  // end GUI changes
 	
-	//////////////////// GUI changes
+	// GUI changes
   /**
    * Apply this map pair to the given atom, yielding a potentially new atom.
    * The first match with the left-hand side is used to rewrite the right.
@@ -151,5 +153,5 @@ with Rewriter {
 				(res._1, true)
 		  }
 	  }
-	  //////////////////// end GUI changes
+	  // end GUI changes
 }

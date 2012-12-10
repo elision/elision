@@ -54,6 +54,12 @@ object CMatcher {
    * @return	The match outcome.
    */
   def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings): Outcome = {
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      return Fail("Timed out", plist, slist)
+    }
+
     // Check the length.
     if (plist.length != slist.length)
       return Fail("Lists are different sizes, so no match is possible.",
@@ -81,19 +87,38 @@ object CMatcher {
     // we also have to check for a single match first since we need to determine
     // precisely what to return from this method.
     val iter = um ~ (bindings => {
-      // Get the patterns and subjects that remain.
-      val pats = bindings.patterns.getOrElse(patterns)
-      val subs = bindings.subjects.getOrElse(subjects)
-      
-      // If there are no patterns, there is nothing to do.  We have matched.
-      // Just to be safe, we set the patterns and subjects (that remain from
-      // the unbindable matcher) so they are carried forward.
-      if (pats.length == 0) {
-        MatchIterator((bindings ++ binds).set(pats, subs))
-      } else {
-        new CMatchIterator(pats, 
-                           subs, 
-                           (bindings ++ binds).set(pats, subs))
+
+      // Have we timed out since the unbindable match iterator was
+      // created?
+      if (bindings == null) {
+
+        // This set of bindings can never match. Return an empty iterator.
+        new MatchIterator {
+          _current = null
+          _local = null
+          _exhausted = true
+          def findNext = {
+            _exhausted = true
+          }
+        }
+      }
+
+      else {
+
+        // Get the patterns and subjects that remain.
+        val pats = bindings.patterns.getOrElse(patterns)
+        val subs = bindings.subjects.getOrElse(subjects)
+        
+        // If there are no patterns, there is nothing to do.  We have matched.
+        // Just to be safe, we set the patterns and subjects (that remain from
+        // the unbindable matcher) so they are carried forward.
+        if (pats.length == 0) {
+          MatchIterator((bindings ++ binds).set(pats, subs))
+        } else {
+          new CMatchIterator(pats, 
+                             subs, 
+                             (bindings ++ binds).set(pats, subs))
+        }
       }
     })
     
@@ -134,6 +159,13 @@ object CMatcher {
     @tailrec
     final protected def findNext {
       if (BasicAtom.traceMatching) print("C Searching... ")
+
+      // Has rewriting timed out?
+      if (BasicAtom.rewriteTimedOut) {
+        _exhausted = true
+        return
+      }
+
       _current = null
       if (_local != null && _local.hasNext) {
         _current = _local.next

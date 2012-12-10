@@ -30,9 +30,12 @@
 package ornl.elision.core
 
 import com.strangegizmo.cdb._
-import scala.collection.mutable.{WeakHashMap => HashMap}
+// KIRK: Using a weak hashmap REALLY slows things down.
+import scala.collection.mutable.{OpenHashMap => HashMap}
+import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashSet
 import ornl.elision.util.PropertyManager
+import scala.collection.mutable.BitSet
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are
@@ -145,13 +148,15 @@ object Memo {
    * the completely rewritten atom and the cache level.  No knowledge of the
    * rewrite limit is stored!
    */
-  private var _cache = new HashMap[(BasicAtom,Set[String]),(BasicAtom,Int)]()
+  private var _cache = 
+    new HashMap[((Int,BigInt),BitSet),(BasicAtom,Int)]() 
   
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
-  private var _normal = new HashMap[(BasicAtom,Set[String]),Unit]()
+  private var _normal = 
+    new HashMap[((Int,BigInt),BitSet),Unit]() 
   
   /**
    * Track whether anything has been added at a particular cache level.  If
@@ -181,9 +186,9 @@ object Memo {
       _cache.get(pair) match {
         case None =>
         case Some((newatom, level)) =>
-          makers(level).add(
-              (pair._1.toParseString + ";" + pair._2.toString).getBytes(),
-              newatom.toParseString.getBytes())
+          //makers(level).add(
+          //    (pair._1.toParseString + ";" + pair._2.toString).getBytes(),
+          //    newatom.toParseString.getBytes())
       }
     } // Add all entries.
     
@@ -204,13 +209,13 @@ object Memo {
    * @return  The optional fully-rewritten atom and a flag indicating whether
    *          the input atom is already in normal form.
    */
-  def get(atom: BasicAtom, rulesets: Set[String]): Option[(BasicAtom, Boolean)] = {
+  def get(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
 
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
     // Never check for atoms whose depth is greater than the maximum.
-    if (_maxdepth >= 0 && atom.depth > _maxdepth) return None
+    //if (_maxdepth >= 0 && atom.depth > _maxdepth) return None
 
     // Constants, variables, and symbols should never be
     // rewritten. So, if we are trying to get one of those just
@@ -221,18 +226,27 @@ object Memo {
     }
     
     // We are doing caching. Actually look in the cache.
-    if (_normal.contains((atom,rulesets))) {
-      return Some((atom, false))
+    var r: Option[(BasicAtom, Boolean)] = None
+    val t0 = System.nanoTime
+    if (_normal.contains(((atom.hashCode, atom.otherHashCode),rulesets))) {
+      r = Some((atom, false))
     } else {
-      _cache.get((atom, rulesets)) match {
+      _cache.get(((atom.hashCode, atom.otherHashCode), rulesets)) match {
         case None =>
           // Cache miss.
-          return None
+          r = None
         case Some((value, level)) =>
           // Cache hit.
-          return Some((value, true))
+          r = Some((value, true))
       }
     }
+
+    // Return the cache lookup result.
+    val t1 = System.nanoTime
+    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
+      println("** Memo: lookup time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    }
+    return r
   }
   
   /**
@@ -243,19 +257,28 @@ object Memo {
    * @param value     The final rewritten atom.
    * @param level     The lowest level of the rewrite.
    */
-  def put(atom: BasicAtom, rulesets: Set[String], value: BasicAtom, level: Int) {
+  def put(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
 
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
     // Never cache atoms whose depth is greater than the maximum.
-    if (_maxdepth >= 0 && atom.depth > _maxdepth) return
+    //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
+    val t0 = System.nanoTime
     val lvl = 0 max level min (_LIMIT-1)
-    _normal((value, rulesets)) = Unit
+    _normal.synchronized {
+      _normal(((value.hashCode, value.otherHashCode), rulesets)) = Unit
+    }
     if (!(atom eq value)) {
-      _cache((atom, rulesets)) = (value, level)
+      _cache.synchronized {
+        _cache(((atom.hashCode, atom.otherHashCode), rulesets)) = (value, level)
+      }
+    }
+    val t1 = System.nanoTime
+    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
+      println("** Memo: add time = " + (t1.toDouble-t0.toDouble)/1000000000)
     }
   }
 }

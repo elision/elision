@@ -36,7 +36,13 @@
 ======================================================================
 * */
 package ornl.elision.core
-import scala.collection.immutable.HashMap
+
+import scala.collection.immutable.HashSet
+import scala.collection.mutable.{HashSet => MutableHashSet}
+import scala.compat.Platform
+import scala.util.DynamicVariable
+import ornl.elision.util.PropertyManager
+import ornl.elision.util.HasOtherHash
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -181,7 +187,7 @@ trait Applicable {
  *    lazy val isTerm = children.forall(_.isTerm)
  *    }}}
  */
-abstract class BasicAtom {
+abstract class BasicAtom extends HasOtherHash {
   import scala.collection.mutable.{Map => MMap}
   
   /** The type for the atom. */
@@ -189,6 +195,15 @@ abstract class BasicAtom {
   
   /** The De Bruijn index. */
   val deBruijnIndex: Int
+
+  /**
+   * An alternate hash code for a BasicAtom. An
+   * alternate hash code is used in some cases to provide 2 different
+   * hash codes for an Elision object. These 2 hash codes are used to
+   * lower the chances of a hash collision (both different hash codes
+   * will need to collide for a hash collision to occur).
+   */
+  val otherHashCode: BigInt
 
   /**
    * If true then this atom can be bound.  Only variables should be bound, so
@@ -243,6 +258,29 @@ abstract class BasicAtom {
    * Construct and cache the spouse of this object.
    */
   lazy val spouse = BasicAtom.buildSpouse(this)
+
+  /**
+   * Get all the variables referenced in an atom. Override this if the
+   * atom can actually contain variables.
+   *
+   * @return A set of the variables referenced in the atom, if it has
+   * any. 
+   */
+  def getVariables() : Option[MutableHashSet[BasicAtom]] = {
+    return None
+  }
+
+  /**
+   * Get all the named operators referenced in an atom. Override this if the
+   * atom can actually contain operator expressions.
+   *
+   * @param opNames The names of the operators to look for.
+   * @return A set of the operators referenced in the atom, if it has
+   * any. 
+   */
+  def getOperators(opNames : MutableHashSet[String]) : Option[MutableHashSet[BasicAtom]] = {
+    return None
+  }
   
   /**
    * Attempt to match this atom, as a pattern, against the subject atom,
@@ -373,7 +411,13 @@ abstract class BasicAtom {
    * @return	The matching outcome.
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-    if (subject == ANY && !this.isBindable)
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      Fail("Timed out.", this, subject)
+    }
+  
+    else if (subject == ANY && !this.isBindable)
       // Any pattern is allowed to match the subject ANY.  In the matching
       // implementation for ANY, any subject is allowed to match ANY.
       // Thus ANY is a kind of wild card.  Note that no bindings are
@@ -398,7 +442,6 @@ abstract class BasicAtom {
       // we invoke the implementation of tryMatchWithoutTypes.
       matchTypes(subject, binds, hints) match {
 	      case fail: Fail => {
-                //println("Type matching failed.")
                 fail
               }
 	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
@@ -499,6 +542,88 @@ abstract class BasicAtom {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+
+  /** The clock time at which the current rewrite will time out.*/
+  var timeoutTime: DynamicVariable[Long] = new DynamicVariable[Long](-1L)
+
+  /**
+   * The maximum time allowed (in seconds) to rewrite an atom. Set to
+   * 0 to allow unlimited time.
+   */
+  var _maxRewriteTime: BigInt = 0;
+
+  /** Declare the Elision property for setting the max rewrite time. */
+  knownExecutor.declareProperty("rewrite_timeout",
+      "The maximum time to try rewriting an atom. In seconds.",
+      _maxRewriteTime,
+      (pm: PropertyManager) => {
+        _maxRewriteTime =
+          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+      })
+
+  /**
+   * Compute the wall clock time at which the current rewrite will time
+   * out.
+   */
+  def computeTimeout = {
+    
+    // Are we timing rewrites out? Also, are we already trying to time
+    // out a rewrite?
+    //
+    // NOTE: We have to explicitly go out to the current executor to
+    // get the timeout value rather than using _maxRewriteTime since
+    // the closure used in the above declaration for the
+    // rewrite_timeout property can wind up referencing a different
+    // executor than what Elision is actually using.
+    val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+    //println("** rewrite_timeout == " + rewrite_timeout)
+    if ((rewrite_timeout > 0) && (timeoutTime.value == -1)) {
+
+      // The time at which things time out is the current time plus
+      // the maximum amount of time to rewrite things.
+      //println("** 1. computeTimeout == " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
+      Platform.currentTime + (rewrite_timeout.longValue * 1000)
+    }
+    
+    // Are we already timing out a rewrite?
+    else if (timeoutTime.value > -1) {
+
+      // Return the previously computed timeout value.
+      //println("** 2. computeTimeout == " + timeoutTime.value)
+      timeoutTime.value
+    }
+
+    // No timeouts.
+    else {
+      //println("** 2. computeTimeout == " + -1L)
+      -1L
+    }
+  }
+
+  /**
+   * Check to see if we are timing out rewrites.
+   */
+  def timingOut = {
+    val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+    (rewrite_timeout > 0)
+  }
+
+  /**
+   * Check to see if the current rewrite has timed out.
+   */
+  def rewriteTimedOut = {
+
+    //println("** Checking timeout. " +
+    //        Platform.currentTime + ">=" + timeoutTime.value +
+    //        " == " + (Platform.currentTime >= timeoutTime.value))
+    if (timingOut && (timeoutTime.value > 0)) {
+      (Platform.currentTime >= timeoutTime.value)
+    }
+    else {
+      false
+    }
+  }
+
   /** Enable (if true) or disable (if false) match tracing. */
   var traceMatching = false
   

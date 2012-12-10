@@ -33,10 +33,12 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Provide a very simple implementation of `RootType`.  This is a trivial root
@@ -92,6 +94,7 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   
   /** Generate the hash code. */
   override lazy val hashCode = name.hashCode()
+  override lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   /**
    * Because of careful use of names, two named root types are equal

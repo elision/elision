@@ -44,6 +44,7 @@ import ornl.elision.repl.ReplActor
 import scala.collection.immutable.List
 import scala.collection.immutable.HashSet
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.other_hashify
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -79,6 +80,7 @@ class LiteralPatternException(msg: String) extends ElisionException(msg)
  * A ruleset reference.
  */
 abstract class RulesetRef extends BasicAtom with Rewriter {
+
   val depth = 0
   val deBruijnIndex = 0
   val constantPool = None
@@ -94,6 +96,7 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
   def rewrite(binds: Bindings) = (this, false)
     
   override def hashCode = 61*name.hashCode
+  lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(other: Any) =
     (other match {
@@ -192,6 +195,10 @@ extends Fickle with Mutable {
     clone._active.clear
     for(mapping <- this._active) {
         clone._active += mapping
+    }
+
+    for(mapping <- this._activeNames) {
+        clone._activeNames += mapping
     }
     
     clone._nextrs = this._nextrs
@@ -329,6 +336,12 @@ extends Fickle with Mutable {
   */
   def rewriteOnce(atom: BasicAtom,
       rulesets: Set[String]): (BasicAtom, Boolean) = {
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      return (atom, true)
+    }
+
     var (newtop, appliedtop) = _rewriteTop(atom, rulesets)
     if (_descend) {
       var (newatom, applied) = _rewriteChildren(newtop, rulesets)     
@@ -350,6 +363,12 @@ extends Fickle with Mutable {
   */
   private def _rewriteTop(atom: BasicAtom,
       rulesets: Set[String]): (BasicAtom, Boolean) = {
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      return (atom, true)
+    }
+
     // Get the rules.
     val rules = if (rulesets.isEmpty) getRules(atom) else getRules(atom, rulesets)
 
@@ -385,58 +404,67 @@ extends Fickle with Mutable {
   */
   private def _rewriteChildren(atom: BasicAtom,
       rulesets: Set[String]): (BasicAtom, Boolean) = {
-    atom match {
-      case AtomSeq(props, atoms) =>
-        var flag = false
-        // Rewrite the properties.  The result must still be a property spec.
-        // If not, we keep the same properties.
-        val newProps = _rewritechild(props, rulesets) match {
-          case (ap: AlgProp, true) => flag = true; ap
-          case _ => props
-        }
-        // Rewrite the atoms.
-        val newAtoms = atoms.map {
-          atom =>
-            val (newatom, applied) = _rewritechild(atom, rulesets)
-          flag ||= applied
-          newatom
-        }
-        // Return the result.
-        if (flag) (AtomSeq(newProps, newAtoms), true) else (atom, false)
-        
-      case Apply(lhs, rhs) =>
-        val newlhs = _rewritechild(lhs, rulesets)
-        val newrhs = _rewritechild(rhs, rulesets)
-        if (newlhs._2 || newrhs._2) {
-          (Apply(newlhs._1, newrhs._1), true)
-        } else {
-          (atom, false)
-        }
-        
-      case Lambda(param, body) =>
-        val newparam = _rewritechild(param, rulesets) match {
-          case (v: Variable, true) => (v, true)
-          case _ => (param, false)
-        }
-        val newbody = _rewritechild(body, rulesets)
-        if (newparam._2 || newbody._2) {
-          (Lambda(newparam._1, newbody._1), true)
-        } else {
-          (atom, false)
-        }
 
-      case SpecialForm(tag, content) =>
-        val newlhs = _rewritechild(tag, rulesets)
-        val newrhs = _rewritechild(content, rulesets)
-        if (newlhs._2 || newrhs._2) {
-          (SpecialForm(newlhs._1, newrhs._1), true)
-        } else {
-          (atom, false)
-        }
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      return (atom, true)
+    }
 
-      case _ =>
-        // Do nothing in this case.
-        (atom, false)
+    // No timeout.
+    else {
+      atom match {
+        case AtomSeq(props, atoms) =>
+          var flag = false
+          // Rewrite the properties.  The result must still be a property spec.
+          // If not, we keep the same properties.
+          val newProps = _rewritechild(props, rulesets) match {
+            case (ap: AlgProp, true) => flag = true; ap
+            case _ => props
+          }
+          // Rewrite the atoms.
+          val newAtoms = atoms.map {
+            atom =>
+              val (newatom, applied) = _rewritechild(atom, rulesets)
+              flag ||= applied
+            newatom
+          }
+          // Return the result.
+          if (flag) (AtomSeq(newProps, newAtoms), true) else (atom, false)
+        
+        case Apply(lhs, rhs) =>
+          val newlhs = _rewritechild(lhs, rulesets)
+          val newrhs = _rewritechild(rhs, rulesets)
+          if (newlhs._2 || newrhs._2) {
+            (Apply(newlhs._1, newrhs._1), true)
+          } else {
+            (atom, false)
+          }
+        
+        case Lambda(param, body) =>
+          val newparam = _rewritechild(param, rulesets) match {
+            case (v: Variable, true) => (v, true)
+              case _ => (param, false)
+          }
+          val newbody = _rewritechild(body, rulesets)
+          if (newparam._2 || newbody._2) {
+            (Lambda(newparam._1, newbody._1), true)
+          } else {
+            (atom, false)
+          }
+
+        case SpecialForm(tag, content) =>
+          val newlhs = _rewritechild(tag, rulesets)
+          val newrhs = _rewritechild(content, rulesets)
+          if (newlhs._2 || newrhs._2) {
+            (SpecialForm(newlhs._1, newrhs._1), true)
+          } else {
+            (atom, false)
+          }
+
+        case _ =>
+          // Do nothing in this case.
+          (atom, false)
+      }
     }
   }
 
@@ -452,23 +480,45 @@ extends Fickle with Mutable {
    *          applied.
    */
   def rewrite(atom: BasicAtom) = {
-    if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      (atom, true)
+    }
+
+    // No timeout.
+    else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
     else if (atom.isInstanceOf[Variable]) (atom, false)
     else {
-      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+       ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
       // top node of this subtree
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
+       ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
+       ReplActor ! ("Eva", "setSubroot", "rwNode")
       val tempDisabled = ReplActor.disableGUIComs
       if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-      
+
       // Check the cache.
-      val (newatom, flag) = Memo.get(atom, _activeNames) match {
-        case None =>
-          val pair = _doRewrite(atom, Set.empty)
-          Memo.put(atom, _activeNames, pair._1, 0)
-          Memo.put(pair._1, _activeNames, pair._1, 0)
+      var timedOut = false
+      val (newatom, flag) = Memo.get(atom, _active) match {
+        case None => {
+
+          // Set the time at which rewriting the atom will time out, if we
+          // are timing rewrites out.
+          var pair: (ornl.elision.core.BasicAtom, Boolean) = null      
+          if (BasicAtom.timingOut) {
+            BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
+              pair = _doRewrite(atom, Set.empty)
+              timedOut = BasicAtom.rewriteTimedOut
+            }
+          }
+          else {
+            pair = _doRewrite(atom, Set.empty)
+            timedOut = false
+          }
+          Memo.put(atom, _active, pair._1, 0)
+          Memo.put(pair._1, _active, pair._1, 0)
           pair
+        }
         case Some(pair) => {
           if (BasicAtom.traceRules) {
             println("Got cached rewrite '" +
@@ -478,12 +528,28 @@ extends Fickle with Mutable {
           pair
         }
       }
-      
+
       ReplActor.disableGUIComs = tempDisabled
       if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
       ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
       
-      (newatom, flag)
+      // Did rewriting this atom time out?
+      if (timedOut) {
+        
+        // Return the original atom, with the rewrite flag set to true
+        // to indicate a timeout.
+        if (BasicAtom.traceRules) {
+          println("Rewriting of atom '" + atom.toParseString + "' timed out.")
+        }
+        (atom, true)
+      }
+      
+      // No timeout.
+      else {
+          
+        // Return the rewrite results.
+        (newatom, flag)
+      }
     }
   }
   // *************** end GUI changes
@@ -503,39 +569,84 @@ extends Fickle with Mutable {
    *          applied.
    */
   def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
-    if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      (atom, true)
+    }
+
+    // No timeout.
+    else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
     else if (atom.isInstanceOf[Variable]) (atom, false)
     else {
-      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-      // top node of this subtree
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
-      ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
+       ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+       // top node of this subtree
+       ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom)) // val rwNode = RWTree.addToCurrent("RuleLibrary rewrite: ", atom)
+       ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode 
       val tempDisabled = ReplActor.disableGUIComs
+
       if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-      
+
       // Check the cache.
+      val usedRulesetsBits = 
+        if (rulesets.isEmpty) _active 
+        else {
+          var r = new BitSet()
+          for (rs <- rulesets) r += getRulesetBit(rs)
+          r
+        }
       val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
-      val (newatom, flag) = Memo.get(atom, usedRulesets) match {
+      var timedOut = false
+      val (newatom, flag) = Memo.get(atom, usedRulesetsBits) match {
         case None =>
-          val pair = _doRewrite(atom, usedRulesets)
-          Memo.put(atom, usedRulesets, pair._1, 0)
-          Memo.put(pair._1, usedRulesets, pair._1, 0)
+
+          // Set the time at which rewriting the atom will time out, if we
+          // are timing rewrites out.
+          var pair: (ornl.elision.core.BasicAtom, Boolean) = null
+          if (BasicAtom.timingOut) {
+            BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
+              pair = _doRewrite(atom, usedRulesets)
+              timedOut = BasicAtom.rewriteTimedOut
+            }
+          }
+          else {
+            pair = _doRewrite(atom, usedRulesets)
+            timedOut = false
+          }
+          Memo.put(atom, usedRulesetsBits, pair._1, 0)
+          Memo.put(pair._1, usedRulesetsBits, pair._1, 0)
           pair
         case Some(pair) => {
-          if (BasicAtom.traceRules) {
-            println("Got cached rewrite '" +
-                    atom.toParseString + "' -> '" + pair._1.toParseString +
-                    "' w. rulesets " + usedRulesets)
-          }
-          pair
+            if (BasicAtom.traceRules) {
+              println("Got cached rewrite '" +
+                      atom.toParseString + "' -> '" + pair._1.toParseString +
+                      "' w. rulesets " + usedRulesets)
+            }
+            pair
         }
       }
-      
+        
       ReplActor.disableGUIComs = tempDisabled
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
-      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+       ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) // RWTree.addTo(rwNode,newatom)
+       ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
       
-      (newatom, flag)
+      // Did rewriting this atom time out?
+      if (timedOut) {
+        
+        // Return the original atom, with the rewrite flag set to true
+        // to indicate a timeout.
+        if (BasicAtom.traceRules) {
+          println("Rewriting of atom '" + atom.toParseString + "' timed out.")
+        }
+        (atom, true)
+      }
+      
+      // No timeout.
+        else {
+          
+          // Return the rewrite results.
+          (newatom, flag)
+        }
     }
   }
   // *************** end GUI changes
@@ -561,6 +672,12 @@ extends Fickle with Mutable {
                         rulesets: Set[String] = Set.empty,
                         bool: Boolean = false,
                         limit: BigInt = _limit): (BasicAtom, Boolean) = {
+
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      return (atom, true)
+    }
+
     if (limit == 0) return (atom, bool)
     else rewriteOnce(atom, rulesets) match {
       case (newatom, false) =>
@@ -665,7 +782,7 @@ extends Fickle with Mutable {
     def doRewrite(atom: BasicAtom, hint: Option[Any]): (BasicAtom, Boolean) = {
 
       // Check the cache.
-      Memo.get(atom, _activeNames) match {
+      Memo.get(atom, _active) match {
         case None => {
           
           // We do not have a cached value for the current atom. We will

@@ -35,6 +35,7 @@ import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
 import ornl.elision.util.Timeable
+import ornl.elision.util.PropertyManager
 
 
 /**
@@ -145,7 +146,16 @@ with HasHistory {
       "Whether to use the class path to locate files.", true)
   declareProperty("path",
       "The search path to use to locate files.", FileResolver.defaultPath)
-  
+
+  /** Declare the Elision property for setting the max rewrite time. */
+  declareProperty("rewrite_timeout",
+      "The maximum time to try rewriting an atom. In seconds.",
+      BasicAtom._maxRewriteTime,
+      (pm: PropertyManager) => {
+        BasicAtom._maxRewriteTime =
+          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+      })
+      
   /** Whether to trace the parser. */
   private var _trace = false
 
@@ -220,9 +230,21 @@ with HasHistory {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
         false
-      case Some(reader) =>
+      case Some((reader, dir)) =>
         Processor.fileReadStack.push(filename)
+        
+        // try to prepend our file's directory to our search path if it isn't already in it.
+        if(!path.contains(dir)) {
+            val _prop = new scala.sys.SystemProperties
+            setProperty[String]("path", dir + _prop("path.separator") + path) 
+        }
+        
+        // proceed with reading the file's stream.
         read(scala.io.Source.fromInputStream(reader), filename)
+        
+        // restore our original path
+        setProperty[String]("path", path)
+        
         Processor.fileReadStack.pop
         true
     }
@@ -288,18 +310,8 @@ with HasHistory {
       console.emitln(lline)
     }
 	
-	//////////////////// GUI changes
-	// Create the root of our rewrite tree it contains a String of the REPL input.
-//	ReplActor ! ("Eva", "newTree", lline) // val treeRoot = RWTree.createNewRoot(lline) 
-	//////////////////// end GUI changes
-	
     _execute(_parser.parseAtoms(lline))
 	
-	//////////////////// GUI changes
-	// send the completed rewrite tree to the GUI's actor
-//	if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && lline != "")
-//		ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
-	//////////////////// end GUI changes
   }
   
   def parse(text: String) = {
@@ -312,51 +324,49 @@ with HasHistory {
   private def _execute(result: Presult) {
     import ornl.elision.util.ElisionException
     startTimer
-	
-    ReplActor ! ("Eva","pushTable","Processor _execute")
     
+	  ReplActor ! ("Eva","pushTable","Processor _execute")
     try {
     	result match {
-  			case Failure(err) => console.error(err)
+  			case Failure(err) =>
+  			  console.error(err)
+  			  
   			case Success(nodes) =>
   			  // We assume that there is at least one handler; otherwise not much
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
-				//////////////////// GUI changes
-                ReplActor ! ("Eva", "setSubroot", "subroot")
-                var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
-                ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
-				ReplActor ! ("Eva", "setSubroot", "lineNode") //RWTree.current = lineNode
-				
-				
+            var nodeLabel : String = "line node: "
+            ReplActor ! ("Eva", "setSubroot", "subroot")
+            ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel))
+            ReplActor ! ("Eva", "setSubroot", "lineNode")
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
-                    ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
-                    ReplActor ! ("Eva", "setSubroot", "interpret") // RWTree.current = lineNode // GUI changes
-  			        val atom = newnode.interpret
-                    
-                    ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
-                    ReplActor ! ("Eva", "setSubroot", "handle")
+                val atom = newnode.interpret
+                ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
+                ReplActor ! ("Eva", "setSubroot", "interpret")
+                ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
+                ReplActor ! ("Eva", "setSubroot", "handle")
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
-                        ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
-                        ReplActor ! ("Eva", "setSubroot", "result") //RWTree.current = lineNode
+                    ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
+                    ReplActor ! ("Eva", "setSubroot", "result")
   			            // Hand off the node.
   			            _result(newatom)
   			        }
   			    }
   			  } // Process all the nodes.
-              //////////////////// end GUI changes
     	}
     } catch {
       case ElisionException(msg) =>
         console.error(msg)
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
-        if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        val trace = ex.getStackTrace()
+        if (!getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        else console.error("in: " + trace(0))
       case oom: java.lang.OutOfMemoryError =>
         System.gc()
         console.error("Memory exhausted.  Trying to recover...")
@@ -367,7 +377,9 @@ with HasHistory {
         console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
       case th: Throwable =>
         console.error("(" + th.getClass + ") " + th.getMessage())
+        val trace = th.getStackTrace()
         if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+        else console.error("in: " + trace(0))
         coredump("Internal error.", Some(th))
     }
     

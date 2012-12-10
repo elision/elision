@@ -134,10 +134,12 @@ object GUIActor extends Actor {
                             str += br.readLine + "\n"
                         }
                         br.close
+                        //val str = "inc(\"" + selFile.getPath + "\")\n"
                         
                         // now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
                         println("Reading REPL input from file: " + selFile.getPath)
                         println()
+                        
                         ornl.elision.repl.ReplActor ! str
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
