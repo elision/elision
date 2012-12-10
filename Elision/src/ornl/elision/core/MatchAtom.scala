@@ -113,6 +113,14 @@ extends SpecialForm(sfh.tag, sfh.content) with Applicable {
     case None => NONE
     case Some(binds) => BindingsAtom(binds)
   }
+  
+  override def equals(other: Any) = other match {
+    case oma: MatchAtom =>
+      feq(oma, this, oma.pattern == pattern && oma.guards == guards)
+      
+    case _ =>
+      false
+  }
 }
 
 /**

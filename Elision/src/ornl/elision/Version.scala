@@ -36,6 +36,9 @@
 ======================================================================*/
 package ornl.elision
 
+import ornl.elision.util.ElisionException
+import ornl.elision.util.Debugger
+
 /**
  * Provide information about the current version of Elision.
  * 
@@ -126,7 +129,7 @@ object Version {
   var loaded = false
   
   /** The default command to execute. */
-  private var default = "repl"
+  private var _default = "repl"
     
   /** A type for classes that have a main method. */
   type HasMain = Class[_ <: {def main(args: String*): Unit}]
@@ -135,7 +138,7 @@ object Version {
   type CEntry = (HasMain, String, Boolean)
     
   /** The commands.  Map each command to its class and a description. */
-  private var commands: Map[String,CEntry] =
+  private var _commands: Map[String,CEntry] =
     Map("repl" -> ((ornl.elision.repl.ReplMain.getClass.asInstanceOf[HasMain],
         "Start the REPL.", false)))
         
@@ -143,7 +146,7 @@ object Version {
   type OEntry = (Class[_], String, String)
   
   /** The options.  Map each to its data. */
-  private var options: Map[String, OEntry] = Map()
+  private var _options: Map[String, OEntry] = Map()
 
   /**
    * An error occurred processing a main.
@@ -161,10 +164,10 @@ object Version {
    * @return  The requested class and command description, as a pair.
    */
   def get(command: String): CEntry = {
-    if (command.length == 0) return commands(default)
+    if (command.length == 0) return _commands(_default)
     val sname = command.toLowerCase
     var found: Option[String] = None
-    for (name <- commands.keys) {
+    for (name <- _commands.keys) {
       // See if this is what we want.
       if (name.startsWith(sname)) {
         found match {
@@ -183,7 +186,7 @@ object Version {
         throw new MainException("The command " + command + " is not known.")
       case Some(name) =>
         // Done!
-        commands(name)
+        _commands(name)
     }
   }
   
@@ -212,17 +215,17 @@ object Version {
     buf.append("\nElision can be started in multiple ways.  The following " +
     		"commands start Elision\nas indicated.\n\n")
     var maxdwidth = 0
-    for (pairs <- commands) {
+    for (pairs <- _commands) {
       maxdwidth = maxdwidth max pairs._2._2.length
     } // Print the commands.
     val usewidth = width max (maxdwidth+10)
-    for (cmd <- commands.keys.toList.sortWith((x,y) => x<y)) {
+    for (cmd <- _commands.keys.toList.sortWith((x,y) => x<y)) {
       val (_, description, _) = get(cmd)
       buf.append(" "+cmd+" ")
       buf.append("."*(usewidth - maxdwidth - 3 - cmd.length))
       buf.append(" "+description).append("\n")
     } // Append all the commands.
-    buf.append("\nDefault is: " + default + "\n")
+    buf.append("\nDefault is: " + _default + "\n")
     buf
   }
   
@@ -268,11 +271,11 @@ object Version {
           // reset the map.  If we never loaded anything we would preserve the
           // default map and command.
           if (setdefault) {
-            default = name
-            commands = Map[String,CEntry]()
+            _default = name
+            _commands = Map[String,CEntry]()
             setdefault = false
           }
-          commands += (name -> (clazz, description, gui))
+          _commands += (name -> (clazz, description, gui))
         } catch {
           case ex: Exception =>
             println("ERROR: Elision is mis-configured.  The class for " +

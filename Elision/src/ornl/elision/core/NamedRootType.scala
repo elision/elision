@@ -38,6 +38,7 @@
 package ornl.elision.core
 
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Provide a very simple implementation of `RootType`.  This is a trivial root

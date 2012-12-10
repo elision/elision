@@ -154,4 +154,12 @@ with Rewriter {
 		  }
 	  }
 	  // end GUI changes
+  
+  override def equals(other: Any) = other match {
+    case omp: MapPair =>
+      feq(omp, this, omp.left == this.left && omp.right == this.right)
+      
+    case _ =>
+      false
+  }
 }

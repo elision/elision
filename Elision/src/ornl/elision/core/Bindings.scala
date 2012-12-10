@@ -40,6 +40,7 @@ package ornl.elision.core
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.{OpenHashMap => MutableHashMap}
 import scala.collection.mutable.SynchronizedMap
+import ornl.elision.util.OmitSeq
 
 /**
  * Bindings are used to store variable / value maps used during matching, and

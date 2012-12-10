@@ -40,6 +40,7 @@ package ornl.elision.core
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.OpenHashMap
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Represent a variable.
@@ -253,9 +254,12 @@ class Variable(typ: BasicAtom, val name: String,
   lazy val otherHashCode = typ.otherHashCode + 8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(varx: Any) = varx match {
-    case ovar:Variable => ovar.theType == theType &&
-    		ovar.name == name && ovar.guard == guard && ovar.labels == labels
-    case _ => false
+    case ovar:Variable =>
+      feq(ovar, this, ovar.theType == theType &&
+    		ovar.name == name && ovar.guard == guard && ovar.labels == labels)
+    		
+    case _ =>
+      false
   }
 }
 

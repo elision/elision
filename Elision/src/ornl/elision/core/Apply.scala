@@ -70,45 +70,30 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
   
-  override def equals(other: Any) = other match {
-    //case Apply(oop, oarg) => oop == op && oarg == arg
-    case Apply(oop, oarg) => {
-      (oop.hashCode == op.hashCode) &&
-      (oop.otherHashCode == op.otherHashCode) &&
-      (oarg.hashCode == arg.hashCode) &&
-      (oarg.otherHashCode == arg.otherHashCode)
-    }
-    case _ => false
-  }
-  /*
-  def rewrite(binds: Bindings) = {
-    val (nop, nof) = op.rewrite(binds)
-    val (narg, naf) = arg.rewrite(binds)
-    if (nof || naf) (Apply(nop, narg), true) else (this, false)
-  }
-  */
-  //  GUI changes
-  
+  override def equals(other: Any) = (other match {
+      case oapp: Apply =>
+        feq(oapp, this, (op == oapp.op) && (arg == oapp.arg))
+        
+      case _ =>
+        false
+    })
+
+  //  GUI changes  
   def rewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "Apply rewrite")
-    // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: "))
-
-    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ")) 
+    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: "))
     ReplActor ! ("Eva", "addTo", ("op", "op", op))
     ReplActor ! ("Eva", "setSubroot", "op")
     val (nop, nof) = op.rewrite(binds)
-	
-    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ")) 
+    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: "))
     ReplActor ! ("Eva", "addTo", ("arg", "arg", arg))
     ReplActor ! ("Eva", "setSubroot", "arg")
     val (narg, naf) = arg.rewrite(binds)
-	
     ReplActor ! ("Eva", "setSubroot", "rwNode")
     if (nof || naf) {
   		val newApply = Apply(nop, narg)
   		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply))
-          
   		ReplActor ! ("Eva", "popTable", "Apply rewrite")
   		(newApply, true) 
   	} else { 
@@ -116,7 +101,6 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
       (this, false)
     }
   }
-  
   //  end GUI changes
   
   /**
@@ -131,30 +115,23 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
     // Only applies match other applies.
     subject match {
       case Apply(oop, oarg) => {
-
-        // Has rewriting timed out?
-        if (BasicAtom.rewriteTimedOut) {
-          Fail("Timed out", this, subject)
-        }
-
-        else {
-          // Try to match the operators, and then the arguments.  If both match,
-          // then this matches.  If not, then this does not match.
-          op.tryMatch(oop, binds, Some(op)) match {
-            case fail: Fail =>
-              Fail("Operators do not match.", this, subject, Some(fail))
-            case Match(newbinds) =>
-              // The operators match.  Now try to match the arguments.
-              arg match {
-                case as:AtomSeq => as.tryMatch(oarg, newbinds, Some(op))
-                case _ => arg.tryMatch(oarg, newbinds, Some(op))
-              }
+        // Try to match the operators, and then the arguments.  If both match,
+        // then this matches.  If not, then this does not match.
+        op.tryMatch(oop, binds, Some(op)) match {
+          case fail: Fail =>
+            Fail("Operators do not match.", this, subject, Some(fail))
             
-            case Many(matches) =>
-              // The operators match in multiple ways.  This seems unlikely, but
-              // we consider it here anyway.
-              Many(MatchIterator(arg.tryMatch(oarg, _, Some(op)), matches))
-          }
+          case Match(newbinds) =>
+            // The operators match.  Now try to match the arguments.
+            arg match {
+              case as:AtomSeq => as.tryMatch(oarg, newbinds, Some(op))
+              case _ => arg.tryMatch(oarg, newbinds, Some(op))
+            }
+          
+          case Many(matches) =>
+            // The operators match in multiple ways.  This seems unlikely, but
+            // we consider it here anyway.
+            Many(MatchIterator(arg.tryMatch(oarg, _, Some(op)), matches))
         }
       }
       case _ => Fail("Applications only match other applications.",
@@ -197,31 +174,12 @@ object Apply {
    */
   def apply(op: BasicAtom, arg: BasicAtom,
       bypass: Boolean = false): BasicAtom = {
-      /*
-    val applyString : String = { op match {
-                case opp : Operator => 
-                    toESymbol(opp.name)
-                case opref : OperatorRef =>
-                    toESymbol(opref.name)
-                case _ =>
-                    op.toParseString
-            }} + "(" + 
-            {arg match {
-                case argSeq : AtomSeq => 
-                    argSeq.atoms.mkParseString("" , ", ", "")
-                case _ => 
-                    arg.toParseString
-            }} + ")"
-    */
-      
     //  GUI changes
     ReplActor ! ("Eva","pushTable", "object Apply apply")
-    // top node of this subtree
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg))
-    ReplActor ! ("Eva", "setSubroot", "rwNode")
-    
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) 
+    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op)) 
+    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) 
+    ReplActor ! ("Eva", "setSubroot", "rwNode")    
     //  end GUI changes
 
     // Temporarily disable rewrite timeouts.
@@ -229,37 +187,39 @@ object Apply {
     BasicAtom.timeoutTime.value = -1L
 
     // Do not try to compute if metaterms are present.
-    var r: BasicAtom = null
+    var retval: BasicAtom = null
     if (!op.evenMeta && !arg.isTerm) {
-        val result = SimpleApply(op, arg)
-        ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-        ReplActor ! ("Eva", "popTable", "object Apply apply")
-        r = result
+      val result = SimpleApply(op, arg)
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
+      ReplActor ! ("Eva", "popTable", "object Apply apply")
+      retval = result
     } else {
       op match {
   		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
   		    // If the argument is also a string literal, then we want to simply
   		    // concatenate them.
   		    val result = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
-            ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-            ReplActor ! ("Eva", "popTable", "object Apply apply")
-            r = result
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
+          ReplActor ! ("Eva", "popTable", "object Apply apply")
+          retval = result
+          
   	    case app:Applicable =>
   	      try {
   		      // The lhs is applicable; invoke its apply method.  This will
   		      // return some atom, and that atom is the overall result.
   		      val result = app.doApply(arg, bypass)
-              ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-              ReplActor ! ("Eva", "popTable", "object Apply apply")
-              r = result
+            ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
+            ReplActor ! ("Eva", "popTable", "object Apply apply")
+            retval = result
   	      } catch {
   	        case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
-                ReplActor ! ("Eva", "popTable", "object Apply apply")
+              ReplActor ! ("Eva", "popTable", "object Apply apply")
   		        throw new LambdaUnboundedRecursionException(
   		            "Application results in unbounded recursion: (" +
   		            op.toParseString + ").(" + arg.toParseString + ")")
   	      }
+  	      
   	    case rew:Rewriter =>
   	      // The lhs is a rewriter; invoke its rewrite method.  This will return
   	      // a pair.  We need to convert the pair to a binding.
@@ -269,7 +229,8 @@ object Apply {
   	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
           ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
           ReplActor ! ("Eva", "popTable", "object Apply apply")
-          r = result
+          retval = result
+          
   	    case _ =>
   	      // The lhs is something else.  It may be a variable or some other
   	      // expression that we have yet to evaluate.  Just build a simple
@@ -277,7 +238,7 @@ object Apply {
   	      val result = SimpleApply(op, arg)
           ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
           ReplActor ! ("Eva", "popTable", "object Apply apply")
-          r = result
+          retval = result
 	    }
     }
 
@@ -285,7 +246,7 @@ object Apply {
     BasicAtom.timeoutTime.value = oldTimeout
 
     // Return the result.
-    r
+    retval
   }
 }
 
@@ -315,43 +276,35 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * provided during parameter matching.  This allows rewriting otherwise
    * abstract type information to get a proper type.
    */
-  val theType = op.operator.typ.rewrite(pabinds)._1
+  lazy val theType = op.operator.typ.rewrite(pabinds)._1
   
   // GUI changes
   override def rewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
-    // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: "))
 	  
     // If we have no bindings, don't rewrite the operator.
     if (binds == null) {
       (this, false)
-    }
-
-    // We have bindings. Rewrite the operator.
-    else {
-
+    } else {
+      // We have bindings. Rewrite the operator.
       // See if we have already rewritten this operator with these
       // bindings.
       (binds.rewrites get this) match {
-        
         // We have already done this rewrite.
-        case Some(rewrite) => {
+        case Some(rewrite) =>
           rewrite
-        }
         
         // We don't have a cached rewrite.
-        case None => {
-          
+        case None =>
           // Rewrite the argument, but not the operator.  In reality, operators
           // should protect their arguments using De Bruijn indices, but that's
           // not implemented just yet.
           val pair = arg.rewrite(binds)
           if (pair._2) {
-            ReplActor ! ("Eva", "setSubroot", "rwNode")
             val newApply = Apply(op, pair._1)
+            ReplActor ! ("Eva", "setSubroot", "rwNode")
             ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply))
-		        
             ReplActor ! ("Eva", "popTable", "OpApply rewrite")
             binds.rewrites(this) = (newApply, true) 
             (newApply, true) 
@@ -360,17 +313,15 @@ case class OpApply protected[core] (override val op: OperatorRef,
             binds.rewrites(this) = (this, false) 
             (this, false)
           }
-        }
-      }  
-    }
-      // end GUI changes
+      }
+    }  
+    // end GUI changes
   }
 
   /**
    * Get the variables in the operator arguments.
    */
-  override def getVariables() : Option[HashSet[BasicAtom]] = {
-
+  override def getVariables(): Option[HashSet[BasicAtom]] = {
     // Make the result set to hold the variables.
     var r = new HashSet[BasicAtom]
 
@@ -410,7 +361,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
   /**
    * Get the operators in the operator arguments, plus this operator.
    */
-  override def getOperators(opNames : HashSet[String]) : Option[HashSet[BasicAtom]] = {
+  override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
 
     // Make the result set to hold the variables.
     var r = new HashSet[BasicAtom]
