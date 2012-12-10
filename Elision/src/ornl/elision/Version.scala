@@ -37,7 +37,6 @@
 package ornl.elision
 
 import ornl.elision.util.ElisionException
-
 import ornl.elision.util.Debugger
 
 /**
