@@ -115,9 +115,8 @@ class EvaVisPanel extends GamePanel {
                 val droppedObj = t.getTransferData(DataFlavor.javaFileListFlavor)
                 
                 droppedObj match {
-                    case list : java.util.List[File] =>
-                        val file = list.get(0)
-                        
+                    case list : java.util.List[_] =>
+                        val file = list.get(0).asInstanceOf[File]
                         val name = file.getName
                         val lastDot = name.lastIndexOf('.')
                         val ext = name.drop(lastDot+1)

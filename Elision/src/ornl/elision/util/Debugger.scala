@@ -27,7 +27,7 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision
+package ornl.elision.util
 
 /**
  * This is a class for managing and printing debug output during execution
@@ -40,6 +40,9 @@ package ornl.elision
  * then use `debug` to print debugging messages.  The first argument is passed
  * by name, so you can use this to avoid construction costs by deferring method
  * invocation.
+ * 
+ * The tag is the second element to the debug statement to enable omitting it;
+ * if omitted, the tag is treated as the empty string.
  * 
  * {{{
  * import ornl.elision.Debugger._
@@ -55,6 +58,17 @@ package ornl.elision
  * debug("Starting timer.", "start")
  * ...
  * debug("Reporting elapsed time.", "stop")
+ * }}}
+ * 
+ * Alternately, include the things you want to do in an `ifdebug` block.
+ * 
+ * {{{
+ * import ornl.elision.Debugger._
+ * 
+ * ifdebug("simple") {
+ *   println("The simple mode is enabled.")
+ *   for (i <- 1 upto 1000) println(i)
+ * }
  * }}}
  * 
  * There are several things you can do; see [ornl.elision.Debugger.Mode] for
@@ -97,8 +111,6 @@ object Debugger {
    * constants in this object [ornl.elision.Debugger.Mode].
    */
   private var _modes = scala.collection.mutable.Map[String,Int]()
-  
-  import ornl.elision.core.Timeable
   
   /** The last tick time. */
   private var _tick = new Timeable() {
@@ -155,6 +167,27 @@ object Debugger {
    */
   def disableDebugModes(tag: String, modes: Int) {
     if (modes != 0) _modes(tag) = (_modes.getOrElse(tag, 0) | modes) % modes
+  }
+  
+  /**
+   * Perform some action if the specified debugging tag is enabled, and only
+   * if the tag is enabled.  Use this by specifying the tag, and then giving
+   * the actions in brackets after.
+   * 
+   * {{{
+   * ifdebug("tim") {
+   *   println("Tim is go!")
+   * }
+   * }}}
+   * 
+   * @param tag     The debugging tag.
+   * @param action  The action to perform.  This is only evaluated iff the tag
+   *                is enabled.
+   */
+  def ifdebug(tag: String = "")(action: =>Unit) {
+    if ((_modes.getOrElse(tag,0) & ON) != 0) {
+      action
+    }
   }
   
   /**

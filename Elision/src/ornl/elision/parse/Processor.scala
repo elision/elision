@@ -32,6 +32,88 @@ package ornl.elision.parse
 import ornl.elision.core._
 import ornl.elision.repl.ReplActor
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
+import ornl.elision.util.PrintConsole
+import ornl.elision.util.FileResolver
+import ornl.elision.util.Timeable
+import ornl.elision.util.PropertyManager
+
+
+/**
+ * Indicate that it a history is maintained.  Limited access to the history
+ * is granted by implementing this trait.
+ */
+trait HasHistory {  
+  /**
+   * Add a line to the history, if one is being maintained.  If the processor
+   * maintains a history it should override this to enable adding the given
+   * line to the history, if that is desired.  This is used by the system to
+   * add informational lines to the history.  The default implementation does
+   * nothing.
+   * 
+   * @param line  The line to add to the history.
+   */
+  def addHistoryLine(line: String) {}
+  
+  /**
+   * Get an iterator over the history.  By default this returns the empty
+   * iterator, so override this to return the appropriate iterator if your
+   * processor supports history.
+   */
+  def getHistoryIterator: Iterator[String] = Set().iterator
+  
+  /**
+   * Get a history entry by its index.
+   * 
+   * @param index The index of the history item.
+   * @return  The entry, or `None` if the index does not exist in the history.
+   */
+  def getHistoryEntry(index: Int): Option[String] = None
+  
+  /**
+   * Get the file that holds the persistent history.  By default this returns
+   * the string `(no history file)`, so you should override this if you have
+   * a history file.
+   */
+  def getHistoryFilename: String = "(no history file)"
+}
+
+/**
+ * Indicate that it is possible to enable and disable tracing of parsing at
+ * runtime.  An executor may (or may not) implement this.
+ * 
+ * Typically enabling and disabling tracing require rebuilding the parser, so
+ * this trait is abstract.
+ */
+trait TraceableParse {
+  /**
+   * Specify whether to trace the parser.
+   * 
+   * @param enable  If true, trace the parser.  If false, do not.
+   */
+  def trace_=(enable: Boolean): Unit
+  
+  /**
+   * Determine whether tracing is enabled.
+   */
+  def trace: Boolean
+}
+
+/**
+ * Indicates if it is possible to toggle the parser used
+ */
+trait ToggleableParser {
+  /**
+   * Specify whether to toggle the parser.
+   * 
+   * @param enable  If true, toggle the parser.  If false, do not.
+   */
+  def toggle_=(enable: Boolean): Unit
+  
+  /**
+   * Determine whether the parser used to toggled
+   */
+  def toggle: Boolean
+}
 
 /**
  * A processor is responsible for reading and handling atoms.
@@ -53,11 +135,6 @@ with TraceableParse
 with ToggleableParser
 with Timeable
 with HasHistory {
-  // We are the implicit executor.
-//  System.out.println("** Processor1 knownExecutor = " + ornl.elision.core.knownExecutor);
-  ornl.elision.core.knownExecutor = this
-//  System.out.println("** Processor2 knownExecutor = " + ornl.elision.core.knownExecutor);
-
   // Set up the stacktrace property.
   declareProperty("stacktrace",
       "Print a stack trace on all (non-Elision) exceptions.", false)
@@ -75,7 +152,8 @@ with HasHistory {
       "The maximum time to try rewriting an atom. In seconds.",
       BasicAtom._maxRewriteTime,
       (pm: PropertyManager) => {
-        BasicAtom._maxRewriteTime = pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
+        BasicAtom._maxRewriteTime =
+          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
       })
       
   /** Whether to trace the parser. */
@@ -244,53 +322,51 @@ with HasHistory {
   }
   
   private def _execute(result: Presult) {
-    import ornl.elision.ElisionException
+    import ornl.elision.util.ElisionException
     startTimer
-	
-    ReplActor ! ("Eva","pushTable","Processor _execute")
     
+	  ReplActor ! ("Eva","pushTable","Processor _execute")
     try {
     	result match {
-  			case Failure(err) => console.error(err)
+  			case Failure(err) =>
+  			  console.error(err)
+  			  
   			case Success(nodes) =>
   			  // We assume that there is at least one handler; otherwise not much
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
-				// GUI changes
-                ReplActor ! ("Eva", "setSubroot", "subroot")
-                var nodeLabel : String = "line node: " // TODO: This should be the parse string of the original term represented by this node.
-                ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel)) //val lineNode = RWTree.addTo(rwNode, nodeLabel)
-				ReplActor ! ("Eva", "setSubroot", "lineNode") //RWTree.current = lineNode
-				
-				
+            var nodeLabel : String = "line node: "
+            ReplActor ! ("Eva", "setSubroot", "subroot")
+            ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel))
+            ReplActor ! ("Eva", "setSubroot", "lineNode")
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
-                    ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
-                    ReplActor ! ("Eva", "setSubroot", "interpret") // RWTree.current = lineNode // GUI changes
-  			        val atom = newnode.interpret
-                    
-                    ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
-                    ReplActor ! ("Eva", "setSubroot", "handle")
+                val atom = newnode.interpret
+                ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
+                ReplActor ! ("Eva", "setSubroot", "interpret")
+                ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
+                ReplActor ! ("Eva", "setSubroot", "handle")
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
-                        ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
-                        ReplActor ! ("Eva", "setSubroot", "result") //RWTree.current = lineNode
+                    ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
+                    ReplActor ! ("Eva", "setSubroot", "result")
   			            // Hand off the node.
   			            _result(newatom)
   			        }
   			    }
   			  } // Process all the nodes.
-              // end GUI changes
     	}
     } catch {
       case ElisionException(msg) =>
         console.error(msg)
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
-        if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        val trace = ex.getStackTrace()
+        if (!getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        else console.error("in: " + trace(0))
       case oom: java.lang.OutOfMemoryError =>
         System.gc()
         console.error("Memory exhausted.  Trying to recover...")
@@ -301,7 +377,9 @@ with HasHistory {
         console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
       case th: Throwable =>
         console.error("(" + th.getClass + ") " + th.getMessage())
+        val trace = th.getStackTrace()
         if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+        else console.error("in: " + trace(0))
         coredump("Internal error.", Some(th))
     }
     
@@ -326,24 +404,18 @@ with HasHistory {
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
     // Pass the atom to the handlers.  If any returns None, we are done.
     var theAtom = atom
-	
-	// GUI changes
-	ReplActor ! ("Eva", "pushTable", "_handleAtom")
-	// add this atom as a child to the root node
-	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom)) //val atomNode = RWTree.addTo(rwNode, atom)
-	
-	// end GUI changes
-	
+  	ReplActor ! ("Eva", "pushTable", "_handleAtom")
+  	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
     for (handler <- _queue) {
-      ReplActor ! ("Eva", "setSubroot", "atomNode") //RWTree.current = atomNode
+      ReplActor ! ("Eva", "setSubroot", "atomNode")
       handler.handleAtom(theAtom) match {
         case None => 
-            ReplActor ! ("Eva", "popTable", "_handleAtom")
-            return None
-        case Some(alt) => theAtom = alt
+          ReplActor ! ("Eva", "popTable", "_handleAtom")
+          return None
+        case Some(alt) =>
+          theAtom = alt
       }
     } // Perform all handlers.
-    
     ReplActor ! ("Eva", "popTable", "_handleAtom")
     return Some(theAtom)
   }

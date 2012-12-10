@@ -431,7 +431,7 @@ decl.{! traceparse()
   #handler=
   """
     exec match {
-      case tp: TraceableParse =>
+      case tp: ornl.elision.parse.TraceableParse =>
         // Toggle tracing.
         tp.trace = !tp.trace
         emitln("Parser tracing is " + (if (tp.trace) "ON." else "OFF."))
@@ -453,7 +453,7 @@ decl.{! toggleparser()
   #handler=
   """
     exec match {
-      case tp: ToggleableParser =>
+      case tp: ornl.elision.parse.ToggleableParser =>
         // Toggle parser.
         tp.toggle = !tp.toggle
         emitln("Using " + (if (tp.toggle) "packrat" else "parboiled") +" parser.")
@@ -528,7 +528,7 @@ decl.{! timing($f:BOOLEAN)
   #handler=
   """
     exec match {
-      case tm: Timeable =>
+      case tm: ornl.elision.util.Timeable =>
         // Toggle timing.
         tm.timing = !tm.timing
         emitln("Timing is " + (if (tm.timing) "ON." else "OFF."))
@@ -574,7 +574,7 @@ decl.{! history()
   #handler=
   """
     exec match {
-      case hh: HasHistory =>
+      case hh: ornl.elision.parse.HasHistory =>
         // Show the history.
         val buf = new StringBuffer()
         val it = hh.getHistoryIterator

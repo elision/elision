@@ -92,13 +92,13 @@ class Text {
    * to break sentences.)
    * 
    * @param width   The line width.  No more than this number of characters
-   *                will appear on a single line.
+   *                will appear on a single line.  This value must be positive.
    * @param pad     If true, each line is padded with whitespace to the
    *                required width.  The default is not to do this.
    * @return  The list of lines.
    */
   def wrap(width: Int, pad: Boolean = false): List[String] = {
-    require(width > 9)
+    require(width > 0)
     var ch: Char = '\0'         // Current character.
     var lines = List[String]()  // Accumulated lines.
     var index = 0               // Index into the buffer.

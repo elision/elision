@@ -2,7 +2,7 @@ package ornl.elision.gui.welcome
 
 import java.awt._
 import java.awt.geom.Rectangle2D
-import util.Random
+import scala.util.Random
 import collection.mutable.ListBuffer
 
 import sage2D._

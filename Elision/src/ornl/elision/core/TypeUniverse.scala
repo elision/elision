@@ -38,6 +38,8 @@
 package ornl.elision.core
 
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
+
 /**
  * Define the unique type universe.
  * 

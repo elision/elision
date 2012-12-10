@@ -553,8 +553,8 @@ class TreeBuilder extends Thread {
         
         def toMap(obj : Any) : Map[String, Any] = {
             obj match {
-                case toMap : Map[String, Any] =>
-                    toMap
+                case toMap : Map[_,_] =>
+                    toMap.asInstanceOf[Map[String,Any]]
                 case _ =>
                     null
             }
@@ -580,7 +580,7 @@ class TreeBuilder extends Thread {
         
         def toList(obj : Any) : List[Any] = {
             obj match {
-                case toList : List[Any] =>
+                case toList : List[_] =>
                     toList
                 case _ => 
                     null
@@ -664,20 +664,17 @@ class TreeBuilder extends Thread {
             val topOp = JSON.parseFull(jsonStr)
             
             topOp match {
-                case Some(map : Map[String,Any]) =>
-                    val topAny = map("treejson")
-                    
+                case Some(map : Map[_,_]) =>
+                    val smap = map.asInstanceOf[Map[String,Any]]
+                    val topAny = smap("treejson")
                     val topMap = toMap(topAny)
                     if(topMap != null) {
-                    //    System.err.println("json file read success")
                         readTop(topMap)
                     }
                     else {
-                    //    System.err.println("json file read fail")
                         null
                     }
                 case _ =>
-                //    System.err.println("json file read fail")
                     null
             }
         }

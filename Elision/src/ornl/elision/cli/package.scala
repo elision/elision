@@ -34,37 +34,15 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package sjp
+package ornl.elision
 
-import scala.collection.immutable.BitSet
-
-/** 
- * Elision is a term rewriter.
+/**
+ * This package provides support for command-line interfaces in Elision.
  * 
- * This is the root package of the Elision system, and it contains classes
- * and definitions shared by everything else in the system.
+ * For parsing of command line arguments and switches, see
+ * [[ornl.elision.cli.Switches]].
  * 
- * == Packages ==
- * There are several sub-packages.
- *  - [[ornl.elision.core]] is the core package that contains the primary classes.
- *  - [[ornl.elision.parse]] contains the Elision parser(s).
- *  - [[ornl.elision.repl]] contains the Elision REPL(s) and related classes.
- *  - [[ornl.elision.test]] contains tests to verify Elision functionality.
- *  
- * == Punch List ==
- * This is the current punch list for Elision.  This list gets picked up by
- * [[http://eclipse.org Eclipse]].
- * 
- *  - TODO Implicit corecions. Mark.
- *  - TODO Infix. DEFER.
- *  - TODO Need parser context for error messages. Stacy.
- *  - TODO Check all recursion in matching. Stacy.
- *  - TODO Need package.scala files for all packages.  Stacy.
- *  - TODO Need better documentation of the matcher.  Stacy.
- *  - TODO Need support for command-line overrides.  Stacy.
- *  - TODO Need simple output configuration.  Stacy.
- *  
+ * This package uses [[ornl.elision.util]], but should not use any other
+ * package.  Other packages may use it, except for `ornl.elision.util`.
  */
-package object elision {
-	// No content at the present time.
-}
+package object cli

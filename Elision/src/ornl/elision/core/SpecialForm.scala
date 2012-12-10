@@ -36,7 +36,7 @@
 ======================================================================
 * */
 package ornl.elision.core
-import ornl.elision.ElisionException
+import ornl.elision.util.ElisionException
 
 import ornl.elision.repl.ReplActor
 
@@ -259,8 +259,11 @@ extends BasicAtom {
   lazy val otherHashCode = tag.otherHashCode + 8191*content.otherHashCode
   
   override def equals(other: Any) = other match {
-    case sf:SpecialForm => tag == sf.tag && content == sf.content
-    case _ => false
+    case sf:SpecialForm =>
+      feq(sf, this, tag == sf.tag && content == sf.content)
+      
+    case _ =>
+      false
   }
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,

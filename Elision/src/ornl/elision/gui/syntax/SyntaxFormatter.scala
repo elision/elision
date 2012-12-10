@@ -37,7 +37,7 @@
 package ornl.elision.gui.syntax
 
 import scala.collection.mutable.ListBuffer
-import util.matching._
+import scala.util.matching._
 
 import ornl.elision.gui._
 

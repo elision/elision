@@ -30,10 +30,27 @@
 package ornl.elision
 import scala.collection.mutable.StringBuilder
 import ornl.elision.util.Text
+import ornl.elision.cli.Switches
+import ornl.elision.cli.SwitchUsage
+import ornl.elision.cli.Switch
+import ornl.elision.cli.ArgSwitch
+import ornl.elision.util.Debugger
 
 /**
  * This is the entry point when running from the jar file.  This also provides
  * the `fail` method that prints out command line invocation errors.
+ * 
+ * This should be the main class of the jar file.  This can be done by adding
+ * the following to the jar file's Manifest.
+ * 
+ * {{{
+ * Main-Class: ornl.elision.Main
+ * }}}
+ * 
+ * If you want to add a command to Elision, you can do that by adding a new
+ * main declaration to the `configuration.xml` file loaded by
+ * [[ornl.elision.Version]].  You can then use [[ornl.elision.cli.Switches]]
+ * to process command line arguments and switches in a consistent manner.
  */
 object Main extends App {
   
@@ -41,6 +58,10 @@ object Main extends App {
    * Print out an error message about the command line, highlighting the
    * offending element.  You should follow this with calling `sys.exit(N)`,
    * where `N` is the (non-zero) exit value you want.
+   * 
+   * To use this pass the arguments, the position of the bad argument, and
+   * the error message.  The arguments are printed, and the offending
+   * argument is "underlined" with carets.
    * 
    * @param args      The command line arguments.
    * @param position  The index of the bad argument or switch.
@@ -63,21 +84,25 @@ object Main extends App {
   }
   
   /**
-   * Print usage information.
+   * Print usage information.  This is a switch handler (see
+   * [[ornl.elision.cli.Switches]]) and satisfies the contract for such a
+   * method.
+   * 
+   * @return  Always `None`.
    */
   private def _usage(): Option[String] = {
     println("Usage:")
     println("[global switches...] [command] [command switches and arguments...])")
     println()
     println("Global switches:")
-    SwitchUsage(globals)
+    SwitchUsage(_globals)
     println()
     println("Try -h after a command to see help on the command.")
     None
   }
   
   // Define the special global switches that can come before the command.
-  val globals = Seq(
+  private val _globals = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
       ArgSwitch(Some("debug"), Some('d'), "Enable a debugging tag.", "TAG",
           (tag: String) => {
@@ -100,7 +125,7 @@ object Main extends App {
       cmd = arg
       (Some(""), true)
     }
-    val (remain, err, pos) = Switches(args, globals, firstarg _)
+    val (remain, err, pos) = Switches(args, _globals, firstarg _)
     
     // Check for an actual error, and display it if we find one.  We then exit.
     if (err != None && !okay) {
@@ -110,14 +135,10 @@ object Main extends App {
     }
     
     // Decide what to do.  If we have a command, invoke it.  If not, then
-    // invoke the default command.
-    if (!okay) {
-      // Perform the default action.
-      Version.invoke("", args.slice(pos+1, args.length))
-    } else {
-      // Remove the command, and invoke with the remainder.
-      Version.invoke(cmd, args.slice(pos+1, args.length))
-    }
+    // invoke the default command.  We add one to the position to omit the
+    // command, and we note that if no command was present the slice is
+    // empty (as it should be).
+    Version.invoke("", args.slice(pos+1, args.length))
   } catch {
     case ex: Version.MainException =>
       println("ERROR: " + ex.getMessage)

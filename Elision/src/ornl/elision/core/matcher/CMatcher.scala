@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core.matcher
 import ornl.elision.core._
+import ornl.elision.util.OmitSeq
 
 /**
  * Match two sequences whose elements can be re-ordered.  That is, the lists are
