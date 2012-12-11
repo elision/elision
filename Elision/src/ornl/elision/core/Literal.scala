@@ -39,6 +39,7 @@ package ornl.elision.core
 
 import scala.collection.immutable.HashMap
 import ornl.elision.repl.ReplActor
+import ornl.elision.util.other_hashify
 
 /**
  * Represent a literal.  This is the common root class for all literals.
@@ -151,8 +152,11 @@ extends BasicAtom {
    * equal.
    */
   override def equals(other: Any) = other match {
-    case lit: Literal[_] => typ == lit.theType && value == lit.value
-    case _ => false
+    case lit: Literal[_] =>
+      feq(lit, this, typ == lit.theType && value == lit.value)
+      
+    case _ =>
+      false
   }
 }
 

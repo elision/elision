@@ -38,6 +38,7 @@
 package ornl.elision.core
 
 import scala.collection.IndexedSeq
+import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher._
 import ornl.elision.repl.ReplActor
 
@@ -76,31 +77,31 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * just means the sequence was not marked as associative; it's associativity
    * may be unspecified.
    */
-  val associative = props.isA(false)
+  lazy val associative = props.isA(false)
   
   /**
    * Whether this sequence is specified to be commutative.  Note that false here
    * just means the sequence was not marked as commutative; it's associativity
    * may be unspecified.
    */
-  val commutative = props.isC(false)
+  lazy val commutative = props.isC(false)
   
   /**
    * Whether this sequence is specified to be idempotent.  Note that false here
    * just means the sequence was not marked as idempotent; it's associativity
    * may be unspecified.
    */
-  val idempotent = props.isI(false)
+  lazy val idempotent = props.isI(false)
   
   /**
    * The absorber for this sequence, if any.
    */
-  val absorber = props.absorber
+  lazy val absorber = props.absorber
   
   /**
    * The identity for this sequence, if any.
    */
-  val identity = props.identity
+  lazy val identity = props.identity
   
   /**
    * The atoms in this sequence.
@@ -111,7 +112,8 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * This is a mapping from constants in the sequence to the (zero-based)
    * index of the constant.
    */
-  lazy val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
+  val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
+  // Because it is used right here, the constant map cannot be lazy.
   for (i <- 0 until atoms.length)
     if (atoms(i).isConstant) constantMap(atoms(i)) = i
   
@@ -214,29 +216,26 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   // GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
     ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
-    // top node of this subtree
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
-    
-    // Rewrite the properties.
     ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
     ReplActor ! ("Eva", "setSubroot", "props")
-    val (newprop, pchanged) = props.rewrite(binds)
     
-    // We must rewrite every child atom, and collect them into a new sequence.
+    // Rewrite the properties.
+    val (newprop, pchanged) = props.rewrite(binds)
     ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
     ReplActor ! ("Eva", "setSubroot", "atoms")
+    
+    // We must rewrite every child atom, and collect them into a new sequence.
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
       ReplActor ! ("Eva", "setSubroot", "rwNode")
       val newAS = new AtomSeq(newprop, newseq)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))
-      
+      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))      
       ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (newAS, true)
-    }
-    else {
+    } else {
       ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (this, false)
     }
@@ -260,61 +259,11 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * Two sequences are equal iff their properties and atoms are equal.
    */
   override def equals(other: Any) = {
-
     val t0 = System.nanoTime
-    val r = other match {
-      //case AtomSeq(oprops, oatoms) if (oatoms == atoms && oprops == props) => true
-      case AtomSeq(oprops, oatoms) => {
+    val result = other match {
+      case oseq: AtomSeq =>
+        feq(oseq, this, (props == oseq.props) && (atoms == oseq.atoms))
         
-        // Try to short circuit checking equality.
-        
-        // Easy case 1st. Are they refering to exactly the same set of
-        // atoms? If so, they are equal.
-        if ((atoms eq oatoms) && (oprops == props)) {
-          true
-        }
-        
-        // If the # of atoms in the 2 atom sequences is different, they
-        // are not equal.
-        else if (atoms.length != oatoms.length) false
-        
-        // If the depth of the 2 atom sequences is different, they are
-        // not equal.
-        //else if (depth != other.asInstanceOf[AtomSeq].depth) false
-        
-        // If the hash codes of the atom sequences are different, they are not
-        // equal.
-        else if ((hashCode != other.asInstanceOf[AtomSeq].hashCode) ||
-                 (otherHashCode != other.asInstanceOf[AtomSeq].otherHashCode)) false
-        
-        // If we get here the # of atoms in both sequences is the same
-        // and they have the same hash code. There could be a hash
-        // collision, so now check for full equality. Check the
-        // properties first since that check should be faster than
-        // checking the atoms.
-        //else (oprops == props && oatoms == atoms)
-        else {
-          /*
-          if (this.toParseString != other.asInstanceOf[AtomSeq].toParseString) {
-            println("BOGUS: this = " + this.toParseString)
-            println("BOGUS: other = " + other.asInstanceOf[AtomSeq].toParseString)
-            println("BOGUS: this.length = " + atoms.length)
-            println("BOGUS: other.length = " + oatoms.length)
-            println("BOGUS: this.depth = " + depth)
-            println("BOGUS: others.depth = " + other.asInstanceOf[AtomSeq].depth)
-            println("BOGUS: this.hashCode = " + hashCode)
-            println("BOGUS: others.hashCode = " + other.asInstanceOf[AtomSeq].hashCode)
-            println("BOGUS: this.otherHashCode = " + otherHashCode)
-            println("BOGUS: others.otherHashCode = " + other.asInstanceOf[AtomSeq].otherHashCode)
-            println("BOGUS: atoms.hashCode = " + atoms.hashCode)
-            println("BOGUS: oatoms.hashCode = " + oatoms.hashCode)
-            println("BOGUS: atoms.otherHashCode = " + atoms.otherHashCode)
-            println("BOGUS: oatoms.otherHashCode = " + oatoms.otherHashCode)
-          }
-          */
-          true
-        }
-      }
       case _ => false
     }
 
@@ -322,7 +271,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
       println("** AtomSeq: equals time = " + (t1.toDouble-t0.toDouble)/1000000000)
     }
-    r
+    result
   }
 }
 

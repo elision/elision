@@ -31,10 +31,10 @@ package ornl.elision.core
 
 import com.strangegizmo.cdb._
 // KIRK: Using a weak hashmap REALLY slows things down.
-//import scala.collection.mutable.{WeakHashMap => HashMap}
 import scala.collection.mutable.{OpenHashMap => HashMap}
 import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashSet
+import ornl.elision.util.PropertyManager
 import scala.collection.mutable.BitSet
 
 /**
