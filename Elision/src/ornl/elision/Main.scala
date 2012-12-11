@@ -138,7 +138,7 @@ object Main extends App {
     // invoke the default command.  We add one to the position to omit the
     // command, and we note that if no command was present the slice is
     // empty (as it should be).
-    Version.invoke("", args.slice(pos+1, args.length))
+    Version.invoke(cmd, args.slice(pos+1, args.length))
   } catch {
     case ex: Version.MainException =>
       println("ERROR: " + ex.getMessage)

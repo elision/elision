@@ -42,6 +42,7 @@ import scala.collection.mutable.ListBuffer
 import ornl.elision.util.ElisionException
 import scala.tools.nsc.interpreter.Results
 import ornl.elision.util.OmitSeq
+import ornl.elision.core.matcher.SequenceMatcher
 
 /**
  * An incorrect argument list was supplied to an operator.

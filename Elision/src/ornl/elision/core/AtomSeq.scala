@@ -41,6 +41,7 @@ import scala.collection.IndexedSeq
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher._
 import ornl.elision.repl.ReplActor
+import ornl.elision.core.matcher.SequenceMatcher
 
 /**
  * Fast access to an untyped empty sequence.

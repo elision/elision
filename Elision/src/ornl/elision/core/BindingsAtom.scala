@@ -42,6 +42,7 @@ import scala.collection.mutable.ListBuffer
 import ornl.elision.repl.ReplActor
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
+import ornl.elision.core.matcher.SequenceMatcher
 
 /**
  * Encapsulate a set of bindings as an atom.
