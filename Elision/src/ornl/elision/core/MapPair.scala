@@ -36,6 +36,8 @@
 ======================================================================
 * */
 package ornl.elision.core
+import ornl.elision.repl.ReplActor
+import ornl.elision.core.matcher.SequenceMatcher
 
 object MapPair {
   /**
@@ -56,7 +58,6 @@ object MapPair {
    */
   def unapply(pair: MapPair) = Some((pair.left, pair.right))
 }
-import ornl.elision.repl.ReplActor
 
 /**
  * Provide an ordered pair that also serves as a very simple kind of rewrite

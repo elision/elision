@@ -59,7 +59,8 @@ object Switches {
    * passed to the argument handler.  The handler may return either `None` or
    * an error string, and a Boolean flag.  An error string stops processing.
    * The flag indicates whether to preserve (`true`) the argument in the list
-   * returned, or to discard (`false`) the argument.
+   * returned, or to discard (`false`) the argument.  Note that an argument
+   * that causes an error will not be preserved, regardless of the flag.
    * 
    * The default argument handler always returns `(None, true)`.
    * 
