@@ -437,6 +437,7 @@ class ERepl extends Processor {
     // Report startup time.
     stopTimer
     printf("Startup Time: " + getLastTimeString + "\n")
+    TypedSymbolicOperator.reportTime
 	
     //  GUI changes
 	
