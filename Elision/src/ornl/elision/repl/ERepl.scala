@@ -194,21 +194,21 @@ class ERepl extends Processor {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     
-	//  GUI changes
-	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-  ReplActor.guiActor ! ("replFormat",true)
-	, "formatting on") 
-    ReplActor ! ("guiReplFormat", true, "formatting on")
-	//  end GUI changes
+  	//  GUI changes
+  	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+    ReplActor.guiActor ! ("replFormat",true)
+  	, "formatting on") 
+      ReplActor ! ("guiReplFormat", true, "formatting on")
+  	//  end GUI changes
 	
     console.emitln(prefix + atom.toParseString)
 	
-	//  GUI changes
-	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-		ReplActor.guiActor ! ("replFormat",false)
-	, "formatting off") 
-    ReplActor ! ("guiReplFormat", false, "formatting off")
-	//  end GUI changes
+  	//  GUI changes
+  	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
+  		ReplActor.guiActor ! ("replFormat",false)
+  	, "formatting off") 
+      ReplActor ! ("guiReplFormat", false, "formatting off")
+  	//  end GUI changes
   }
   
   this.register(
@@ -428,8 +428,8 @@ class ERepl extends Processor {
     } catch {
       case _ =>     
         if (!bootstrap()) {
-        ReplActor ! (":quit", true)
-        return
+          ReplActor ! (":quit", true)
+          return
         }
     }
 
@@ -443,7 +443,7 @@ class ERepl extends Processor {
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
-        ReplActor ! ("disableGUIComs", false)
+      ReplActor ! ("disableGUIComs", false)
     }
 	
     //  end GUI changes
@@ -473,34 +473,38 @@ class ERepl extends Processor {
         def fetchline(p1: String, p2: String): Boolean = {
           Processor.fileReadStack.clear
           Processor.fileReadStack.push("Console")
-        	//////////////////// GUI changes
-		segment = 	if (ReplActor.guiMode) {  
-                  println()
-				print("" + (if (console.quiet > 0) p2 else p1))
-				
-				// make the Repl wait for GUI Input
-				ReplActor.waitOnGUI()
-				
-				ReplActor.guiInput
-			} 
-			else {
-				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
-				// Reset the terminal size now, if we can, and if the user wants to
-				// use the pager.
-				if (getProperty[Boolean]("usepager")) {
-            console.height_=(
-                scala.tools.jline.TerminalFactory.create().getHeight()-1)
-            console.width_=(
-                scala.tools.jline.TerminalFactory.create().getWidth())
-				} else {
-				  console.height_=(0)
-				  console.width_=(0)
-				}
-				line
-			} 
-		/////////////// end GUI changes
-		
-		//segment = cr.readLine(if (console.quiet > 0) p2 else p1)
+        	
+          // Getting input from user depends on if a GUI is being used.
+          segment = if (ReplActor.guiMode) {  
+            // Get input from the GUI.
+            
+            println()
+            print("" + (if (console.quiet > 0) p2 else p1))
+            
+    				// make the Repl wait for GUI Input
+    				ReplActor.waitOnGUI()
+    				
+    				ReplActor.guiInput
+    			} 
+    			else {
+    			  // Get input directly from the console. 
+    			  
+    				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+    				// Reset the terminal size now, if we can, and if the user wants to
+    				// use the pager.
+    				if (getProperty[Boolean]("usepager")) {
+                console.height_=(
+                    scala.tools.jline.TerminalFactory.create().getHeight()-1)
+                console.width_=(
+                    scala.tools.jline.TerminalFactory.create().getWidth())
+    				} else {
+    				  console.height_=(0)
+    				  console.width_=(0)
+    				}
+    				line
+    			} 
+      		
+      		//segment = cr.readLine(if (console.quiet > 0) p2 else p1)
 		
         	if (segment == null) {
         	  return true
