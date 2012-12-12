@@ -1,6 +1,15 @@
 CHANGES
 =======
 
+Version 0.3 to Version 0.4
+--------------------------
+* Significant changes in the layout of the project.  Many classes have moved
+  to other packages, and some (like OmitSeq) have been extracted into their own
+  files.
+* Third party libraries that were not used have been removed from the project.
+  This includes kryo and cdb.
+* Parboiled has been replaced with a new version: 1.1.4.
+
 Version 0.2 to Version 0.3
 --------------------------
 * The system now supports specifying commands to execute on startup through the
