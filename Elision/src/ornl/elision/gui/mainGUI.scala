@@ -57,17 +57,17 @@ object mainGUI extends SimpleSwingApplication {
 	
 	/** Eva's configuration settings */
 	val config = new EvaConfig
-    GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
-    
-    /** 
-     * This string controls what mode Eva is currently running in. 
-     * Currently supported modes are: 
-     * Elision
-     */
-     
-    var mode = ""
-    
-    val defaultTitle = "Elision Visualization Assistant"
+  GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
+  
+  /** 
+   * This string controls what mode Eva is currently running in. 
+   * Currently supported modes are: 
+   * Elision
+   */
+   
+  var mode = ""
+  
+  val defaultTitle = "Elision Visualization Assistant"
 	
 	/** The panel housing the onboard console */
 	val consolePanel = new ConsolePanel
