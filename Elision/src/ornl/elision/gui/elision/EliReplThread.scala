@@ -41,11 +41,23 @@ import scala.concurrent.ops._
 import sys.process._
 
 import ornl.elision.gui._
+import ornl.elision.repl.ReplActor
+import ornl.elision.util.Console
 
 
 /** A thread to run the Elision REPL in */
 class EliReplThread extends ReplThread {
-	
+
+  /** A reference the the Console being used by our current repl. */
+	var myRepl : ornl.elision.repl.ERepl = null
+  
+  /** A closure for pausing the repl. */
+  def evaPause(): Boolean = {
+    myRepl.console.write("--More--")
+    ReplActor.waitOnGUI()
+    true
+  }
+  
 	/** Starts a new thread in which the REPL will run in. */
 	override def run : Unit = {
 		ornl.elision.repl.ReplActor.guiMode = true
@@ -55,17 +67,22 @@ class EliReplThread extends ReplThread {
 	
 	/** Creates an instance of and begins running the new REPL */
 	def runNewRepl : Unit = {
-		val myRepl = new ornl.elision.repl.ERepl
+		myRepl = new ornl.elision.repl.ERepl
+		ornl.elision.core.knownExecutor = myRepl
+		ReplActor.peer = myRepl
+		//ReplActor ! ("disableGUIComs", true)
+		ReplActor.start
+    
+    myRepl.console.pause_=(evaPause)
+    
 		myRepl.run()
-        myRepl.clean()
+    myRepl.clean()
 	}
     
-    def clean : Unit = {
-        ornl.elision.repl.ReplActor ! ":quit"
-        // join
-        // this.stop
-        System.out.println("Successfully quit the Elision REPL's thread.")
-    }
+  def clean : Unit = {
+    ornl.elision.repl.ReplActor ! ":quit"
+    System.out.println("Successfully quit the Elision REPL's thread.")
+  }
 
 }
 

@@ -61,31 +61,31 @@ object GUIActor extends Actor {
     
 	def act() = {
 		loop {
-        //    System.err.println("Threads active: " + Thread.activeCount)
-        //    System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
-        //    System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
+      //    System.err.println("Threads active: " + Thread.activeCount)
+      //    System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
+      //    System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
 			react {
-                case "quit" => // forcefully exits the current REPL thread.
-                    try {
-                        System.out.println("\nQuitting " + mainGUI.mode + " mode...")
-                        mainGUI.consolePanel.replThread.clean
-                    }
-                    catch {
-                        case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
-                    }
-                case ("changeMode", mode : String) => 
-                    try {
-                        System.out.println("\nChanging to " + mode + " mode...")
-                        if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.clean
-                    }
-                    catch {
-                        case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
-                    }
-                    mainGUI.changeMode(mode)
-                    waitingForReplInput = false
-                    System.out.println("Mode change was successful")
-                case theMsg : Any => 
-                    reactWithMode(theMsg)
+        case "quit" => // forcefully exits the current REPL thread.
+          try {
+            System.out.println("\nQuitting " + mainGUI.mode + " mode...")
+            mainGUI.consolePanel.replThread.clean
+          }
+          catch {
+            case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
+          }
+        case ("changeMode", mode : String) => 
+          try {
+            System.out.println("\nChanging to " + mode + " mode...")
+            if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.clean
+          }
+          catch {
+            case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
+          }
+          mainGUI.changeMode(mode)
+          waitingForReplInput = false
+          System.out.println("Mode change was successful")
+        case theMsg : Any => 
+          reactWithMode(theMsg)
 			}
 		}
 	}
