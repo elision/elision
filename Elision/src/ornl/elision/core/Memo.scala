@@ -29,7 +29,6 @@
  */
 package ornl.elision.core
 
-import com.strangegizmo.cdb._
 // KIRK: Using a weak hashmap REALLY slows things down.
 import scala.collection.mutable.{OpenHashMap => HashMap}
 import scala.collection.mutable.SynchronizedMap
@@ -163,39 +162,6 @@ object Memo {
    * so, set the dirty flag to true.
    */
   private var _dirty = new Array[Boolean](_LIMIT)
-  
-  //======================================================================
-  // Write the database.
-  //======================================================================
-  
-  /**
-   * Write the online cache to the constant store, and then replace the online
-   * cache.  This operation should block access to the cache, and should be
-   * infrequent because of that.
-   * 
-   * Only data at cache levels marked as "dirty" is written by this process.
-   */
-  private def createDB() {
-    // Start writing the file(s).
-    val makers = new Array[CdbMake](_LIMIT)
-    for (index <- 0 until _LIMIT)
-      if (_dirty(index)) makers(index).start(_offlinecache+"_"+index)
-    
-    // Write the content of the online caches.
-    for (pair <- _cache.keySet) {
-      _cache.get(pair) match {
-        case None =>
-        case Some((newatom, level)) =>
-          //makers(level).add(
-          //    (pair._1.toParseString + ";" + pair._2.toString).getBytes(),
-          //    newatom.toParseString.getBytes())
-      }
-    } // Add all entries.
-    
-    // Done.  Finish all caches.
-    for (index <- 0 until _LIMIT)
-      if (_dirty(index)) makers(index).finish()
-  }
   
   //======================================================================
   // Cache access.

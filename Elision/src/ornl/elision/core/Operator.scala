@@ -42,6 +42,7 @@ import scala.collection.mutable.ListBuffer
 import ornl.elision.util.ElisionException
 import scala.tools.nsc.interpreter.Results
 import ornl.elision.util.OmitSeq
+import ornl.elision.core.matcher.SequenceMatcher
 
 /**
  * An incorrect argument list was supplied to an operator.
@@ -420,6 +421,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
  */
 class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings)
 // ' // '
+
 /**
  * Construction and matching of typed symbolic operators.
  */
@@ -427,6 +429,13 @@ object TypedSymbolicOperator {
   // Get the path separator.
   private val _prop = new scala.sys.SystemProperties
   private val _ps = _prop("path.separator")
+  
+  // Time the compilation of native handlers.
+  import ornl.elision.util.Timeable
+  private val _timer = new Timeable {
+    timing = true
+    def reportElapsed() = {}
+  }
 
   // Get the current class path and convert it into a proper path expression.
   private lazy val _urls =
@@ -446,6 +455,14 @@ object TypedSymbolicOperator {
 
   // Make the core package available.
   _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
+  
+  /**
+   * Print out the time spent compiling native handlers.
+   */
+  def reportTime() {
+    print("Time Compiling Native Handlers: ")
+    println(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
+  }
 
   /**
    * Make a typed symbolic operator from the provided special form data.
@@ -481,7 +498,7 @@ object TypedSymbolicOperator {
       // Create a new handler holder to get the result, and bind it in the
       // interpreter.  It is okay to rebind.
       val passback = new HandHolder(None)
-      _main.beQuietDuring(_main.bind("passback", passback))
+      _timer.time(_main.beQuietDuring(_main.bind("passback", passback)))
 
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
@@ -495,7 +512,7 @@ object TypedSymbolicOperator {
           "passback.handler = Some(_handler _)"
           
       // Now interpret it.
-      val res = _main.beQuietDuring(_main.interpret(runme))
+      val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
 
       // Determine what to do based on the result.
       res match {
@@ -507,7 +524,7 @@ object TypedSymbolicOperator {
             toESymbol(name) + " with native handler:\n" + handlertxt)
         case Results.Success =>
           if (passback.handler.isDefined) {
-            handler = Some(passback.handler.get)
+            handler = Some(_timer.time(passback.handler.get))
           }
       }
     }
@@ -518,9 +535,11 @@ object TypedSymbolicOperator {
       description, detail, evenMeta)
     tso.handler = handler
     
-    // set handlerB64
+    // Encode the handler text using base64 encoding, and then cache it in the
+    // operator object prior to returning it.  This allows outputting the
+    // handler during serialization, so we can later read the operator back in
+    // and re-create the handler.
     tso.handlerB64 = new sun.misc.BASE64Encoder().encode(handlertxt.getBytes())
-    
     tso
   }
 
@@ -564,7 +583,7 @@ object TypedSymbolicOperator {
       // Create a new handler holder to get the result, and bind it in the
       // interpreter.  It is okay to rebind.
       val passback = new HandHolder(None)
-      _main.beQuietDuring(_main.bind("passback", passback))
+      _timer.time(_main.beQuietDuring(_main.bind("passback", passback)))
 
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
@@ -578,7 +597,7 @@ object TypedSymbolicOperator {
           "passback.handler = Some(_handler _)"
           
       // Now interpret it.
-      val res = _main.beQuietDuring(_main.interpret(runme))
+      val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
 
       // Determine what to do based on the result.
       res match {
@@ -590,7 +609,7 @@ object TypedSymbolicOperator {
             toESymbol(name) + " with native handler:\n" + handlertxt)
         case Results.Success =>
           if (passback.handler.isDefined) {
-            handler = Some(passback.handler.get)
+            handler = Some(_timer.time(passback.handler.get))
           }
       }
     }
