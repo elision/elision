@@ -194,21 +194,18 @@ class ERepl extends Processor {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     
-  	//  GUI changes
-  	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-    ReplActor.guiActor ! ("replFormat",true)
-  	, "formatting on") 
-      ReplActor ! ("guiReplFormat", true, "formatting on")
-  	//  end GUI changes
+
+  	if(ReplActor.guiMode) 
+  	  ReplActor.waitOnGUI(() => ReplActor.guiActor ! ("replFormat",true)
+        , "formatting on") 
+    ReplActor ! ("guiReplFormat", true, "formatting on")
 	
     console.emitln(prefix + atom.toParseString)
 	
-  	//  GUI changes
-  	if(ReplActor.guiMode) ReplActor.waitOnGUI(() => 
-  		ReplActor.guiActor ! ("replFormat",false)
-  	, "formatting off") 
-      ReplActor ! ("guiReplFormat", false, "formatting off")
-  	//  end GUI changes
+  	if(ReplActor.guiMode) 
+  	  ReplActor.waitOnGUI(() => ReplActor.guiActor ! ("replFormat",false)
+  	    , "formatting off") 
+    ReplActor ! ("guiReplFormat", false, "formatting off")
   }
   
   this.register(
@@ -439,15 +436,11 @@ class ERepl extends Processor {
     printf("Startup Time: " + getLastTimeString + "\n")
     TypedSymbolicOperator.reportTime
 	
-    //  GUI changes
-	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {
       ReplActor ! ("disableGUIComs", false)
     }
-	
-    //  end GUI changes
-	
+
     // Configure the console and history.
     val cr = new ConsoleReader
     val term = cr.getTerminal
@@ -477,13 +470,10 @@ class ERepl extends Processor {
           // Getting input from user depends on if a GUI is being used.
           segment = if (ReplActor.guiMode) {  
             // Get input from the GUI.
-            
+
             println()
             print("" + (if (console.quiet > 0) p2 else p1))
-            
-    				// make the Repl wait for GUI Input
     				ReplActor.waitOnGUI()
-    				
     				ReplActor.guiInput
     			} 
     			else {
@@ -504,8 +494,6 @@ class ERepl extends Processor {
     				line
     			} 
       		
-      		//segment = cr.readLine(if (console.quiet > 0) p2 else p1)
-		
         	if (segment == null) {
         	  return true
         	}
@@ -527,15 +515,15 @@ class ERepl extends Processor {
         	// Read any additional segments.  Everything happens in the while loop,
           // but the loop needs a body, so that's the zero.
           while (!fetchline(" > ", " > ") && blanks < 3) 0
-	      if (blanks >= 3) {
-	        console.emitln("Entry terminated by three blank lines.")
-	        line = ""
-	      }
+  	      if (blanks >= 3) {
+  	        console.emitln("Entry terminated by three blank lines.")
+  	        line = ""
+  	      }
         }
         
         // Watch for the end of stream or the special :quit token.
         if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-          // turn guiMode on so that ReplActor doesn't drop the exit message. Otherwise it will never exit its thread.
+          // Tell the ReplActor to exit its thread.
           ReplActor.exitFlag = true
           ReplActor ! (":quit", true)
           return
@@ -546,20 +534,14 @@ class ERepl extends Processor {
         
         // Run the line.
         try {
-          //////////////////// GUI changes
-	
           // Create the root of our rewrite tree it contains a String of the REPL input.
-          ReplActor ! ("Eva", "newTree", line) // val treeRoot = RWTree.createNewRoot(lline) 
+          ReplActor ! ("Eva", "newTree", line)
           
-          //////////////////// end GUI changes
           execute(line)
-          //////////////////// GUI changes
 	
           // send the completed rewrite tree to the GUI's actor
           if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
-              ReplActor ! ("Eva", "finishTree", None) //ReplActor.guiActor ! treeRoot
-
-          //////////////////// end GUI changes
+              ReplActor ! ("Eva", "finishTree", None)
         } catch {
           case ornl.elision.util.ElisionException(msg) =>
             console.error(msg)

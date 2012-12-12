@@ -230,7 +230,6 @@ class AlgProp(
     case _ => default
   }
 	
-	// GUI changes
   /**
    * Apply this property specification to the given atom.  If the provided
    * atom is an atom sequence, then this will override the properties of the
@@ -257,9 +256,7 @@ class AlgProp(
   			newSA
   	}
   }
-	// end GUI changes
   
-  //////////////////// GUI changes
   /**
    * Rewrite an optional atom.
    * 
@@ -284,9 +281,8 @@ class AlgProp(
   		}
   	}
   }
-  //////////////////// end GUI changes
-
-  //////////////////// GUI changes  
+  
+  
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
     ReplActor ! ("Eva","pushTable","AlgProp rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: "))
@@ -315,7 +311,6 @@ class AlgProp(
       (this, false)
     }
   }  
-  //////////////////// end GUI changes
   
   /**
    * Match two optional atoms against one another.  A match is really only
