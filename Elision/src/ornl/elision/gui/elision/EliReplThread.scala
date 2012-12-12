@@ -70,7 +70,7 @@ class EliReplThread extends ReplThread {
 		myRepl = new ornl.elision.repl.ERepl
 		ornl.elision.core.knownExecutor = myRepl
 		ReplActor.peer = myRepl
-		//ReplActor ! ("disableGUIComs", true)
+		ReplActor ! ("disableGUIComs", true)
 		ReplActor.start
     
     myRepl.console.pause_=(evaPause)
