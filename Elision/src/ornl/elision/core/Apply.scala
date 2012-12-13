@@ -78,7 +78,6 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
         false
     })
 
-  //  GUI changes  
   def rewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "Apply rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: "))
@@ -101,7 +100,6 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
       (this, false)
     }
   }
-  //  end GUI changes
   
   /**
    * By default applications match iff their parts match.  The trick here is
@@ -174,13 +172,12 @@ object Apply {
    */
   def apply(op: BasicAtom, arg: BasicAtom,
       bypass: Boolean = false): BasicAtom = {
-    //  GUI changes
+
     ReplActor ! ("Eva","pushTable", "object Apply apply")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) 
     ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op)) 
     ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) 
     ReplActor ! ("Eva", "setSubroot", "rwNode")    
-    //  end GUI changes
 
     // Temporarily disable rewrite timeouts.
     val oldTimeout = BasicAtom.timeoutTime.value
@@ -278,7 +275,6 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   lazy val theType = op.operator.typ.rewrite(pabinds)._1
   
-  // GUI changes
   override def rewrite(binds: Bindings) = {
     ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: "))
@@ -315,7 +311,6 @@ case class OpApply protected[core] (override val op: OperatorRef,
           }
       }
     }  
-    // end GUI changes
   }
 
   /**

@@ -57,17 +57,17 @@ object mainGUI extends SimpleSwingApplication {
 	
 	/** Eva's configuration settings */
 	val config = new EvaConfig
-    GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
-    
-    /** 
-     * This string controls what mode Eva is currently running in. 
-     * Currently supported modes are: 
-     * Elision
-     */
-     
-    var mode = ""
-    
-    val defaultTitle = "Elision Visualization Assistant"
+  GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
+  
+  /** 
+   * This string controls what mode Eva is currently running in. 
+   * Currently supported modes are: 
+   * Elision
+   */
+   
+  var mode = ""
+  
+  val defaultTitle = "Elision Visualization Assistant"
 	
 	/** The panel housing the onboard console */
 	val consolePanel = new ConsolePanel
@@ -80,19 +80,19 @@ object mainGUI extends SimpleSwingApplication {
 	
 	GUIActor.start
 	
-    /** The menu bar */
-    val guiMenuBar = new GuiMenuBar
-    
-    /** The window's Frame object */
-    val frame = new MainFrame {
+  /** The menu bar */
+  val guiMenuBar = new GuiMenuBar
+  
+  /** The window's Frame object */
+  val frame = new MainFrame {
 		title = defaultTitle // This may change depending on Eva's mode.
 		menuBar = guiMenuBar
         
-        contents = new BorderPanel {
+    contents = new BorderPanel {
 			layout( visPanel) = Center
 			layout( consolePanel) = South
 			layout( sidePanel) = East
-        }
+    }
         
 		size = new Dimension(1024,800)
 		visible = true
@@ -135,7 +135,7 @@ object mainGUI extends SimpleSwingApplication {
         frame.title = defaultTitle + " (" + mode + " mode)"
         
         // get focus in the REPL panel
-		consolePanel.console.requestFocusInWindow
+        consolePanel.console.requestFocusInWindow
         
         frame.repaint
     }
@@ -296,6 +296,8 @@ class GuiMenuBar extends MenuBar {
                     helpMenu.contents += helpItem
                     helpMenu.contents += aboutItem
         }
+        
+        peer.updateUI()
     }
     
     

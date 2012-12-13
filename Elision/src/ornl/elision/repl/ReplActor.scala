@@ -39,14 +39,13 @@ package ornl.elision.repl
 import scala.actors.Actor
 
 /** The REPL's Actor object for communicating with the GUI */
-
 object ReplActor extends Actor {
 
 	/** a flag that tells the REPL whether it is receiving input from a GUI or from the console. */
 	var guiMode : Boolean = false 
     
-    /** a flag used for forcing the ReplActor to accept a message for exiting. */
-    var exitFlag = false
+  /** a flag used for forcing the ReplActor to accept a message for exiting. */
+  var exitFlag = false
 	
 	/** flag for temporarily disabling GUI communication. */
 	var disableGUIComs = true
@@ -63,50 +62,49 @@ object ReplActor extends Actor {
 	/** a flag that tells the Actor to be verbose while waiting on the GUI. */
 	var verbose = false
     
-    /** A flag that will skip GUI tree construction for RuleLibrary rewrites. */
-    var disableRuleLibraryVis = false
-    
-    /** The current character width for the GUI repl, if a gui is being used. */
-    var guiColumns = 80
-    var guiRows = 20
-    
-    /** A reference to Elision's REPL. */
-    var peer : ornl.elision.repl.ERepl = null
+  /** A flag that will skip GUI tree construction for RuleLibrary rewrites. */
+  var disableRuleLibraryVis = false
+  
+  /** The current character width for the GUI repl, if a gui is being used. */
+  var guiColumns = 80
+  var guiRows = 20
+  
+  /** A reference to Elision's REPL. */
+  var peer : ornl.elision.repl.ERepl = null
     
 	/** 
 	 * The actor's act loop will wait to receive string input from the GUI. 
 	 * It will discard any other input in its mailbox.
 	 */
-	
 	def act() = {
 		loop {
 			react {
-                case ("Eva", cmd : String, args : Any) =>
-                    if(guiMode && !disableGUIComs) guiActor ! ("Eva", cmd, args)
-                case ("disableGUIComs", flag : Boolean) =>
-                    disableGUIComs = flag
-                case (":quit", true) =>
-                    if(guiMode)  guiActor ! "quit"
-                    else exit
+        case ("Eva", cmd : String, args : Any) =>
+          if(guiMode && !disableGUIComs) guiActor ! ("Eva", cmd, args)
+        case ("disableGUIComs", flag : Boolean) =>
+          disableGUIComs = flag
+        case (":quit", true) =>
+          if(guiMode)  guiActor ! "quit"
+          else exit
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false
 				case ("wait", flag : Boolean) =>
 					waitingForGuiInput = flag
-                case ("guiColumns", x : Int) =>
-                    guiColumns = x
-                    peer.console.width_=(guiColumns)
-                    peer.console.height_=(guiRows-1)
-                case ("getHistory", index : Int) =>
-                    if(index == -1) peer._hist.previous
-                    if(index == 1) peer._hist.next
-                    peer._hist.current match {
-                        case str : String => guiActor ! ("reGetHistory", str, peer._hist.size)
-                        case _ => guiActor ! ("reGetHistory", None, peer._hist.size)
-                    }
-                case ("addHistory", str : String) =>
-                    peer.addHistoryLine(str)
-				case _ => {}
+        case ("guiColumns", x : Int) =>
+          guiColumns = x
+          peer.console.width_=(guiColumns)
+          peer.console.height_=(guiRows-1)
+        case ("getHistory", index : Int) =>
+          if(index == -1) peer._hist.previous
+          if(index == 1) peer._hist.next
+          peer._hist.current match {
+            case str : String => guiActor ! ("reGetHistory", str, peer._hist.size)
+            case _ => guiActor ! ("reGetHistory", None, peer._hist.size)
+          }
+        case ("addHistory", str : String) =>
+          peer.addHistoryLine(str)
+				case msg => {}
 			}
 		}
 	}
@@ -121,9 +119,9 @@ object ReplActor extends Actor {
 		}
 	}
     
-    /** Overriden ! method checks global allowMessages flag before processing a message.*/
-    override def ! (msg : Any) : Unit = {
-        if(guiMode || exitFlag) super.!(msg)
-    }
+  /** Overriden ! method checks global allowMessages flag before processing a message.*/
+  override def ! (msg : Any) : Unit = {
+    if(guiMode || exitFlag) super.!(msg)
+  }
 }
 

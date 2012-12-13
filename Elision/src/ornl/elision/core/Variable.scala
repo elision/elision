@@ -197,10 +197,8 @@ class Variable(typ: BasicAtom, val name: String,
   }
   */
 
-  // GUI changes
   def rewrite(binds: Bindings) = {
 	  ReplActor ! ("Eva","pushTable","Variable rewrite")
-    // top node of this subtree
 	  ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: "))
 	  ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType))
 
@@ -223,7 +221,8 @@ class Variable(typ: BasicAtom, val name: String,
         }
         case None => {
 	        ReplActor ! ("Eva", "setSubroot", "type")
-          // While the atom is not bound, its type might have to be rewritten.
+          
+	        // While the atom is not bound, its type might have to be rewritten.
           theType.rewrite(binds) match {
             case (newtype, changed) => {
 	            ReplActor ! ("Eva", "addTo", ("type", "", newtype))
@@ -232,10 +231,10 @@ class Variable(typ: BasicAtom, val name: String,
 	              val newVar = Variable(newtype, name)
 	              ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar))
                 
-                  ReplActor ! ("Eva", "popTable", "Variable rewrite")
+                ReplActor ! ("Eva", "popTable", "Variable rewrite")
 	              (newVar, true) 
 	            } else {
-                 ReplActor ! ("Eva", "popTable", "Variable rewrite")
+                ReplActor ! ("Eva", "popTable", "Variable rewrite")
                 (this, false)
               }
             }
@@ -248,7 +247,6 @@ class Variable(typ: BasicAtom, val name: String,
       }
     }
   }
-      // end GUI changes
       
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   lazy val otherHashCode = typ.otherHashCode + 8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1

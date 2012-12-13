@@ -891,9 +891,10 @@ object Processor {
   }
   
   /** 
-   * A stack used to keep track of the current file we are loading operators from. 
-   * We use a stack here since we might access another file using operators such as inc(). 
-   * So this allows us to revert back to our previous file once we finish with an inc() instruction.
+   * A stack used to keep track of the current file we are loading 
+   * operators from. We use a stack here to support recursive file reading. 
+   * This allows us to revert back to our previous file once we finish 
+   * with an inc() instruction.
    */
   val fileReadStack = new collection.mutable.ArrayStack[String]
   fileReadStack.push("Console")

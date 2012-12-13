@@ -214,7 +214,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     }
 	}
 
-  // GUI changes
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
     ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
     ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
@@ -241,7 +240,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
       (this, false)
     }
   }
-  // end GUI changes
 
   /**
    * Provide a "naked" version of the sequence, without the parens and property
