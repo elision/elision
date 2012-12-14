@@ -127,19 +127,20 @@ into Eclipse, you should make sure the following are installed.
 
 *.) Install the Scala IDE.  At present the version of the Scala IDE for Scala
     2.9 can be found at the update site:
-      http://download.scala-ide.org/releases-29/stable/site
+    For Eclipse Indigo:
+      http://download.scala-ide.org/sdk/e37/scala29/stable/site/
+    For Eclipse Juno:
+      http://download.scala-ide.org/sdk/e38/scala29/dev/site/
     Visit http://scala-ide.org/ for the latest version, documentation, etc.
 
 That is all that is actually required.  You may optionally install the following
 plugins.
 
 *.) ShellEd is an excellent editor for working with shell scripts, but at
-    present it only works with Eclipse Indigo.  You can find out more at:
+    present it only works with Eclipse Juno.  You can find out more at:
       http://sourceforge.net/apps/trac/shelled
-    To install ShellEd you need to install the Linux Tools.  The update site is:
-      http://download.eclipse.org/technology/linuxtools/update
     The update site for ShellEd is:
-      https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.1/update
+      https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.2/update
     To install ShellEd you need to add the linux tools update site, but do not
     install anything yet.  Then install ShellEd; it will resolve its
     dependencies and get the components that are actually required.
