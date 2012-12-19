@@ -68,7 +68,8 @@ class EliReplThread extends ReplThread {
 	def runNewRepl : Unit = {
 		myRepl = new ornl.elision.repl.ERepl
 		ornl.elision.core.knownExecutor = myRepl
-		ReplActor.peer = myRepl
+		ReplActor.history = myRepl
+		ReplActor.console = myRepl.console
 		ReplActor ! ("disableGUIComs", true)
 		ReplActor.start
     

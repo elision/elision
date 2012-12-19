@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<local-project language="java" version="3.5.4044" flavor="j2se">
+  <property name="show-needs-to-compile" value="false" />
+  <property name="hide-externals" value="true" />
+  <property name="root-file" value="/Users/ysp/workspace" />
+  <property name="detail-mode" value="true" />
+  <property name="project-type" value="eclipse_workspace" />
+  <property name="project-excluded" value="" />
+  <property name="hide-deprecated" value="false" />
+  <property name="action-set-mod" value="10" />
+  <property name="parse-archive-in-archive" value="false" />
+  <classpath relativeto="/Users/ysp/workspace/Elision">
+    <classpathentry kind="lib" path="bin" />
+  </classpath>
+  <pom-root-files />
+  <excludes>
+    <exclude expression="*&amp;" active="true" />
+  </excludes>
+  <transformations>
+    <transformation in="*" out="{jar}.*" />
+    <transformation in="ornl.elision.core.matcher.*" out="ornl.elision.core.{1}" />
+  </transformations>
+  <restructuring>
+    <set version="2" name="List 1" hiview="Codemap" active="true" todo="false" />
+  </restructuring>
+  <sourcepaths>
+    <pathentry type="file" path="/Users/ysp/workspace/Elision/src" />
+  </sourcepaths>
+  <grid-set sep="." version="3.5.4044">
+    <grid name="Diagram 1" enforce="true" strict="false">
+      <row>
+        <cell name="ornl.elision" pattern="Elision.ornl.elision.*" vexpanded="true" visibility="public" drill="false">
+          <grid>
+            <row>
+              <cell name="gui" pattern="Elision.ornl.elision.gui.*" vexpanded="false" visibility="public" drill="false" />
+            </row>
+            <row>
+              <cell name="elision" pattern="Elision.ornl.elision.?" vexpanded="false" visibility="public" drill="false">
+                <grid>
+                  <row>
+                    <cell name="About" pattern="Elision.ornl.elision.About" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="HelpText" pattern="Elision.ornl.elision.HelpText" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                  <row>
+                    <cell name="Help" pattern="Elision.ornl.elision.Help" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="HelpText&amp;" pattern="Elision.ornl.elision.HelpText&amp;" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="Main" pattern="Elision.ornl.elision.Main" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                  <row>
+                    <cell name="MakeContext" pattern="Elision.ornl.elision.MakeContext" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="Version&amp;" pattern="Elision.ornl.elision.Version&amp;" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                  <row>
+                    <cell name="About&amp;" pattern="Elision.ornl.elision.About&amp;" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="Help&amp;" pattern="Elision.ornl.elision.Help&amp;" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="Main&amp;" pattern="Elision.ornl.elision.Main&amp;" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="MakeContext&amp;" pattern="Elision.ornl.elision.MakeContext&amp;" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="package" pattern="Elision.ornl.elision.package" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="package&amp;" pattern="Elision.ornl.elision.package&amp;" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="Version" pattern="Elision.ornl.elision.Version" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                </grid>
+              </cell>
+            </row>
+            <row>
+              <cell name="repl" pattern="Elision.ornl.elision.repl.?" vexpanded="false" visibility="public" drill="false">
+                <grid>
+                  <row>
+                    <cell name="ReplMain" pattern="Elision.ornl.elision.repl.ReplMain" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                  <row>
+                    <cell name="ReplActor" pattern="Elision.ornl.elision.repl.ReplActor" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="ReplMain&amp;" pattern="Elision.ornl.elision.repl.ReplMain&amp;" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                  <row>
+                    <cell name="ERepl" pattern="Elision.ornl.elision.repl.ERepl" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                  <row>
+                    <cell name="LineState" pattern="Elision.ornl.elision.repl.LineState" vexpanded="false" visibility="public" drill="false" />
+                    <cell name="ReplActor&amp;" pattern="Elision.ornl.elision.repl.ReplActor&amp;" vexpanded="false" visibility="public" drill="false" />
+                  </row>
+                </grid>
+              </cell>
+            </row>
+            <row>
+              <cell name="parse" pattern="Elision.ornl.elision.parse.?" vexpanded="false" visibility="public" drill="false" />
+            </row>
+            <row>
+              <cell name="cli" pattern="Elision.ornl.elision.cli.?" vexpanded="false" visibility="public" drill="false" />
+              <cell name="core" pattern="Elision.ornl.elision.core.*" vexpanded="false" visibility="public" drill="false" />
+            </row>
+            <row>
+              <cell name="util" pattern="Elision.ornl.elision.util.?" vexpanded="false" visibility="public" drill="false" />
+            </row>
+          </grid>
+        </cell>
+      </row>
+      <description>Top-level breakout</description>
+    </grid>
+  </grid-set>
+</local-project>
+

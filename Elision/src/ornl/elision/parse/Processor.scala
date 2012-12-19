@@ -35,47 +35,8 @@ import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
 import ornl.elision.util.Timeable
 import ornl.elision.util.PropertyManager
+import ornl.elision.util.HasHistory
 import ornl.elision.actors.ReplActor
-
-
-/**
- * Indicate that it a history is maintained.  Limited access to the history
- * is granted by implementing this trait.
- */
-trait HasHistory {  
-  /**
-   * Add a line to the history, if one is being maintained.  If the processor
-   * maintains a history it should override this to enable adding the given
-   * line to the history, if that is desired.  This is used by the system to
-   * add informational lines to the history.  The default implementation does
-   * nothing.
-   * 
-   * @param line  The line to add to the history.
-   */
-  def addHistoryLine(line: String) {}
-  
-  /**
-   * Get an iterator over the history.  By default this returns the empty
-   * iterator, so override this to return the appropriate iterator if your
-   * processor supports history.
-   */
-  def getHistoryIterator: Iterator[String] = Set().iterator
-  
-  /**
-   * Get a history entry by its index.
-   * 
-   * @param index The index of the history item.
-   * @return  The entry, or `None` if the index does not exist in the history.
-   */
-  def getHistoryEntry(index: Int): Option[String] = None
-  
-  /**
-   * Get the file that holds the persistent history.  By default this returns
-   * the string `(no history file)`, so you should override this if you have
-   * a history file.
-   */
-  def getHistoryFilename: String = "(no history file)"
-}
 
 /**
  * Indicate that it is possible to enable and disable tracing of parsing at

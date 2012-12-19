@@ -498,7 +498,7 @@ object TypedSymbolicOperator {
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
       runme =
-        "def _handler(_data: ApplyData): BasicAtom = {\n" +
+        "private def _handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
           "import console._\n" +
@@ -583,7 +583,7 @@ object TypedSymbolicOperator {
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
       val runme =
-        "def _handler(_data: ApplyData): BasicAtom = {\n" +
+        "private def _handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
           "import console._\n" +
@@ -799,7 +799,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    * Check the parameters against the properties.  If any problems are detected,
    * then an exception is thrown (`ArgumentListException`).
    */
-  def _check() {
+  private def _check() {
     /**
      * Define a little method to require that all parameters have the same
      * type.
