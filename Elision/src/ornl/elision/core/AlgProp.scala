@@ -37,8 +37,8 @@
 * */
 package ornl.elision.core
 import ornl.elision.util.ElisionException
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.other_hashify
+import ornl.elision.actors.ReplActor
 
 /**
  * Indicate a properties specification is illegal.  This typically indicates a
@@ -501,12 +501,12 @@ object AlgProp {
       identity: Option[BasicAtom] = None) = {
     // Having the value ANY is really the same as being unspecified, so
     // we correct that now.
-    def _adjust(opt: Option[BasicAtom]) = opt match {
+    def adjust(opt: Option[BasicAtom]) = opt match {
       case Some(ANY) => None
       case _ => opt
     }
-    new AlgProp(_adjust(associative), _adjust(commutative), _adjust(idempotent),
-        _adjust(absorber), _adjust(identity))
+    new AlgProp(adjust(associative), adjust(commutative), adjust(idempotent),
+        adjust(absorber), adjust(identity))
   }
   
   /**

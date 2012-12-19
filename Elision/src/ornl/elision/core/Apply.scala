@@ -40,7 +40,7 @@ package ornl.elision.core
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
-import ornl.elision.repl.ReplActor
+import ornl.elision.actors.ReplActor
 
 /**
  * The common root for all application atoms.  This class represents the

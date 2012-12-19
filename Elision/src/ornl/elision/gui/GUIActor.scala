@@ -62,7 +62,7 @@ object GUIActor extends Actor {
 	def act() = {
 		loop {
       //    System.err.println("Threads active: " + Thread.activeCount)
-      //    System.err.println("ReplActor: " + ornl.elision.repl.ReplActor.getState)
+      //    System.err.println("ReplActor: " + ornl.elision.actors.ReplActor.getState)
       //    System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
 			react {
         case "quit" => // forcefully exits the current REPL thread.
@@ -97,18 +97,18 @@ object GUIActor extends Actor {
                 theMsg match {
                     case ("Repl", args : Any) => 
                         // forward a message to the REPL
-                        ornl.elision.repl.ReplActor ! args
+                        ornl.elision.actors.ReplActor ! args
                     case ("ReplInput", inputString : String) =>
                         if(inputString != "\n" && inputString != "")
                             mainGUI.visPanel.isLoading = true
-                        ornl.elision.repl.ReplActor ! inputString
+                        ornl.elision.actors.ReplActor ! inputString
                     case "newPrompt" =>
                         System.out.print("\ne> ")
                     case ("reGetHistory", result : Any, histSize : Int) =>
                         ConsolePanel.reGetHistory = (result, histSize)
                         waitingForReplInput = false
                     case ("guiColumns", cols : Int) =>
-                        ornl.elision.repl.ReplActor ! ("guiColumns", cols)
+                        ornl.elision.actors.ReplActor ! ("guiColumns", cols)
                     case ("Eva", cmd : String, args : Any) => 
                         // process a TreeBuilder command received from the Elision.
                         if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
@@ -140,13 +140,13 @@ object GUIActor extends Actor {
                         println("Reading REPL input from file: " + selFile.getPath)
                         println()
                         
-                        ornl.elision.repl.ReplActor ! str
+                        ornl.elision.actors.ReplActor ! str
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
-                        ornl.elision.repl.ReplActor ! ("wait", false)
+                        ornl.elision.actors.ReplActor ! ("wait", false)
                     case("replReduceLines", flag : Boolean) =>
                         mainGUI.consolePanel.tos.reduceLines = flag
-                        ornl.elision.repl.ReplActor ! ("wait", false)
+                        ornl.elision.actors.ReplActor ! ("wait", false)
                     case("loading", flag : Boolean) =>
                         mainGUI.visPanel.isLoading = flag
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.

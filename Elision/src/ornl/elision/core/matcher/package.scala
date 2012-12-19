@@ -52,4 +52,4 @@ package ornl.elision.core
  * 
  * There are also supporting classes that handle parts of the matching process.
  */
-package object matching
+package object matcher

@@ -39,10 +39,9 @@ package ornl.elision.gui.elision
 
 import scala.concurrent.ops._
 import sys.process._
-
 import ornl.elision.gui._
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.Console
+import ornl.elision.actors.ReplActor
 
 
 /** A thread to run the Elision REPL in */
@@ -60,8 +59,8 @@ class EliReplThread extends ReplThread {
   
 	/** Starts a new thread in which the REPL will run in. */
 	override def run : Unit = {
-		ornl.elision.repl.ReplActor.guiMode = true
-		ornl.elision.repl.ReplActor.guiActor = GUIActor
+		ornl.elision.actors.ReplActor.guiMode = true
+		ornl.elision.actors.ReplActor.guiActor = GUIActor
 		runNewRepl
 	}
 	
@@ -69,7 +68,8 @@ class EliReplThread extends ReplThread {
 	def runNewRepl : Unit = {
 		myRepl = new ornl.elision.repl.ERepl
 		ornl.elision.core.knownExecutor = myRepl
-		ReplActor.peer = myRepl
+		ReplActor.history = myRepl
+		ReplActor.console = myRepl.console
 		ReplActor ! ("disableGUIComs", true)
 		ReplActor.start
     
@@ -80,7 +80,7 @@ class EliReplThread extends ReplThread {
 	}
     
   def clean : Unit = {
-    ornl.elision.repl.ReplActor ! ":quit"
+    ornl.elision.actors.ReplActor ! ":quit"
     System.out.println("Successfully quit the Elision REPL's thread.")
   }
 

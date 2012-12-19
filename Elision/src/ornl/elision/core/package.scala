@@ -40,7 +40,6 @@ package ornl.elision
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.HashSet
 import org.parboiled.errors.ParsingException
-import ornl.elision.parse.AtomParser
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
 
@@ -76,7 +75,8 @@ package object core {
   }
   
   /**
-   * Attempt to parse the given string and return an atom.
+   * Attempt to parse the given string and return an atom.  This uses the
+   * known executor instance.
    * 
    * @param str			The string to parse.
    * @param context	The context.
@@ -87,11 +87,10 @@ package object core {
    */
   def parse(str: String, context: Context, trace: Boolean = false,
       toggle: Boolean = false) = {
-    val ap = new AtomParser(context, trace, toggle)
     try {
-      ap.parseAtoms(str) match {
-        case AtomParser.Failure(_) => None
-        case AtomParser.Success(atoms) => Some(atoms)
+      knownExecutor.parse(str) match {
+        case knownExecutor.ParseSuccess(atoms) => Some(atoms)
+        case knownExecutor.ParseFailure(_) => None
       }
     } catch {
       case th: ParsingException => println(th.getMessage)

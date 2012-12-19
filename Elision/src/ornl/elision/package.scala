@@ -63,10 +63,13 @@ import scala.collection.immutable.BitSet
  * This is the current punch list for Elision.  This list gets picked up by
  * [[http://eclipse.org Eclipse]].
  * 
+ *  - TODO Need package.scala files for all packages.  Stacy.
+ *  - TODO Visitors for BasicAtoms.  ?
+ *  - TODO STOP parsing on first error.  ?
+ *  - TODO Prioritize places in Elision where unit tests most needed.  Stacy
  *  - TODO Implicit corecions. Mark.
  *  - TODO Infix. DEFER.
  *  - TODO Need parser context for error messages. Stacy.
- *  - TODO Need package.scala files for all packages.  Stacy.
  *  - TODO Need support for command-line overrides.  Stacy.
  *  - TODO Need simple output configuration.  Stacy.
  *  

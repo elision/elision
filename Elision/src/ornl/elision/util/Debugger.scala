@@ -33,7 +33,7 @@ package ornl.elision.util
  * This is a class for managing and printing debug output during execution
  * in a manner that "agrees" with Elision.
  * 
- * Note: This class uses [ornl.elision.core.Console] to do its work.  Please
+ * Note: This class uses [ornl.elision.util.Console] to do its work.  Please
  * do not attempt to use this class to debug `Console`!
  * 
  * To use this class set up your debugging modes via `setDebugModes`, and
@@ -105,6 +105,12 @@ object Debugger {
     /** Convert a string into a mode. */
   }
   import Mode._
+  
+  /**
+   * The console to get debugging output.  By default this is a simple print
+   * console.
+   */
+  var console = PrintConsole
   
   /**
    * The modes for each defined tag.  The modes must come from the defined
@@ -202,24 +208,21 @@ object Debugger {
     val mode = _modes.getOrElse(tag, 0)
     if ((mode & ON) == 0) return
     
-    // Print the actual message now.
-    val con = ornl.elision.core.knownExecutor.console
-    
     // Maybe print the tag and id.
     if ((mode & NOTAG) == 0) {
-      con.panic("DEBUG["+tag+(if (id > 0) "("+id+")" else "")+"] ")
+      console.panic("DEBUG["+tag+(if (id > 0) "("+id+")" else "")+"] ")
     }
     
     // The message is enabled.  Process any other special before it.
     if ((mode & TICK) != 0) {
       // Get the current clock time.
       _tick.stopTimer
-      con.panic("TICK:" + _tick.getLastTimeString + " ")
+      console.panic("TICK:" + _tick.getLastTimeString + " ")
       _tick.startTimer
     }
     if ((mode & STOP) != 0) {
       _start.stopTimer
-      con.panic("INTERVAL:" + _start.getLastTimeString + " ")
+      console.panic("INTERVAL:" + _start.getLastTimeString + " ")
     }
     if ((mode & START) != 0) {
       // Start a timer.
@@ -227,7 +230,7 @@ object Debugger {
     }
     if ((mode & CLASS) != 0) {
       // Assume our caller is the correct context.
-      con.panic("["+(new Exception().getStackTrace())(1)+"] ")
+      console.panic("["+(new Exception().getStackTrace())(1)+"] ")
     }
     
     // Maybe print a newline.
@@ -238,28 +241,28 @@ object Debugger {
     //    F F      T
     if ((mode & (NONL|STACK)) != mode2bit(NONL)) {
       // Print a newline.
-      con.panicln(message)
+      console.panicln(message)
     } else {
       // No newline.
-      con.panic(message)
+      console.panic(message)
     }
     
     // If the user wants a stack trace, give them a stack trace.
     if ((mode & STACK) != 0) {
       // Grab the stack trace and print all its elements.
       val trace = new Exception().getStackTrace()
-      con.panicln(con.line("-="))
-      con.panicln("STACK TRACE:")
+      console.panicln(console.line("-="))
+      console.panicln("STACK TRACE:")
       for (elt <- trace) {
-        con.panicln(elt.toString())
+        console.panicln(elt.toString())
       } // Print the stack trace.
-      con.panicln(con.line("=-"))
+      console.panicln(console.line("=-"))
     }
     
     // Handle any cleanup.
     if ((mode & PAUSE) != 0) {
       // Try to force an interactive pause using the current executor.
-      con.doPause()
+      console.doPause()
     }
   }
 }
