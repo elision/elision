@@ -27,7 +27,9 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.core
+package ornl.elision.generators
+
+import ornl.elision.core._
 
 /**
  * Generate the Elision code to create an atom.
@@ -38,7 +40,7 @@ package ornl.elision.core
  * The result is assumed to be in an environment where necessary precursor
  * context contents have been declared.
  */
-object ElisionGenerator {
+object ElisionGenerator extends Generator {
 
   /**
    * Generate the Elision-parseable string for a literal.
