@@ -574,7 +574,7 @@ decl.{! history()
   #handler=
   """
     exec match {
-      case hh: ornl.elision.parse.HasHistory =>
+      case hh: ornl.elision.util.HasHistory =>
         // Show the history.
         val buf = new StringBuffer()
         val it = hh.getHistoryIterator

@@ -182,13 +182,13 @@ class OperatorLibrary(
           var handlertxt = new String(
               new sun.misc.BASE64Decoder().decodeBuffer(tso.handlerB64))
           buf append "  def `native$"+tso.name+"`():Option[ApplyData => BasicAtom] = {\n\n" 
-          buf append "def _handler(_data: ApplyData): BasicAtom = {\n"
+          buf append "def handler(_data: ApplyData): BasicAtom = {\n"
           buf append "import _data.{ exec => _, _ }\n"
           buf append "import ApplyData._\n"
           buf append "import console._\n"
           buf append handlertxt + "\n"
           buf append "}\n"
-          buf append "  Some(_handler _)\n"
+          buf append "  Some(handler _)\n"
           buf append "  }\n\n"
         }
         case _ => ()

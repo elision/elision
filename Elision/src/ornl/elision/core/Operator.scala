@@ -498,13 +498,13 @@ object TypedSymbolicOperator {
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
       runme =
-        "private def _handler(_data: ApplyData): BasicAtom = {\n" +
+        "def handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
           "import console._\n" +
           handlertxt + "\n" +
           "}\n" +
-          "passback.handler = Some(_handler _)"
+          "passback.handler = Some(handler _)"
           
       // Now interpret it.
       val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
@@ -583,13 +583,13 @@ object TypedSymbolicOperator {
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
       val runme =
-        "private def _handler(_data: ApplyData): BasicAtom = {\n" +
+        "def handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
           "import console._\n" +
           handlertxt + "\n" +
           "}\n" +
-          "passback.handler = Some(_handler _)"
+          "passback.handler = Some(handler _)"
           
       // Now interpret it.
       val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
