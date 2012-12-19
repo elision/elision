@@ -36,8 +36,8 @@
 ======================================================================
 * */
 package ornl.elision.core
-import ornl.elision.repl.ReplActor
 import ornl.elision.core.matcher.SequenceMatcher
+import ornl.elision.actors.ReplActor
 
 object MapPair {
   /**

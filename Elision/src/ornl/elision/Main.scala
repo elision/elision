@@ -35,6 +35,7 @@ import ornl.elision.cli.SwitchUsage
 import ornl.elision.cli.Switch
 import ornl.elision.cli.ArgSwitch
 import ornl.elision.util.Debugger
+import ornl.elision.util.Version
 
 /**
  * This is the entry point when running from the jar file.  This also provides

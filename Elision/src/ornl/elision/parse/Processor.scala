@@ -30,12 +30,12 @@
 package ornl.elision.parse
 
 import ornl.elision.core._
-import ornl.elision.repl.ReplActor
 import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
 import ornl.elision.util.Timeable
 import ornl.elision.util.PropertyManager
+import ornl.elision.actors.ReplActor
 
 
 /**
@@ -182,7 +182,7 @@ with HasHistory {
    * @param history If true (default), log the start of the session.
    */
   def banner(history: Boolean = true) {
-    import ornl.elision.Version._
+    import ornl.elision.util.Version._
     console.emitln(
         """|      _ _     _
 					 |  ___| (_)___(_) ___  _ __

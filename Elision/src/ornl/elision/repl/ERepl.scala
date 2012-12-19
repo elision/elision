@@ -30,6 +30,7 @@
 package ornl.elision.repl
 
 import ornl.elision.parse._
+import ornl.elision.actors.ReplActor
 
 /**
  * Implement an interface to run the REPL from the prompt.

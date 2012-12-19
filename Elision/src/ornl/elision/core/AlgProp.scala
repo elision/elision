@@ -37,8 +37,8 @@
 * */
 package ornl.elision.core
 import ornl.elision.util.ElisionException
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.other_hashify
+import ornl.elision.actors.ReplActor
 
 /**
  * Indicate a properties specification is illegal.  This typically indicates a

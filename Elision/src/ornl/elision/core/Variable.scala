@@ -39,8 +39,8 @@ package ornl.elision.core
 
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.OpenHashMap
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.other_hashify
+import ornl.elision.actors.ReplActor
 
 /**
  * Represent a variable.

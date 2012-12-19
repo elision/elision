@@ -34,10 +34,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision
-
-import ornl.elision.util.ElisionException
-import ornl.elision.util.Debugger
+package ornl.elision.util
 
 /**
  * Provide information about the current version of Elision.

@@ -38,8 +38,8 @@
 package ornl.elision.core
 
 import scala.collection.immutable.HashMap
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.other_hashify
+import ornl.elision.actors.ReplActor
 
 /**
  * Represent a literal.  This is the common root class for all literals.
