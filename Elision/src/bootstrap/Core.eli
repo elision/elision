@@ -235,7 +235,7 @@ decl.{! _help_op($r)
   """
     def givehelp(name: String) = {
       // Give some help.
-      val width = if(ornl.elision.repl.ReplActor.guiMode) ornl.elision.repl.ReplActor.guiColumns else scala.tools.jline.TerminalFactory.create().getWidth()
+      val width = if(ornl.elision.actors.ReplActor.guiMode) ornl.elision.actors.ReplActor.guiColumns else scala.tools.jline.TerminalFactory.create().getWidth()
       val op = context.operatorLibrary(name)
       sendln(context.operatorLibrary.help(
         new StringBuffer(), op, width).toString)
@@ -262,7 +262,7 @@ decl.{! _help_all()
     args match {
       case Args() =>
         // Give some help.
-        val width = if(ornl.elision.repl.ReplActor.guiMode) ornl.elision.repl.ReplActor.guiColumns else scala.tools.jline.TerminalFactory.create().getWidth()
+        val width = if(ornl.elision.actors.ReplActor.guiMode) ornl.elision.actors.ReplActor.guiColumns else scala.tools.jline.TerminalFactory.create().getWidth()
         val buf = new StringBuffer()
         buf.append("Elision Help\n\n")
         context.operatorLibrary.help(buf, width)
@@ -286,8 +286,8 @@ decl.{! apropos($str:STRING)
     args match {
       case Args(StringLiteral(_, apropos)) =>
         // Give some help.
-        val width = if (ornl.elision.repl.ReplActor.guiMode)
-          ornl.elision.repl.ReplActor.guiColumns
+        val width = if (ornl.elision.actors.ReplActor.guiMode)
+          ornl.elision.actors.ReplActor.guiColumns
         else
           scala.tools.jline.TerminalFactory.create().getWidth()
         val buf = new StringBuffer()
