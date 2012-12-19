@@ -42,6 +42,7 @@ import scala.collection.mutable.HashSet
 import org.parboiled.errors.ParsingException
 import ornl.elision.parse.AtomParser
 import ornl.elision.util.PrintConsole
+import ornl.elision.util.PropertyManager
 
 /**
  * The core classes and definitions that make up the Elision runtime.
@@ -172,6 +173,24 @@ package object core {
   }
 
   /**
+   * Whether to compute equality faster but in a riskier fashion.
+   */
+  var _riskyEqual: Boolean = true;
+
+  /** 
+   * Declare the Elision property for setting whether to do risky
+   * equality checking. 
+   */
+  knownExecutor.declareProperty("risky_equality_check",
+      "Whether to do fast, but risky, equality checking of atoms.",
+      _riskyEqual,
+      (pm: PropertyManager) => {
+        _riskyEqual =
+          pm.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
+      })
+
+
+  /**
    * Perform "fast equality checking" on two atoms.  This performs basic
    * structural comparson of the atoms.  If this cannot prove that the two
    * atoms are either equal to unequal, then the closure `other` is invoked
@@ -184,13 +203,14 @@ package object core {
    * @return  True if equal, false if not.
    */
   def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean) = {
+    //val risky = knownExecutor.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
     (atom1 eq atom2) || (
         (atom1.depth == atom2.depth) &&
         (atom1.isConstant == atom2.isConstant) &&
         (atom1.isTerm == atom2.isTerm) &&
         (atom1.hashCode == atom2.hashCode) &&
         (atom1.otherHashCode == atom2.otherHashCode) &&
-        other
+        (if (_riskyEqual) true else other)
     )
   }
   
