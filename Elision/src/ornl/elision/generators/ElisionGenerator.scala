@@ -197,18 +197,30 @@ object ElisionGenerator extends Generator {
         
       // Process all atoms.
       case OpApply(op, args, _) =>
-        buf.append(toESymbol(op.name)).append("(")
+        buf.append(toESymbol(op.name))
+        buf.append("(")
         // If the limit will be exceeded by the argument list, don't print
         // several elipses separated by commas, but just one for the list.
         if (limit == 1) {
           buf.append("...")
         } else {
+
+          // Sort the atom sequence if it is commutative.
+          var printAtoms = args.atoms
+          if (args.props.isC(false)) {
+            printAtoms = 
+              args.atoms.sortWith( (x : BasicAtom, y : BasicAtom) =>
+                ((x.otherHashCode != y.otherHashCode) && 
+                 (x.otherHashCode < y.otherHashCode)) ||
+                ((x.otherHashCode == y.otherHashCode) && 
+                 (x.hashCode < y.hashCode)))
+          }
           var index = 0
-          while (index < args.size) {
+          while (index < printAtoms.size) {
             if (index > 0) buf.append(",")
-            apply(args(index), buf, limit-1)
+            apply(printAtoms(index), buf, limit-1)
             index += 1
-          } // Add all arguments.
+          } // Add all atoms.
         }
         buf.append(")")
         
@@ -230,10 +242,16 @@ object ElisionGenerator extends Generator {
         if (limit == 1) {
           buf.append("...")
         } else {
+
+          // Sort the atom sequence if it is commutative.
+          var printAtoms = atoms
+          if (props.isC(false)) {
+            printAtoms = atoms.sortWith(_.otherHashCode < _.otherHashCode)
+          }
           var index = 0
-          while (index < atoms.size) {
+          while (index < printAtoms.size) {
             if (index > 0) buf.append(",")
-            apply(atoms(index), buf, limit-1)
+            apply(printAtoms(index), buf, limit-1)
             index += 1
           } // Add all atoms.
         }

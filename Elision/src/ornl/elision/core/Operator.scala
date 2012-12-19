@@ -436,14 +436,22 @@ object TypedSymbolicOperator {
   private lazy val _urls =
     java.lang.Thread.currentThread.getContextClassLoader match {
       case cl: java.net.URLClassLoader => cl.getURLs.toList
-      case _ => sys.error("classloader is not a URLClassLoader")
+      case other => sys.error("classloader is not a URLClassLoader. " +
+                              "It is a " + other.getClass.getName)
     }
   private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
 
   // Build a settings with the correct classpath.
-  private val _settings = new scala.tools.nsc.Settings(println _) {
-    override val classpath = PathSetting("-cp", "Classpath", _classpath)
-  }
+  private val _settings = try {
+     new scala.tools.nsc.Settings(println _) {
+      override val classpath = PathSetting("-cp", "Classpath", _classpath)
+    }} catch {
+      case e: Exception => {
+        println(e.getMessage)
+	println(e)
+	throw e
+    }
+    }
 
   /** Make an interpreter. */
   private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
