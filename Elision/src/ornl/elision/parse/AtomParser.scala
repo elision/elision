@@ -45,9 +45,9 @@ import scala.collection.mutable.LinkedList
 import ornl.elision.core._
 import ornl.elision.core.{ ANY => EANY }
 import ornl.elision.util.ElisionException
-import ornl.elision.repl.ReplActor
 import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.parsing.combinator.PackratParsers
+import ornl.elision.actors.ReplActor
 
 /**
  * A special form was incorrectly formatted.

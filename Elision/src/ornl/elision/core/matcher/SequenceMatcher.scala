@@ -37,7 +37,6 @@
  * */
 package ornl.elision.core.matcher
 
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.BasicAtom
 import ornl.elision.core.Bindings
@@ -46,6 +45,7 @@ import ornl.elision.core.Many
 import ornl.elision.core.Match
 import ornl.elision.core.Outcome
 import ornl.elision.core.MatchIterator
+import ornl.elision.actors.ReplActor
 
 /**
  * Match two sequences of atoms.

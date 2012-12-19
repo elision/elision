@@ -30,6 +30,7 @@
 package ornl.elision.repl
 
 import ornl.elision.parse._
+import ornl.elision.actors.ReplActor
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -52,7 +53,8 @@ object ReplMain {
     val erepl = new ERepl
     ornl.elision.core.knownExecutor = erepl
     ReplActor.start
-    ReplActor.peer = erepl
+    ReplActor.history = erepl
+    ReplActor.console = erepl.console
     ReplActor ! ("disableGUIComs", true)
     erepl.run()
     erepl.clean()

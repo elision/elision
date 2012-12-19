@@ -79,7 +79,7 @@ class EliAboutDialog extends Dialog {
 """<b><u>Elision Visualization Assistant</u></b><br/>
 Copyright (c) 2012 by UT-Battelle, LLC. <br/>
 All rights reserved. <br/>
-Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Version.web + """</a>
+Homepage: <a href='""" + ornl.elision.util.Version.web + """'>""" + ornl.elision.util.Version.web + """</a>
 """
     
     contents = new BoxPanel(Orientation.Vertical) {
@@ -111,7 +111,7 @@ Homepage: <a href='""" + ornl.elision.Version.web + """'>""" + ornl.elision.Vers
                     def hyperlinkUpdate(event : HyperlinkEvent) : Unit = {
                         if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
                             try {
-                                Desktop.getDesktop.browse(new java.net.URI(ornl.elision.Version.web))
+                                Desktop.getDesktop.browse(new java.net.URI(ornl.elision.util.Version.web))
                             } catch { case _ => }
                         }
                     }

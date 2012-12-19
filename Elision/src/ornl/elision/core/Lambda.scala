@@ -37,7 +37,7 @@
 * */
 package ornl.elision.core
 import ornl.elision.util.ElisionException
-import ornl.elision.repl.ReplActor
+import ornl.elision.actors.ReplActor
 
 /* Notes on De Bruijn indices.
  * 

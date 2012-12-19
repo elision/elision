@@ -176,11 +176,6 @@ object Operator {
     case so: SymbolicOperator => Some((so.name, so.theType, so.params))
     case co: CaseOperator => Some((co.name, co.theType, co.cases))
   }
-  
-  /**
-   * Creates a string to append to an operator's detail for informing the user in what file this operator was declared.
-   */
-   def declaredInString : String = "\n \nDeclared in: " + ornl.elision.parse.Processor.fileReadStack.top
 }
 
 /**
@@ -286,7 +281,7 @@ object CaseOperator {
     val typ = bh.fetchAs[BasicAtom]("type", Some(ANY))
     var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     if (description.value(0) == '|') description = description.value.stripMargin('|')
-    val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail.")) + Operator.declaredInString
+    val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
@@ -310,7 +305,7 @@ object CaseOperator {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) + ("cases" -> cases) +
       ("type" -> typ) + ("description" -> Literal(description)) +
-      ("detail" -> Literal(detail + Operator.declaredInString))     // Cazra TODO: add in declaring file's name into the detail string.
+      ("detail" -> Literal(detail))
     val sfh = new SpecialFormHolder(Operator.tag, binds)
 
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
@@ -489,7 +484,7 @@ object TypedSymbolicOperator {
     var description = bh.fetchAs[StringLiteral]("description", Some("No description."))
     if (description.length > 0 && description.value(0) == '|')
       description = description.value.stripMargin('|')
-    val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail.")) + Operator.declaredInString    // Cazra TODO: add in declaring file's name into the detail string.
+    val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
 
     // Fetch the handler text.
@@ -511,13 +506,13 @@ object TypedSymbolicOperator {
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
       runme =
-        "def _handler(_data: ApplyData): BasicAtom = {\n" +
+        "def handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
           "import console._\n" +
           handlertxt + "\n" +
           "}\n" +
-          "passback.handler = Some(_handler _)"
+          "passback.handler = Some(handler _)"
           
       // Now interpret it.
       val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
@@ -596,13 +591,13 @@ object TypedSymbolicOperator {
       // Extract the handler text, and surround it with the appropriate
       // boilerplate to create an actual handler closure.
       val runme =
-        "def _handler(_data: ApplyData): BasicAtom = {\n" +
+        "def handler(_data: ApplyData): BasicAtom = {\n" +
           "import _data._\n" +
           "import ApplyData._\n" +
           "import console._\n" +
           handlertxt + "\n" +
           "}\n" +
-          "passback.handler = Some(_handler _)"
+          "passback.handler = Some(handler _)"
           
       // Now interpret it.
       val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
@@ -643,7 +638,7 @@ object TypedSymbolicOperator {
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
     description: String, ddetail: String,
     evenMeta: Boolean = false): TypedSymbolicOperator = {
-    val detail = ddetail + Operator.declaredInString
+    val detail = ddetail
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
       ("type" -> typ) + ("description" -> Literal(description)) +
@@ -713,7 +708,7 @@ object SymbolicOperator {
   def apply(name: String, typ: BasicAtom, params: AtomSeq,
     description: String, ddetail: String,
     evenMeta: Boolean = false): SymbolicOperator = {
-    val detail = ddetail + Operator.declaredInString
+    val detail = ddetail
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
       ("type" -> typ) + ("description" -> Literal(description)) +
@@ -812,7 +807,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    * Check the parameters against the properties.  If any problems are detected,
    * then an exception is thrown (`ArgumentListException`).
    */
-  def _check() {
+  private def _check() {
     /**
      * Define a little method to require that all parameters have the same
      * type.

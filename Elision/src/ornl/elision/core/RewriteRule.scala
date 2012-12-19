@@ -37,8 +37,8 @@
 * */
 package ornl.elision.core
 
-import ornl.elision.repl.ReplActor
 import ornl.elision.util.OmitSeq
+import ornl.elision.actors.ReplActor
 
 /**
  * The ruleset strategy.

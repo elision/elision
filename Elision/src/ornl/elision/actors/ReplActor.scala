@@ -34,7 +34,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.repl
+package ornl.elision.actors
 
 import scala.actors.Actor
 
@@ -69,10 +69,13 @@ object ReplActor extends Actor {
   var guiColumns = 80
   var guiRows = 20
   
-  /** A reference to Elision's REPL. */
-  var peer : ornl.elision.repl.ERepl = null
+  /** A reference to an object that maintains history. */
+  var history : ornl.elision.util.HasHistory = null
+  
+  /** A reference to a console. */
+  var console : ornl.elision.util.Console = null
     
-	/** 
+	/**
 	 * The actor's act loop will wait to receive string input from the GUI. 
 	 * It will discard any other input in its mailbox.
 	 */
@@ -93,17 +96,21 @@ object ReplActor extends Actor {
 					waitingForGuiInput = flag
         case ("guiColumns", x : Int) =>
           guiColumns = x
-          peer.console.width_=(guiColumns)
-          peer.console.height_=(guiRows-1)
+          console.width_=(guiColumns)
+          console.height_=(guiRows-1)
         case ("getHistory", index : Int) =>
-          if(index == -1) peer._hist.previous
-          if(index == 1) peer._hist.next
-          peer._hist.current match {
-            case str : String => guiActor ! ("reGetHistory", str, peer._hist.size)
-            case _ => guiActor ! ("reGetHistory", None, peer._hist.size)
-          }
+          // FIXME This references a private element.  It must not reference
+          // the element in this manner.  The trait should instead be modified
+          // (if necessary) to provide this access.  Code is preserved below
+          // for reference, but should be removed when fixed.
+//          if(index == -1) peer._hist.previous
+//          if(index == 1) peer._hist.next
+//          peer._hist.current match {
+//            case str : String => guiActor ! ("reGetHistory", str, peer._hist.size)
+//            case _ => guiActor ! ("reGetHistory", None, peer._hist.size)
+//          }
         case ("addHistory", str : String) =>
-          peer.addHistoryLine(str)
+          history.addHistoryLine(str)
 				case msg => {}
 			}
 		}

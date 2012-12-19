@@ -43,6 +43,8 @@ import scala.compat.Platform
 import scala.util.DynamicVariable
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
+import ornl.elision.generators.ElisionGenerator
+import ornl.elision.generators.ScalaGenerator
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -504,14 +506,14 @@ abstract class BasicAtom extends HasOtherHash {
    * @return  The string.
    */
   def toParseString(limit: Int) =
-    ElisionGenerator.apply(this, new StringBuffer, limit).toString
+    Generator("elision", this, new StringBuffer, limit).toString
   
   /**
    * Make a string that can be used to re-generate this atom.
    * 
    * @return  The string.
    */
-  override def toString = ScalaGenerator.apply(this, true).toString
+  override def toString = Generator("scala", this).toString
   
   /**
    * Recursively match the types.  This is unbounded recursion; it is expected
