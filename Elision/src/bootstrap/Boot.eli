@@ -147,6 +147,18 @@ decl.
 "from this action."
 }
 
+// Do all your base belong to us?
+decl.
+{! _bomb()
+#handler=
+"""
+  println("Somebody set up us the bomb!")
+  _no_show
+"""
+#description="In 2101 war was beginning..."
+#detail="Set up the bomb.  Then all their base are belong to you!"
+}
+
 // Create an operator that emits the atom as a side effect.
 decl.
 {! print($a: STRING)
