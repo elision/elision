@@ -726,23 +726,38 @@ object SymbolicOperator {
    */
   def unapply(so: SymbolicOperator) = Some((so.name, so.theType, so.params))
 
-  /** The well-known MAP operator. */
+  /**
+   * The well-known MAP operator.  This is needed to define the types of
+   * operators, but is not used to define its own type.  The type of the MAP
+   * operator is ^TYPE, indicating that it is a root type.  We could, with
+   * great justice, use xx (the cross product) for this operator, but don't.
+   * This makes the types of operators look more natural when viewed.
+   */
   val MAP = OperatorRef(
-    SymbolicOperator("MAP", ANY, AtomSeq(NoProps, 'domain, 'codomain),
+    SymbolicOperator("MAP", TypeUniverse, AtomSeq(NoProps, 'domain, 'codomain),
       "Mapping constructor.",
       "This operator is used to construct types for operators.  It " +
       "indicates a mapping from one type (the domain) to another type " +
       "(the codomain)."))
-  /** The well-known cross product operator. */
+  /**
+   * The well-known cross product operator.  This is needed to define the
+   * types of operators, but is not used to define its own type.  The type
+   * of the cross product is ANY.  Note that it must be ANY, since it is
+   * associative.
+   */
   val xx = OperatorRef(
     SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y),
       "Cross product.",
       "This operator is used to construct types for operators.  It " +
       "indicates the cross product of two atoms (typically types).  " +
       "These originate from the types of the parameters of an operator."))
-  /** The well-known list operator. */
+  /**
+   * The well-known list operator.  This is used to define the type of lists
+   * such as the atom sequence.  It has type ^TYPE, indicating that it is a
+   * root type.
+   */
   val LIST = OperatorRef(
-    SymbolicOperator("LIST", ANY, AtomSeq(NoProps, 'type),
+    SymbolicOperator("LIST", TypeUniverse, AtomSeq(NoProps, 'type),
       "List type constructor.",
       "This operator is used to indicate the type of a list.  It takes a " +
       "single argument that is the type of the atoms in the list.  For " +
