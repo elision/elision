@@ -280,16 +280,6 @@ bin, lib, and other folders.</echo>
 				<attribute name="Main-Class" value="ornl.elision.Main"/>
 			</manifest>
 		</jar>
-        <jar
-			filesetmanifest	="skip"
-			destfile		="${build.latest}/elision-eva.jar">
-			<fileset dir="${build.bin}"/>
-			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
-			<manifest>
-				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="ornl.elision.gui.mainGUI"/>
-			</manifest>
-		</jar>
 		<jar destfile = "${build.base}/${DSTAMP}/elision-src.jar">
 			<fileset dir="${build.src}"/>
 			<manifest>
