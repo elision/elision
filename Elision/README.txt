@@ -53,7 +53,7 @@ file describes how to build the rewriter, how to run the REPL, and how to set
 up your environment to edit the source in Eclipse.
 
 Visit the Elision web site at:
-http://stacyprowell.com/wiki/doku.php?id=elision
+http://elision.github.com/
 
 Elision contains Parboiled, a Parser Expression Grammar (PEG) library.  See the
 end of this file for license details.  For more information, visit:
@@ -440,7 +440,7 @@ sg-cdb is released under the BSD "3 clause" license.  It can be found at:
 www.strangegizmo.com/products/sg-cdb/
 and is reproduced below in its entirety.
 
-Copyright © 2000-2006, Michael Alyn Miller <malyn@strangeGizmo.com>. All
+Copyright ï¿½ 2000-2006, Michael Alyn Miller <malyn@strangeGizmo.com>. All
 rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -457,7 +457,7 @@ modification, are permitted provided that the following conditions are met:
     to this software may be used to endorse or promote products derived from
     this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ÒAS ISÓ AND ANY
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ï¿½AS ISï¿½ AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY
