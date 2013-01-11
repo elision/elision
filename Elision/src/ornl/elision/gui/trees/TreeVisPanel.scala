@@ -56,7 +56,7 @@ import ornl.elision.gui._
  * This panel shall display a tree structure showing the rewriting hierarchy 
  * of the last atom string passed to the REPL as input.
  */
-class TreeVisPanel(game : GamePanel) extends Level(game) with HasCamera {
+class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
 	//background = new Color(0xffffff)
 	//preferredSize = new Dimension(640, 480)
 	

@@ -98,17 +98,17 @@ object ReplActor extends Actor {
           guiColumns = x
           console.width_=(guiColumns)
           console.height_=(guiRows-1)
-        case ("getHistory", index : Int) =>
-          // FIXME This references a private element.  It must not reference
-          // the element in this manner.  The trait should instead be modified
-          // (if necessary) to provide this access.  Code is preserved below
-          // for reference, but should be removed when fixed.
-//          if(index == -1) peer._hist.previous
-//          if(index == 1) peer._hist.next
-//          peer._hist.current match {
-//            case str : String => guiActor ! ("reGetHistory", str, peer._hist.size)
-//            case _ => guiActor ! ("reGetHistory", None, peer._hist.size)
-//          }
+        case ("getHistory", direction : Int) =>
+          val entry = if(direction < 1) {
+            history.getPreviousHistoryEntry
+          }
+          else {
+            history.getNextHistoryEntry
+          } 
+          entry match {
+            case Some(str : String) => guiActor ! ("reGetHistory", str)
+            case _ => guiActor ! ("reGetHistory", None)
+          }
         case ("addHistory", str : String) =>
           history.addHistoryLine(str)
 				case msg => {}
