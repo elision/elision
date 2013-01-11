@@ -68,4 +68,16 @@ trait HasHistory {
    * a history file.
    */
   def getHistoryFilename: String = "(no history file)"
+  
+  /** 
+   * Moves the history to the previous entry and returns that entry.
+   * The default implementation returns None.
+   */
+  def getPreviousHistoryEntry : Option[String] = None
+  
+  /** 
+   * Moves the history to the next entry and returns that entry.
+   * The default implementation returns None.
+   */
+  def getNextHistoryEntry : Option[String] = None
 }

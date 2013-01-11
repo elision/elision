@@ -104,8 +104,8 @@ object GUIActor extends Actor {
                         ornl.elision.actors.ReplActor ! inputString
                     case "newPrompt" =>
                         System.out.print("\ne> ")
-                    case ("reGetHistory", result : Any, histSize : Int) =>
-                        ConsolePanel.reGetHistory = (result, histSize)
+                    case ("reGetHistory", result : Any) =>
+                        ConsolePanel.reGetHistory = result
                         waitingForReplInput = false
                     case ("guiColumns", cols : Int) =>
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)

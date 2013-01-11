@@ -68,7 +68,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         case e : swing.event.MouseClicked =>
             val btn = e.peer.getButton
             if(btn == java.awt.event.MouseEvent.BUTTON3) {
-                val copypasta = new CopyPastaMenu(console)
+                val copypasta = new TextRClickMenu(console)
                 copypasta.show(console.peer, e.point.x, e.point.y)
             }
     }
@@ -133,7 +133,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
             super.paint(g)
         }
         catch {
-            case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
+            case _ : Throwable => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
         }
     }
     
@@ -252,7 +252,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
                         textArea.caret.position = math.max(anchorPos, textArea.caret.position)
                     }
                     catch {
-                        case _ =>
+                        case _ : Throwable =>
                     }
                 case _newTxt : String =>
                     try {
@@ -398,7 +398,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 
 	/** A convenient reference to taos's textArea */
 	val textArea = taos.textArea
-	
+  
 	textArea.listenTo(textArea.keys)
 	textArea.reactions += {
 		case e : swing.event.KeyTyped => {
@@ -424,29 +424,23 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 				try {
 					textArea.caret.position = math.max(taos.anchorPos, textArea.caret.position)
 				} catch {
-					case _ => avoidInfLoop = true
+					case _ : Throwable => avoidInfLoop = true
 				}
 			}
-            
+      
 			
 			// keyboard menu shortcuts
-			
-		//	if(e.key == swing.event.Key.O && e.modifiers == swing.event.Key.Modifier.Control)
-		//		mainGUI.guiMenuBar.openItem.doClick
-            if(e.key == swing.event.Key.F1)
-                mainGUI.guiMenuBar.helpItem.doClick
-                
-            
-            mainGUI.visPanel.curLevel match {
-                case etvp : elision.EliTreeVisPanel =>
-                //    if(e.key == swing.event.Key.R && e.modifiers == //swing.event.Key.Modifier.Control) {
-                    //    etvp.selectingRuleLHS = true
-                //    }
-                    if(e.key == swing.event.Key.Escape) {
-                        etvp.selectingRuleLHS = false
-                    }
-                case _ =>
-            }
+
+      if(e.key == swing.event.Key.F1)
+        mainGUI.guiMenuBar.helpItem.doClick   
+      
+      mainGUI.visPanel.curLevel match {
+        case etvp : elision.EliTreeVisPanel =>
+          if(e.key == swing.event.Key.Escape) {
+              etvp.selectingRuleLHS = false
+          }
+        case _ =>
+      }
             
 			
 		}
@@ -457,14 +451,14 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 				try {
 					textArea.caret.position = ConsolePanel.getLength
 				} catch {
-					case _ => {}
+					case _ : Throwable => {}
 				}
 			}
 			if(e.key == swing.event.Key.Down) {
 				try {
 					textArea.caret.position = ConsolePanel.getLength
 				} catch {
-					case _ => {}
+					case _ : Throwable => {}
 				}
 			}
             if(e.key == swing.event.Key.Home) {
@@ -472,7 +466,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 				try {
 					textArea.caret.position = math.max(taos.anchorPos, textArea.caret.position)
 				} catch {
-					case _ => avoidInfLoop = true
+					case _ : Throwable => avoidInfLoop = true
 				}
             }
 			textArea.caret.visible = true
@@ -483,24 +477,25 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 	
 	/**
 	 * Cycles one step up or down through the input history and sets the current input text to the obtained historical input.
-	 * If i is positive, it will cycle backwards once through history. If i is negative, it will cycle foward once through history.
-	 * @param index		An integer in range [-1,1] telling the history which direction to cycle. 1 means go back 1, -1 means go forward 1.
+	 * @param direction		An integer in range [-1,1] telling the history which direction to cycle. 1 means go back 1, -1 means go forward 1.
 	 */
-	def getHistory(index : Int) : Unit = {
-		val i = if(index != 0) index/math.abs(index) else 0// normalize i so that we can only increment by magnitudes of 1 at a time.
-		
-        var newInput = ""
-        
-        GUIActor.waitOnREPL(() => 
-            GUIActor ! ("Repl",("getHistory", i))
-        , "requesting history from REPL.")
-        
-        ConsolePanel.reGetHistory match {
-            case (None, histSize : Int) =>
-            case (str : String, histSize : Int) =>
-                newInput = str
-        }
-        
+	def getHistory(direction : Int) : Unit = {
+		val i = if(direction != 0) direction/math.abs(direction) else 0// normalize i so that we can only increment by magnitudes of 1 at a time.
+    
+    var newInput = ""
+    
+    // wait for the actual REPL to return with the history entry.
+    GUIActor.waitOnREPL(() => 
+      GUIActor ! ("Repl",("getHistory", direction)), 
+      "requesting history from REPL.")
+    
+    ConsolePanel.reGetHistory match {
+      case None => 
+      case str : String =>
+        newInput = str
+    }
+    
+    // replace the input string with the history entry.
 		textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + taos.readOnlyOutput + newInput
 		textArea.caret.visible = false
 	}
@@ -535,17 +530,18 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
 			
 			// store the input string in the history list.
 			if(inputString != "") {
-                GUIActor ! ("Repl", ("addHistory", inputString))
-            }
+        GUIActor ! ("Repl", ("addHistory", inputString))
+      }
 			
 			// send the input String to the Repl's actor
 			println()
-            GUIActor ! ("ReplInput", inputString)
+      GUIActor ! ("ReplInput", inputString)
+
 		} catch {
-			case _ =>
+			case _ : Throwable =>
 		}
 	}
-
+  
 }
 
 
