@@ -16,7 +16,7 @@ import javax.swing.text.JTextComponent
 
 
 /** A disposable cut-copy-paste popup menu for text components. */
-class CopyPastaMenu(val textComp : TextComponent) extends JPopupMenu with ActionListener {
+class TextRClickMenu(val textComp : TextComponent) extends JPopupMenu with ActionListener {
     
     val cutItem = new JMenuItem("Cut")
     add(cutItem)

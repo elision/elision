@@ -172,6 +172,32 @@ class ERepl extends Processor {
   
   override def getHistoryFilename = _filename
   
+  override def getPreviousHistoryEntry = {
+    try { 
+        _hist.previous
+        _hist.current match {
+            case null => None
+            case x:Any => Some(x.toString)
+        }
+    }
+    catch {
+        case _ => None
+    }
+  }
+  
+  override def getNextHistoryEntry = {
+    try { 
+        _hist.next
+        _hist.current match {
+            case null => None
+            case x:Any => Some(x.toString)
+        }
+    }
+    catch {
+        case _ => None
+    }
+  }
+  
   //======================================================================
   // Initialize properties for the REPL.
   //======================================================================

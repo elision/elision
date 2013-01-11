@@ -118,7 +118,7 @@ class MaxLinesDialog extends Dialog {
             // close the dialog when we finish processing input
             close
         } catch {
-            case _ =>
+            case _ : Throwable =>
         }
     }
     

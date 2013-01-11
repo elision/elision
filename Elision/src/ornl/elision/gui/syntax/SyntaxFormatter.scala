@@ -491,7 +491,7 @@ object SyntaxFormatter {
 		} catch {
             case _ =>
                 // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
-                System.err.println("I just don't know what went wrong! :\n" + text) 
+                System.err.println("Error during syntax formatting :\n" + text) 
         }
 		val resultStarts = new ListBuffer[Int]
 		val resultColors = new ListBuffer[java.awt.Color]
