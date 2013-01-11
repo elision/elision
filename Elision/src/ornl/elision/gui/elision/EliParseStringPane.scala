@@ -62,7 +62,7 @@ class EliParseStringPane extends ScrollPane {
         case e : swing.event.MouseClicked =>
             val btn = e.peer.getButton
             if(btn == java.awt.event.MouseEvent.BUTTON3) {
-                val copypasta = new CopyPastaMenu(textArea)
+                val copypasta = new TextRClickMenu(textArea)
                 copypasta.show(textArea.peer, e.point.x, e.point.y)
             }
     }
@@ -104,7 +104,7 @@ class EliAtomPropsPane extends ScrollPane {
         case e : swing.event.MouseClicked =>
             val btn = e.peer.getButton
             if(btn == java.awt.event.MouseEvent.BUTTON3) {
-                val copypasta = new CopyPastaMenu(textArea)
+                val copypasta = new TextRClickMenu(textArea)
                 copypasta.show(textArea.peer, e.point.x, e.point.y)
             }
     }

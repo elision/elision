@@ -9,7 +9,7 @@ import sage2D._
 import sage2D.sprites._
 
 /** Eva's welcome mode visualization. All it does is display the Eva logo and visualize a quadtree structure for demonstrating collision detections between sprites. */
-class WelcomePanel(game : GamePanel) extends Level(game) {
+class WelcomePanel(game : GamePanel) extends Level(game, null) {
 	// background = new Color(0xffffff)
 	// preferredSize = new Dimension(640,480)
 	
@@ -41,7 +41,7 @@ class WelcomePanel(game : GamePanel) extends Level(game) {
     
 	override def logic : Unit = {
 		// create a new quadtree
-		val quadTree = new QuadTree(0,0,game.size.width,game.size.height)
+		val quadTree = new QuadTree(0,0,game.size.width,game.size.height,0)
 		quadSprite.quadTree = quadTree
 		
 		// populate the quadtree
