@@ -5,6 +5,7 @@ import sys.process._
 
 object MakeContext extends App {
   val repl = new ERepl
+  ornl.elision.core.knownExecutor = repl
   
   if (args.length != 2) {
     print(help)
