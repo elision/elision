@@ -45,70 +45,73 @@ import ornl.elision.gui._
 
 /** A scrolling pane for displaying an Elision atom's parse string with formatting and syntax coloring. */
 class EliParseStringPane extends ScrollPane {
-    val inset = SidePanel.inset
-    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
-    preferredSize = new Dimension(SidePanel.preferredWidth, SidePanel.parsePanelHeight)
+  val inset = SidePanel.inset
+  horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+  verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+  preferredSize = new Dimension(SidePanel.preferredWidth, SidePanel.parsePanelHeight)
+  
+  /** The EditorPane that displays the currently selected node's parse string */
+  val textArea = new EditorPane {
+    editable = false
+    border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
+    focusable = true
+    editorKit = new javax.swing.text.html.HTMLEditorKit 
+  }
+  textArea.listenTo(textArea.mouse.clicks)
+  textArea.reactions += {
+    case e : swing.event.MouseClicked =>
+      val btn = e.peer.getButton
+      if(btn == java.awt.event.MouseEvent.BUTTON3) {
+        val copypasta = new TextRClickMenu(textArea)
+        copypasta.show(textArea.peer, e.point.x, e.point.y)
+      }
+  }
+  contents = textArea
     
-    /** The EditorPane that displays the currently selected node's parse string */
-	val textArea = new EditorPane {
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset+10)
-		focusable = true
-		editorKit = new javax.swing.text.html.HTMLEditorKit 
-	}
-    textArea.listenTo(textArea.mouse.clicks)
-    textArea.reactions += {
-        case e : swing.event.MouseClicked =>
-            val btn = e.peer.getButton
-            if(btn == java.awt.event.MouseEvent.BUTTON3) {
-                val copypasta = new TextRClickMenu(textArea)
-                copypasta.show(textArea.peer, e.point.x, e.point.y)
-            }
-    }
-    contents = textArea
+  // formatting in this panel does indentation, but not syntax coloring.
+  val formatter = new syntax.SyntaxFormatter(EliRegexes, true, true)
+  
+  /**
+   * Displays an atom's parse string in textArea with Elision syntax formatting applied. 
+   * @param text          the atom's parse string.
+   * @param isComment    disables highlighting if true.
+   */
+  def parseStringFormat(text : String, isComment : Boolean) = {
+    // determine the current character width of the textArea.
+    val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 1
+    formatter.doesColoring = !isComment
     
-    
-    /**
-     * Displays an atom's parse string in textArea with Elision syntax highlighting applied. 
-     * @param text					the atom's parse string.
-     * @param disableHighlight		disables highlighting if true.
-     */
-    def parseStringHighlight(text : String, disableHighlight : Boolean = true) = {
-        // determine the current character width of the textArea.
-        val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 1
-        
-        // set the textArea's text to the resulting HTML-injected parse string.
-        textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + syntax.SyntaxFormatter.applyHTMLHighlight(text, disableHighlight, cols) + """</div>"""
-    }
+    // set the textArea's text to the resulting HTML-injected parse string.
+    textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + formatter.htmlFormat(text, cols) + """</div>"""
+  }
 }
 
 
 /** A scrolling pane for displaying an Elision atom's internal properties. */
 class EliAtomPropsPane extends ScrollPane {
-    val inset = SidePanel.inset
-    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
-    
-    /** The TextArea that displays the currently selected node's properties */
-	val textArea = new TextArea("",15,45) {
-		wordWrap = true
-		lineWrap = true
-		editable = false
-		border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-		font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
-		focusable = true
-	}
-    textArea.listenTo(textArea.mouse.clicks)
-    textArea.reactions += {
-        case e : swing.event.MouseClicked =>
-            val btn = e.peer.getButton
-            if(btn == java.awt.event.MouseEvent.BUTTON3) {
-                val copypasta = new TextRClickMenu(textArea)
-                copypasta.show(textArea.peer, e.point.x, e.point.y)
-            }
-    }
-    contents = textArea 
+  val inset = SidePanel.inset
+  horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+  verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+  
+  /** The TextArea that displays the currently selected node's properties */
+  val textArea = new TextArea("",15,45) {
+    wordWrap = true
+    lineWrap = true
+    editable = false
+    border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+    font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
+    focusable = true
+  }
+  textArea.listenTo(textArea.mouse.clicks)
+  textArea.reactions += {
+    case e : swing.event.MouseClicked =>
+      val btn = e.peer.getButton
+      if(btn == java.awt.event.MouseEvent.BUTTON3) {
+        val copypasta = new TextRClickMenu(textArea)
+        copypasta.show(textArea.peer, e.point.x, e.point.y)
+      }
+  }
+  contents = textArea 
 }
 
 

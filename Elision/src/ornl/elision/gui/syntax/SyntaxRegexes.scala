@@ -41,7 +41,7 @@ import scala.util.matching._
 
 import ornl.elision.gui._
 
-/** Provides regexes and some other useful data for performing syntax coloring in Eva. */
+/** Provides regexes and some other useful data for performing syntax coloring. */
 trait SyntaxRegexes {
     /** List of this syntax's regexes in the order of their priority. */
     val rList : List[Regex]
