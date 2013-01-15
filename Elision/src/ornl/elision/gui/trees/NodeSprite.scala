@@ -101,13 +101,13 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
   var expansion : Double = 0.1
   
   /** data for syntax highlighting and formatting */
-  private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = NodeSprite.formatter.format(term, NodeSprite.maxTermLength)
+  val formattedString = NodeSprite.formatter.format(term, NodeSprite.maxTermLength) //  private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = NodeSprite.formatter.format(term, NodeSprite.maxTermLength)
   
   /** The longest line of text in this node's label. */
-  var longestLine= ""
+//  var longestLine= ""
   
   /** An ArrayBuffer containing the lines of text in this node's label */
-  var termLines = new ArrayBuffer[String]
+/*  var termLines = new ArrayBuffer[String]
     
   // if the term is very long, separate it into multiple lines.
   val allLines = edibleTerm.split('\n')
@@ -118,15 +118,18 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
     
   }
   if(allLines.size > termLines.size) termLines += "..."
+  */
+  
+  
   
   /** Flag for drawing the node's label with syntax coloring. */
   var syntaxColoring = !mainGUI.config.disableNodeSyntaxColoring
   
   /** The node's width */
-  private val boxWidth = longestLine.length * NodeSprite.font.getSize * 0.66 + 5
+  private val boxWidth = formattedString.width * NodeSprite.font.getSize * 0.66 + 5
   
   /** The node's height */
-  private val boxHeight = (NodeSprite.font.getSize+5)*termLines.size // NodeSprite.font.getSize + 5
+  private val boxHeight = (NodeSprite.font.getSize+5)*formattedString.lines.size
   
   /** The node's renderable box shape. */
   val box = new RoundRectangle2D.Double(0, 0-boxHeight/2, boxWidth, boxHeight, 5, 5)
@@ -249,14 +252,17 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
    */
   private def drawLabel(g : Graphics2D) : Unit = {
     if(syntaxColoring && !isComment) {
+      /*
       var colorStack = new collection.mutable.Stack[java.awt.Color]
       var chompedChars = 0
             
       val startsCpy = txtClrStarts.clone
       val endsCpy = txtClrEnds.clone
       val colorsCpy = txtClrColors.clone
+      */
       
       /** Changes the current color if our current index in the text requires it. */
+      /*
       def checkForNewColor(pos : Int) : Unit = {
         // are we at a color end?
         if(!endsCpy.isEmpty && pos == endsCpy(0) - chompedChars) {
@@ -308,10 +314,26 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
         
         chompedChars += curLine.size+1
       } // endfor
+      */
+      
+      for(i <- 0 until formattedString.lines.size) {
+        val line = formattedString.lines(i)
+        for((j, substr) <- line.substrings) {
+          g.setColor(substr.color)
+          g.drawString(substr.toString, (3 + j*(NodeSprite.font.getSize*0.6)).toInt, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+        }
+      }
       
     } else {
+      /*
       for(i <- 0 until termLines.size) 
         g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+      */
+      
+      for(i <- 0 until formattedString.lines.size) {
+        val line = formattedString.lines(i)
+        g.drawString(line.toString, 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+      }
     } // endif
   }
     
