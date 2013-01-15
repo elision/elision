@@ -35,42 +35,36 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.elision
+package ornl.elision.gui.trees
 
-import java.awt._
-import ornl.elision.gui._
-import ornl.elision.gui.trees._
-import sage2D.GamePanel
+import javax.swing.JPopupMenu
+import javax.swing.JMenuItem
+import java.awt.event.ActionListener
+import java.awt.event.ActionEvent
 
-/** An extension of TreeVisPanel that handles some Elision-specific functions. */
-class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
-    var selectingRuleLHS = false
-    
-    override def selectNode(clickedNode : NodeSprite) : Unit = {
-        super.selectNode(clickedNode)
-        
-        // Interactive rule creation: User selects an atom node for the LHS and then 
-        // inputs the RHS and saves it to an eli file.
-        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
-            val ruleDia = new RulePredDialog(clickedNode.term)
-            selectingRuleLHS = false
-        }
+/** A menu that appears when a node is right-clicked. */
+class NodeRightClickMenu extends JPopupMenu with ActionListener {
+  
+  /** Will open dialog for making a rewrite rule for the node. */
+  val createRuleItem = new JMenuItem("Create rewrite rule")
+  
+  /** A reference to the node that this menu is currently displayed for */
+  var node : NodeSprite = null
+  
+  def actionPerformed(e : ActionEvent) : Unit = {
+    val source = e.getSource
+    if(source == createRuleItem) {
+      val ruleDia = new ornl.elision.gui.elision.RulePredDialog(node.term)
     }
-    
-    override def render(g : Graphics2D) : Unit = {
-        super.render(g)
-        
-        val helpPromptY = (this.game.size.getHeight-10).toInt
-        g.setColor(new Color(0x000000))
-        if(selectingRuleLHS) {
-            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
-        }
-    }
+  }
+  
+  /** Displays the popup */
+  def show(invoker : java.awt.Component, x : Int, y : Int, node : NodeSprite) : Unit = {
+    super.show(invoker, x, y)
+    this.node = node
+  }
+  
+  // initialization
+  add(createRuleItem)
+  createRuleItem.addActionListener(this)
 }
-
-
-
-
-
-
-
