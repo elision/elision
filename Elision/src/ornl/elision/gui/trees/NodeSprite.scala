@@ -51,11 +51,12 @@ import ornl.elision.gui._
  * coordinates. In the case of a TreeSprite's root node, this should be 0,0.
  * @param term    A string to be used as this node's label. This will be the 
  *                parse string of the atom this node represents.
+ * @param tree    The TreeSprite this node belongs to.
  * @param parent  This node's parent NodeSprite.
  * @param isComment  Flag indicates that this node is just a documentation 
  *                   string and doesn't actually represent an atom.
  */
-class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = null, val isComment : Boolean = true) extends Sprite(0,0) {
+class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val parent : NodeSprite = null, val isComment : Boolean = true) extends Sprite(0,0) {
   
   /** This node's collection of children */
   val children = new ArrayBuffer[NodeSprite]
@@ -101,16 +102,16 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
   var expansion : Double = 0.1
   
   /** data for syntax highlighting and formatting */
-  val formattedString = NodeSprite.formatter.format(term, NodeSprite.maxTermLength)
+  val formattedString = tree.formatter.format(term, tree.maxTermLength)
   
   /** Flag for drawing the node's label with syntax coloring. */
   var syntaxColoring = !mainGUI.config.disableNodeSyntaxColoring
   
   /** The node's width */
-  private val boxWidth = formattedString.width * NodeSprite.font.getSize * 0.66 + 5
+  val boxWidth = formattedString.width * tree.font.getSize * 0.66 + 5
   
   /** The node's height */
-  private val boxHeight = (NodeSprite.font.getSize+5)*formattedString.lines.size
+  val boxHeight = (tree.font.getSize+5)*formattedString.lines.size
   
   /** The node's renderable box shape. */
   val box = new RoundRectangle2D.Double(0, 0-boxHeight/2, boxWidth, boxHeight, 5, 5)
@@ -135,18 +136,15 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
     val origFont = g.getFont  
     val origTrans = g.getTransform
     
-    g.setFont(NodeSprite.font)
+    g.setFont(tree.font)
     
     // decide whether or not to skip drawing this node due to being offscreen.
     val startPt = g.getTransform.transform(new Point2D.Double(0,box.y), null)
     val endPt = g.getTransform.transform(new Point2D.Double(box.width,box.y+box.height), null)
-    val isOnScreen = (NodeSprite.camera.zoom > 0.01 && startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0 && startPt.getY <= NodeSprite.camera.pHeight && endPt.getY >= 0)
+    val isOnScreen = (tree.camera == null || (tree.camera.zoom > 0.01 && startPt.getX <= tree.camera.pWidth && endPt.getX >= 0 && startPt.getY <= tree.camera.pHeight && endPt.getY >= 0))
     
     if(isOnScreen) 
       drawThis(g)
-    
-    // restore the graphics context's font
-    g.setFont(origFont)
 
     // draw the edges
     g.translate(boxWidth,0)
@@ -172,8 +170,9 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
         child.expansion += (1.0 - child.expansion)/10.0
     } // endfor
     
-    // restore the original transform
+    // restore the original graphics state
     g.setTransform(origTrans)
+    g.setFont(origFont)
   }
   
   
@@ -183,17 +182,17 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
     g.setColor(alphaColor(
       if(!children.isEmpty) {
         if(this.isSelected)
-          NodeSprite.selectedBoxColor
+          tree.selectedBoxColor
         else if(this.isComment)
-          NodeSprite.comBoxColor
+          tree.comBoxColor
         else
-          NodeSprite.boxColor
+          tree.boxColor
       } 
       else {
         if(this.isSelected)
-          NodeSprite.selectedLeafBoxColor
+          tree.selectedLeafBoxColor
         else
-          NodeSprite.leafBoxColor
+          tree.leafBoxColor
       }
     ))
     
@@ -201,17 +200,17 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
     
     // Choose box's border color.
     if(this.isSelected)
-      g.setColor(NodeSprite.selectedBorderColor)
+      g.setColor(tree.selectedBorderColor)
     else if(this.isComment)
-      g.setColor(NodeSprite.comBorderColor)
+      g.setColor(tree.comBorderColor)
     else 
-      g.setColor(NodeSprite.borderColor)
+      g.setColor(tree.borderColor)
 
     g.draw(box)
     
     // draw the label
-    g.setColor(alphaColor(NodeSprite.textColor))
-    if(NodeSprite.camera.zoom > 0.3) { 
+    g.setColor(alphaColor(tree.textColor))
+    if(tree.camera.zoom > 0.3) { 
       drawLabel(g)
     }
   }
@@ -237,14 +236,14 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
         val line = formattedString.lines(i)
         for((j, substr) <- line.substrings) {
           g.setColor(substr.color)
-          g.drawString(substr.toString, (3 + j*(NodeSprite.font.getSize*0.6)).toInt, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+          g.drawString(substr.toString, (3 + j*(tree.font.getSize*0.6)).toInt, (box.y - 3 + (tree.font.getSize + 3)*(i+1)).toInt)
         }
       }
       
     } else {
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
-        g.drawString(line.toString, 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
+        g.drawString(line.toString, 3, (box.y - 3 + (tree.font.getSize + 3)*(i+1)).toInt)
       }
     } // endif
   }
@@ -263,7 +262,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
     val origTrans = g.getTransform
     
     // use the unselected border color as the color for the edges
-    g.setColor(alphaColor(NodeSprite.comBorderColor))
+    g.setColor(alphaColor(tree.comBorderColor))
     
     // iterate over the children and obtain their relative positions to determine how to draw the edges.
     for(i <- 0 to children.size - 1) {
@@ -280,7 +279,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
       val startPt = g.getTransform.transform(new geom.Point2D.Double(0,0), null)
       val endPt = g.getTransform.transform(new geom.Point2D.Double(endX,0), null)
       
-      if(startPt.getX <= NodeSprite.camera.pWidth && endPt.getX >= 0) {
+      if(startPt.getX <= tree.camera.pWidth && endPt.getX >= 0) {
         // create the cubic curve shape for the edge. //  Then draw the edge.
         val edge = new CubicCurve2D.Double(0, 0, ctrlX, 0, ctrlX, endY, endX, endY)
                 
@@ -299,6 +298,11 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
 
   ////////// children processing/positioning methods
   
+  /** Apply method returns this node's child at index i. */
+  def apply(i : Int) : NodeSprite = {
+    children(i)
+  }
+  
   /**
    * Adds a child node to this NodeSprite.
    * @param node    The child being added to this node.
@@ -308,13 +312,25 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
     children += node
   }
   
+  /** 
+   * Produces a child node for this NodeSprite that is appended to its 
+   * children list. 
+   * @param term        The term contained by the child node.
+   * @param isComment   true if the child node's term will not be syntax colored.
+   * @return            The new child node.
+   */
+  def makeChild(term : String = "child node", isComment : Boolean = true) : NodeSprite = {
+    val child = new NodeSprite(term, tree, this, isComment)
+    addChild(child)
+    child
+  }
     
-    /** Removes the last child of this NodeSprite. */
-    def remLastChild : Boolean = {
-        if(children.size == 0) return false
-        children.remove(children.size - 1)
-        true
-    }
+  /** Removes the last child of this NodeSprite. */
+  def remLastChild : Boolean = {
+      if(children.size == 0) return false
+      children.remove(children.size - 1)
+      true
+  }
   
   /**
    * Obtains the position of a child node relative to this node.
@@ -356,7 +372,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
   
   /** Returns the excess height of this node in pixels beyond what it would normally be if its label were only 1 line. */
   def excessHeight : Int = {
-    boxHeight - (NodeSprite.font.getSize+5)
+    boxHeight - (tree.font.getSize+5)
   }
   
   ////////////  collision methods
@@ -401,41 +417,3 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
   }
 }
 
-
-/** Contains static data used by NodeSprites representing Elision data. */
-object NodeSprite {
-  /** A constant-width font used in the NodeSprites' labels. */
-  val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
-  
-  /** black, just black. */
-  val textColor = new Color(0x000000)
-  
-  /** comment color: Twilight lavender */
-  val comBoxColor = new Color(0xddddff)
-  val comBorderColor = new Color(0x5555aa)
-  
-  /** rewritten atom colors: Dash blue */
-  val boxColor = new Color(0xd7e9ff)
-  val borderColor = new Color(0x77a9dd)
-  
-  /** verbatim atom colors: Apple orange */
-  val verbBoxColor = new Color(0xffeecc)
-  val verbBorderColor = new Color(0xddaa77)
-  
-  /** selected colors : Flutter yellow */
-  val selectedBoxColor = new Color(0xffffcc)
-  val selectedBorderColor = new Color(0xaaaa55) 
-  
-  /** leaf colors: Rare grey */
-  val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
-  val selectedLeafBoxColor = new Color(0xffffee)
-  
-  /** The maximum length of a line of text in a node's label. */
-  val maxTermLength = 50
-  
-  /** A reference to a Camera object. This is used by NodeSprite only for clipping since the camera's transform is already applied before calling the NodeSprite's render method. */
-  var camera : Camera = null
-  
-  /** Elision syntax formatter. */
-  val formatter = new syntax.SyntaxFormatter(elision.EliRegexes, true, true)
-}

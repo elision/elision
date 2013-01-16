@@ -44,16 +44,63 @@ import sage2D.sprites.Sprite
  * Contrary to what the name suggests, this class is not some sort of mystical nature spirit.
  * Rather, it represents a tree data structure as a renderable sprite.
  */
-class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x,y) {
+class TreeSprite(x : Double, y : Double, var root : NodeSprite = null) extends Sprite(x,y) {
 	
 	/** The node currently selected in the tree */
 	var selectedNode : NodeSprite = null
+  
+  /** A constant-width font used in the NodeSprites' labels. */
+  val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
+  
+  /** black, just black. */
+  val textColor = new Color(0x000000)
+  
+  /** comment color: Twilight lavender */
+  val comBoxColor = new Color(0xddddff)
+  val comBorderColor = new Color(0x5555aa)
+  
+  /** rewritten atom colors: Dash blue */
+  val boxColor = new Color(0xd7e9ff)
+  val borderColor = new Color(0x77a9dd)
+  
+  /** verbatim atom colors: Apple orange */
+  val verbBoxColor = new Color(0xffeecc)
+  val verbBorderColor = new Color(0xddaa77)
+  
+  /** selected colors : Flutter yellow */
+  val selectedBoxColor = new Color(0xffffcc)
+  val selectedBorderColor = new Color(0xaaaa55) 
+  
+  /** leaf colors: Rare grey */
+  val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
+  val selectedLeafBoxColor = new Color(0xffffee)
+  
+  /** The maximum length of a line of text in a node's label. */
+  val maxTermLength = 50
+  
+  /** A reference to a Camera object. This is used by NodeSprite only for clipping since the camera's transform is already applied before calling the NodeSprite's render method. */
+  var camera : sage2D.Camera = null
+  
+  /** Elision syntax formatter. */
+  val formatter = new ornl.elision.gui.syntax.SyntaxFormatter(ornl.elision.gui.elision.EliRegexes, true, true)
 	
 	/** Begins recursive rendering of the tree beginning at the root. */
 	override def draw(g : Graphics2D) : Unit = {
 		root.render(g)
 	}
 	
+  
+  /** 
+   * Creates (or replaces) the root node for this tree. 
+   * @param term      The root's label
+   * @isComment       If true, the root's label won't use syntax coloring.
+   * @return          The root node.
+   */
+  def makeRoot(term : String = "Root", isComment : Boolean = true) : NodeSprite = {
+    root = new NodeSprite(term, this, null, isComment)
+    root
+  }
+  
 	
 	/**	
 	 * Detects collisions between the mouse and the tree's decompressed nodes.
@@ -208,7 +255,7 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			node.numLeaves += math.max(1,childsLeaves)
 		}
 		
-		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5) + 0.5).toInt 
+		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(font.getSize+5) + 0.5).toInt 
 		node.numLeaves
 	}
 	
@@ -285,29 +332,32 @@ object TreeSprite {
 	 * welcome message and some basic instructions.
 	 */
   def buildWelcomeTree : TreeSprite = {
-    val realroot = new NodeSprite("root")
-      val root0 = addChild("Welcome to the ",realroot)
-      val root = addChild("Elision Visualization Assistant (Eva)!",realroot)
-        val node1 = addChild("To create a rewrite tree visualization,", root)
-        val node2 = addChild("simply do one of the following: ",root)
-          addChild("Enter input into the ", node2)
-          addChild("onboard Elision REPL, below.", node2)
-          addChild("OR",node2)
-          addChild("Use File -> Open to open a file ",node2)
-          addChild("containing Elision input.", node2)
+    val tree = new TreeSprite(0,0)
+    
+    val root = tree.makeRoot("root")
+      root.makeChild("Welcome to the ") // addChild("Welcome to the ",realroot)
+      root.makeChild("Elision Visualization Assistant (Eva)!") // addChild("Elision Visualization Assistant (Eva)!",realroot)
+        root(1).makeChild("To create a rewrite tree visualization,") // addChild("To create a rewrite tree visualization,", root2)
+        root(1).makeChild("simply do one of the following: ") // addChild("simply do one of the following: ",root2)
+          root(1)(1).makeChild("Enter input into the ") // addChild("Enter input into the ", node2)
+          root(1)(1).makeChild("onboard Elision REPL, below.") // addChild("onboard Elision REPL, below.", node2)
+          root(1)(1).makeChild("OR") // addChild("OR",node2)
+          root(1)(1).makeChild("Use File -> Open to open a file ") // addChild("Use File -> Open to open a file ",node2)
+          root(1)(1).makeChild("containing Elision input.") // addChild("containing Elision input.", node2)
 
-    new TreeSprite(0,0,realroot)
+    tree
   }
 	
 	
 	/**
 	 * Used by some of the TreeSprite factory methods.
 	 */
-	private def addChild(term : String, parent : NodeSprite) : NodeSprite = {
+/*	private def addChild(term : String, parent : NodeSprite) : NodeSprite = {
 		val node = new NodeSprite(term, parent)
 		parent.addChild(node)
 		node
 	}
+*/
 }
 
 

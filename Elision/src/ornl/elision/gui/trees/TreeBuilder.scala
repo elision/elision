@@ -53,6 +53,9 @@ class TreeBuilder extends Thread {
     /** The current id->NodeSprite table being used by Elision's current method scope for referencing local NodeSprites. */
     var curScope : HashMap[String, NodeSprite] = null
     
+    /** The tree currently being built. */
+    var treeSprite : TreeSprite = null
+    
     /** The root NodeSprite for the tree currently being built. */
     var root : NodeSprite = null
     
@@ -100,7 +103,8 @@ class TreeBuilder extends Thread {
 //        System.err.println("\nMaking a new tree")
         
         clear
-        root = new NodeSprite(rootLabel)
+        treeSprite = new TreeSprite(0,0)
+        root = treeSprite.makeRoot(rootLabel) // new NodeSprite(rootLabel)
         root.properties = ""
         pushTable("root")
         curScope += ("root" -> root)
@@ -117,7 +121,7 @@ class TreeBuilder extends Thread {
     def finishTree : TreeSprite = {
 //        System.err.println("Finishing current tree")
         
-        val treeSprite = new TreeSprite(0,0,root)
+      //  val treeSprite = new TreeSprite(0,0,root)
         clear
         treeSprite
     }
@@ -361,36 +365,36 @@ class TreeBuilder extends Thread {
     
     /** Helper method used to create a comment NodeSprite */
     private def createCommentNode(commentAtom : String, parent : NodeSprite) : NodeSprite = {
-        val node = new NodeSprite(commentAtom, parent, true)
-        parent.addChild(node)
-        nodeCount += 1
-        enforceNodeLimit
-        node
+      val node = parent.makeChild(commentAtom, true) // new NodeSprite(commentAtom, parent, true)
+      // parent.addChild(node)
+      nodeCount += 1
+      enforceNodeLimit
+      node
     }
     
     /** Helper method used to create an atom NodeSprite */
     private def createAtomNode(atom : ornl.elision.core.BasicAtom, parent : NodeSprite) : NodeSprite = {
-        val node = new NodeSprite(atom.toParseString, parent, false)
-        
-        // Set the node's properties String with the atom's basic properties.
-        // Later it might be a good idea to use matching to set the properties according to the type of BasicAtom used.
-        node.properties = "Class: " + atom.getClass + "\n\n"
-        node.properties = "Class: " + atom.getClass + "\n\n"
-		node.properties += "Type: " + atom.theType + "\n\n"
-		node.properties += "De Bruijn index: " + atom.deBruijnIndex + "\n\n"
-		node.properties += "Depth: " + atom.depth + "\n\n"
-		
-		node.properties += "Is bindable: " + atom.isBindable + "\n\n"
-		node.properties += "Is false: " + atom.isFalse + "\n\n"
-		node.properties += "Is true: " + atom.isTrue + "\n\n"
-		node.properties += "Is De Bruijn index: " + atom.isDeBruijnIndex + "\n\n"
-		node.properties += "Is constant: " + atom.isConstant + "\n\n"
-		node.properties += "Is term: " + atom.isTerm + "\n\n"
-        
-        if(parent != null) parent.addChild(node)
-        nodeCount += 1
-        enforceNodeLimit
-        node
+      val node = parent.makeChild(atom.toParseString, false) // new NodeSprite(atom.toParseString, parent, false)
+      
+      // Set the node's properties String with the atom's basic properties.
+      // Later it might be a good idea to use matching to set the properties according to the type of BasicAtom used.
+      node.properties = "Class: " + atom.getClass + "\n\n"
+      node.properties = "Class: " + atom.getClass + "\n\n"
+      node.properties += "Type: " + atom.theType + "\n\n"
+      node.properties += "De Bruijn index: " + atom.deBruijnIndex + "\n\n"
+      node.properties += "Depth: " + atom.depth + "\n\n"
+      
+      node.properties += "Is bindable: " + atom.isBindable + "\n\n"
+      node.properties += "Is false: " + atom.isFalse + "\n\n"
+      node.properties += "Is true: " + atom.isTrue + "\n\n"
+      node.properties += "Is De Bruijn index: " + atom.isDeBruijnIndex + "\n\n"
+      node.properties += "Is constant: " + atom.isConstant + "\n\n"
+      node.properties += "Is term: " + atom.isTerm + "\n\n"
+      
+      // if(parent != null) parent.addChild(node)
+      nodeCount += 1
+      enforceNodeLimit
+      node
     }
     
     /** Helper method checks to if we've reached our depth limit for tree building. */
@@ -427,11 +431,11 @@ class TreeBuilder extends Thread {
     /** Enforces the node limit by causing a fatal error when we've reached our node limit. */
     private def enforceNodeLimit : Boolean = {
         if(nodeCount >= mainGUI.config.nodeLimit && mainGUI.config.nodeLimit > 1) {
-            val node = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , root, true)
-            System.err.println("Fatal error during TreeBuilder tree construction. \n\tEva tree node limit " + mainGUI.config.nodeLimit + " has been reached!")
-            root.addChild(node)
-            val node2 = new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , subroot, true)
-            subroot.addChild(node2)
+            val node = root.makeChild("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. ", true) // new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , root, true)
+            System.err.println("Error during TreeBuilder tree construction. \n\tEva tree node limit " + mainGUI.config.nodeLimit + " has been reached!")
+          //  root.addChild(node)
+            val node2 = subroot.makeChild("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. ", true) // new NodeSprite("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. " , subroot, true)
+          //  subroot.addChild(node2)
             fatalError = true
             true
         }
@@ -440,7 +444,12 @@ class TreeBuilder extends Thread {
     
     
     
-    /** Loads a TreeSprite from a treexml file. */
+    /** 
+     * Loads a TreeSprite from a treexml file. 
+     * @deprecated  Eva no longer saves tree visualizations as XML files, but
+     *              this method remains here to load Eva XML files for 
+     *              backwards compatibility.
+     */
     def loadFromFile(file : java.io.File) : TreeSprite = {
         
         /** Extracts a named attribute from an xml node. If the attribute doesn't exist, "", the empty string, is returned. */
@@ -493,7 +502,8 @@ class TreeBuilder extends Thread {
             val rLabelKey = extrAtt(rootXML, "label").toInt
             val rPropsKey = extrAtt(rootXML, "props").toInt
             
-            val rootNode = new NodeSprite(labelMap(rLabelKey))
+            treeSprite = new TreeSprite(0,0)
+            val rootNode = treeSprite.makeRoot(labelMap(rLabelKey)) // new NodeSprite(labelMap(rLabelKey))
             rootNode.properties = unreplaceNLs(propsMap(rPropsKey))
             
             // recursively load the rest of the tree.
@@ -510,9 +520,9 @@ class TreeBuilder extends Thread {
                     val nodeIsComment = extrAtt(nodeXML, "com").toBoolean
                     
                     // create the node and add it to subroot's list of children.
-                    val node = new NodeSprite(nodeLabel, subroot, nodeIsComment)
+                    val node = subroot. makeChild(nodeLabel, nodeIsComment) // new NodeSprite(nodeLabel, subroot, nodeIsComment)
                     node.properties = nodeProps
-                    subroot.addChild(node)
+                    //subroot.addChild(node)
                     
                     // recursive call
                     recLoadTree(node, nodeXML)
@@ -521,7 +531,7 @@ class TreeBuilder extends Thread {
             recLoadTree(rootNode, rootXML)
             
             // return the loaded tree.
-            new TreeSprite(0, 0, rootNode)
+            treeSprite // new TreeSprite(0, 0, rootNode)
         }
         catch {
             case ex : Throwable => 
@@ -609,7 +619,8 @@ class TreeBuilder extends Thread {
             val rPropsKey = anyToInt(rootMap("props"))
             
             // construct the root node.
-            val rootNode = new NodeSprite(labelMap(rLabelKey))
+            treeSprite = new TreeSprite(0,0)
+            val rootNode = treeSprite.makeRoot(labelMap(rLabelKey)) // new NodeSprite(labelMap(rLabelKey))
             rootNode.properties = propsMap(rPropsKey)
             
             
@@ -634,9 +645,9 @@ class TreeBuilder extends Thread {
                     val nodeIsComment = anyToBoolean(nodeMap("com"))
                     
                     // construct this node and add it as a child to its parent node
-                    val node = new NodeSprite(nodeLabel, subroot, nodeIsComment)
+                    val node = subroot.makeChild(nodeLabel, nodeIsComment) // new NodeSprite(nodeLabel, subroot, nodeIsComment)
                     node.properties = nodeProps
-                    subroot.addChild(node)
+                  //  subroot.addChild(node)
                     
                     // recursive call
                     recLoadTree(node, nodeMap)
@@ -646,7 +657,7 @@ class TreeBuilder extends Thread {
             // Recursively construct the rest of the tree
             recLoadTree(rootNode, rootMap)
             
-            new TreeSprite(0,0,rootNode)
+            treeSprite // new TreeSprite(0,0,rootNode)
         }
         
         
@@ -845,7 +856,7 @@ class TreeBuilder extends Thread {
                     {propsMapXML}
                     {rootXML}
                     </treexml>
-        	XML.save(path, all)
+          XML.save(path, all)
             true
         }
         catch {
@@ -855,9 +866,9 @@ class TreeBuilder extends Thread {
 
     
     /** Starts a new thread in which the TreeBuilder's actor will run. */
-	override def run : Unit = {
-		tbActor.start
-	}
+  override def run : Unit = {
+    tbActor.start
+  }
     
 }
 
@@ -868,8 +879,8 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
     var ignoreNextTree = false
     
     def act() = {
-		loop {
-			receive {
+    loop {
+      receive {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a TreeBuilder command received from the Elision.
                     processTreeBuilderCommands(cmd, args)

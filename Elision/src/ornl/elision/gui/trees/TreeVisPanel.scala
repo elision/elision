@@ -61,7 +61,7 @@ import ornl.elision.gui._
 class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   /** The panel's camera for panning around and zooming in the visualization */
   val camera = new Camera(0, 0, 640, 480)
-  NodeSprite.camera = camera
+ // NodeSprite.camera = camera
   
   /** Keeps track of the mouse's position in world coordinates */
   var mouseWorldPosition : Point2D = new Point2D.Double(0,0)
@@ -275,6 +275,7 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
     g.setTransform(treeVis.camera.getTransform)
     
     //testPaint(g)
+    treeVis.treeSprite.camera = treeVis.camera
     treeVis.treeSprite.render(g)
     
     // dispose of the graphics context
