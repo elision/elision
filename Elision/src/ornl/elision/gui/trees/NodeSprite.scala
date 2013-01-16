@@ -101,26 +101,7 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
   var expansion : Double = 0.1
   
   /** data for syntax highlighting and formatting */
-  val formattedString = NodeSprite.formatter.format(term, NodeSprite.maxTermLength) //  private var (edibleTerm, txtClrStarts, txtClrColors, txtClrEnds) = NodeSprite.formatter.format(term, NodeSprite.maxTermLength)
-  
-  /** The longest line of text in this node's label. */
-//  var longestLine= ""
-  
-  /** An ArrayBuffer containing the lines of text in this node's label */
-/*  var termLines = new ArrayBuffer[String]
-    
-  // if the term is very long, separate it into multiple lines.
-  val allLines = edibleTerm.split('\n')
-  while(termLines.size < 9 && allLines.size > termLines.size) {
-    val str = allLines(termLines.size)
-    if(str.size > longestLine.size) longestLine = str
-    termLines += str
-    
-  }
-  if(allLines.size > termLines.size) termLines += "..."
-  */
-  
-  
+  val formattedString = NodeSprite.formatter.format(term, NodeSprite.maxTermLength)
   
   /** Flag for drawing the node's label with syntax coloring. */
   var syntaxColoring = !mainGUI.config.disableNodeSyntaxColoring
@@ -252,70 +233,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
    */
   private def drawLabel(g : Graphics2D) : Unit = {
     if(syntaxColoring && !isComment) {
-      /*
-      var colorStack = new collection.mutable.Stack[java.awt.Color]
-      var chompedChars = 0
-            
-      val startsCpy = txtClrStarts.clone
-      val endsCpy = txtClrEnds.clone
-      val colorsCpy = txtClrColors.clone
-      */
-      
-      /** Changes the current color if our current index in the text requires it. */
-      /*
-      def checkForNewColor(pos : Int) : Unit = {
-        // are we at a color end?
-        if(!endsCpy.isEmpty && pos == endsCpy(0) - chompedChars) {
-          val prevColor = colorStack.pop
-          g.setColor(prevColor)
-        
-          // get next color end
-          val thisEnd = endsCpy(0)
-          endsCpy.remove(0)
-        } // endif
-        
-        // are we at a color start?
-        if(!startsCpy.isEmpty && pos == startsCpy(0) - chompedChars) {
-          val newColor = colorsCpy(0)
-          colorStack = colorStack.push(g.getColor)
-          g.setColor(newColor)
-          
-          // get next color start
-          val thisStart = startsCpy(0)
-          startsCpy.remove(0)
-          
-          // get next color
-          colorsCpy.remove(0)
-        } // endif
-      } // enddef
-            
-      // draw each line
-      for(i <- 0 until termLines.size) {
-        var j : Int = 0
-        val curLine = termLines(i)
-
-        // process the characters in the current line until they have all been drawn.
-        checkForNewColor(j)    
-        while(j < curLine.size) {       
-          // figure out the indices for this draw.
-          var k = curLine.size
-            val nextStart = if(startsCpy.isEmpty) -9999 else startsCpy(0) - chompedChars
-            val nextEnd = if(endsCpy.isEmpty) -9999 else endsCpy(0) - chompedChars
-            if(nextStart >= j && nextStart < k) k = nextStart
-            if(nextEnd >= j && nextEnd < k) k = nextEnd
-            
-            // use the indices we obtained to create a substring of the current string and draw it with our current color.
-            val substr = curLine.substring(j,k)
-            g.drawString(substr, (3 + j*(NodeSprite.font.getSize*0.6)).toInt, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
-
-            j = k
-            checkForNewColor(j)
-        } // endwhile
-        
-        chompedChars += curLine.size+1
-      } // endfor
-      */
-      
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
         for((j, substr) <- line.substrings) {
@@ -325,11 +242,6 @@ class NodeSprite(var term : String = "Unnamed Node", val parent : NodeSprite = n
       }
       
     } else {
-      /*
-      for(i <- 0 until termLines.size) 
-        g.drawString(termLines(i), 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)
-      */
-      
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
         g.drawString(line.toString, 3, (box.y - 3 + (NodeSprite.font.getSize + 3)*(i+1)).toInt)

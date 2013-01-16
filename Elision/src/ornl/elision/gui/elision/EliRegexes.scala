@@ -203,7 +203,7 @@ object EliWebColors {
   /** Everfree green */
   val comments = "#007700"
   
-  /** Rare gray */
+  /** Derp gray */
   val stringLits = "#888888"
   
   /** Pie magenta */
