@@ -193,7 +193,7 @@ object Memo {
     
     // We are doing caching. Actually look in the cache.
     var r: Option[(BasicAtom, Boolean)] = None
-    val t0 = System.nanoTime
+    val t0 = System.currentTimeMillis()
     if (_normal.contains(((atom.hashCode, atom.otherHashCode),rulesets))) {
       r = Some((atom, false))
     } else {
@@ -208,9 +208,9 @@ object Memo {
     }
 
     // Return the cache lookup result.
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** Memo: lookup time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _normal.size);
     }
     return r
   }
@@ -242,9 +242,9 @@ object Memo {
         _cache(((atom.hashCode, atom.otherHashCode), rulesets)) = (value, level)
       }
     }
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** Memo: add time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    val t1 = System.currentTimeMillis()
+    if ((t1.toDouble-t0.toDouble) > 2000) {
+      println("** Memo: add time = " + (t1.toDouble-t0.toDouble) + "(ms)")
     }
   }
 }

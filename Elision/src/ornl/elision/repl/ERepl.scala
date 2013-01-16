@@ -369,6 +369,7 @@ class ERepl extends Processor {
     // Load all the startup definitions, etc.
     console.reset
     console.quiet = quiet
+    console.write("bootstrapFile = " + bootstrapFile)
     if (!read(bootstrapFile, false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load " + bootstrapFile + ".  Cannot continue.")
