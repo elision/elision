@@ -48,6 +48,10 @@ import ornl.elision.gui._
  */
 class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean = true, var doesIndent : Boolean = false) {
   
+  if(regexes == null) {
+    doesColoring = false
+  }
+  
   /** A string representing a tab in way that HTML can understand. */
   var htmlTab = """&nbsp;&nbsp;&nbsp;"""
   
@@ -164,14 +168,12 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
   
   
   /** 
-   * Determines the indices at which to insert line breaks and indentations in
-   * a source string.
+   * Applies linewrapping and indentation (if doesIndent is true) to a string.
    * @param txt       the parse string for which we are computing where to insert 
    *                  line breaks and indentations.
    * @param maxCols   the character width of the component the parse string is 
    *                  going to be displayed in. 
-   * @return          two ListBuffers containing indices in txt to insert line 
-   *                  breaks and tabs at, respectively.
+   * @return          txt with linewrapping and indentation applied.
    */
   def _lineWrap(txt : String, maxCols : Int) : String = { 
     // consumed text data
@@ -187,13 +189,15 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
     while(edibleTxt.size > maxCols) {
     
       // Apply word wrapping.
-      val breakPt = _wordWrap(edibleTxt, maxCols)
+      val (breakPt, isNewLine) = _wordWrap(edibleTxt, maxCols)
       
       // chomp the characters before the break point. Om nom nom...
-      val curLine = edibleTxt.take(breakPt)
-      result += curLine + "\n"
+      var curLine = edibleTxt.take(breakPt)
       
-    //  chompedChars += breakPt // - tabSize*(indents % maxIndents)
+      result += curLine
+      if(!isNewLine)
+        result += "\n"
+      
       edibleTxt = edibleTxt.drop(breakPt)
       
       // Apply indention if our syntax uses it.
@@ -239,17 +243,18 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
    *                  to insert a line break that will satisfy word wrapping.
    * @param maxCols   The character width of the component the parse string is 
    *                  going to be displayed in. 
-   * @return          The index in txt in which our wordwrap-friendly 
-   *                  linebreak will be inserted.
+   * @return          A tuple containing the index in txt in which our wordwrap-friendly 
+   *                  linebreak will be inserted and a boolean that is true iff
+   *                  the linebreak resulted from encountering a \n character.
    */
-  def _wordWrap(txt : String, maxCols : Int) : Int = {
+  def _wordWrap(txt : String, maxCols : Int) : (Int, Boolean) = {
     var index = maxCols
     var foundIt = false
     
     // if a '\n' exists before maxCols in txt, then just return its index.
     val newLineIndex = txt.indexOf('\n')
     if(newLineIndex != -1 && newLineIndex < maxCols) {
-      return newLineIndex+1
+      return (newLineIndex+1, true)
     }
     
     // search backwards from maxCols until we reach a nonalphanumeric character.
@@ -259,9 +264,9 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
     }
     
     if(!foundIt) 
-      maxCols
+      (maxCols, false)
     else 
-      index
+      (index, false)
   }
   
   /** 
@@ -276,9 +281,8 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
   
   
   /** 
-   * Applies c-style line/word wrapping and indentation (if the syntax uses
-   * indentation) to a string. Returns the formatted string and data for 
-   * manually applying syntax coloring at indices in the result string.
+   * Applies line/word wrapping, indentation (if doesIndent is true), and
+   * syntax coloring (if doesColoring is true) to a String. 
    * @param text        the source string which we are formatting.
    * @param maxCols     The character width of the component the parse string is 
    *                    going to be displayed in. 
@@ -317,11 +321,6 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
     // new SyntaxFormattedString(result, resultStarts, resultColors, resultEnds)
     new SyntaxFormattedString(result, starts, resultColors, ends)
   }
-  
-  
-  
-  
-  
   
   
   
