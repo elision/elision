@@ -75,28 +75,28 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   ConsolePanel.textArea = console
     
     
-    /** The ScrollPane containing the console. */
-    val scrollingConsolePanel = new ScrollPane {
-        background = mainGUI.bgColor
-        border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-        
-        horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
-        verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
+  /** The ScrollPane containing the console. */
+  val scrollingConsolePanel = new ScrollPane {
+    background = mainGUI.bgColor
+    border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+    
+    horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
+    verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
 
-        preferredSize = new Dimension(Integer.MAX_VALUE, 300)
-        
-        contents = console
-    }
+    preferredSize = new Dimension(Integer.MAX_VALUE, 300)
     
-    contents += scrollingConsolePanel
-    
-    
-    listenTo(this)
-    reactions += {
-        case re : event.UIEvent =>
-            ConsolePanel.maxCols = (scrollingConsolePanel.size.getWidth/ConsolePanel.charWidth).toInt - 4
-            GUIActor ! ("guiColumns", ConsolePanel.maxCols - 1)
-    }
+    contents = console
+  }
+  
+  contents += scrollingConsolePanel
+  
+  
+  listenTo(this)
+  reactions += {
+    case re : event.UIEvent =>
+      ConsolePanel.maxCols = (scrollingConsolePanel.size.getWidth/ConsolePanel.charWidth).toInt - 4
+      GUIActor ! ("guiColumns", ConsolePanel.maxCols - 1)
+  }
     
 
   // execute the Elision REPL to run in another thread.
@@ -268,6 +268,8 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
           // Received a new chunk of output. Format it and append it to past output.
           try {
             var newTxt = _newTxt
+            
+            /*
             if(newTxt == "\n") 
               newTxt = """<br/>"""
             else {
@@ -277,10 +279,19 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
               else 
                 newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
               
-              newTxt = _replaceWithHTML(newTxt)
               if(applyFormatting && reduceLines) 
                 newTxt = _reduceTo9Lines(newTxt)
             } // endifelse
+            */
+            
+            // Inject our new text with HTML tags for formatting.
+            if(applyFormatting) 
+              newTxt = _reduceTo9Lines(ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols))
+            else 
+              newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
+            
+          //  if(applyFormatting && reduceLines) 
+          //    newTxt = _reduceTo9Lines(newTxt)
             
             // append our processed new text to our previous output.
             _updateReadOnlyText(newTxt)
@@ -293,8 +304,9 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
             _anchorPos = ConsolePanel.getLength
             textArea.caret.position = _anchorPos
               
-          } catch {
-              case ioe : Exception => ioe.printStackTrace
+          } 
+          catch {
+            case ioe : Exception => ioe.printStackTrace
           }
         case _ =>
       } // endactorreact
@@ -318,9 +330,13 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
    * Reduces a new line of HTML-formatted output so that it doesn't exceed 9 lines. 
    * If it does, it is cut off and appended with "..." below it. 
    * @param txt    The HTML string we are reducing to no more than 9 lines.
-   * @return      Our string reduced to no more than 9 lines when interpretted as HTML. If it exceeds 9 lines, "..." is appended on the line below the 9th line.
+   * @return      Our string reduced to no more than 9 lines when interpretted as HTML. 
+   *              If it exceeds 9 lines, "..." is appended on the line below the 9th line.
    */
   def _reduceTo9Lines(txt : String) : String = {
+    if(!reduceLines)
+      return txt
+      
     var lineBreakCount = 1
     for(myMatch <- syntax.SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
       if(lineBreakCount == ConsolePanel.printMaxRows) {
@@ -366,33 +382,6 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
     } // endmatch
   }
   
-  /** 
-   * Replaces special characters (' ', '\t', and '\n') in a String in a way that HTML can interpret them correctly.
-   * @param txt    The String we are replacing characters in.
-   * @return      The modified txt.
-   */
-  def _replaceWithHTML(txt : String) : String = {
-    var result = txt
-    
-    result = result.replaceAllLiterally(" ","""&nbsp;""")
-    result = result.replaceAllLiterally("\t","""&nbsp;&nbsp;&nbsp;""")
-    
-    result
-  }
-  
-  /**
-   * Replaces angle brackets (< and >) with their equivalent in HTML so that they won't be interpretted accidentally as HTML tags. 
-   * @param txt    The String we are replacing < and >'s in.
-   * @return      The modified txt.
-   */
-  def _replaceAngleBrackets(txt : String) : String = {
-    var result = txt
-    
-    result = result.replaceAllLiterally("<","""&lt;""")
-    result = result.replaceAllLiterally(">","""&gt;""")
-    
-    result
-  }
   
   /** 
    * Appends new already-processed text to our readOnlyOutput. 
