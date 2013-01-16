@@ -34,6 +34,7 @@ import scala.collection.mutable.ListBuffer
 import org.junit.Assert._
 import org.junit.Test
 import org.junit.Before
+import scala.collection.mutable.BitSet
 
 /**
  * @author jb9
@@ -46,15 +47,14 @@ class MemoTest extends AssertionsForJUnit {
   @Test
   def testPut() {
     val test = Memo
-    test.put(atom, rulesets, value, level)
+    val bitset = new BitSet
+    for (i <- 1 to 1000) {
+      test.put(Variable(i, i.toString), bitset, Literal(i), i % 5)
+      test.put(Variable("test " + i, "test_val " + i), bitset, Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), i % 10)
+    }
+    for (i <- 1 to 2010) {
+      test.get(Literal(i), bitset)
+    }
+    println(test.showStats)
   }
-
-  /**
-   * Test method for {@link ornl.elision.core.Memo#get(ornl.elision.core.BasicAtom, scala.collection.mutable.BitSet)}.
-   */
-  @Test
-  def testGet() {
-    fail("Not yet implemented");
-  }
-
 }

@@ -210,7 +210,7 @@ object Memo {
     // Return the cache lookup result.
     val t1 = System.currentTimeMillis()
     if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _normal.size);
+      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
     }
     return r
   }
@@ -232,7 +232,7 @@ object Memo {
     //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
-    val t0 = System.nanoTime
+    val t0 = System.currentTimeMillis()
     val lvl = 0 max level min (_LIMIT-1)
     _normal.synchronized {
       _normal(((value.hashCode, value.otherHashCode), rulesets)) = Unit
@@ -243,8 +243,8 @@ object Memo {
       }
     }
     val t1 = System.currentTimeMillis()
-    if ((t1.toDouble-t0.toDouble) > 2000) {
-      println("** Memo: add time = " + (t1.toDouble-t0.toDouble) + "(ms)")
+    if (t1 - t0 > 2000) {
+      println("** Memo: add time = " + (t1 - t0) + "(ms)")
     }
   }
 }
