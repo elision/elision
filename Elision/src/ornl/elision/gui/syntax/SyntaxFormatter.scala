@@ -60,6 +60,8 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
   /** The number of characters making up a tab. Default 3. */
   def tabSize = _fauxTab.size
   
+  var showColorData = false
+  
   def tabSize_= (size : Int):Unit = {
     _fauxTab = ""
     htmlTab = ""
@@ -171,14 +173,10 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
    * @return          two ListBuffers containing indices in txt to insert line 
    *                  breaks and tabs at, respectively.
    */
-  def _lineWrap(txt : String, maxCols : Int) : (ListBuffer[Int], ListBuffer[Int]) = {
+  def _lineWrap(txt : String, maxCols : Int) : String = { 
     // consumed text data
-    var chompedChars = 0
     var edibleTxt = txt
-    
-    // returned indices lists
-    val breaks = new ListBuffer[Int]
-    val tabs = new ListBuffer[Int]
+    var result = ""
     
     // indentation data
     var indents = 0
@@ -190,11 +188,12 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
     
       // Apply word wrapping.
       val breakPt = _wordWrap(edibleTxt, maxCols)
-      breaks += chompedChars + breakPt - tabSize*(indents % maxIndents)
       
       // chomp the characters before the break point. Om nom nom...
       val curLine = edibleTxt.take(breakPt)
-      chompedChars += breakPt // - tabSize*(indents % maxIndents)
+      result += curLine + "\n"
+      
+    //  chompedChars += breakPt // - tabSize*(indents % maxIndents)
       edibleTxt = edibleTxt.drop(breakPt)
       
       // Apply indention if our syntax uses it.
@@ -222,68 +221,15 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
         } // endwhile
         
         // apply the number of indentations we counted.
-        chompedChars -= tabSize*(indents % maxIndents)
         for(i <- 0 until indents % maxIndents) {
-          edibleTxt = _fauxTab + edibleTxt
-          tabs += chompedChars
+          edibleTxt = spaceTab + edibleTxt
         }
       } // endif
     } // endwhile
-    
-    // check if there is one more '\n' character that needs to be accounted 
-    // for in the leftover edibleTxt.
-    val lastLineBreak = edibleTxt.indexOf('\n')
-    if(lastLineBreak != -1) {
-      breaks += chompedChars + lastLineBreak
-    }
-    
-    (breaks, tabs)
+    result += edibleTxt
+
+    result
   }
-  
-  
-  /**
-   * Determines where to insert word/line-wrap friendly break points in a 
-   * string without applying indentation.
-   * @param txt               The string we are determining line breaks for.
-   * @param maxCols           The character width of the component the parse 
-   *                          string is going to be displayed in. 
-   * @param replaceNewLines   A flag that tells this method to mark indices 
-   *                          where it finds '\n' characters. Default true.
-   * @return                  A list of indices where new lines should be 
-   *                          inserted to enforce word/line wrapping.
-   */
-  /*
-  def _lineWrapNoIndent(txt : String, maxCols : Int, replaceNewLines : Boolean = true) : ListBuffer[Int] = {
-    // consumed text data
-    var chompedChars = 0
-    var edibleTxt = txt
-    
-    // returned list of linebreak indices
-    val breaks = new ListBuffer[Int]
-    
-    // apply line breaks as long as our remaining text is longer than the
-    // maximum allowed columns.
-    while(edibleTxt.size > maxCols) {
-    
-      // apply word wrapping
-      val (breakPt, addToList) = _wordWrap(edibleTxt, maxCols, replaceNewLines)
-      if(addToList) 
-        breaks += chompedChars + breakPt
-      
-      // chomp the characters before the break point. Om nom nom...
-      chompedChars += breakPt
-      edibleTxt = edibleTxt.drop(breakPt)
-    }
-    
-    // check if there is one more '\n' character that needs to be accounted for in the leftover edibleTxt.
-    val lastLineBreak = edibleTxt.indexOf('\n')
-    if(lastLineBreak != -1 && replaceNewLines) {
-      breaks += chompedChars + lastLineBreak
-    }
-    
-    breaks
-  }
-  */
   
   
   
@@ -306,7 +252,7 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
       return newLineIndex+1
     }
     
-    // search backwards fro mmaxCols until we reach a nonalphanumeric character.
+    // search backwards from maxCols until we reach a nonalphanumeric character.
     while(!foundIt && index > 1) {
       index -= 1
       foundIt = !_isWordChar(txt.charAt(index))
@@ -328,29 +274,54 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
   }
   
   
+  
   /** 
-   * Finds the locations of all angle brackets (< and >) in txt. 
-   * @param txt     The string we are finding the position of <> characters in.
-   * @return        Two lists containing the indices of the txt's < and > 
-   *                characters, respectively.
+   * Applies c-style line/word wrapping and indentation (if the syntax uses
+   * indentation) to a string. Returns the formatted string and data for 
+   * manually applying syntax coloring at indices in the result string.
+   * @param text        the source string which we are formatting.
+   * @param maxCols     The character width of the component the parse string is 
+   *                    going to be displayed in. 
+   * @return            A SyntaxFormattedString object containing the formatted
+   *                    String and its colored components.
    */
-  def _locateAngleBrackets(txt: String) : (ListBuffer[Int], ListBuffer[Int]) = {
-    val ltMatches = new Regex("""([<])""", "all").findAllIn(txt).matchData
-    val gtMatches = new Regex("""([>])""", "all").findAllIn(txt).matchData
+  def format(text : String, maxCols : Int = 50) : SyntaxFormattedString = {
+    var result = _lineWrap(text, maxCols)
     
-    val ltList = new ListBuffer[Int]
-    val gtList = new ListBuffer[Int]
+    val starts = new ListBuffer[Int]
+    val colors = new ListBuffer[String]
+    val ends = new ListBuffer[Int]
     
-    for(myMatch <- ltMatches) {
-      ltList += myMatch.start
+    try {
+      if(doesColoring) {
+        _applyRegexes(result, 0, starts, colors, ends)
+        if(showColorData) {
+          System.err.println("----Color Data----")
+          System.err.println("starts: " + starts)
+          System.err.println("colors: " + colors)
+          System.err.println("ends: " + ends)
+        }
+      }
+    } 
+    catch {
+      case _ =>
+        // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
+        System.err.println("Error during syntax formatting :\n" + text) 
+    } 
+    
+    val resultColors = new ListBuffer[java.awt.Color]
+    for(strColor <- colors) {
+      resultColors += new java.awt.Color(Integer.parseInt(strColor.drop(1), 16))
     }
-    
-    for(myMatch <- gtMatches) {
-      gtList += myMatch.start
-    }
-    
-    (ltList,gtList)
+        
+    // new SyntaxFormattedString(result, resultStarts, resultColors, resultEnds)
+    new SyntaxFormattedString(result, starts, resultColors, ends)
   }
+  
+  
+  
+  
+  
   
   
   
@@ -363,129 +334,31 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
    * @return            The parse string with HTML tags inserted for formatting.
    */
   def htmlFormat(text : String, maxCols : Int = 50) : String = {
-    var result = text
-
-    // inserting HTML tags alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
-    var insertedChars = 0
+    val formattedString = format(text, maxCols)
     
-    // obtain the locations of angle brackets so we can convert them to be not interpretted by the EditorPane's HTML kit.
-    val (ltList,gtList) = _locateAngleBrackets(text)
-    
-    // Do syntax coloring if allowed to do so.
-    if(doesColoring) { 
-      // obtain the lists of data for the font tags.
-      val starts = new ListBuffer[Int]
-      val colors = new ListBuffer[String]
-      val ends = new ListBuffer[Int]
-      _applyRegexes(text, 0, starts, colors, ends)
-      
-      // obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-      val (breaks, tabs) = _lineWrap(text,maxCols)
-      
-      // insert all of our <font></font> and <br/> tags in their appropriate places.
-      while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty || !tabs.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
-        var tag = ""
-        var insertLoc = 0
-        var trimmedChars = 0
-        
-        if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) <= breaks(0)) && (tabs.isEmpty || starts(0) <= tabs(0)) && (ltList.isEmpty || starts(0) <= ltList(0)) && (gtList.isEmpty || starts(0) <= gtList(0))) {
-          // insert a <font color=> tag
-          tag = """<font color=""" + "\"" + colors(0) + "\"" + """>"""
-          insertLoc = starts(0)
-          starts.trimStart(1)
-          colors.trimStart(1)
-        } 
-        else if(!ends.isEmpty && (breaks.isEmpty || ends(0) <= breaks(0)) && (tabs.isEmpty || ends(0) <= tabs(0)) && (ltList.isEmpty || ends(0) <= ltList(0)) && (gtList.isEmpty || ends(0) <= gtList(0))) {
-          // insert a </font> tag
-          tag = """</font>"""
-          insertLoc = ends(0)
-          ends.trimStart(1)
-        } 
-        else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) <= ltList(0)) && (gtList.isEmpty || breaks(0) <= gtList(0))) {
-          // insert a <br/> tag to enforce a line break
-          tag = """<br/>"""
-          insertLoc = breaks(0)
-          breaks.trimStart(1)
-        } 
-        else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) <= ltList(0)) && (gtList.isEmpty || tabs(0) <= gtList(0))) {
-          // insert a tab
-          tag = htmlTab
-          insertLoc = tabs(0)
-          tabs.trimStart(1)
-        } 
-        else if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
-          tag = """&lt;"""
-          insertLoc = ltList(0)
-          ltList.trimStart(1)
-          // trim out the '<'. 
-          val (str1,str2) = result.splitAt(insertLoc + insertedChars)
-          result = str1 + str2.drop(1)
-          trimmedChars = 1
-        } 
-        else {
-          tag = """&gt;"""
-          insertLoc = gtList(0)
-          gtList.trimStart(1)
-          // trim out the '>'. 
-          val (str1,str2) = result.splitAt(insertLoc + insertedChars)
-          result = str1 + str2.drop(1)
-          trimmedChars = 1
-        }
-        
-        val (str1, str2) = result.splitAt(insertLoc + insertedChars)
-        result = str1 + tag + str2
-        insertedChars += tag.size - trimmedChars
+    var resultString = ""
+    for(i <- 0 until formattedString.lines.size) {
+      val line = formattedString.lines(i)
+      for((j, csubstr) <- line.substrings) {
+        var substr = csubstr.toString
+        substr = substr.replaceAllLiterally("<", SyntaxFormatter.htmlLT)
+        substr = substr.replaceAllLiterally(">", SyntaxFormatter.htmlGT)
+        substr = substr.replaceAllLiterally(" ", SyntaxFormatter.htmlSpace)
+        if(doesColoring)
+          resultString += "<font color=\"" + _colorToWebString(csubstr.color) + "\">" + substr + "</font>"
+        else
+          resultString += substr
       }
-    } 
-    else {
-      // obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-      val (breaks, tabs) = _lineWrap(text,maxCols)
       
-      // insert the line breaks.
-      while(!breaks.isEmpty || !tabs.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
-        var tag = ""
-        var insertLoc = 0
-        var trimmedChars = 0
-        
-        if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0)) && (ltList.isEmpty || breaks(0) <= ltList(0)) && (gtList.isEmpty || breaks(0) <= gtList(0))) {
-          // insert a <br/> tag to enforce a line break
-          tag = """<br/>"""
-          insertLoc = breaks(0)
-          breaks.trimStart(1)
-        } 
-        else if(!tabs.isEmpty && (ltList.isEmpty || tabs(0) <= ltList(0)) && (gtList.isEmpty || tabs(0) <= gtList(0))) {
-          // insert a tab
-          tag = htmlTab
-          insertLoc = tabs(0)
-          tabs.trimStart(1)
-        } 
-        else if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
-          tag = """&lt;"""
-          insertLoc = ltList(0)
-          ltList.trimStart(1)
-          // trim out the '<'. 
-          val (str1,str2) = result.splitAt(insertLoc + insertedChars)
-          result = str1 + str2.drop(1)
-          trimmedChars = 1
-        } 
-        else {
-          tag = """&gt;"""
-          insertLoc = gtList(0)
-          gtList.trimStart(1)
-          // trim out the '>'. 
-          val (str1,str2) = result.splitAt(insertLoc + insertedChars)
-          result = str1 + str2.drop(1)
-          trimmedChars = 1
-        }
-          
-        val (str1, str2) = result.splitAt(insertLoc + insertedChars)
-        result = str1 + tag + str2
-        insertedChars += tag.size - trimmedChars
-      }
+      if(i < formattedString.lines.size-1)
+        resultString += SyntaxFormatter.htmlLineBreak
     }
-    // wrap the whole text in a font tag to give it the font face "Lucida Console" then return our final result.
-    // result = """<div style="font-family:Lucida Console;font-size:12pt">""" + result + """</div>"""
-    result
+    
+    resultString
+  }
+  
+  def _colorToWebString(color : java.awt.Color) : String = {
+    "#" + Integer.toHexString(color.getRGB).drop(2)
   }
   
   
@@ -496,138 +369,18 @@ class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean =
    * @return       The parse string with < > characters replaced with &lt; &gt; respectively. 
    */
   def minHtmlFormat(text : String, maxCols : Int = 80) : String = {
-    var result = text
-    
-    //return result
-    
-    // inserting HTML tags alters the location of text in our string afterwards, 
-    // so we need to keep track of how many characters are inserted when we inject our HTML tags.
-    var insertedChars = 0
-    
-    // obtain the locations of angle brackets so we can make them HTML-compatible.
-    val (ltList,gtList) = _locateAngleBrackets(text)
-    
-    // obtain locations of line breaks, but don't do any indentation formatting.
     val tempDoesIndent = doesIndent
     doesIndent = false
-    val (breaks, tabs) = _lineWrap(text, maxCols)
+    
+    val tempDoesColoring = doesColoring
+    doesColoring = false
+    
+    val resultString = htmlFormat(text, maxCols)
+    
     doesIndent = tempDoesIndent
+    doesColoring = tempDoesColoring
     
-    while(!breaks.isEmpty || !ltList.isEmpty || !gtList.isEmpty) {
-      var tag = ""
-      var insertLoc = 0
-      var trimmedChars = 0
-      
-      if(!breaks.isEmpty && (ltList.isEmpty || breaks(0) <= ltList(0)) && (gtList.isEmpty || breaks(0) <= gtList(0))) {
-        // insert a <br/> tag to enforce a line break
-        tag = """<br/>"""
-        insertLoc = breaks(0)
-        breaks.trimStart(1)
-      } 
-      else if(!ltList.isEmpty && (gtList.isEmpty || ltList(0) < gtList(0))) { 
-        tag = """&lt;"""
-        insertLoc = ltList(0)
-        ltList.trimStart(1)
-        // trim out the '<'. 
-        val (str1,str2) = result.splitAt(insertLoc + insertedChars)
-        result = str1 + str2.drop(1)
-        trimmedChars = 1
-      } 
-      else {
-        tag = """&gt;"""
-        insertLoc = gtList(0)
-        gtList.trimStart(1)
-        // trim out the '>'. 
-        val (str1,str2) = result.splitAt(insertLoc + insertedChars)
-        result = str1 + str2.drop(1)
-        trimmedChars = 1
-      }
-        
-      val (str1, str2) = result.splitAt(insertLoc + insertedChars)
-      result = str1 + tag + str2
-      insertedChars += tag.size - trimmedChars
-    }
-    
-    result
-  }
-  
-  
-  /** 
-   * Applies c-style line/word wrapping and indentation (if the syntax uses
-   * indentation) to a string. Returns the formatted string and data for 
-   * manually applying syntax coloring at indices in the result string.
-   * @param text        the source string which we are formatting.
-   * @param maxCols     The character width of the component the parse string is 
-   *                    going to be displayed in. 
-   * @return            A SyntaxFormattedString object containing the formatted
-   *                    String and its colored components.
-   */
-  def format(text : String, maxCols : Int = 50) : SyntaxFormattedString = { // (String, ListBuffer[Int], ListBuffer[java.awt.Color], ListBuffer[Int]) = {
-    var result = text
-
-    // inserting characters alters the location of text in our string afterwards, so we need to keep track of how many characters are inserted when we inject our HTML tags.
-    var insertedChars = 0
-
-    // obtain the lists of data for the coloring.
-    val starts = new ListBuffer[Int]
-    val colors = new ListBuffer[String]
-    val ends = new ListBuffer[Int]
-    
-    try {
-      if(doesColoring) {
-        _applyRegexes(text, 0, starts, colors, ends)
-      }
-    } 
-    catch {
-      case _ =>
-        // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
-        System.err.println("Error during syntax formatting :\n" + text) 
-    }
-    val resultStarts = new ListBuffer[Int]
-    val resultColors = new ListBuffer[java.awt.Color]
-    val resultEnds = new ListBuffer[Int]
-    
-    // obtain the list of data for enforcing line breaks. (because HTMLEditorKit is dumb and doesn't enforce word-wrap)
-    val (breaks, tabs) = _lineWrap(text,maxCols)
-    
-    // do the formatting.
-    while(!starts.isEmpty || !ends.isEmpty || !breaks.isEmpty || !tabs.isEmpty) {
-      var tag = ""
-      var insertLoc = 0
-      
-      if(!starts.isEmpty && (ends.isEmpty || starts(0) < ends(0)) && (breaks.isEmpty || starts(0) <= breaks(0)) && (tabs.isEmpty || starts(0) <= tabs(0))) {
-        // there aren't any color tags. Instead, we adjust the index at which the coloring is applied to account for previous formatting.
-        resultStarts += starts(0) + insertedChars
-        resultColors += new java.awt.Color(Integer.parseInt(colors(0).drop(1), 16))
-        starts.trimStart(1)
-        colors.trimStart(1)
-      } 
-      else if(!ends.isEmpty && (breaks.isEmpty || ends(0) <= breaks(0)) && (tabs.isEmpty || ends(0) <= tabs(0))) {
-        // there aren't any color tags. Instead, we adjust the index at which the coloring is applied to account for previous formatting.
-        resultEnds += ends(0) + insertedChars
-        ends.trimStart(1)
-      } 
-      else if(!breaks.isEmpty && (tabs.isEmpty || breaks(0) <= tabs(0))) {
-        // insert a '\n' character
-        tag = "\n"
-        insertLoc = breaks(0)
-        breaks.trimStart(1)
-      } 
-      else {
-        // insert a tab
-        tag = spaceTab
-        insertLoc = tabs(0)
-        tabs.trimStart(1)
-      }
-            
-            
-            // insert the new line or tab spaces into our result string
-      val (str1, str2) = result.splitAt(insertLoc + insertedChars)
-      result = str1 + tag + str2
-      insertedChars += tag.size
-    } //endwhile
-    
-    new SyntaxFormattedString(result, resultStarts, resultColors, resultEnds)
+    resultString
   }
 }
 
@@ -637,6 +390,15 @@ object SyntaxFormatter {
 
   /** A string representing an html space. */
   val htmlSpace = "&nbsp;"
+  
+  /** A string representing an html line break. */
+  val htmlLineBreak = "<br/>"
+  
+  /** A string representing an html less than. */
+  val htmlLT = "&lt;"
+  
+  /** A string representing an html greater than. */
+  val htmlGT = "&gt;"
   
   /** Used to find <br/> tags in an HTML string. */
   val htmlNewLineRegex = new Regex("""(<br/>)""",

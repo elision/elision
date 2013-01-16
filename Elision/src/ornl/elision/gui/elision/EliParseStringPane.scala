@@ -70,6 +70,7 @@ class EliParseStringPane extends ScrollPane {
     
   // formatting in this panel does indentation, but not syntax coloring.
   val formatter = new syntax.SyntaxFormatter(EliRegexes, true, true)
+  // formatter.showColorData = true
   
   /**
    * Displays an atom's parse string in textArea with Elision syntax formatting applied. 

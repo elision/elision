@@ -48,7 +48,7 @@ import scala.collection.mutable.ListBuffer
  */
 class SyntaxFormattedString(val src : String, val starts : ListBuffer[Int], val colors : ListBuffer[Color], val ends : ListBuffer[Int]) {
   
-  val rawLines = src.split('\n')
+  val rawLines = src.split("\n", -1)
   
   /** The list of colored lines making up this string. */
   val lines = new ListBuffer[SyntaxFormattedLine]
