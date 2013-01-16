@@ -49,11 +49,10 @@ class MemoTest extends AssertionsForJUnit {
     val test = Memo
     val bitset = new BitSet
     for (i <- 1 to 1000) {
-      test.put(Variable(i, i.toString), bitset, Literal(i), i % 5)
-      test.put(Variable("test " + i, "test_val " + i), bitset, Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), i % 10)
+      test.put(Lambda(Variable("test " + i, "test_val_val " + i), Variable(i, i.toString)), bitset, Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), i % 10)
     }
-    for (i <- 1 to 2010) {
-      test.get(Literal(i), bitset)
+    for (i <- 1 to 1010) {
+      test.get(Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), bitset)
     }
     println(test.showStats)
   }

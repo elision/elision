@@ -122,10 +122,11 @@ object Memo {
     println("""
         |Elision Cache
         |=============
-        |Hits:    %10d
-        |Misses:  %10d
-        |Size:    %10d
-        |""".stripMargin.format(_hits, _misses, _cache.size + _normal.size))
+        |Hits:          %10d
+        |Misses:        %10d
+        |Cache Size:    %10d
+        |Norm Size:     %10d
+        |""".stripMargin.format(_hits, _misses, _cache.size, _normal.size))
   }
   
   //======================================================================
@@ -195,14 +196,17 @@ object Memo {
     var r: Option[(BasicAtom, Boolean)] = None
     val t0 = System.currentTimeMillis()
     if (_normal.contains(((atom.hashCode, atom.otherHashCode),rulesets))) {
+      _hits = _hits + 1
       r = Some((atom, false))
     } else {
       _cache.get(((atom.hashCode, atom.otherHashCode), rulesets)) match {
         case None =>
           // Cache miss.
+          _misses = _misses + 1
           r = None
         case Some((value, level)) =>
           // Cache hit.
+          _hits = _hits + 1
           r = Some((value, true))
       }
     }
