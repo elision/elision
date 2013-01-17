@@ -35,6 +35,7 @@ import org.junit.Assert._
 import org.junit.Test
 import org.junit.Before
 import scala.collection.mutable.BitSet
+import ornl.elision.repl.ERepl
 
 /**
  * @author jb9
@@ -48,11 +49,25 @@ class MemoTest extends AssertionsForJUnit {
   def testPut() {
     val test = Memo
     val bitset = new BitSet
-    for (i <- 1 to 1000) {
-      test.put(Lambda(Variable("test " + i, "test_val_val " + i), Variable(i, i.toString)), bitset, Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), i % 10)
+    def funcGen(i: Int)(t: Int): BasicAtom = {
+      if (t > 1)
+        Lambda(Variable("test " + i + "_" + t, "test_val_val " + i + "_" + t), funcGen(i)(t - 1))
+      else
+        Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
-    for (i <- 1 to 1010) {
-      test.get(Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), bitset)
+    val num = 10000
+    val v = Array.fill[BasicAtom](num)(null)
+    for (i <- 1 to num) {
+      v(i - 1) = funcGen(i)(200)
+    }
+    println("starting to add")
+    for (i <- 1 to num) {
+      //println(f.toString)
+      test.put(Variable("test " + i, "test_val " + i), bitset, v(i - 1), i % 10)
+      //test.put(Lambda(Variable("test " + i, "test_val_val " + i), Variable(i, i.toString)), bitset, Lambda(Variable("lambda " + i, "lambda_val " + i), Variable(i, i.toString)), i % 10)
+    }
+    for (i <- 1 to 1000) {
+      test.get(v(i - 1), bitset)
     }
     println(test.showStats)
   }
