@@ -168,6 +168,12 @@ object Memo {
   // Cache access.
   //======================================================================
   
+  def clear = {
+    _cache.clear
+    _normal.clear
+    _hits = 0
+    _misses = 0
+  }
   /**
    * Test the cache for an atom.
    * 
