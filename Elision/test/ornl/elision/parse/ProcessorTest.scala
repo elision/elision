@@ -45,17 +45,14 @@ class ProcessorTest extends AssertionsForJUnit {
   /**
    * Test method for {@link ornl.elision.parse.Processor#parse(java.lang.String)}.
    */
-  @Test def testParse() {
+  @Test 
+  def testParse() {
     val test = new ERepl
+    ornl.elision.core.knownExecutor = test
     test.bootstrap(0)
-    //ReplMain.runRepl
     test.parse("""inc("C:\\Users\\jb9\\config\\files_inc.eli")""")
-    test.parse("mult_32(acc_32($M:FMAP(DWORD,BYTE),add_32(-12,$EBP:DWORD)),add_32(2,acc_32($M:FMAP(DWORD,BYTE),add_32(-4,$EBP:DWORD))))")
-    //mult_32(add_32(12,$EBP:DWORD),add_32(10,$EBP:DWORD))
-    //mult_32(add_32(-12,$EBP:DWORD),add_32(-10,$EBP:DWORD))
-    //mult_32(-12,-12)
-    //mult_32(add_32(-12,$EBP:DWORD),-12)
-    //mult_32(-12,add_32(-12,$EBP:DWORD))
+    val a = test.parse("mult_32(acc_32($M:FMAP(DWORD,BYTE),add_32(-12,$EBP:DWORD)),add_32(2,acc_32($M:FMAP(DWORD,BYTE),add_32(-4,$EBP:DWORD))))")
+    println (a.toString)
   }
 
 }
