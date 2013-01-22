@@ -104,9 +104,6 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   /** data for syntax highlighting and formatting */
   val formattedString = tree.formatter.format(term, tree.maxTermLength)
   
-  /** Flag for drawing the node's label with syntax coloring. */
-  var syntaxColoring = !mainGUI.config.disableNodeSyntaxColoring
-  
   /** The node's width */
   val boxWidth = formattedString.width * tree.font.getSize * 0.66 + 5
   
@@ -231,20 +228,21 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
    * @param g     The graphics context to draw the label with.
    */
   private def drawLabel(g : Graphics2D) : Unit = {
-    if(syntaxColoring && !isComment) {
+    if(tree.syntaxColoring && !isComment) {
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
         for((j, substr) <- line.substrings) {
           g.setColor(substr.color)
           g.drawString(substr.toString, (3 + j*(tree.font.getSize*0.6)).toInt, (box.y - 3 + (tree.font.getSize + 3)*(i+1)).toInt)
-        }
-      }
+        } // endfor
+      } // endfor
       
-    } else {
+    } 
+    else {
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
         g.drawString(line.toString, 3, (box.y - 3 + (tree.font.getSize + 3)*(i+1)).toInt)
-      }
+      } // endfor
     } // endif
   }
     
@@ -339,8 +337,8 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
    */
   def getChildPosition(index : Int) : geom.Point2D = {
     val longestSib = getLongestSibling
-    val childX = longestSib - box.width + TreeSprite.defX + 5*numLeaves
-    val childY = TreeSprite.defY*index + children(index).offsetY
+    val childX = longestSib - box.width + tree.defX + 5*numLeaves
+    val childY = tree.defY*index + children(index).offsetY
     
     new geom.Point2D.Double(childX,childY)
   }

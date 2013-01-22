@@ -61,13 +61,12 @@ import ornl.elision.gui._
 class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   /** The panel's camera for panning around and zooming in the visualization */
   val camera = new Camera(0, 0, 640, 480)
- // NodeSprite.camera = camera
   
   /** Keeps track of the mouse's position in world coordinates */
   var mouseWorldPosition : Point2D = new Point2D.Double(0,0)
   
   /** The sprite representing the visualization of the rewrite tree */
-  var treeSprite = TreeSprite.buildWelcomeTree
+  var treeSprite : TreeSprite = elision.sprites.ElisionWelcomeTree //.buildWelcomeTree
   treeSprite.selectNode(treeSprite.root, mainGUI.config.decompDepth) 
     
   /** A SwingWorker thread used for concurrently rendering the panel's image. */

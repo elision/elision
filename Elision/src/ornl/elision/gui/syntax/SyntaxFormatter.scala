@@ -46,7 +46,7 @@ import ornl.elision.gui._
  * @param regexes       The regex information for the syntax used by this.
  * @param doesColoring  If true, this will apply formatting for syntax coloring.
  */
-class SyntaxFormatter (val regexes : SyntaxRegexes, var doesColoring : Boolean = true, var doesIndent : Boolean = false) {
+class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Boolean = true, var doesIndent : Boolean = false) {
   
   if(regexes == null) {
     doesColoring = false

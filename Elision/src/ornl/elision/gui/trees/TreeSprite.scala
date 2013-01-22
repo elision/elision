@@ -44,10 +44,19 @@ import sage2D.sprites.Sprite
  * Contrary to what the name suggests, this class is not some sort of mystical nature spirit.
  * Rather, it represents a tree data structure as a renderable sprite.
  */
-class TreeSprite(x : Double, y : Double, var root : NodeSprite = null) extends Sprite(x,y) {
+class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
 	
+  /** reference to root node. */
+  var root : NodeSprite = null
+  
 	/** The node currently selected in the tree */
 	var selectedNode : NodeSprite = null
+  
+  /** The base x-offset for child nodes from their parent node */
+	val defX = 50
+	
+	/** The minimum y-offset between two sibling nodes */
+	val defY = 40
   
   /** A constant-width font used in the NodeSprites' labels. */
   val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
@@ -78,12 +87,17 @@ class TreeSprite(x : Double, y : Double, var root : NodeSprite = null) extends S
   /** The maximum length of a line of text in a node's label. */
   val maxTermLength = 50
   
+  /** syntax formatter (default one only does line-wrapping). */
+  val formatter = new ornl.elision.gui.syntax.SyntaxFormatter()
+	
+  /** If false, syntax coloring is disabled for the entire tree. */
+  var syntaxColoring = false
+  
   /** A reference to a Camera object. This is used by NodeSprite only for clipping since the camera's transform is already applied before calling the NodeSprite's render method. */
   var camera : sage2D.Camera = null
   
-  /** Elision syntax formatter. */
-  val formatter = new ornl.elision.gui.syntax.SyntaxFormatter(ornl.elision.gui.elision.EliRegexes, true, true)
-	
+  
+  
 	/** Begins recursive rendering of the tree beginning at the root. */
 	override def draw(g : Graphics2D) : Unit = {
 		root.render(g)
@@ -293,7 +307,7 @@ class TreeSprite(x : Double, y : Double, var root : NodeSprite = null) extends S
 			val childLeaves = math.max(child.numLeaves - 1,0)
 			
 			// compute the child's y-offset with magic
-			child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*TreeSprite.defY/2
+			child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*defY/2
 			
 			// accumulate this child's leaves onto lastSibsLeaves.
 			lastSibsLeaves += math.max(child.numLeaves - 1 , 0)*2
@@ -313,55 +327,6 @@ class TreeSprite(x : Double, y : Double, var root : NodeSprite = null) extends S
 		(node.subTreeUpperY, node.subTreeLowerY)
 	}
 }
-
-
-/** 
- * Contains some static properties used by TreeSprite as well as factory 
- * methods for constructing a treesprite. 
- */
-object TreeSprite {
-	
-	/** The base x-offset for child nodes from their parent node */
-	val defX = 50
-	
-	/** The minimum y-offset between two sibling nodes */
-	val defY = 40
-	
-	/**
-	 * Factory method builds a fabricated tree structure with a friendly 
-	 * welcome message and some basic instructions.
-	 */
-  def buildWelcomeTree : TreeSprite = {
-    val tree = new TreeSprite(0,0)
-    
-    val root = tree.makeRoot("root")
-      root.makeChild("Welcome to the ") // addChild("Welcome to the ",realroot)
-      root.makeChild("Elision Visualization Assistant (Eva)!") // addChild("Elision Visualization Assistant (Eva)!",realroot)
-        root(1).makeChild("To create a rewrite tree visualization,") // addChild("To create a rewrite tree visualization,", root2)
-        root(1).makeChild("simply do one of the following: ") // addChild("simply do one of the following: ",root2)
-          root(1)(1).makeChild("Enter input into the ") // addChild("Enter input into the ", node2)
-          root(1)(1).makeChild("onboard Elision REPL, below.") // addChild("onboard Elision REPL, below.", node2)
-          root(1)(1).makeChild("OR") // addChild("OR",node2)
-          root(1)(1).makeChild("Use File -> Open to open a file ") // addChild("Use File -> Open to open a file ",node2)
-          root(1)(1).makeChild("containing Elision input.") // addChild("containing Elision input.", node2)
-
-    tree
-  }
-	
-	
-	/**
-	 * Used by some of the TreeSprite factory methods.
-	 */
-/*	private def addChild(term : String, parent : NodeSprite) : NodeSprite = {
-		val node = new NodeSprite(term, parent)
-		parent.addChild(node)
-		node
-	}
-*/
-}
-
-
-
 
 
 
