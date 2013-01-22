@@ -122,10 +122,11 @@ object Memo {
     println("""
         |Elision Cache
         |=============
-        |Hits:    %10d
-        |Misses:  %10d
-        |Size:    %10d
-        |""".stripMargin.format(_hits, _misses, _cache.size + _normal.size))
+        |Hits:          %10d
+        |Misses:        %10d
+        |Cache Size:    %10d
+        |Norm Size:     %10d
+        |""".stripMargin.format(_hits, _misses, _cache.size, _normal.size))
   }
   
   //======================================================================
@@ -167,6 +168,12 @@ object Memo {
   // Cache access.
   //======================================================================
   
+  def clear = {
+    _cache.clear
+    _normal.clear
+    _hits = 0
+    _misses = 0
+  }
   /**
    * Test the cache for an atom.
    * 
@@ -193,24 +200,27 @@ object Memo {
     
     // We are doing caching. Actually look in the cache.
     var r: Option[(BasicAtom, Boolean)] = None
-    val t0 = System.nanoTime
+    val t0 = System.currentTimeMillis()
     if (_normal.contains(((atom.hashCode, atom.otherHashCode),rulesets))) {
+      _hits = _hits + 1
       r = Some((atom, false))
     } else {
       _cache.get(((atom.hashCode, atom.otherHashCode), rulesets)) match {
         case None =>
           // Cache miss.
+          _misses = _misses + 1
           r = None
         case Some((value, level)) =>
           // Cache hit.
+          _hits = _hits + 1
           r = Some((value, true))
       }
     }
 
     // Return the cache lookup result.
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** Memo: lookup time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
     }
     return r
   }
@@ -232,7 +242,7 @@ object Memo {
     //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
-    val t0 = System.nanoTime
+    val t0 = System.currentTimeMillis()
     val lvl = 0 max level min (_LIMIT-1)
     _normal.synchronized {
       _normal(((value.hashCode, value.otherHashCode), rulesets)) = Unit
@@ -242,9 +252,9 @@ object Memo {
         _cache(((atom.hashCode, atom.otherHashCode), rulesets)) = (value, level)
       }
     }
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** Memo: add time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: add time = " + (t1 - t0) + "(ms)")
     }
   }
 }
