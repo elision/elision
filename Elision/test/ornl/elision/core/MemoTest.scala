@@ -61,7 +61,7 @@ class MemoTest extends AssertionsForJUnit {
         Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
     def f = funcGen(100)(_)
-    val num = 12000
+    val num = 2000
     val num2 = num + 10
     val starttime = System.currentTimeMillis
     for (i <- 0 to num - 1) {
@@ -98,7 +98,7 @@ class MemoTest extends AssertionsForJUnit {
         Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
     def f = funcGen(100)(_)
-    val num = 12000
+    val num = 2000
     val num2 = num + 10
     val poolSize = 2
     val pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
@@ -150,7 +150,7 @@ class MemoTest extends AssertionsForJUnit {
         Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
     def f = funcGen(100)(_)
-    val num = 12000
+    val num = 2000
     val num2 = num + 10
     val poolSize = 10
     val pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
