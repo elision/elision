@@ -30,11 +30,13 @@
 package ornl.elision.core
 
 // KIRK: Using a weak hashmap REALLY slows things down.
-import scala.collection.mutable.{OpenHashMap => HashMap}
-import scala.collection.mutable.SynchronizedMap
-import scala.collection.mutable.HashSet
+//import scala.collection.mutable.{OpenHashMap => HashMap}
+//import scala.collection.mutable.SynchronizedMap
+//import scala.collection.mutable.HashSet
+import java.util.HashMap
 import ornl.elision.util.PropertyManager
 import scala.collection.mutable.BitSet
+import scala.collection.mutable.ListBuffer
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are
@@ -59,6 +61,9 @@ object Memo {
   
   /** Set whether the cache is being used or not. */
   private var _usingcache = true
+  
+  /** Maximum cache size. */
+  private val _maxsize = 4096
 
   /** Declare the Elision property for turning memoization on/off. */
   knownExecutor.declareProperty("cache",
@@ -122,10 +127,11 @@ object Memo {
     println("""
         |Elision Cache
         |=============
-        |Hits:    %10d
-        |Misses:  %10d
-        |Size:    %10d
-        |""".stripMargin.format(_hits, _misses, _cache.size + _normal.size))
+        |Hits:          %10d
+        |Misses:        %10d
+        |Cache Size:    %10d
+        |Norm Size:     %10d
+        |""".stripMargin.format(_hits, _misses, _cache.size, _normal.size))
   }
   
   //======================================================================
@@ -150,12 +156,26 @@ object Memo {
   private var _cache = 
     new HashMap[((Int,BigInt),BitSet),(BasicAtom,Int)]() 
   
+  /** 
+   * Keeps a count of how many times things in _cache have been accessed since
+   * the last iteration of the replacement policy algorithm. 
+   */  
+  private var _cacheCounter =
+    new HashMap[((Int,BigInt),BitSet), Long]()
+    
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
   private var _normal = 
     new HashMap[((Int,BigInt),BitSet),Unit]() 
+  
+  /** 
+   * Keeps a count of how many times things in _normal have been accessed 
+   * since the last iteration of the replacement policy algorithm. 
+   */  
+  private var _normalCounter =
+    new HashMap[((Int,BigInt),BitSet), Long]()
   
   /**
    * Track whether anything has been added at a particular cache level.  If
@@ -167,6 +187,14 @@ object Memo {
   // Cache access.
   //======================================================================
   
+  def clear = {
+    _cache.clear
+    _normal.clear
+    _cacheCounter.clear
+    _normalCounter.clear
+    _hits = 0
+    _misses = 0
+  }
   /**
    * Test the cache for an atom.
    * 
@@ -176,6 +204,10 @@ object Memo {
    *          the input atom is already in normal form.
    */
   def get(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
+    get_new(atom,rulesets)
+  }
+  
+  def get_new(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
 
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
@@ -193,27 +225,85 @@ object Memo {
     
     // We are doing caching. Actually look in the cache.
     var r: Option[(BasicAtom, Boolean)] = None
-    val t0 = System.nanoTime
-    if (_normal.contains(((atom.hashCode, atom.otherHashCode),rulesets))) {
+    val t0 = System.currentTimeMillis()
+    if (_normal.containsKey(((atom.hashCode, atom.otherHashCode),rulesets))) {
+      _normal.synchronized {
+        _hits = _hits + 1
+        
+        _incNormalCounter(((atom.hashCode, atom.otherHashCode),rulesets))
+        r = Some((atom, false))
+      }
+    } else {
+      _cache.synchronized {
+        _cache.get(((atom.hashCode, atom.otherHashCode), rulesets)) match {
+          case null =>
+            // Cache miss.
+            _misses = _misses + 1
+            r = None
+          case (value, level) =>
+            // Cache hit.
+            _hits = _hits + 1     
+            
+            _incCacheCounter(((atom.hashCode, atom.otherHashCode), rulesets))        
+            r = Some((value, true))
+        }
+      }
+    }
+
+    // Return the cache lookup result.
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    }
+    return r
+  }
+  
+  def get_old(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
+
+    // Return nothing if caching is turned off.
+    if (! _usingcache) return None
+   
+    // Never check for atoms whose depth is greater than the maximum.
+    //if (_maxdepth >= 0 && atom.depth > _maxdepth) return None
+
+    // Constants, variables, and symbols should never be
+    // rewritten. So, if we are trying to get one of those just
+    // return the original atom.
+    if (atom.isInstanceOf[Literal[_]] ||
+        atom.isInstanceOf[Variable]) {
+      return Some((atom, true))
+    }
+    
+    // We are doing caching. Actually look in the cache.
+    var r: Option[(BasicAtom, Boolean)] = None
+    val t0 = System.currentTimeMillis()
+    if (_normal.containsKey(((atom.hashCode, atom.otherHashCode),rulesets))) {
+      _hits = _hits + 1
       r = Some((atom, false))
     } else {
       _cache.get(((atom.hashCode, atom.otherHashCode), rulesets)) match {
-        case None =>
+        case null =>
           // Cache miss.
+          _misses = _misses + 1
           r = None
-        case Some((value, level)) =>
+        case (value, level) =>
           // Cache hit.
+          _hits = _hits + 1
           r = Some((value, true))
       }
     }
 
     // Return the cache lookup result.
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** Memo: lookup time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
     }
     return r
   }
+  
+  
+  
+  
   
   /**
    * Put something in the cache.
@@ -224,6 +314,11 @@ object Memo {
    * @param level     The lowest level of the rewrite.
    */
   def put(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
+    put_new(atom,rulesets,value,level)
+  }
+  
+  
+  def put_new(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
 
     // Do nothing if caching is turned off.
     if (! _usingcache) return
@@ -232,19 +327,165 @@ object Memo {
     //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
 
     // Store the item in the cache.
-    val t0 = System.nanoTime
+    val t0 = System.currentTimeMillis()
     val lvl = 0 max level min (_LIMIT-1)
     _normal.synchronized {
-      _normal(((value.hashCode, value.otherHashCode), rulesets)) = Unit
+      _replacementPolicyNormal
+      _normal.put(((value.hashCode, value.otherHashCode), rulesets), Unit)
+      
+      _incNormalCounter(((atom.hashCode, atom.otherHashCode),rulesets))
     }
     if (!(atom eq value)) {
       _cache.synchronized {
-        _cache(((atom.hashCode, atom.otherHashCode), rulesets)) = (value, level)
+        _replacementPolicyCache
+        _cache.put(((atom.hashCode, atom.otherHashCode), rulesets), (value, level))
+        
+        _incCacheCounter(((atom.hashCode, atom.otherHashCode), rulesets)) 
       }
     }
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** Memo: add time = " + (t1.toDouble-t0.toDouble)/1000000000)
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: add time = " + (t1 - t0) + "(ms)")
     }
+  }
+  
+  
+  def put_old(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
+
+    // Do nothing if caching is turned off.
+    if (! _usingcache) return
+    
+    // Never cache atoms whose depth is greater than the maximum.
+    //if (_maxdepth >= 0 && atom.depth > _maxdepth) return
+
+    // Store the item in the cache.
+    val t0 = System.currentTimeMillis()
+    val lvl = 0 max level min (_LIMIT-1)
+    _normal.synchronized {
+      _normal.put(((value.hashCode, value.otherHashCode), rulesets), Unit)
+    }
+    if (!(atom eq value)) {
+      _cache.synchronized {
+        _cache.put(((atom.hashCode, atom.otherHashCode), rulesets), (value, level))
+      }
+    }
+    val t1 = System.currentTimeMillis()
+    if (t1 - t0 > 2000) {
+      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    }
+  }
+  
+  
+  
+  /** Implementation of a replacement policy for _cache. */
+  def _replacementPolicyCache {
+    if(_cache.size < _maxsize)
+       return
+    
+    var lowestCount = Long.MaxValue
+    
+    // I haz a buckit. This will keep track of the items with the lowest count.
+    var bucket = new ListBuffer[((Int,BigInt),BitSet)]
+    
+    // find the items with the lowest count and put their keys in the bucket.
+    // An iterator was used here because there wasn't a very convenient way to 
+    // do for each loops in scala over a java Set.
+    val keyIterator = _cache.keySet.iterator
+    while(keyIterator.hasNext) {
+      val key = keyIterator.next
+      val count = if(_cacheCounter.containsKey(key)) {
+          _cacheCounter.get(key)
+        }
+        else {
+          0
+        }
+ 
+      if(count < lowestCount) {
+        lowestCount = count
+        bucket.clear
+      }
+      if(count == lowestCount) {
+        bucket += key 
+      }
+    } // endwhile
+    
+    // remove all items from the cache that are in our final bucket.
+    for(key <- bucket) {
+      _cache.remove(key)
+    }
+    
+    // replace the counter with a new one.
+    _cacheCounter.clear
+  }
+  
+  
+  
+  
+  
+  /** Implementation of a replacement policy for _normal. */
+  def _replacementPolicyNormal {
+    if(_cache.size < _maxsize)
+       return
+    
+    var lowestCount = Long.MaxValue
+    
+    // I haz a buckit. This will keep track of the items with the lowest count.
+    var bucket = new ListBuffer[((Int,BigInt),BitSet)]
+    
+    // find the items with the lowest count and put their keys in the bucket.
+    // An iterator was used here because there wasn't a very convenient way to 
+    // do for each loops in scala over a java Set.
+    val keyIterator = _normal.keySet.iterator
+    while(keyIterator.hasNext) {
+      val key = keyIterator.next
+      
+      val count = if(_normalCounter.containsKey(key)) {
+          _normalCounter.get(key)
+        }
+        else {
+          0
+        }
+ 
+      if(count < lowestCount) {
+        lowestCount = count
+        bucket.clear
+      }
+      if(count == lowestCount) {
+        bucket += key
+      }
+    } // endwhile
+    
+    // remove all items from the cache that are in our final bucket.
+    for(key <- bucket) {
+      _normal.remove(key)
+    }
+    
+    // replace the counter with a new one.
+    _normalCounter.clear
+  }
+  
+  
+  
+  
+  /** safely increments the counter for a key in _cacheCounter. */
+  def _incCacheCounter(key : ((Int,BigInt),BitSet)) {
+    val curCount = if(_cacheCounter.containsKey(key)) {
+        _cacheCounter.get(key) + 1
+      }
+      else {
+        0
+      }
+    _cacheCounter.put(key, curCount + 1)
+  }
+  
+  /** safely increments the counter for a key in _normalCounter. */
+  def _incNormalCounter(key : ((Int,BigInt),BitSet)) {
+    val curCount = if(_normalCounter.containsKey(key)) {
+        _normalCounter.get(key) + 1
+      }
+      else {
+        0
+      }
+    _normalCounter.put(key, curCount + 1)
   }
 }
