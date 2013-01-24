@@ -44,16 +44,77 @@ import sage2D.sprites.Sprite
  * Contrary to what the name suggests, this class is not some sort of mystical nature spirit.
  * Rather, it represents a tree data structure as a renderable sprite.
  */
-class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x,y) {
+class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
 	
+  /** reference to root node. */
+  var root : NodeSprite = null
+  
 	/** The node currently selected in the tree */
 	var selectedNode : NodeSprite = null
+  
+  /** The base x-offset for child nodes from their parent node */
+	val defX = 50
 	
+	/** The minimum y-offset between two sibling nodes */
+	val defY = 40
+  
+  /** A constant-width font used in the NodeSprites' labels. */
+  val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
+  
+  /** black, just black. */
+  val textColor = new Color(0x000000)
+  
+  /** comment color: Twilight lavender */
+  val comBoxColor = new Color(0xddddff)
+  val comBorderColor = new Color(0x5555aa)
+  
+  /** rewritten atom colors: Dash blue */
+  val boxColor = new Color(0xd7e9ff)
+  val borderColor = new Color(0x77a9dd)
+  
+  /** verbatim atom colors: Apple orange */
+  val verbBoxColor = new Color(0xffeecc)
+  val verbBorderColor = new Color(0xddaa77)
+  
+  /** selected colors : Flutter yellow */
+  val selectedBoxColor = new Color(0xffffcc)
+  val selectedBorderColor = new Color(0xaaaa55) 
+  
+  /** leaf colors: Rare grey */
+  val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
+  val selectedLeafBoxColor = new Color(0xffffee)
+  
+  /** The maximum length of a line of text in a node's label. */
+  val maxTermLength = 50
+  
+  /** syntax formatter (default one only does line-wrapping). */
+  val formatter = new ornl.elision.gui.syntax.SyntaxFormatter()
+	
+  /** If false, syntax coloring is disabled for the entire tree. */
+  var syntaxColoring = false
+  
+  /** A reference to a Camera object. This is used by NodeSprite only for clipping since the camera's transform is already applied before calling the NodeSprite's render method. */
+  var camera : sage2D.Camera = null
+  
+  
+  
 	/** Begins recursive rendering of the tree beginning at the root. */
 	override def draw(g : Graphics2D) : Unit = {
 		root.render(g)
 	}
 	
+  
+  /** 
+   * Creates (or replaces) the root node for this tree. 
+   * @param term      The root's label
+   * @isComment       If true, the root's label won't use syntax coloring.
+   * @return          The root node.
+   */
+  def makeRoot(term : String = "Root", isComment : Boolean = true) : NodeSprite = {
+    root = new NodeSprite(term, this, null, isComment)
+    root
+  }
+  
 	
 	/**	
 	 * Detects collisions between the mouse and the tree's decompressed nodes.
@@ -208,7 +269,7 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			node.numLeaves += math.max(1,childsLeaves)
 		}
 		
-		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(NodeSprite.font.getSize+5) + 0.5).toInt 
+		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(font.getSize+5) + 0.5).toInt 
 		node.numLeaves
 	}
 	
@@ -246,7 +307,7 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 			val childLeaves = math.max(child.numLeaves - 1,0)
 			
 			// compute the child's y-offset with magic
-			child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*TreeSprite.defY/2
+			child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*defY/2
 			
 			// accumulate this child's leaves onto lastSibsLeaves.
 			lastSibsLeaves += math.max(child.numLeaves - 1 , 0)*2
@@ -266,52 +327,6 @@ class TreeSprite(x : Double, y : Double, val root : NodeSprite) extends Sprite(x
 		(node.subTreeUpperY, node.subTreeLowerY)
 	}
 }
-
-
-/** 
- * Contains some static properties used by TreeSprite as well as factory 
- * methods for constructing a treesprite. 
- */
-object TreeSprite {
-	
-	/** The base x-offset for child nodes from their parent node */
-	val defX = 50
-	
-	/** The minimum y-offset between two sibling nodes */
-	val defY = 40
-	
-	/**
-	 * Factory method builds a fabricated tree structure with a friendly 
-	 * welcome message and some basic instructions.
-	 */
-  def buildWelcomeTree : TreeSprite = {
-    val realroot = new NodeSprite("root")
-      val root0 = addChild("Welcome to the ",realroot)
-      val root = addChild("Elision Visualization Assistant (Eva)!",realroot)
-        val node1 = addChild("To create a rewrite tree visualization,", root)
-        val node2 = addChild("simply do one of the following: ",root)
-          addChild("Enter input into the ", node2)
-          addChild("onboard Elision REPL, below.", node2)
-          addChild("OR",node2)
-          addChild("Use File -> Open to open a file ",node2)
-          addChild("containing Elision input.", node2)
-
-    new TreeSprite(0,0,realroot)
-  }
-	
-	
-	/**
-	 * Used by some of the TreeSprite factory methods.
-	 */
-	private def addChild(term : String, parent : NodeSprite) : NodeSprite = {
-		val node = new NodeSprite(term, parent)
-		parent.addChild(node)
-		node
-	}
-}
-
-
-
 
 
 

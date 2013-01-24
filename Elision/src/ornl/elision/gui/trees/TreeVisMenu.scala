@@ -47,117 +47,117 @@ object TreeVisMenu {
     
     // File menu
         
-        var openDirectory = mainGUI.config.lastOpenPath //"."
-        
-        val openTreeItem = new MenuItem(Action("Open Tree Visualization") {
-			val fc = new FileChooser(new java.io.File(openDirectory))
-            fc.fileFilter = new TreeFileFilter
-			val result = fc.showOpenDialog(null)
-			val selFile = fc.selectedFile
-			if(selFile != null && result == FileChooser.Result.Approve) {
-				openDirectory = selFile.getParent
-				mainGUI.config.lastOpenPath = openDirectory
-				mainGUI.config.save
+    var openDirectory = mainGUI.config.lastOpenPath //"."
+      
+    val openTreeItem = new MenuItem(Action("Open Tree Visualization") {
+      val fc = new FileChooser(new java.io.File(openDirectory))
+      fc.fileFilter = new TreeFileFilter
+      val result = fc.showOpenDialog(null)
+      val selFile = fc.selectedFile
+      if(selFile != null && result == FileChooser.Result.Approve) {
+        openDirectory = selFile.getParent
+        mainGUI.config.lastOpenPath = openDirectory
+        mainGUI.config.save
                 GUIActor ! ("OpenTree", selFile)
-			}
-		} )
+      }
+    })
         
-        val saveTreeItem = new MenuItem(Action("Save Tree Visualization as XML") {
-			val fc = new FileChooser(new java.io.File(openDirectory))
+    val saveTreeItem = new MenuItem(Action("Save Tree Visualization as XML") {
+      val fc = new FileChooser(new java.io.File(openDirectory))
             fc.fileFilter = new TreeXMLFileFilter
-			val result = fc.showSaveDialog(null)
-			val selFile = fc.selectedFile
-			if(selFile != null && result == FileChooser.Result.Approve) {
-				openDirectory = selFile.getParent
-				mainGUI.config.lastOpenPath = openDirectory
-				mainGUI.config.save
-				GUIActor ! ("SaveTree", selFile)
-			}
-		} )
+      val result = fc.showSaveDialog(null)
+      val selFile = fc.selectedFile
+      if(selFile != null && result == FileChooser.Result.Approve) {
+        openDirectory = selFile.getParent
+        mainGUI.config.lastOpenPath = openDirectory
+        mainGUI.config.save
+        GUIActor ! ("SaveTree", selFile)
+      }
+    })
         
-        val saveJSONTreeItem = new MenuItem(Action("Save Tree Visualization as JSON") {
-			val fc = new FileChooser(new java.io.File(openDirectory))
+    val saveJSONTreeItem = new MenuItem(Action("Save Tree Visualization as JSON") {
+      val fc = new FileChooser(new java.io.File(openDirectory))
             fc.fileFilter = new TreeJSONFileFilter
-			val result = fc.showSaveDialog(null)
-			val selFile = fc.selectedFile
-			if(selFile != null && result == FileChooser.Result.Approve) {
-				openDirectory = selFile.getParent
-				mainGUI.config.lastOpenPath = openDirectory
-				mainGUI.config.save
-				GUIActor ! ("SaveTreeJSON", selFile)
-			}
-		} )
+      val result = fc.showSaveDialog(null)
+      val selFile = fc.selectedFile
+      if(selFile != null && result == FileChooser.Result.Approve) {
+        openDirectory = selFile.getParent
+        mainGUI.config.lastOpenPath = openDirectory
+        mainGUI.config.save
+        GUIActor ! ("SaveTreeJSON", selFile)
+      }
+    })
 
-    // Tree menu		
-	val treeMenu = new Menu("Tree")
-	treeMenu.mnemonic = event.Key.T
+    // Tree menu    
+  val treeMenu = new Menu("Tree")
+  treeMenu.mnemonic = event.Key.T
 
-        // Set Decompression Depth : Opens dialog to change the tree visualization's decompression depth.
-		val setDepthItem = new MenuItem(Action("Set Decompression Depth") {
-			val depthDia = new DepthDialog
-		} )
-		setDepthItem.mnemonic = event.Key.D
-		
+  // Set Decompression Depth : Opens dialog to change the tree visualization's decompression depth.
+  val setDepthItem = new MenuItem(Action("Set Decompression Depth") {
+    val depthDia = new DepthDialog
+  })
+  setDepthItem.mnemonic = event.Key.D
+    
         
-        // Set Node Limit : 
-        val setNodeLimitItem = new MenuItem(Action("Set Node Limit") {
-			val dia = new NodeLimitDialog
-		} )
-		setNodeLimitItem.mnemonic = event.Key.O
-		
+  // Set Node Limit : 
+  val setNodeLimitItem = new MenuItem(Action("Set Node Limit") {
+    val dia = new NodeLimitDialog
+  })
+  setNodeLimitItem.mnemonic = event.Key.O
+    
         
-        // Set Maximum Tree Depth : 
-        val setMaxDepthItem = new MenuItem(Action("Set Maximum Tree Depth") {
-			val maxDepthDia = new MaxDepthDialog
-		} )
-		setMaxDepthItem.mnemonic = event.Key.M
-		
+  // Set Maximum Tree Depth : 
+  val setMaxDepthItem = new MenuItem(Action("Set Maximum Tree Depth") {
+    val maxDepthDia = new MaxDepthDialog
+  })
+  setMaxDepthItem.mnemonic = event.Key.M
+    
         
-        // Disable Node Syntax Coloring : 
-        val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
-        disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
+  // Disable Node Syntax Coloring : 
+  val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
+  disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
+  
+  disableNodeColoringItem.listenTo(disableNodeColoringItem)
+  disableNodeColoringItem.reactions += {
+    case _ => 
+      mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
+      mainGUI.config.save
+  }
+  disableNodeColoringItem.mnemonic = event.Key.N
+    
         
-        disableNodeColoringItem.listenTo(disableNodeColoringItem)
-        disableNodeColoringItem.reactions += {
-            case _ => 
-                mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
-                mainGUI.config.save
-        }
-		disableNodeColoringItem.mnemonic = event.Key.N
-		
-        
-        // Disable Tree Construction : 
-        val disableTreeItem = new CheckMenuItem("Disable Tree Construction")
-        disableTreeItem.peer.setState(mainGUI.config.disableTree)
-        GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
-        disableTreeItem.listenTo(disableTreeItem)
-        disableTreeItem.reactions += {
-            case _ => 
-                GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
-                mainGUI.config.disableTree = disableTreeItem.peer.getState
-                mainGUI.config.save
-        }
-		disableTreeItem.mnemonic = event.Key.T
-		
-        
-    /** Constructs a Tree menu structure appropriate for the given mode. */
-    def apply(mode : String) : Menu = {
-        treeMenu.contents.clear
-        
-        mode match {
-            case "Elision" =>
-                treeMenu.contents += setDepthItem
-                treeMenu.contents += setNodeLimitItem
-                treeMenu.contents += setMaxDepthItem
-                treeMenu.contents += disableNodeColoringItem
-                treeMenu.contents += disableTreeItem
-            case _ =>
-                treeMenu.contents += setDepthItem
-                treeMenu.contents += disableTreeItem
-        }
-        
-        treeMenu
+  // Disable Tree Construction : 
+  val disableTreeItem = new CheckMenuItem("Disable Tree Construction")
+  disableTreeItem.peer.setState(mainGUI.config.disableTree)
+  GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
+  disableTreeItem.listenTo(disableTreeItem)
+  disableTreeItem.reactions += {
+    case _ => 
+      GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
+      mainGUI.config.disableTree = disableTreeItem.peer.getState
+      mainGUI.config.save
+  }
+  disableTreeItem.mnemonic = event.Key.T
+  
+      
+  /** Constructs a Tree menu structure appropriate for the given mode. */
+  def apply(mode : String) : Menu = {
+    treeMenu.contents.clear
+    
+    mode match {
+      case "Elision" =>
+        treeMenu.contents += setDepthItem
+        treeMenu.contents += setNodeLimitItem
+        treeMenu.contents += setMaxDepthItem
+        treeMenu.contents += disableNodeColoringItem
+        treeMenu.contents += disableTreeItem
+      case _ =>
+        treeMenu.contents += setDepthItem
+        treeMenu.contents += disableTreeItem
     }
+    
+    treeMenu
+  }
 }
 
 
@@ -189,7 +189,7 @@ class DepthDialog extends Dialog {
     
     /** 
      * processes the input for the dialog when the user clicks OK or presses Enter 
-     * @param input		The input string being evaluated as the new decompression depth
+     * @param input    The input string being evaluated as the new decompression depth
      */
     private def enterInput(input : String) : Unit = {
         // if the input is an integer > 0, proceed to set the decompression depth to the input. 
@@ -250,7 +250,7 @@ class MaxDepthDialog extends Dialog {
     
     /** 
      * processes the input for the dialog when the user clicks OK or presses Enter 
-     * @param input		The input string being evaluated as the new value for the maximum tree depth.
+     * @param input    The input string being evaluated as the new value for the maximum tree depth.
      */
     private def enterInput(input : String) : Unit = {
         // if the input is an integer > 0, proceed to set the decompression depth to the input. 
@@ -304,7 +304,7 @@ class NodeLimitDialog extends Dialog {
     
     /** 
      * processes the input for the dialog when the user clicks OK or presses Enter 
-     * @param input		The input string being evaluated as the new value for the node limit.
+     * @param input    The input string being evaluated as the new value for the node limit.
      */
     private def enterInput(input : String) : Unit = {
         try {
