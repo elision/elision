@@ -35,42 +35,33 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.elision
+package ornl.elision.gui.elision.sprites
 
-import java.awt._
-import ornl.elision.gui._
+import ornl.elision.gui.elision._
 import ornl.elision.gui.trees._
-import sage2D.GamePanel
 
-/** An extension of TreeVisPanel that handles some Elision-specific functions. */
-class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
-    var selectingRuleLHS = false
-    
-    override def selectNode(clickedNode : NodeSprite) : Unit = {
-        super.selectNode(clickedNode)
-        
-        // Interactive rule creation: User selects an atom node for the LHS and then 
-        // inputs the RHS and saves it to an eli file.
-        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
-            val ruleDia = new RulePredDialog(clickedNode.term)
-            selectingRuleLHS = false
-        }
-    }
-    
-    override def render(g : Graphics2D) : Unit = {
-        super.render(g)
-        
-        val helpPromptY = (this.game.size.getHeight-10).toInt
-        g.setColor(new Color(0x000000))
-        if(selectingRuleLHS) {
-            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
-        }
-    }
+class ElisionTreeSprite extends TreeSprite(0,0) {
+  /** Elision syntax formatter. */
+  override val formatter = new ornl.elision.gui.syntax.SyntaxFormatter(ornl.elision.gui.elision.EliRegexes, true, true)
+	
+  /** If false, syntax coloring is disabled for the entire tree. */
+  syntaxColoring = !ornl.elision.gui.mainGUI.config.disableNodeSyntaxColoring
 }
 
 
-
-
-
-
+/** 
+ * Eva's welcome message tree for Elision mode.
+ */
+object ElisionWelcomeTree extends ElisionTreeSprite {
+  makeRoot("root")
+    root.makeChild("Welcome to the ") // addChild("Welcome to the ",realroot)
+    root.makeChild("Elision Visualization Assistant (Eva)!") // addChild("Elision Visualization Assistant (Eva)!",realroot)
+      root(1).makeChild("To create a rewrite tree visualization,") // addChild("To create a rewrite tree visualization,", root2)
+      root(1).makeChild("simply do one of the following: ") // addChild("simply do one of the following: ",root2)
+        root(1)(1).makeChild("Enter input into the ") // addChild("Enter input into the ", node2)
+        root(1)(1).makeChild("onboard Elision REPL, below.") // addChild("onboard Elision REPL, below.", node2)
+        root(1)(1).makeChild("OR") // addChild("OR",node2)
+        root(1)(1).makeChild("Use File -> Open to open a file ") // addChild("Use File -> Open to open a file ",node2)
+        root(1)(1).makeChild("containing Elision input.") // addChild("containing Elision input.", node2)
+}
 

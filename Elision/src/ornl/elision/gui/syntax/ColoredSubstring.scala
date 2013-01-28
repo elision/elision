@@ -34,43 +34,15 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
+package ornl.elision.gui.syntax
 
-package ornl.elision.gui.elision
+import java.awt.Color
 
-import java.awt._
-import ornl.elision.gui._
-import ornl.elision.gui.trees._
-import sage2D.GamePanel
-
-/** An extension of TreeVisPanel that handles some Elision-specific functions. */
-class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
-    var selectingRuleLHS = false
-    
-    override def selectNode(clickedNode : NodeSprite) : Unit = {
-        super.selectNode(clickedNode)
-        
-        // Interactive rule creation: User selects an atom node for the LHS and then 
-        // inputs the RHS and saves it to an eli file.
-        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
-            val ruleDia = new RulePredDialog(clickedNode.term)
-            selectingRuleLHS = false
-        }
-    }
-    
-    override def render(g : Graphics2D) : Unit = {
-        super.render(g)
-        
-        val helpPromptY = (this.game.size.getHeight-10).toInt
-        g.setColor(new Color(0x000000))
-        if(selectingRuleLHS) {
-            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
-        }
-    }
-}
-
-
-
-
-
-
-
+/** 
+ * A single-colored substring of a SyntaxFormattedLine. 
+ * @param str     The uncolored substring.
+ * @param color   The color for this substring.
+ */
+class ColoredSubstring(val str : String, val color : Color) {
+  override def toString : String = str
+} 
