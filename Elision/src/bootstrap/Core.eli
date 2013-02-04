@@ -658,3 +658,21 @@ decl.{! fail()
        case _ => as_is
      }"""
 }
+
+decl.{! crashinc()
+  #handler=
+  """
+    exec match {
+      case p: ornl.elision.parse.Processor =>
+        p.crashRoot = !p.crashRoot
+        emitln("Crash at root is " + (if (p.crashRoot) "ON." else "OFF."))
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Toggle whether to crash at the root upon error."
+  #detail=
+  "Enable or disable crashing execution at the root level when an error ".
+  "is encountered. This is ON by default. "
+}
+
