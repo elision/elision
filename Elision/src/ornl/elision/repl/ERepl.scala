@@ -567,10 +567,6 @@ class ERepl extends Processor {
           ReplActor ! ("Eva", "newTree", line)
           
           execute(line)
-	
-          // send the completed rewrite tree to the GUI's actor
-          if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
-              ReplActor ! ("Eva", "finishTree", None)
         } catch {
           case ornl.elision.util.ElisionException(msg) =>
             console.error(msg)
@@ -590,6 +586,10 @@ class ERepl extends Processor {
             if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
             coredump("Internal error.", Some(th))
         }
+        
+        // send the completed rewrite tree to the GUI's actor
+        if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
+          ReplActor ! ("Eva", "finishTree", None)
       }
     } // Forever read, eval, print.
   }

@@ -45,9 +45,9 @@ import java.util.concurrent.TimeUnit
  *
  */
 class MemoTest extends AssertionsForJUnit {
- val numObjs = 8000 
+ val numObjs = 30000 
  val ccaSize = 120
- val numThreads = 10
+ val numThreads = 20
   
   
   /**

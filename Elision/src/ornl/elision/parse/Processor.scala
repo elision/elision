@@ -123,6 +123,9 @@ with HasHistory {
   /** Select the parser to use */
   private var _toggle = false
   
+  /** Whether to stop execution at the root level if an error occurs. */
+  private var _crashRoot = true
+  
   /** The queue of handlers, in order. */
   private var _queue = List[Processor.Handler]()
   
@@ -322,7 +325,14 @@ with HasHistory {
     	}
     } catch {
       case ElisionException(msg) =>
-        console.error(msg)
+        if(_crashRoot) {
+          // An error is encountered and execution of the root operation must stop.
+          throw new ElisionException(msg)
+        }
+        else {
+          // An error is encountered, but we only skip the rest of execution at this level.
+          console.error(msg)
+        }
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
         val trace = ex.getStackTrace()
@@ -416,6 +426,16 @@ with HasHistory {
   }
   
   /**
+   * Specify whether to stop root execution on errors.
+   * 
+   * @param enable	If true, stop root execution if an error occurs.  
+   *                If false, do not.
+   */
+  def crashRoot_=(enable: Boolean) {
+    _crashRoot = enable
+  }
+  
+  /**
    * Determine whether tracing is enabled.
    */
   def trace = _trace
@@ -424,6 +444,11 @@ with HasHistory {
    * Determine which parser to use
    */
   def toggle = _toggle
+  
+  /**
+   * Determine if root execution stops when an error occurs.
+   */
+  def crashRoot = _crashRoot
   
   /**
    * Register a handler.  This handler will be placed at the front of the

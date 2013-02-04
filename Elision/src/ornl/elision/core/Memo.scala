@@ -529,9 +529,10 @@ object Memo {
     val keyIterator = _cache.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
+      val value = _cacheCounter.get(key)
       
-      val count = if(_cacheCounter.containsKey(key)) {
-          _cacheCounter.get(key)
+      val count = if(value != null) {
+          value
         }
         else {
           0
@@ -569,8 +570,10 @@ object Memo {
     val keyIterator = _cache.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
-      val count = if(_cacheCounter.containsKey(key)) {
-          _cacheCounter.get(key)
+      val value = _cacheCounter.get(key)
+      
+      val count = if(value != null) {
+          value
         }
         else {
           0
@@ -632,9 +635,10 @@ object Memo {
     val keyIterator = _normal.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
+      val value = _normalCounter.get(key)
       
-      val count = if(_normalCounter.containsKey(key)) {
-          _normalCounter.get(key)
+      val count = if(value != null) {
+          value
         }
         else {
           0
@@ -671,9 +675,10 @@ object Memo {
     val keyIterator = _normal.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
+      val value = _normalCounter.get(key)
       
-      val count = if(_normalCounter.containsKey(key)) {
-          _normalCounter.get(key)
+      val count = if(value != null) {
+          value
         }
         else {
           0
@@ -702,8 +707,10 @@ object Memo {
   
   /** safely increments the counter for a key in _cacheCounter. */
   def _incCacheCounter(key : ((Int,BigInt),BitSet)) {
-    val curCount = if(_cacheCounter.containsKey(key)) {
-        _cacheCounter.get(key)
+    val value = _cacheCounter.get(key)
+    
+    val curCount = if(value != null) {
+        value
       }
       else {
         0
@@ -713,8 +720,10 @@ object Memo {
   
   /** safely increments the counter for a key in _normalCounter. */
   def _incNormalCounter(key : ((Int,BigInt),BitSet)) {
-    val curCount = if(_normalCounter.containsKey(key)) {
-        _normalCounter.get(key)
+    val value = _normalCounter.get(key)
+    
+    val curCount = if(value != null) {
+        value
       }
       else {
         0
