@@ -480,73 +480,102 @@ extends Fickle with Mutable {
    */
   def rewrite(atom: BasicAtom) = {
 
-    // Has rewriting timed out?
-    if (BasicAtom.rewriteTimedOut) {
-      (atom, true)
-    }
+    // Has this atom already been rewritten using (at least) the
+    // current rulesets?
+    atom.cleanRulesets match {
+      
+      // Yes it has been rewritten with the current rulesets.
+      case Some(priorRulesets) if (_active.subsetOf(priorRulesets)) => {
+        //println("!! REWRITE: '" + atom.toParseString + "' is already clean")
+        //println("!! REWRITE: for (atom) " + priorRulesets + " and " +
+        //        "(active) " + _active)
+        (atom, false)
+      }
+      
+      // It has never been rewritten.
+      case _ => {
 
-    // No timeout.
-    else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
-    else if (atom.isInstanceOf[Variable]) (atom, false)
-    else {
-      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
-      val tempDisabled = ReplActor.disableGUIComs
-      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-
-      // Check the cache.
-      var timedOut = false
-      val (newatom, flag) = Memo.get(atom, _active) match {
-        case None => {
-
-          // Set the time at which rewriting the atom will time out, if we
-          // are timing rewrites out.
-          var pair: (ornl.elision.core.BasicAtom, Boolean) = null      
-          if (BasicAtom.timingOut) {
-            BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
-              pair = _doRewrite(atom, Set.empty)
-              timedOut = BasicAtom.rewriteTimedOut
+        // Actually try to rewrite.
+        
+        // Has rewriting timed out?
+        if (BasicAtom.rewriteTimedOut) {
+          (atom, true)
+        }
+        
+        // No timeout.
+        else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
+        else if (atom.isInstanceOf[Variable]) (atom, false)
+        else {
+          ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+          ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
+          ReplActor ! ("Eva", "setSubroot", "rwNode")
+          val tempDisabled = ReplActor.disableGUIComs
+          if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+          
+          // Check the cache.
+          var timedOut = false
+          val (newatom, flag) = Memo.get(atom, _active) match {
+            case None => {
+              
+              // Set the time at which rewriting the atom will time out, if we
+              // are timing rewrites out.
+              var pair: (ornl.elision.core.BasicAtom, Boolean) = null      
+              if (BasicAtom.timingOut) {
+                BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
+                  pair = _doRewrite(atom, Set.empty)
+                  timedOut = BasicAtom.rewriteTimedOut
+                }
+              }
+              else {
+                pair = _doRewrite(atom, Set.empty)
+                timedOut = false
+              }
+              //println("!! REWRITE: Setting '" + pair._1.toParseString + "' to clean")
+              atom.cleanRulesets match {
+                // The atom has now been rewritten with both the
+                // rulesets it was previosuly rewritten with and the new
+                // rulesets. Save that.
+                case Some(prior) => pair._1.cleanRulesets = Some(prior.union(_active.clone))
+                // The atom was not rewritten previosuly. Save the
+                // current rulesets used to rewrite the atom.
+                case _ => pair._1.cleanRulesets = Some(_active.clone)
+              }
+              Memo.put(atom, _active, pair._1, 0)
+              Memo.put(pair._1, _active, pair._1, 0)
+              pair
+            }
+            case Some(pair) => {
+              if (BasicAtom.traceRules) {
+                println("Got cached rewrite '" +
+                        atom.toParseString + "' -> '" + pair._1.toParseString +
+                        "' w. rulesets " + _activeNames)
+              }
+              pair
             }
           }
-          else {
-            pair = _doRewrite(atom, Set.empty)
-            timedOut = false
-          }
-          Memo.put(atom, _active, pair._1, 0)
-          Memo.put(pair._1, _active, pair._1, 0)
-          pair
-        }
-        case Some(pair) => {
-          if (BasicAtom.traceRules) {
-            println("Got cached rewrite '" +
-                    atom.toParseString + "' -> '" + pair._1.toParseString +
-                    "' w. rulesets " + _activeNames)
-          }
-          pair
-        }
-      }
-
-      ReplActor.disableGUIComs = tempDisabled
-      if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom))
-      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
-      
-      // Did rewriting this atom time out?
-      if (timedOut) {
-        
-        // Return the original atom, with the rewrite flag set to true
-        // to indicate a timeout.
-        if (BasicAtom.traceRules) {
-          println("Rewriting of atom '" + atom.toParseString + "' timed out.")
-        }
-        (atom, true)
-      }
-      
-      // No timeout.
-      else {
           
-        // Return the rewrite results.
-        (newatom, flag)
+          ReplActor.disableGUIComs = tempDisabled
+          if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom))
+          ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+          
+          // Did rewriting this atom time out?
+          if (timedOut) {
+            
+            // Return the original atom, with the rewrite flag set to true
+            // to indicate a timeout.
+            if (BasicAtom.traceRules) {
+              println("Rewriting of atom '" + atom.toParseString + "' timed out.")
+            }
+            (atom, true)
+          }
+          
+          // No timeout.
+            else {
+              
+              // Return the rewrite results.
+              (newatom, flag)
+            }
+        }
       }
     }
   }
@@ -565,82 +594,112 @@ extends Fickle with Mutable {
    *          applied.
    */
   def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
-
-    // Has rewriting timed out?
-    if (BasicAtom.rewriteTimedOut) {
-      (atom, true)
-    }
-
-    // No timeout.
-    else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
-    else if (atom.isInstanceOf[Variable]) (atom, false)
-    else {
-      ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
-      val tempDisabled = ReplActor.disableGUIComs
-
-      if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-
-      // Check the cache.
-      val usedRulesetsBits = 
-        if (rulesets.isEmpty) _active 
-        else {
-          var r = new BitSet()
-          for (rs <- rulesets) r += getRulesetBit(rs)
-          r
-        }
-      val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
-      var timedOut = false
-      val (newatom, flag) = Memo.get(atom, usedRulesetsBits) match {
-        case None =>
-
-          // Set the time at which rewriting the atom will time out, if we
-          // are timing rewrites out.
-          var pair: (ornl.elision.core.BasicAtom, Boolean) = null
-          if (BasicAtom.timingOut) {
-            BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
-              pair = _doRewrite(atom, usedRulesets)
-              timedOut = BasicAtom.rewriteTimedOut
-            }
-          }
-          else {
-            pair = _doRewrite(atom, usedRulesets)
-            timedOut = false
-          }
-          Memo.put(atom, usedRulesetsBits, pair._1, 0)
-          Memo.put(pair._1, usedRulesetsBits, pair._1, 0)
-          pair
-        case Some(pair) => {
-            if (BasicAtom.traceRules) {
-              println("Got cached rewrite '" +
-                      atom.toParseString + "' -> '" + pair._1.toParseString +
-                      "' w. rulesets " + usedRulesets)
-            }
-            pair
-        }
-      }
-        
-      ReplActor.disableGUIComs = tempDisabled
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom))
-      ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
-      
-      // Did rewriting this atom time out?
-      if (timedOut) {
-        
-        // Return the original atom, with the rewrite flag set to true
-        // to indicate a timeout.
-        if (BasicAtom.traceRules) {
-          println("Rewriting of atom '" + atom.toParseString + "' timed out.")
-        }
-        (atom, true)
-      }
-      
-      // No timeout.
+    
+    // Get a bitset for the given set of rulesets.
+    val usedRulesetsBits = 
+      if (rulesets.isEmpty) _active 
       else {
+        var r = new BitSet()
+        for (rs <- rulesets) r += getRulesetBit(rs)
+        r
+      }
+
+    // Has this atom already been rewritten using (at least) the
+    // current rulesets?
+    atom.cleanRulesets match {
+      
+      // Yes it has been rewritten with the current rulesets (and
+      // possibly other rulesets..
+      case Some(priorRulesets) if (usedRulesetsBits.subsetOf(priorRulesets)) => {
+        //println("!! REWRITE: '" + atom.toParseString + "' is already clean")
+        //println("!! REWRITE: for (atom) " + priorRulesets + " and " +
+        //        "(active) " + usedRulesetsBits)
+        (atom, false)
+      }
+      
+      // It has never been rewritten.
+      case _ => {
         
-        // Return the rewrite results.
-        (newatom, flag)
+        // Has rewriting timed out?
+        if (BasicAtom.rewriteTimedOut) {
+          (atom, true)
+        }
+        
+        // No timeout.
+        else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
+        else if (atom.isInstanceOf[Variable]) (atom, false)
+        else {
+          ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
+          ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
+          ReplActor ! ("Eva", "setSubroot", "rwNode")
+          val tempDisabled = ReplActor.disableGUIComs
+          
+          if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
+          
+          // Check the cache.
+          val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
+          var timedOut = false
+          val (newatom, flag) = Memo.get(atom, usedRulesetsBits) match {
+            case None =>
+              
+              // Set the time at which rewriting the atom will time out, if we
+              // are timing rewrites out.
+              var pair: (ornl.elision.core.BasicAtom, Boolean) = null
+            if (BasicAtom.timingOut) {
+              BasicAtom.timeoutTime.withValue(BasicAtom.computeTimeout) {
+                pair = _doRewrite(atom, usedRulesets)
+                timedOut = BasicAtom.rewriteTimedOut
+              }
+            }
+            else {
+              pair = _doRewrite(atom, usedRulesets)
+              timedOut = false
+            }
+            //println("!! REWRITE: Setting '" + pair._1.toParseString + "' to clean")
+            atom.cleanRulesets match {
+              // The atom has now been rewritten with both the
+              // rulesets it was previosuly rewritten with and the new
+              // rulesets. Save that.
+              case Some(prior) => pair._1.cleanRulesets = Some(prior.union(usedRulesetsBits.clone))
+              // The atom was not rewritten previosuly. Save the
+              // current rulesets used to rewrite the atom.
+              case _ => pair._1.cleanRulesets = Some(usedRulesetsBits.clone)
+            }
+            Memo.put(atom, usedRulesetsBits, pair._1, 0)
+            Memo.put(pair._1, usedRulesetsBits, pair._1, 0)
+            pair
+            case Some(pair) => {
+              if (BasicAtom.traceRules) {
+                println("Got cached rewrite '" +
+                        atom.toParseString + "' -> '" + pair._1.toParseString +
+                        "' w. rulesets " + usedRulesets)
+              }
+              pair
+            }
+          }
+          
+          ReplActor.disableGUIComs = tempDisabled
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom))
+          ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
+          
+          // Did rewriting this atom time out?
+          if (timedOut) {
+            
+            // Return the original atom, with the rewrite flag set to true
+            // to indicate a timeout.
+            if (BasicAtom.traceRules) {
+              println("Rewriting of atom '" + atom.toParseString + "' timed out.")
+            }
+            (atom, true)
+          }
+          
+          // No timeout.
+            else {
+              
+              // Return the rewrite results.
+              (newatom, flag)
+            }
+        }
       }
     }
   }
