@@ -38,7 +38,7 @@
 package ornl.elision.core
 
 import scala.collection.immutable.HashSet
-import scala.collection.mutable.{HashSet => MutableHashSet}
+import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
 import ornl.elision.util.PropertyManager
@@ -191,7 +191,14 @@ trait Applicable {
  */
 abstract class BasicAtom extends HasOtherHash {
   import scala.collection.mutable.{Map => MMap}
-  
+
+  /**
+   * The rulesets with respect to which this atom is clean. If this is
+   * not None the atom has already been rewritten with some set of
+   * rulesets. If None, the atom has never been rewritten.
+   */
+  var cleanRulesets: Option[BitSet] = None
+
   /** The type for the atom. */
   val theType: BasicAtom
   
@@ -579,7 +586,7 @@ object BasicAtom {
     // executor than what Elision is actually using.
     val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
     //println("** rewrite_timeout == " + rewrite_timeout)
-    if ((rewrite_timeout > 0) && (timeoutTime.value == -1)) {
+    if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
 
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
