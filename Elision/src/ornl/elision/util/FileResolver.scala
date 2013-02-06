@@ -147,6 +147,10 @@ class FileResolver(usePath: Boolean = true, useClassPath: Boolean = true,
       // before we look in the classpath.  This is to allow overriding the
       // distribution files.
       if (usePath) {
+        // always make sure that . is in the search path so that relative paths work.
+        if(!_path.contains("."))
+          _path = "." +: _path
+        
         // We need to search the path.
         for (folder <- _path) {
           // Construct the file.
