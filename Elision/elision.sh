@@ -44,6 +44,7 @@ dir=`dirname $0`
 val=`for file in \`find $dir/lib -name '*.jar'\` ; do \
   echo -n $file":"; \
   done`"$dir/bin"
+if [ ! -z $CLASSPATH ] ; then val="${val}:$CLASSPATH" ; fi
 
 # Now start a Scala interpreter with the classpath and run the REPL.
 env CLASSPATH="$val" scala ornl.elision.Main $*
