@@ -118,10 +118,22 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       else return 1
     } else if (right == TypeUniverse) return -1
     
+    // Test for fast equality.  This explicitly breaks a potential unbounded
+    // recursion caused by the LIST(x) operator.  The problems looks like this
+    // (for reference): LIST(x) => LIST:OPREF . %(x), but the argument is also
+    // a LIST(x), so we have an unbounded recursion.
+    if (feq(left, right, false)) {
+      return 0
+    }
+    
     // Ordinals did not solve the problem; the two atoms have the same ordinal.
-    // Try to order the atoms by their types.
-    sgn = compare(left.theType, right.theType)
-    if (sgn != 0) return sgn
+    // Try to order the atoms by their types.  Watch for recursion!
+    if (!(left.theType eq right.theType)) {
+      if (!(left.theType eq left) && !(right.theType eq right)) {
+        sgn = compare(left.theType, right.theType)
+        if (sgn != 0) return sgn
+      }
+    }
     
     // The types did not resolve anything.  We have to try more specific
     // tests.
