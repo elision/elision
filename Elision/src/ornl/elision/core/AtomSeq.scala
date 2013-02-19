@@ -68,10 +68,18 @@ object EmptySeq extends AtomSeq(AlgProp(), IndexedSeq())
  * @param xatoms	The sequence of atoms in this sequence.  Note that, depending
  * on the specified properties, the stored sequence may be different.
  */
-class AtomSeq(val props: AlgProp, xatoms: IndexedSeq[BasicAtom])
+class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
 extends BasicAtom with IndexedSeq[BasicAtom] {
   require(xatoms != null)
   require(props != null)
+  
+  /**
+   * Determine whether we have to sort the atoms.  If we know the list is
+   * commutative, then we have to sort it.
+   */
+  lazy val xatoms =
+    (if (props.isC(false)) orig_xatoms.sorted(BasicAtomComparator)
+        else orig_xatoms)
   
   /**
    * Whether this sequence is specified to be associative.  Note that false here
