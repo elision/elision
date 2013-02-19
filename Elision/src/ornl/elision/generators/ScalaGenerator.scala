@@ -177,7 +177,8 @@ object ScalaGenerator extends Generator {
         gen(cases, context, buf).append(",")
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(")")
-      case TypedSymbolicOperator(name, typ, params, description, detail, evenMeta, handlerB64) =>
+      case TypedSymbolicOperator(name, typ, params, description, detail,
+          evenMeta, handlerB64) =>
         buf.append("TypedSymbolicOperator(")
         buf.append(toEString(name)).append(",")
         gen(typ, context, buf).append(",")
@@ -187,6 +188,7 @@ object ScalaGenerator extends Generator {
         buf.append(if(evenMeta) "true" else "false").append(",")
         buf.append(toEString(handlerB64)).append(",")
         // this is VERY tightly coupled with OperatorLibrary.toString
+        // FIXME What is this about?
         if(handlerB64 != "") buf.append("OpsNative.`native$"+name+"`")
         else buf.append("None")
         buf.append(")")
@@ -269,7 +271,7 @@ object ScalaGenerator extends Generator {
         
       case AtomSeq(props, atoms) =>
         buf.append("AtomSeq(")
-        gen(props, context, buf)
+        gen(props, context, buf).append(",")
         atoms foreach {
           gen(_, context, buf.append(","))
         }
