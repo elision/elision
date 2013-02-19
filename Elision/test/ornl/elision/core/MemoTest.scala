@@ -45,161 +45,165 @@ import java.util.concurrent.TimeUnit
  *
  */
 class MemoTest extends AssertionsForJUnit {
- val numObjs = 30000 
- val ccaSize = 120
- val numThreads = 20
+ val numObjs = 8000 
+ val ccaSize = 500
+ var numThreads = 1
   
+ 
+ def funcGen(t: Int)(i: Int): BasicAtom = {
+   val j = i%8000
+    if (t > 1)
+      Lambda(Variable("test " + j + "_" + t, "test_val_val " + j + "_" + t), funcGen(t-1)(i))
+    else
+      Variable("test_val" + j + "_" + t, (j + "_" + t).toString)
+  }
   
   /**
    * Test method for {@link ornl.elision.core.Memo#put(ornl.elision.core.BasicAtom, scala.collection.mutable.BitSet, ornl.elision.core.BasicAtom, int)}.
    */
   @Test
   def testPut() {
-    println("testPut")
+    println("testPut (Single-threaded)")
     val test = Memo
     test.clear
     val bitset = new BitSet
-    def funcGen(t: Int)(i: Int): BasicAtom = {
-      if (t > 1)
-        Lambda(Variable("test " + i + "_" + t, "test_val_val " + i + "_" + t), funcGen(i)(t - 1))
-      else
-        Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
-    }
+    
     def f = funcGen(ccaSize)(_)
     val num = numObjs
     val num2 = num + 10
+    
+    // create a bunch of atoms, but don't actually do anything with them
     val starttime = System.currentTimeMillis
     for (i <- 0 to num - 1) {
       f(i)
     }
     println("Time to create " + num + " objects is " + (System.currentTimeMillis - starttime) + "(ms)")
+    
+    // putting atoms into the Memo cache.
     println("starting to add")
     val rt = Array.fill[Long](num)(0)
-    val addstarttime = System.currentTimeMillis
+    var totalAddTime = System.currentTimeMillis
     for (i <- 0 to num - 1) {
+      val atom = f(i)
       rt(i) = System.currentTimeMillis
-      test.put(Variable("test " + i, "test_val " + i), bitset, f(i), i % 10)
+      test.put(atom, bitset, Variable("test " + i, "test_val " + i), i % 10)
       rt(i) = System.currentTimeMillis - rt(i)
     }
-    val totalAddTime = System.currentTimeMillis - addstarttime
-    val gt = Array.fill[Long](num2)(0)
-    for (i <- 0 to num2 - 1) {
-      gt(i) = System.currentTimeMillis
-      test.get(f(i), bitset)
-      gt(i) = System.currentTimeMillis - gt(i)
-    }
-    println(test.showStats)
-    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) // rt.reduceLeft(_ + _))
-    println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms)")
-  }
-
-  @Test def testPutMultithreaded {
-    println("testPutMultithreaded")
-    val test = Memo
-    test.clear
-    val bitset = new BitSet
-    def funcGen(t: Int)(i: Int): BasicAtom = {
-      if (t > 1)
-        Lambda(Variable("test " + i + "_" + t, "test_val_val " + i + "_" + t), funcGen(i)(t - 1))
-      else
-        Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
-    }
-    def f = funcGen(ccaSize)(_)
-    val num = numObjs
-    val num2 = num + 10
-    val poolSize = 2
-    val pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
-    val rt = Array.fill[Long](num)(0)
-
-    class Handler(i: Integer) extends Runnable {
-      def message = (Thread.currentThread.getName() + "\n").getBytes
-
-      def run() {
-        rt(i) = System.currentTimeMillis
-        test.put(Variable("test " + i, "test_val " + i), bitset, f(i), i % 10)
-        rt(i) = System.currentTimeMillis - rt(i)
-      }
-    }
-
-    val starttime = System.currentTimeMillis
-    for (i <- 0 to num - 1) {
-      f(i)
-    }
-    println("Time to create " + num + " objects is " + (System.currentTimeMillis - starttime) + "(ms)")
-    println("starting to add")
-    val gt = Array.fill[Long](num2)(0)
+    totalAddTime = System.currentTimeMillis - totalAddTime
     
-    val addstarttime = System.currentTimeMillis
-    try {
-      for (i <- 0 to num - 1) {
-        pool.execute(new Handler(i))
-      }
-    } finally {
-      pool.shutdown()
-    }
-    pool.awaitTermination(10, TimeUnit.MINUTES)
-    val totalAddTime = System.currentTimeMillis - addstarttime
+    // getting atoms from the Memo cache
+    println("starting to get")
+    val gt = Array.fill[Long](num2)(0)
+    var totalGetTime = System.currentTimeMillis
     for (i <- 0 to num2 - 1) {
+      val atom = f(i)
       gt(i) = System.currentTimeMillis
-      test.get(f(i), bitset)
+      test.get(atom, bitset)
       gt(i) = System.currentTimeMillis - gt(i)
     }
+    totalGetTime = System.currentTimeMillis - totalGetTime
+    
+    // print results
     println(test.showStats)
-    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) // rt.reduceLeft(_ + _))
-    println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms)")
+    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) 
+    println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms) and total time was " + totalGetTime) 
   }
-  @Test def testPut10Threads {
-    println("testPut10Threads")
+  
+  
+  @Test def testPutThreaded {
+    if(numThreads == 1) {
+      testPut
+      return
+    }
+    
+    println("testPutThreaded (" + numThreads + " threads)")
     val test = Memo
     test.clear
     val bitset = new BitSet
-    def funcGen(t: Int)(i: Int): BasicAtom = {
-      if (t > 1)
-        Lambda(Variable("test " + i + "_" + t, "test_val_val " + i + "_" + t), funcGen(i)(t - 1))
-      else
-        Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
-    }
+    
     def f = funcGen(ccaSize)(_)
     val num = numObjs
     val num2 = num + 10
     val poolSize = numThreads
-    val pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
+    var pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
     val rt = Array.fill[Long](num)(0)
-
-    class Handler(i: Integer) extends Runnable {
+    val gt = Array.fill[Long](num2)(0)
+    
+    // thread for doing Memo.put
+    class PutHandler(i: Integer) extends Runnable {
       def message = (Thread.currentThread.getName() + "\n").getBytes
 
       def run() {
+        val atom = f(i)
         rt(i) = System.currentTimeMillis
-        test.put(Variable("test " + i, "test_val " + i), bitset, f(i), i % 10)
+        test.put(atom, bitset, Variable("test " + i, "test_val " + i), i % 10)
         rt(i) = System.currentTimeMillis - rt(i)
       }
     }
+    
+    // thread for doing Memo.get
+    class GetHandler(i: Integer) extends Runnable {
+      def message = (Thread.currentThread.getName() + "\n").getBytes
 
+      def run() {
+        val atom = f(i)
+        gt(i) = System.currentTimeMillis
+        test.get(atom, bitset)
+        gt(i) = System.currentTimeMillis - gt(i)
+      }
+    }
+    
+    // create a bunch of atoms, but don't actually do anything with them
     val starttime = System.currentTimeMillis
     for (i <- 0 to num - 1) {
       f(i)
     }
     println("Time to create " + num + " objects is " + (System.currentTimeMillis - starttime) + "(ms)")
-    val gt = Array.fill[Long](num2)(0)
+    
+    // putting atoms into the Memo cache.
     println("starting to add")
-    val addstarttime = System.currentTimeMillis
+    var totalAddTime = System.currentTimeMillis
     try {
       for (i <- 0 to num - 1) {
-        pool.execute(new Handler(i))
+        pool.execute(new PutHandler(i))
       }
     } finally {
       pool.shutdown()
     }
     pool.awaitTermination(10, TimeUnit.MINUTES)
-    val totalAddTime = System.currentTimeMillis - addstarttime
-    for (i <- 0 to num2 - 1) {
-      gt(i) = System.currentTimeMillis
-      test.get(f(i), bitset)
-      gt(i) = System.currentTimeMillis - gt(i)
+    totalAddTime = System.currentTimeMillis - totalAddTime
+    
+    pool = Executors.newFixedThreadPool(poolSize)
+    
+    // getting atoms from the Memo cache
+    println("starting to get")
+    var totalGetTime = System.currentTimeMillis
+    try {
+      for (i <- 0 to num2 - 1) {
+        pool.execute(new GetHandler(i))
+      }
+    } finally {
+      pool.shutdown()
     }
+    pool.awaitTermination(10, TimeUnit.MINUTES)
+    totalGetTime = System.currentTimeMillis - totalGetTime
+    
+    // print results
     println(test.showStats)
-    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) // rt.reduceLeft(_ + _))
-    println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms)")
+    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime)
+    println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms) and total time was " + totalGetTime)
+  }
+  
+  @Test def testAll {
+    testPut
+    
+    numThreads = 2
+    testPutThreaded
+    
+    numThreads = 10
+    testPutThreaded
+    
+    numThreads = 20
+    testPutThreaded
   }
 }

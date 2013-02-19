@@ -67,7 +67,7 @@ object Memo {
   private val _maxsize = 4096
   
   /** The replacement policy being used. */
-  private val _replacementPolicy = "FIFO"
+  private val _replacementPolicy = "LFU"
 
   /** Declare the Elision property for turning memoization on/off. */
   knownExecutor.declareProperty("cache",
@@ -529,10 +529,10 @@ object Memo {
     val keyIterator = _cache.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
-      val value = _cacheCounter.get(key)
+      val counterHasKey = _cacheCounter.containsKey(key)
       
-      val count = if(value != null) {
-          value
+      val count = if(counterHasKey) {
+          _cacheCounter.get(key)
         }
         else {
           0
@@ -570,10 +570,10 @@ object Memo {
     val keyIterator = _cache.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
-      val value = _cacheCounter.get(key)
+      val counterHasKey = _cacheCounter.containsKey(key)
       
-      val count = if(value != null) {
-          value
+      val count = if(counterHasKey) {
+          _cacheCounter.get(key)
         }
         else {
           0
@@ -635,10 +635,10 @@ object Memo {
     val keyIterator = _normal.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
-      val value = _normalCounter.get(key)
+      val counterHasKey = _normalCounter.containsKey(key)
       
-      val count = if(value != null) {
-          value
+      val count = if(counterHasKey) {
+          _normalCounter.get(key)
         }
         else {
           0
@@ -675,10 +675,10 @@ object Memo {
     val keyIterator = _normal.keySet.iterator
     while(keyIterator.hasNext) {
       val key = keyIterator.next
-      val value = _normalCounter.get(key)
+      val counterHasKey = _normalCounter.containsKey(key)
       
-      val count = if(value != null) {
-          value
+      val count = if(counterHasKey) {
+          _normalCounter.get(key)
         }
         else {
           0
@@ -707,10 +707,10 @@ object Memo {
   
   /** safely increments the counter for a key in _cacheCounter. */
   def _incCacheCounter(key : ((Int,BigInt),BitSet)) {
-    val value = _cacheCounter.get(key)
+    val counterHasKey = _cacheCounter.containsKey(key)
     
-    val curCount = if(value != null) {
-        value
+    val curCount = if(counterHasKey) {
+        _cacheCounter.get(key)
       }
       else {
         0
@@ -720,10 +720,10 @@ object Memo {
   
   /** safely increments the counter for a key in _normalCounter. */
   def _incNormalCounter(key : ((Int,BigInt),BitSet)) {
-    val value = _normalCounter.get(key)
+    val counterHasKey = _normalCounter.containsKey(key)
     
-    val curCount = if(value != null) {
-        value
+    val curCount = if(counterHasKey) {
+        _normalCounter.get(key)
       }
       else {
         0
