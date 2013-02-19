@@ -55,6 +55,9 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     case x: MapPair => 7
     case x: MatchAtom => 8
     case x: SpecialForm => 9
+    case x: RulesetRef => 10
+    case x: OperatorRef => 11
+    case _ => -1
   }
   
   /**
@@ -115,10 +118,22 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       else return 1
     } else if (right == TypeUniverse) return -1
     
+    // Test for fast equality.  This explicitly breaks a potential unbounded
+    // recursion caused by the LIST(x) operator.  The problems looks like this
+    // (for reference): LIST(x) => LIST:OPREF . %(x), but the argument is also
+    // a LIST(x), so we have an unbounded recursion.
+    if (feq(left, right, false)) {
+      return 0
+    }
+    
     // Ordinals did not solve the problem; the two atoms have the same ordinal.
-    // Try to order the atoms by their types.
-    sgn = compare(left.theType, right.theType)
-    if (sgn != 0) return sgn
+    // Try to order the atoms by their types.  Watch for recursion!
+    if (!(left.theType eq right.theType)) {
+      if (!(left.theType eq left) && !(right.theType eq right)) {
+        sgn = compare(left.theType, right.theType)
+        if (sgn != 0) return sgn
+      }
+    }
     
     // The types did not resolve anything.  We have to try more specific
     // tests.
@@ -246,6 +261,21 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         sgn = compare(lsf.tag, rsf.tag)
         if (sgn != 0) return sgn
         return compare(lsf.content, rsf.content)
+        
+      case 10 =>
+        // Comparing two ruleset references.  They sort by name.
+        return left.asInstanceOf[RulesetRef].name.compare(
+            right.asInstanceOf[RulesetRef].name)
+        
+      case 11 =>
+        // Comparing two operator references.  They sort by name.
+        return left.asInstanceOf[OperatorRef].name.compare(
+            right.asInstanceOf[OperatorRef].name)
+        
+      case _ =>
+        // Something annoying has happened.
+        throw new ornl.elision.util.ElisionException(
+            "ERROR: No sort order defined for: " + left.toParseString)
     }
     
     // If we get here, something is wrong.  Bail out.
