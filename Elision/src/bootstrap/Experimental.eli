@@ -63,3 +63,88 @@ decl.
   }
   _no_show
 """}
+
+// Define an operator to invoke the "fast equality" checker.
+{! feq($a,$b): BOOLEAN
+   #handler="""
+     // Run the fast equality handler on the two arguments.
+     args match {
+       case Args(a,b) => feq(a,b,false)
+       case _ => false
+     }
+   """
+   #description="Run the 'fast equality' checker on two atoms."
+   #detail="Run the 'fast equality' checker on $a and $b."
+}
+
+// Run the fast equality checker in stages, and report progress.
+{! sfeq($a,$b): BOOLEAN
+   #handler="""
+     args match {
+       case Args(atom1, atom2) => {
+         if (atom1 eq atom2) {
+           console.emitln(" Identical: true")
+           true
+         } else {
+           console.emitln(" Identical: false")
+           (if (atom1.depth == atom2.depth) {
+             console.emitln("     Depth: true")
+             true
+           } else {
+             console.emitln("     Depth: false")
+             false
+           }) &&
+           (if (atom1.isConstant == atom2.isConstant) {
+             console.emitln(" Constancy: true")
+             true
+           } else {
+             console.emitln(" Constancy: false")
+             false
+           }) &&
+           (if (atom1.isTerm == atom2.isTerm) {
+             console.emitln("  Termness: true")
+             true
+           } else {
+             console.emitln("  Termness: false")
+             false
+           }) &&
+           (if (atom1.hashCode == atom2.hashCode) {
+             console.emitln("      Hash: true")
+             true
+           } else {
+             console.emitln("      Hash: false")
+             false
+           }) &&
+           (if (atom1.otherHashCode == atom2.otherHashCode) {
+             console.emitln("Other Hash: true")
+             true
+           } else {
+             console.emitln("Other Hash: false")
+             false
+           })
+         } // else
+       } // case
+     } // match
+   """
+   #description="Run the 'fast equality' checker in stages."
+   #detail="Run the 'fast equality' checker on $a and $b in stages."
+}
+
+{! inspect($atom): NONE
+   #handler="""
+     args match {
+       case Args(atom) =>
+         console.emitln("   Elision: " + atom.toParseString)
+         console.emitln("     Scala: " + atom.toString)
+         console.emitln("      Hash: " + atom.hashCode)
+         console.emitln("Other Hash: " + atom.otherHashCode)
+         console.emitln("     Depth: " + atom.depth)
+         console.emitln("      Term: " + atom.isTerm)
+         console.emitln("  Constant: " + atom.isConstant)
+       case _ =>
+     }
+     _no_show
+   """
+   #description="Examine some properties of an atom."
+   #detail="Examine properties of the atom $atom."
+}
