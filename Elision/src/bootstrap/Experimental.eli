@@ -134,6 +134,7 @@ decl.
    #handler="""
      args match {
        case Args(atom) =>
+         console.emitln("     Class: " + atom.getClass().toString())
          console.emitln("   Elision: " + atom.toParseString)
          console.emitln("     Scala: " + atom.toString)
          console.emitln("      Hash: " + atom.hashCode)

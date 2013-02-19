@@ -55,6 +55,9 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     case x: MapPair => 7
     case x: MatchAtom => 8
     case x: SpecialForm => 9
+    case x: RulesetRef => 10
+    case x: OperatorRef => 11
+    case _ => -1
   }
   
   /**
@@ -246,6 +249,21 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         sgn = compare(lsf.tag, rsf.tag)
         if (sgn != 0) return sgn
         return compare(lsf.content, rsf.content)
+        
+      case 10 =>
+        // Comparing two ruleset references.  They sort by name.
+        return left.asInstanceOf[RulesetRef].name.compare(
+            right.asInstanceOf[RulesetRef].name)
+        
+      case 11 =>
+        // Comparing two operator references.  They sort by name.
+        return left.asInstanceOf[OperatorRef].name.compare(
+            right.asInstanceOf[OperatorRef].name)
+        
+      case _ =>
+        // Something annoying has happened.
+        throw new ornl.elision.util.ElisionException(
+            "ERROR: No sort order defined for: " + left.toParseString)
     }
     
     // If we get here, something is wrong.  Bail out.
