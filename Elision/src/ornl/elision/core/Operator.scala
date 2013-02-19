@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.core
 
+import scala.compat.Platform
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import ornl.elision.util.ElisionException
@@ -926,9 +927,14 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    */
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
 
-    // Temporarily disable rewrite timeouts.
+    // Temporarily disable rewrite timeouts if already timed out.
     val oldTimeout = BasicAtom.timeoutTime.value
-    BasicAtom.timeoutTime.value = -1L
+    if (BasicAtom.rewriteTimedOut) {
+      BasicAtom.timeoutTime.value = -1L
+    }
+    else {
+      BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
+    }
 
     rhs match {
       case args: AtomSeq =>

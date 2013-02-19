@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core
 
+import scala.compat.Platform
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
@@ -181,7 +182,12 @@ object Apply {
 
     // Temporarily disable rewrite timeouts.
     val oldTimeout = BasicAtom.timeoutTime.value
-    BasicAtom.timeoutTime.value = -1L
+    if (BasicAtom.rewriteTimedOut) {
+      BasicAtom.timeoutTime.value = -1L
+    }
+    else {
+      BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
+    }
 
     // Do not try to compute if metaterms are present.
     var retval: BasicAtom = null

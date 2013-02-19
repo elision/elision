@@ -45,6 +45,11 @@ import java.util.concurrent.TimeUnit
  *
  */
 class MemoTest extends AssertionsForJUnit {
+ val numObjs = 30000 
+ val ccaSize = 120
+ val numThreads = 20
+  
+  
   /**
    * Test method for {@link ornl.elision.core.Memo#put(ornl.elision.core.BasicAtom, scala.collection.mutable.BitSet, ornl.elision.core.BasicAtom, int)}.
    */
@@ -60,8 +65,8 @@ class MemoTest extends AssertionsForJUnit {
       else
         Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
-    def f = funcGen(100)(_)
-    val num = 2000
+    def f = funcGen(ccaSize)(_)
+    val num = numObjs
     val num2 = num + 10
     val starttime = System.currentTimeMillis
     for (i <- 0 to num - 1) {
@@ -70,11 +75,13 @@ class MemoTest extends AssertionsForJUnit {
     println("Time to create " + num + " objects is " + (System.currentTimeMillis - starttime) + "(ms)")
     println("starting to add")
     val rt = Array.fill[Long](num)(0)
+    val addstarttime = System.currentTimeMillis
     for (i <- 0 to num - 1) {
       rt(i) = System.currentTimeMillis
       test.put(Variable("test " + i, "test_val " + i), bitset, f(i), i % 10)
       rt(i) = System.currentTimeMillis - rt(i)
     }
+    val totalAddTime = System.currentTimeMillis - addstarttime
     val gt = Array.fill[Long](num2)(0)
     for (i <- 0 to num2 - 1) {
       gt(i) = System.currentTimeMillis
@@ -82,7 +89,7 @@ class MemoTest extends AssertionsForJUnit {
       gt(i) = System.currentTimeMillis - gt(i)
     }
     println(test.showStats)
-    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + rt.reduceLeft(_ + _))
+    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) // rt.reduceLeft(_ + _))
     println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms)")
   }
 
@@ -97,8 +104,8 @@ class MemoTest extends AssertionsForJUnit {
       else
         Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
-    def f = funcGen(100)(_)
-    val num = 2000
+    def f = funcGen(ccaSize)(_)
+    val num = numObjs
     val num2 = num + 10
     val poolSize = 2
     val pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
@@ -121,6 +128,8 @@ class MemoTest extends AssertionsForJUnit {
     println("Time to create " + num + " objects is " + (System.currentTimeMillis - starttime) + "(ms)")
     println("starting to add")
     val gt = Array.fill[Long](num2)(0)
+    
+    val addstarttime = System.currentTimeMillis
     try {
       for (i <- 0 to num - 1) {
         pool.execute(new Handler(i))
@@ -129,13 +138,14 @@ class MemoTest extends AssertionsForJUnit {
       pool.shutdown()
     }
     pool.awaitTermination(10, TimeUnit.MINUTES)
+    val totalAddTime = System.currentTimeMillis - addstarttime
     for (i <- 0 to num2 - 1) {
       gt(i) = System.currentTimeMillis
       test.get(f(i), bitset)
       gt(i) = System.currentTimeMillis - gt(i)
     }
     println(test.showStats)
-    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + rt.reduceLeft(_ + _))
+    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) // rt.reduceLeft(_ + _))
     println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms)")
   }
   @Test def testPut10Threads {
@@ -149,10 +159,10 @@ class MemoTest extends AssertionsForJUnit {
       else
         Variable("test_val" + i + "_" + t, (i + "_" + t).toString)
     }
-    def f = funcGen(100)(_)
-    val num = 2000
+    def f = funcGen(ccaSize)(_)
+    val num = numObjs
     val num2 = num + 10
-    val poolSize = 10
+    val poolSize = numThreads
     val pool: ExecutorService = Executors.newFixedThreadPool(poolSize)
     val rt = Array.fill[Long](num)(0)
 
@@ -173,6 +183,7 @@ class MemoTest extends AssertionsForJUnit {
     println("Time to create " + num + " objects is " + (System.currentTimeMillis - starttime) + "(ms)")
     val gt = Array.fill[Long](num2)(0)
     println("starting to add")
+    val addstarttime = System.currentTimeMillis
     try {
       for (i <- 0 to num - 1) {
         pool.execute(new Handler(i))
@@ -181,13 +192,14 @@ class MemoTest extends AssertionsForJUnit {
       pool.shutdown()
     }
     pool.awaitTermination(10, TimeUnit.MINUTES)
+    val totalAddTime = System.currentTimeMillis - addstarttime
     for (i <- 0 to num2 - 1) {
       gt(i) = System.currentTimeMillis
       test.get(f(i), bitset)
       gt(i) = System.currentTimeMillis - gt(i)
     }
     println(test.showStats)
-    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + rt.reduceLeft(_ + _))
+    println("Avg time to add: " + rt.reduceLeft(_ + _) / rt.length + "(ms) and total time was " + totalAddTime) // rt.reduceLeft(_ + _))
     println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms)")
   }
 }
