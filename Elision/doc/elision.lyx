@@ -323,10 +323,10 @@ Installation
 \end_layout
 
 \begin_layout Standard
-This chapter explains how to build the Elision rewriter.
+This chapter explains how to obtain the Elision rewriter.
  Information about the rewriter can be obtained by visiting 
 \begin_inset Flex URL
-status open
+status collapsed
 
 \begin_layout Plain Layout
 
@@ -369,6 +369,18 @@ https://github.com/jline/jline2
  for details, including the license agreement.
  Note that Elision actually uses the modified version of JLine built for
  the Scala REPL and distributed with Scala.
+ See 
+\begin_inset Flex URL
+status collapsed
+
+\begin_layout Plain Layout
+
+http://www.scala-lang.org/
+\end_layout
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Section
@@ -380,7 +392,7 @@ If you only want to run the Elision REPL, you have two choices.
 \end_layout
 
 \begin_layout Itemize
-Make sure the Java 1.6 runtime is installed and download the large 
+Make sure the Java 7 runtime is installed and download the large 
 \family typewriter
 elision-all.jar
 \family default
@@ -408,7 +420,7 @@ java -jar elision-all.jar
 \end_layout
 
 \begin_layout Itemize
-Make sure both Java 1.6 and the Scala 2.9.1 (or later) distribution are installed.
+Make sure both Java 7 and the Scala 2.9.2 (or later) distributions are installed.
  Download the (much smaller) 
 \family typewriter
 elision.jar
@@ -425,14 +437,14 @@ Building
 \end_layout
 
 \begin_layout Standard
-Elision requires Scala 2.9 or later to build.
+Elision requires Scala 2.9.2 or later to build.
  Be careful with later versions of Scala as the language is still changing
  quite a bit.
- Java 6 or later and Apache Ant 1.8 or later are also prerequisites.
+ The Java 7 (or later) SDK and Apache Ant 1.8 (or later) are also prerequisites.
 \end_layout
 
 \begin_layout Enumerate
-Install the Java 6 (or later) SDK.
+Install the Java 7 (or later) SDK.
  Visit 
 \begin_inset Flex URL
 status collapsed
@@ -448,7 +460,7 @@ http://java.oracle.com
 \end_layout
 
 \begin_layout Enumerate
-Install Scala 2.9.1 (or later).
+Install Scala 2.9.2 (or later).
  Visit 
 \begin_inset Flex URL
 status collapsed
@@ -612,7 +624,24 @@ bin
 
 \end_deeper
 \begin_layout Enumerate
-On MacOS X platforms you can edit the environment plist 
+On MacOS X platforms
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+It seems that, with Mountain Lion, OS X no longer observes the settings
+ in the 
+\family typewriter
+environment.plist
+\family default
+.
+ In this case you may need to follow step d below instead of using the instructi
+ons given here.
+\end_layout
+
+\end_inset
+
+ you can edit the environment plist 
 \emph on
 or
 \emph default
@@ -740,7 +769,7 @@ carefully
 
 \end_deeper
 \begin_layout Enumerate
-On modern UNIX systems (including MacOS X) and most Linux systems you can
+Many modern Linux systems employ a modular profile system in which you can
  create a 
 \family typewriter
 /etc/profile.d/scala.sh
@@ -770,24 +799,27 @@ You should replace
 \end_layout
 
 \end_deeper
-\end_deeper
 \begin_layout Enumerate
-(Optional) It is recommended to get the Scala developer documentation package.
- After you have installed Scala, run the following command at the prompt.
- If you have installed Scala in a folder owned by root on Linux or UNIX,
- you will need to precede the command with 
+As a last resort you can add code to 
 \family typewriter
-sudo
+/etc/profile
 \family default
-.
-\begin_inset Newline newline
-\end_inset
-
-
+, if it exists.
+ The code to add is precisely the same as the code shown above for the modular
+ profile.
+ If you are unable to edit the global 
 \family typewriter
-sbaz install scala-devel-docs
+/etc/profile
+\family default
+, you may instead edit your own 
+\family typewriter
+~/.bash_profile
+\family default
+ and add those lines.
+ This last case appears to work well on modern Mac OS X systems.
 \end_layout
 
+\end_deeper
 \begin_layout Enumerate
 Install Apache Ant 1.8 (or later).
  Visit 
@@ -805,8 +837,8 @@ http://ant.apache.org
 \end_layout
 
 \begin_layout Enumerate
-(Optional) If you want to use Eclipse, you should install Eclipse Indigo
- (or later).
+(Optional) If you want to use Eclipse, you should install Eclipse Juno (or
+ later).
 \end_layout
 
 \begin_layout Enumerate
@@ -842,6 +874,12 @@ ant -p
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:REPL"
+
+\end_inset
+
 REPL
 \end_layout
 
@@ -855,7 +893,11 @@ Use the
 \family typewriter
 elision.sh
 \family default
- script found in the root folder of the Elision distribution.
+ (for UNIX / Linux / Mac OS X) and 
+\family typewriter
+elision.bat
+\family default
+ (for Windows) scripts found in the root folder of the Elision distribution.
  This starts the REPL using the compiled class files in the 
 \family typewriter
 bin
@@ -880,9 +922,24 @@ scala elision.jar
 \begin_layout Itemize
 To start the REPL from inside a program, invoke the 
 \family typewriter
-ornl.elision.repl.ReplMain.run()
+ornl.elision.repl.ReplMain.runRepl()
 \family default
  method.
+ For instance, there are 
+\family typewriter
+run.sh
+\family default
+ and 
+\family typewriter
+run.bat
+\family default
+ scripts in the root of the Elision distribution that will start a Scala
+ REPL with all Elision classes (if Elision has been built) in the classpath.
+ You can then invoke 
+\family typewriter
+ornl.elision.repl.ReplMain.runRepl()
+\family default
+ directly from the Scala prompt.
 \end_layout
 
 \begin_layout Standard
@@ -1008,7 +1065,7 @@ Install the
 Scala IDE
 \series default
 .
- At present the version of the Scala IDE for Scala 2.9 can be found at the
+ At present the version of the Scala IDE for Scala 2.9.2 can be found at the
  update site 
 \begin_inset CommandInset href
 LatexCommand href
@@ -1171,6 +1228,10 @@ At this point Elision should automatically build, and you are ready to start
 \family typewriter
 repl.sh
 \family default
+ or 
+\family typewriter
+repl.bat
+\family default
 .
 \end_layout
 
@@ -1242,6 +1303,12 @@ The REPL is Elision's read, evaluate, print loop.
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Starting-the-REPL"
+
+\end_inset
+
 Starting the REPL
 \end_layout
 
@@ -1254,7 +1321,11 @@ Use the
 \family typewriter
 elision.sh
 \family default
- script found in the root folder of the Elision distribution.
+ (for UNIX / Linux / Mac OS X) and 
+\family typewriter
+elision.bat
+\family default
+ (for Windows) scripts found in the root folder of the Elision distribution.
  This starts the REPL using the compiled class files in the 
 \family typewriter
 bin
@@ -1279,23 +1350,24 @@ scala elision.jar
 \begin_layout Itemize
 To start the REPL from inside a program, invoke the 
 \family typewriter
-ornl.elision.repl.ReplMain.run()
+ornl.elision.repl.ReplMain.runRepl()
 \family default
  method.
- This is useful from the Scala prompt, assuming you have the correct 
-\family typewriter
-CLASSPATH
-\family default
-.
- You can use the 
+ For instance, there are 
 \family typewriter
 run.sh
 \family default
- script found in the Elision root to start Scala with the correct 
+ and 
 \family typewriter
-CLASSPATH
+run.bat
 \family default
-.
+ scripts in the root of the Elision distribution that will start a Scala
+ REPL with all Elision classes (if Elision has been built) in the classpath.
+ You can then invoke 
+\family typewriter
+ornl.elision.repl.ReplMain.runRepl()
+\family default
+ directly from the Scala prompt.
 \end_layout
 
 \begin_layout Standard
@@ -1309,6 +1381,153 @@ e>
  sections), interact with the history (using the up and down arrow keys),
  or edit the current line.
  Pressing Enter submits the line to the Elision parser for evaluation.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+If you want to embed Elision in another system, then you may want to create
+ your own 
+\begin_inset Quotes eld
+\end_inset
+
+executor
+\begin_inset Quotes erd
+\end_inset
+
+ to parse and execute operations.
+ The Elision system expects to be able to find an instance of 
+\family typewriter
+core.Executor
+\family default
+.
+ The purpose of 
+\family typewriter
+Executor
+\family default
+ is the following.
+\end_layout
+
+\begin_layout Itemize
+It maintains the 
+\emph on
+console
+\emph default
+ that gets output and provides input.
+ The console must be an instance of 
+\family typewriter
+ornl.elision.util.Console
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+It manages a 
+\emph on
+context
+\emph default
+ that maintains an operator library, a rule library, and a set of global
+ bindings.
+ The context must be an instance of 
+\family typewriter
+core.Context
+\family default
+.
+\end_layout
+
+\begin_layout Itemize
+It can 
+\emph on
+parse
+\emph default
+ text in some form and return Elision atoms.
+ The input text is a 
+\family typewriter
+String
+\family default
+, and the result is given as an instance of 
+\family typewriter
+Executor.ParseResult
+\family default
+.
+\end_layout
+
+\begin_layout Plain Layout
+A rather sophisticated version of 
+\family typewriter
+Executor
+\family default
+ is provided by the 
+\family typewriter
+parse.Processor
+\family default
+ class.
+ This class actually implements most of what is needed by the 
+\family typewriter
+Executor
+\family default
+, along with several additional traits, and is geared toward interactive
+ operations on persistent data.
+ Finally, the Elision REPL is implemented by 
+\family typewriter
+repl.ERepl
+\family default
+, which extends 
+\family typewriter
+Processor
+\family default
+ to add support for history, known properties, and interaction at a prompt.
+\end_layout
+
+\begin_layout Plain Layout
+If you create your own 
+\family typewriter
+Executor
+\family default
+ instance, you must make sure to install it as the 
+\begin_inset Quotes eld
+\end_inset
+
+known executor
+\begin_inset Quotes erd
+\end_inset
+
+ prior to performing any parsing work.
+ Do this with a line of the form 
+\family typewriter
+ornl.elision.core.knownExecutor = myExecutor
+\family default
+, where 
+\family typewriter
+myExecutor
+\family default
+ is your customized 
+\family typewriter
+Executor
+\family default
+ instance.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -1415,6 +1634,7 @@ A verbatim block is text within triple double quotation marks:
 \family default
 .
  No escapes are interpreted, and spaces and newlines are maintained.
+ Leading spaces are removed.
  Thus the verbatim block:
 \end_layout
 
@@ -1443,7 +1663,7 @@ Denotes the following string.
 \begin_layout LyX-Code
 "This is the first line,
 \backslash
-n  and this is the second.
+nand this is the second.
 \backslash
 nEscapes and quotation marks
 \end_layout
@@ -1503,12 +1723,12 @@ e> { operator
 
 \begin_layout Plain Layout
 
-$_repl0 = {: operator:SYMBOL { binds name -> set:SYMBOL
+$_repl0 = {:operator:SYMBOL { binds name -> set:SYMBOL
 \end_layout
 
 \begin_layout Plain Layout
 
-  params -> %ACI($P:BOOLEAN, $Q:BOOLEAN) type -> BOOLEAN } :}
+  params -> %ACI($P:BOOLEAN, $Q:BOOLEAN) type -> BOOLEAN }:}
 \end_layout
 
 \begin_layout Plain Layout
@@ -1560,37 +1780,32 @@ e> history()
 
 \begin_layout Plain Layout
 
-0: // New Session: Fri Jun 08 12:12:59 EDT 2012
+0: // New Session: Fri Jun 08 12:12:59 EDT 2012 Running: 0.1, build 201206081150
 \end_layout
 
 \begin_layout Plain Layout
 
-1: // Running: 0.1, build 201206081150
+1: {operator #name=test #params=%($x:INTEGER) #type=INTEGER}
 \end_layout
 
 \begin_layout Plain Layout
 
-2: {operator #name=test #params=%($x:INTEGER) #type=INTEGER}
+2: {rule add($x,neg($x)) -> 0}
 \end_layout
 
 \begin_layout Plain Layout
 
-3: {rule add($x,neg($x)) -> 0}
+3: add(21,17,$x)
 \end_layout
 
 \begin_layout Plain Layout
 
-4: add(21,17,$x)
+4: history()
 \end_layout
 
 \begin_layout Plain Layout
 
-5: history()
-\end_layout
-
-\begin_layout Plain Layout
-
-Persistent history is found in: /home/userguy/.elision
+Persistent history is found in: /home/userguy/.elision-history.eli
 \end_layout
 
 \end_inset
@@ -1601,13 +1816,15 @@ Persistent history is found in: /home/userguy/.elision
 \begin_layout Standard
 It is possible to recall any prior history element by entering the history
  index after an exclamation mark.
+ Entries that span multiple lines are not properly recalled in this manner,
+ however.
 \begin_inset listings
 inline false
 status open
 
 \begin_layout Plain Layout
 
-e> !4
+e> !3
 \end_layout
 
 \begin_layout Plain Layout
@@ -1632,7 +1849,7 @@ Bound $x
 
 \begin_layout Plain Layout
 
-e> !4
+e> !3
 \end_layout
 
 \begin_layout Plain Layout
@@ -1652,57 +1869,52 @@ e> history()
 
 \begin_layout Plain Layout
 
-0: // New Session: Fri Jun 08 12:12:59 EDT 2012
+0: // New Session: Fri Jun 08 12:12:59 EDT 2012 Running: 0.1, build 201206081150
 \end_layout
 
 \begin_layout Plain Layout
 
-1: // Running: 0.1, build 201206081150
+1: {operator #name=test #params=%($x:INTEGER) #type=INTEGER}
 \end_layout
 
 \begin_layout Plain Layout
 
-2: {operator #name=test #params=%($x:INTEGER) #type=INTEGER}
+2: {rule add($x,neg($x)) -> 0}
 \end_layout
 
 \begin_layout Plain Layout
 
-3: {rule add($x,neg($x)) -> 0}
+3: add(21,17,$x)
 \end_layout
 
 \begin_layout Plain Layout
 
-4: add(21,17,$x)
+4: history()
 \end_layout
 
 \begin_layout Plain Layout
 
-5: history()
+5: add(21,17,$x)
 \end_layout
 
 \begin_layout Plain Layout
 
-6: add(21,17,$x)
+6: bind($x, 2)
 \end_layout
 
 \begin_layout Plain Layout
 
-7: bind($x, 2)
+7: add(21,17,$x)
 \end_layout
 
 \begin_layout Plain Layout
 
-8: add(21,17,$x)
+8: history()
 \end_layout
 
 \begin_layout Plain Layout
 
-9: history()
-\end_layout
-
-\begin_layout Plain Layout
-
-Persistent history is found in: /home/userguy/.elision
+Persistent history is found in: /home/userguy/.elision-history.eli
 \end_layout
 
 \end_inset
@@ -1865,21 +2077,17 @@ $x
 \emph on
 binding
 \emph default
-, written 
-\family typewriter
-$x -> 7
-\family default
 .
 \begin_inset Foot
-status collapsed
+status open
 
 \begin_layout Plain Layout
-This notation is called a 
+This is similar to, but distinct from, a 
 \emph on
 map pair
 \emph default
-, and it is actually more general.
- It is explained in 
+.
+ Map pairs are explained in 
 \begin_inset CommandInset ref
 LatexCommand formatted
 reference "sec:Map-Pairs"
@@ -2216,7 +2424,11 @@ This action results in the odd output
 \family typewriter
 showprior
 \family default
- causes ths atom to be displayed.
+ causes ths atom, 
+\family typewriter
+` NO SHOW `:SYMBOL
+\family default
+, to be displayed.
 \end_layout
 
 \end_inset
@@ -2228,6 +2440,11 @@ showprior
 \begin_inset listings
 inline false
 status open
+
+\begin_layout Plain Layout
+
+e> inc("bootstrap/Math.eli")
+\end_layout
 
 \begin_layout Plain Layout
 
@@ -2280,6 +2497,37 @@ The atom as entered was
 add($x,$x,0)
 \family default
 .
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+The 
+\family typewriter
+\size normal
+add
+\family default
+ operator is defined in the 
+\family typewriter
+bootstrap/Math.eli
+\family default
+ file that is not normally read into the system.
+ The 
+\family typewriter
+inc(
+\begin_inset Quotes eld
+\end_inset
+
+bootstrap/Math.eli
+\begin_inset Quotes erd
+\end_inset
+
+)
+\family default
+ instruction causes these math definitions to be available.
+\end_layout
+
+\end_inset
+
  During construction the identity 
 \family typewriter
 0
@@ -2505,7 +2753,12 @@ status open
 
 \begin_layout Plain Layout
 
-e> decl.{rule fred -> james #rulesets RENAME}
+e> decl.{! foo($x,$y)}
+\end_layout
+
+\begin_layout Plain Layout
+
+e> decl.{rule foo(0,$x) -> $x #rulesets RENAME}
 \end_layout
 
 \begin_layout Plain Layout
@@ -2525,7 +2778,7 @@ Declared ruleset RENAME:SYMBOL.
 
 \begin_layout Plain Layout
 
-e> decl.{rule fred -> james #rulesets RENAME}
+e> decl.{rule foo(0,$x) -> $x #rulesets RENAME}
 \end_layout
 
 \begin_layout Plain Layout
@@ -2535,12 +2788,12 @@ Declared rule.
 
 \begin_layout Plain Layout
 
-e> fred
+e> foo(0,14)
 \end_layout
 
 \begin_layout Plain Layout
 
-$_repl8 = fred:SYMBOL
+$_repl8 = foo(0,14)
 \end_layout
 
 \begin_layout Plain Layout
@@ -2550,12 +2803,12 @@ e> enable(RENAME)
 
 \begin_layout Plain Layout
 
-e> fred
+e> foo(0,14)
 \end_layout
 
 \begin_layout Plain Layout
 
-$_repl9 = james:SYMBOL
+$_repl9 = 14
 \end_layout
 
 \end_inset
@@ -2606,18 +2859,13 @@ status open
 
 \begin_layout Plain Layout
 
-e> showrules(if (true, 6, 7))
+e> showrules(foo(5,4))
 \end_layout
 
 \begin_layout Plain Layout
 
-{ RULE if(true, $thenpart, $elsepart) -> $thenpart rulesets IF level 2 }
-\end_layout
-
-\begin_layout Plain Layout
-
-{ RULE if(false, $thenpart, $elsepart) -> $elsepart rulesets IF level 2
- } 
+{:rule:SYMBOL { binds `` -> %((foo(0,$x) -> $x)) rulesets -> %(RENAME:SYMBOL)
+ }:}
 \end_layout
 
 \end_inset
@@ -2659,6 +2907,11 @@ status open
 
 \begin_layout Plain Layout
 
+e> inc("bootstrap/Math.eli")
+\end_layout
+
+\begin_layout Plain Layout
+
 e> tracematch()
 \end_layout
 
@@ -2676,52 +2929,22 @@ $x.add(1,$x).5
 
 \begin_layout Plain Layout
 
-Sequence Matcher called: 
+TRYING  (1412e2c9) in class ornl.elision.core.Variable:
 \end_layout
 
 \begin_layout Plain Layout
 
-    Patterns: $type
+  pattern: $x:INTEGER
 \end_layout
 
 \begin_layout Plain Layout
 
-    Subjects: ANY
+  subject: 1
 \end_layout
 
 \begin_layout Plain Layout
 
-    Bindings: { binds  }
-\end_layout
-
-\begin_layout Plain Layout
-
-TRYING  (a55109e) in class ornl.elision.core.Variable:
-\end_layout
-
-\begin_layout Plain Layout
-
-  pattern: $type
-\end_layout
-
-\begin_layout Plain Layout
-
-  subject: ANY
-\end_layout
-
-\begin_layout Plain Layout
-
-  with: { binds  }
-\end_layout
-
-\begin_layout Plain Layout
-
-SUCCESS (a55109e): { binds type -> ANY }
-\end_layout
-
-\begin_layout Plain Layout
-
-...
+  with: { binds }
 \end_layout
 
 \begin_layout Plain Layout
@@ -2741,12 +2964,67 @@ TRYING  (f021a3c0) in class ornl.elision.core.INTEGER$:
 
 \begin_layout Plain Layout
 
-  with: { binds  }
+  with: { binds }
 \end_layout
 
 \begin_layout Plain Layout
 
-SUCCESS (f021a3c0): { binds  }
+SUCCESS (f021a3c0): { binds }
+\end_layout
+
+\begin_layout Plain Layout
+
+SUCCESS (1412e2c9): { binds x -> 1 }
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+TRYING  (1412e2ce) in class ornl.elision.core.Variable:
+\end_layout
+
+\begin_layout Plain Layout
+
+  pattern: $x:INTEGER
+\end_layout
+
+\begin_layout Plain Layout
+
+  subject: 6
+\end_layout
+
+\begin_layout Plain Layout
+
+  with: { binds }
+\end_layout
+
+\begin_layout Plain Layout
+
+TRYING  (f021a3c0) in class ornl.elision.core.INTEGER$:
+\end_layout
+
+\begin_layout Plain Layout
+
+  pattern: INTEGER
+\end_layout
+
+\begin_layout Plain Layout
+
+  subject: INTEGER
+\end_layout
+
+\begin_layout Plain Layout
+
+  with: { binds }
+\end_layout
+
+\begin_layout Plain Layout
+
+SUCCESS (f021a3c0): { binds }
 \end_layout
 
 \begin_layout Plain Layout
@@ -2766,22 +3044,7 @@ $_repl14 = 6
 
 \begin_layout Standard
 Reading this trace can be tricky.
- The sequence matcher tries to perform an in-order pairwise match of two
- sequences of atoms, given some set of bindings.
- For example, the first line indicates that the sequence matcher was called
- to match the pattern sequence 
-\family typewriter
-$domain,$codomain
-\family default
- against the subject sequence 
-\family typewriter
-$T,ANY
-\family default
- with no prior bindings.
-\end_layout
-
-\begin_layout Standard
-The lines that begin with 
+ The lines that begin with 
 \family typewriter
 TRYING
 \family default
@@ -2864,51 +3127,6 @@ Sequence Matcher called:
 
 \begin_layout Plain Layout
 
-    Patterns: $type
-\end_layout
-
-\begin_layout Plain Layout
-
-    Subjects: INTEGER
-\end_layout
-
-\begin_layout Plain Layout
-
-    Bindings: { binds  }
-\end_layout
-
-\begin_layout Plain Layout
-
-TRYING  (a9d51ff0) in class ornl.elision.core.Variable:
-\end_layout
-
-\begin_layout Plain Layout
-
-  pattern: $type
-\end_layout
-
-\begin_layout Plain Layout
-
-  subject: INTEGER
-\end_layout
-
-\begin_layout Plain Layout
-
-  with: { binds  }
-\end_layout
-
-\begin_layout Plain Layout
-
-SUCCESS (a9d51ff0): { binds type -> INTEGER }
-\end_layout
-
-\begin_layout Plain Layout
-
-Sequence Matcher called: 
-\end_layout
-
-\begin_layout Plain Layout
-
     Patterns: $domain,$codomain
 \end_layout
 
@@ -2919,7 +3137,7 @@ Sequence Matcher called:
 
 \begin_layout Plain Layout
 
-    Bindings: { binds  }
+    Bindings: { binds }
 \end_layout
 
 \begin_layout Plain Layout
@@ -2939,7 +3157,7 @@ TRYING  (71407c54) in class ornl.elision.core.Variable:
 
 \begin_layout Plain Layout
 
-  with: { binds  }
+  with: { binds }
 \end_layout
 
 \begin_layout Plain Layout
@@ -2989,7 +3207,7 @@ TRYING  (c390faa3) in class ornl.elision.core.IntegerLiteral:
 
 \begin_layout Plain Layout
 
-  with: { binds  }
+  with: { binds }
 \end_layout
 
 \begin_layout Plain Layout
@@ -3009,12 +3227,12 @@ TRYING  (50a1946e) in class ornl.elision.core.INTEGER$:
 
 \begin_layout Plain Layout
 
-  with: { binds  }
+  with: { binds }
 \end_layout
 
 \begin_layout Plain Layout
 
-SUCCESS (50a1946e): { binds  }
+SUCCESS (50a1946e): { binds }
 \end_layout
 
 \begin_layout Plain Layout
@@ -3336,6 +3554,122 @@ reference "chap:Native-Handlers"
 Boot.eli
 \family default
 .
+ This file provides 
+\emph on
+minimal
+\emph default
+ capabilities.
+ A few critical operators are declared: 
+\family typewriter
+decl
+\family default
+, 
+\family typewriter
+inc
+\family default
+, 
+\family typewriter
+print
+\family default
+, and 
+\family typewriter
+println
+\family default
+.
+ After this, the 
+\family typewriter
+inc
+\family default
+ operator is used to include additional files, and the 
+\family typewriter
+decl
+\family default
+ operator is used to declare operators and rules.
+ As such, 
+\family typewriter
+Boot.eli
+\family default
+ is a bit unusual.
+\end_layout
+
+\begin_layout Standard
+The 
+\family typewriter
+Boot.eli
+\family default
+ file includes (via 
+\family typewriter
+inc
+\family default
+) a few other files.
+ 
+\family typewriter
+Type.eli
+\family default
+ provides the type extraction operator, 
+\family typewriter
+Core.eli
+\family default
+ provides several common operators, and 
+\family typewriter
+Context.eli
+\family default
+ provides operators for the current context and controls for rule rewriting.
+\end_layout
+
+\begin_layout Standard
+\noindent
+\begin_inset Box Shaded
+position "t"
+hor_pos "c"
+has_inner_box 0
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Subsection*
+Scala
+\end_layout
+
+\begin_layout Plain Layout
+The 
+\family typewriter
+repl.ERepl
+\family default
+ class is responsible for loading the 
+\family typewriter
+Boot.eli
+\family default
+ file and kicking off the bootstrap process.
+ If you replace this with your own executor instance (as described in the
+ Scala block of 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "sec:Starting-the-REPL"
+
+\end_inset
+
+) then you are responsible for all bootstrapping.
+ The most common symptom of improper bootstrapping, or of failing to correctly
+ set 
+\family typewriter
+knownExecutor
+\family default
+ as the first operation, is errors regarding 
+\family typewriter
+decl
+\family default
+.
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Chapter
@@ -3355,7 +3689,23 @@ atoms
 \emph on
 Literals
 \emph default
- that denote a simple, fixed value.
+ that denote a simple, fixed value: 
+\family typewriter
+5
+\family default
+, 
+\family typewriter
+"James"
+\family default
+, 
+\family typewriter
+1.9e3
+\family default
+, 
+\family typewriter
+test
+\family default
+.
 \end_layout
 
 \begin_layout Itemize
@@ -3363,7 +3713,19 @@ Literals
 \emph on
 Variables
 \emph default
- denote an unspecified atom, perhaps with type information.
+ denote an unspecified atom, perhaps with type information: 
+\family typewriter
+$x
+\family default
+, 
+\family typewriter
+$y:INTEGER
+\family default
+, 
+\family typewriter
+$$z
+\family default
+.
 \end_layout
 
 \begin_layout Itemize
@@ -3371,7 +3733,13 @@ Variables
 \emph on
 Lambdas
 \emph default
- denote simple unnamed functions of one parameter.
+ denote simple unnamed functions of one parameter: 
+\family typewriter
+
+\backslash
+$x.add(1,$$x)
+\family default
+.
 \end_layout
 
 \begin_layout Itemize
@@ -3388,6 +3756,14 @@ operator
 \emph on
 argument
 \emph default
+: 
+\family typewriter
+foo(4,5)
+\family default
+, 
+\family typewriter
+add.%(1,2)
+\family default
 .
 \end_layout
 
@@ -3396,7 +3772,11 @@ argument
 \emph on
 Operators
 \emph default
- denote a mapping.
+ denote a mapping: 
+\family typewriter
+decl:OPREF
+\family default
+.
 \end_layout
 
 \begin_layout Itemize
@@ -3405,13 +3785,17 @@ Operators
 Rewriters
 \emph default
  transform an atom into a potentially new form, reporting whether this transform
-ation succeeded.
+ation succeeded: 
+\family typewriter
+{rule foo(0,$x) -> $x}
+\family default
+.
 \end_layout
 
 \begin_layout Standard
 Atoms can be combined to make composite atoms
 \begin_inset Foot
-status open
+status collapsed
 
 \begin_layout Plain Layout
 No, not molecules.
@@ -3664,7 +4048,7 @@ Fred21
 
 \begin_layout Standard
 Other characters may occur in symbols, but the entire symbol must be enclosed
- in back ticks, which are not themselves part of the symbol.
+ in back ticks that are not themselves part of the symbol.
  Several escape sequences are interpreted; these are listed in 
 \begin_inset CommandInset ref
 LatexCommand formatted
@@ -4000,8 +4384,8 @@ Strings
 \end_layout
 
 \begin_layout Standard
-A string is a sequence of characters enclosed in double quotation marks,
- which are not themselves part of the symbol.
+A string is a sequence of characters enclosed in double quotation marks
+ that are not themselves part of the symbol.
  As with back-tick-quoted symbols, escape codes are interpreted in the string.
  The escape codes are listed in 
 \begin_inset CommandInset ref
@@ -4198,17 +4582,17 @@ status open
 
 \begin_layout Plain Layout
 
+scala> import ornl.elision.core.BasicAtom
+\end_layout
+
+\begin_layout Plain Layout
+
 scala> "I'm a string":BasicAtom
 \end_layout
 
 \begin_layout Plain Layout
 
-res0: ornl.elision.core.BasicAtom = StringLiteral(NamedRootType("STRING"),
-\end_layout
-
-\begin_layout Plain Layout
-
-"I'm a string") 
+res1: ornl.elision.core.BasicAtom = StringLiteral(STRING,"I'm a string") 
 \end_layout
 
 \end_inset
@@ -4270,7 +4654,11 @@ e
 \family typewriter
 p
 \family default
- may also be used to indicate an exponent (and must be for hexadecimal numbers).
+ may also be used to indicate an exponent (and 
+\emph on
+must
+\emph default
+ be for hexadecimal numbers).
  Numbers are 
 \emph on
 not
@@ -4816,7 +5204,7 @@ decl.{! declare_rt($name: SYMBOL)
 root types
 \emph default
 .
- Two of these: 
+ Two of these -- 
 \family typewriter
 OPREF
 \family default
@@ -4824,7 +5212,7 @@ OPREF
 \family typewriter
 RSREF
 \family default
- exist to cause the system to 
+ -- exist to cause the system to 
 \begin_inset Quotes eld
 \end_inset
 
@@ -5857,10 +6245,14 @@ $x
 \family default
  in the body (
 \family typewriter
+
+\backslash
 $y.$x
 \family default
 ) gives 
 \family typewriter
+
+\backslash
 $y.12
 \family default
 , which is the answer.
@@ -6146,7 +6538,7 @@ $x:INTEGER.$x."Fred"
 \family default
  will fail with an error.
  This also means that the type of an atom can be extracted using a lambda.
- The following lambda will extract the type of any atom it is applied to.
+ The following lambda will extract the type of the atom it is applied to.
 \end_layout
 
 \begin_layout LyX-Code
@@ -6170,8 +6562,7 @@ STRING
 \end_layout
 
 \begin_layout Standard
-The applicative dot binds right to left.
- For this reason, multiple parameter lambda expressions 
+Multiple parameter lambda expressions 
 \emph on
 may
 \emph default
@@ -6224,7 +6615,7 @@ So what happened? The lambda dot binds more tightly than the applicative
 \family typewriter
 2
 \family default
- become the argument to 
+ becomes the argument to 
 \family typewriter
 
 \backslash
@@ -6471,6 +6862,12 @@ Apply(Lambda(Variable('T,"x"),'T),"Fred")
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Lambdas-and-Metavariables"
+
+\end_inset
+
 Lambdas and Metavariables
 \end_layout
 
@@ -6569,7 +6966,11 @@ The first entry fails (because
 \family typewriter
 7
 \family default
- is not bindable), but the second entry works.
+ is 
+\emph on
+not
+\emph default
+ bindable), but the second entry works.
  Once you decide to use a metavariable in one place in a lambda, however,
  you must use it everywhere.
  The reason is that the lambda variables get rewritten to De Bruijn indices
