@@ -593,6 +593,23 @@ decl.{! history()
   "between sessions, if possible."
 }
 
+decl.{! syntaxColoring()
+  #handler=
+  """
+    exec match {
+      case repl: ornl.elision.repl.ERepl =>
+        repl.useConsoleColoring = !repl.useConsoleColoring
+        emitln("Syntax coloring is " + (if (repl.useConsoleColoring) "ON." else "OFF."))
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Toggle whether to use syntax coloring."
+  #detail=
+  "Enable or disable syntax coloring for displayed result atoms. ".
+  "This is ON by default. "
+}
+
 //======================================================================
 // Atom information.
 //======================================================================

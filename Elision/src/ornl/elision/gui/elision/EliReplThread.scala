@@ -71,6 +71,7 @@ class EliReplThread extends ReplThread {
 		ReplActor.history = myRepl
 		ReplActor.console = myRepl.console
 		ReplActor ! ("disableGUIComs", true)
+		myRepl.useConsoleColoring = false
 		ReplActor.start
     
     myRepl.console.pause_=(evaPause)
