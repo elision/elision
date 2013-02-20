@@ -34,7 +34,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.gui.syntax
+package ornl.elision.syntax
 
 import scala.collection.mutable.ListBuffer
 import scala.util.matching._

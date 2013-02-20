@@ -88,7 +88,7 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   val maxTermLength = 50
   
   /** syntax formatter (default one only does line-wrapping). */
-  val formatter = new ornl.elision.gui.syntax.SyntaxFormatter()
+  val formatter = new ornl.elision.syntax.SyntaxFormatter()
 	
   /** If false, syntax coloring is disabled for the entire tree. */
   var syntaxColoring = false

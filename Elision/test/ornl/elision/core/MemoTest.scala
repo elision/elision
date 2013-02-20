@@ -130,7 +130,7 @@ class MemoTest extends AssertionsForJUnit {
     val gt = Array.fill[Long](num2)(0)
     
     // thread for doing Memo.put
-    class PutHandler(i: Integer) extends Runnable {
+    class PutHandler(i: Int) extends Runnable {
       def message = (Thread.currentThread.getName() + "\n").getBytes
 
       def run() {
@@ -142,7 +142,7 @@ class MemoTest extends AssertionsForJUnit {
     }
     
     // thread for doing Memo.get
-    class GetHandler(i: Integer) extends Runnable {
+    class GetHandler(i: Int) extends Runnable {
       def message = (Thread.currentThread.getName() + "\n").getBytes
 
       def run() {
