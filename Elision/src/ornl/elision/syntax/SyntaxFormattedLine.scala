@@ -34,27 +34,19 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.gui.syntax
+package ornl.elision.syntax
 
+import java.awt.Color
 import scala.collection.mutable.ListBuffer
-import scala.util.matching._
 
-import ornl.elision.gui._
-
-/** Provides regexes and some other useful data for performing syntax coloring. */
-trait SyntaxRegexes {
-    /** List of this syntax's regexes in the order of their priority. */
-    val rList : List[Regex]
-    
-    /** A mapping of regexes to web colors ("#" followed by the color's hex value) */
-    val colorMap : Map[Regex, String]
-    
-    /** 
-     * A mapping of regexes to their recursive subgroup index (if any). 
-     * If the regex doesn't have a recursive subgroup, map it to -1. 
-     * Currently, this only supports one recursive subgroup per regex.
-     */
-    val recursableMap : Map[Regex, Int]
-}
-
-
+/** 
+ * A single line in a SyntaxFormattedString. 
+ * @param line  The uncolored single-line string.
+ */
+class SyntaxFormattedLine(val line : String) {
+  
+  /** The list of index, colored substring tuples making up this line. */
+  val substrings = new ListBuffer[(Int, ColoredSubstring)]
+  
+  override def toString : String = line
+} 
