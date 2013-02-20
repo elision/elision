@@ -138,6 +138,9 @@ class ERepl extends Processor {
       }
   }
   
+  /** Whether to apply console-colored syntax formatting. */
+  var useConsoleColoring = true
+  
   //======================================================================
   // Configure the history for this REPL.
   //======================================================================
@@ -227,8 +230,19 @@ class ERepl extends Processor {
   	  ReplActor.waitOnGUI(() => ReplActor.guiActor ! ("replFormat",true)
         , "formatting on") 
     ReplActor ! ("guiReplFormat", true, "formatting on")
-	
-    console.emitln(prefix + atom.toParseString)
+    
+    
+    if(useConsoleColoring) {
+      // color-format the atom's parseString and print it.
+      val atomParseString = ConsoleStringFormatter.format(prefix + atom.toParseString)
+      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+    }
+    else {
+      // use the standard printing console and print without syntax coloring.
+      console.emitln(prefix + atom.toParseString)
+    }
+      
+    
 	
   	if(ReplActor.guiMode) 
   	  ReplActor.waitOnGUI(() => ReplActor.guiActor ! ("replFormat",false)

@@ -40,6 +40,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.matching._
 
 import ornl.elision.gui._
+import ornl.elision.syntax
 
 
 /** Provides regexes and some other useful data for performing Elision syntax highlighting in Eva. */

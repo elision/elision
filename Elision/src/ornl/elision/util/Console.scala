@@ -29,11 +29,25 @@
  */
 package ornl.elision.util
 
+import org.fusesource.jansi.AnsiConsole
+
 /**
  * A simple console that uses `print` to write to the standard output.
  */
 object PrintConsole extends Console {
-  def write(text: String) { print(text) }
+  def write(text: String) { 
+    System.out.print(text) 
+  }
+}
+
+/**
+ * A simple console that uses `print` to write to to AnsiConsole's standard
+ * output, which is able to interpret ANSI escape sequences.
+ */
+object AnsiPrintConsole extends Console {
+  def write(text: String) { 
+    AnsiConsole.out.print(text) 
+  }
 }
 
 /**
