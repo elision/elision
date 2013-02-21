@@ -412,7 +412,7 @@ with HasHistory {
   }
  
   /**
-   * Specify whether to trace the parser.
+   * Specify whether to toggle the parser.
    * 
    * @param enable  If true, trace the parser.  If false, do not.
    */
