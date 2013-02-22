@@ -40,7 +40,7 @@ import java.io._
 import scala.xml._
 
 /** Stores and saves configuration settings for Eva. */
-class EvaConfig extends Serializable {
+object EvaConfig extends Serializable {
 	/** The current decompression depth for the visualization trees. */
 	var decompDepth = 2
 	
@@ -50,20 +50,20 @@ class EvaConfig extends Serializable {
 	/** The last directory viewed with the File->Open dialog. */
 	var lastOpenPath = "."
     
-    /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
-    var maxTreeDepth = -1
-	
-    /** Flag for temporarilly disabling Eva tree construction in Elision */
-    var disableTree = false
-    
-    /** Flag for disabling syntax coloring in NodeSprites. */
-    var disableNodeSyntaxColoring = false
-    
-    /** The maximum nodes that Eva will include in a tree visualization. */
-    var nodeLimit = 10000
-    
-    /** Mode for Eva to start up in next time on boot-up. */
-    var bootMode = "Welcome"
+  /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
+  var maxTreeDepth = -1
+
+  /** Flag for temporarilly disabling Eva tree construction in Elision */
+  var disableTree = false
+  
+  /** Flag for disabling syntax coloring in NodeSprites. */
+  var disableNodeSyntaxColoring = false
+  
+  /** The maximum nodes that Eva will include in a tree visualization. */
+  var nodeLimit = 10000
+  
+  /** Mode for Eva to start up in next time on boot-up. */
+  var bootMode = "Welcome"
 	
 	// try to read config information from Eva's config file (if it exists)
 	try {

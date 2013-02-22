@@ -51,17 +51,13 @@ object EliMenu {
         // Create Rule from Node : Create a new rule from an Elision atom in an Eva tree.
 		
 		val makeRuleItem = new MenuItem(new Action("Create Rule from Node") {
-            import javax.swing.KeyStroke
-            import java.awt.event._
-            accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK))
-            
-            def apply = {
-                mainGUI.visPanel.curLevel match {
-                    case etvp : EliTreeVisPanel => 
-                        etvp.selectingRuleLHS = true
-                    case _ =>
-                }
-            }
+        import javax.swing.KeyStroke
+        import java.awt.event._
+        accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK))
+        
+        def apply = {
+          GUIActor ! ("enableRuleMaker", true)
+        }
 		} )
 		makeRuleItem.mnemonic = event.Key.R
         eliMenu.contents += makeRuleItem
@@ -105,14 +101,14 @@ class RulePredDialog(val lhs : String) extends Dialog {
         val rhs = input
         
         try {
-            val openDirectory = mainGUI.config.lastOpenPath
+            val openDirectory = EvaConfig.lastOpenPath
             val fc = new FileChooser(new java.io.File(openDirectory))
             fc.fileFilter = new EliFileFilter
-			val result = fc.showSaveDialog(null)
-			val selFile = fc.selectedFile
-			if(selFile != null && result == FileChooser.Result.Approve) {
-				mainGUI.config.lastOpenPath = selFile.getParent
-				mainGUI.config.save
+      			val result = fc.showSaveDialog(null)
+      			val selFile = fc.selectedFile
+      			if(selFile != null && result == FileChooser.Result.Approve) {
+      				EvaConfig.lastOpenPath = selFile.getParent
+      				EvaConfig.save
 				
                 var filePath = selFile.getPath
                 if(!filePath.endsWith(".eli")) filePath += ".eli"
@@ -138,7 +134,7 @@ class RulePredDialog(val lhs : String) extends Dialog {
                 // declare the rule in our context.
                 GUIActor ! "IgnoreNextTree"
                 GUIActor ! ("ReplInput", ruleDecl)
-			}
+      		  }
             // close the dialog when we finish processing input
             close
         } catch {

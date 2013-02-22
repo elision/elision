@@ -1,4 +1,4 @@
-package ornl.elision.gui
+package ornl.elision.gui.copypaste
 
 import swing.TextComponent
 import javax.swing.JPopupMenu

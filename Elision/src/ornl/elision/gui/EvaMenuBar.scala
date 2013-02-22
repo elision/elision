@@ -55,7 +55,7 @@ class EvaMenuBar extends MenuBar {
   this.contents += fileMenu
 
     // Open : opens an Elision script file to be immediately processed by the Repl as input.
-    var openDirectory = mainGUI.config.lastOpenPath //"."
+    var openDirectory = EvaConfig.lastOpenPath //"."
     var fileFilter : javax.swing.filechooser.FileFilter = null
         
     val openItem = new MenuItem(new Action("Open") {
@@ -70,8 +70,8 @@ class EvaMenuBar extends MenuBar {
             val selFile = fc.selectedFile
             if(selFile != null && result == FileChooser.Result.Approve) {
                 openDirectory = selFile.getParent
-                mainGUI.config.lastOpenPath = openDirectory
-                mainGUI.config.save
+                EvaConfig.lastOpenPath = openDirectory
+                EvaConfig.save
                 GUIActor ! selFile
             }
         }
@@ -171,7 +171,7 @@ class EvaMenuBar extends MenuBar {
           
           this.contents += elision.EliMenu.eliMenu
           
-          this.contents += ConsoleMenu.apply(mode)
+          this.contents += console.ConsoleMenu.apply(mode)
           
           this.contents += trees.TreeVisMenu.apply(mode)
           

@@ -43,7 +43,11 @@ import swing.TabbedPane
 
 /** Used to display information about the currently selected node. */
 class SidePanel extends BoxPanel(Orientation.Vertical) {
-	background = mainGUI.bgColor
+	background = GUIColors.bgColor
+	
+	// the current tree visualization Publisher.
+	var allButTheSong : Publisher = null
+	
 	/** Used for setting border spacings in this panel */
 	val inset = SidePanel.inset
 	border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
@@ -65,6 +69,7 @@ class SidePanel extends BoxPanel(Orientation.Vertical) {
 	/** Changes the tabs in the SidePanel to match a given Eva mode. This is called by mainGUI's changeMode method. */
 	def changeMode(mode : String) {
         tabs.pages.clear
+        
         mode match {
             case "Elision" =>
                 tabs.pages += parsePage
@@ -82,6 +87,24 @@ class SidePanel extends BoxPanel(Orientation.Vertical) {
             case _ => // Sometimes paint will throw an exception when Eva's mode is switched. We'll just ignore these exceptions.
         }
     }
+    
+  reactions += {
+    case nle : sage2D.event.NewLevelEvent => 
+      // Our visualization panel changed levels, so change the Level Publisher we're listening to.
+      val level = nle.level
+      
+      if(allButTheSong != null) {
+        deafTo(allButTheSong) // I just made a Touhou reference. :)
+      }
+      
+      listenTo(mainGUI.visPanel.curLevel)
+      allButTheSong = mainGUI.visPanel.curLevel
+      
+    case nce : trees.NodeClickedEvent =>
+       val clickedNode = nce.node
+       propsPanel.textArea.text = clickedNode.properties
+       parsePanel.parseStringFormat(clickedNode.term, clickedNode.isComment)
+  }
 }
 
 

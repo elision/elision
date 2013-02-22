@@ -37,6 +37,7 @@
 
 package ornl.elision.gui.trees
 
+import scala.swing.Publisher
 import scala.swing.BorderPanel.Position._
 import scala.concurrent.ops._
 import sys.process._
@@ -67,7 +68,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   
   /** The sprite representing the visualization of the rewrite tree */
   var treeSprite : TreeSprite = elision.sprites.ElisionWelcomeTree //.buildWelcomeTree
-  treeSprite.selectNode(treeSprite.root, mainGUI.config.decompDepth) 
+  treeSprite.selectNode(treeSprite.root, EvaConfig.decompDepth) 
     
   /** A SwingWorker thread used for concurrently rendering the panel's image. */
   val renderThread = new TreeVisThread(this,game.timer)
@@ -163,10 +164,12 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     
     val clickedNodeScreenPos = camera.worldToScreenCoords(clickedNode.getWorldPosition)
     camera.moveCenter(clickedNodeScreenPos)
-    treeSprite.selectNode(clickedNode, mainGUI.config.decompDepth)
+    treeSprite.selectNode(clickedNode, EvaConfig.decompDepth)
     
-    mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
-    mainGUI.sidePanel.parsePanel.parseStringFormat(clickedNode.term, clickedNode.isComment)
+//    mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
+//    mainGUI.sidePanel.parsePanel.parseStringFormat(clickedNode.term, clickedNode.isComment)
+    
+    publish(new NodeClickedEvent(clickedNode))
     
     camera.x = clickedNode.worldX
     camera.y = clickedNode.worldY
