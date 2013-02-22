@@ -152,9 +152,9 @@ decl.
 {! _bomb()
 #handler=
 """
-  println("Somebody set up us the bomb!")
-  java.awt.Desktop.getDesktop.browse(new java.net.URI("http://www.youtube.com/watch?v=qItugh-fFgg"))
-  
+  console.sendln("Somebody set up us the bomb!")
+  java.awt.Desktop.getDesktop.browse(
+    new java.net.URI("http://www.youtube.com/watch?v=qItugh-fFgg"))
   _no_show
 """
 #description="In 2101 war was beginning..."

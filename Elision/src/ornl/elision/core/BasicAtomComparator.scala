@@ -212,7 +212,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         // are the same length.  Walk them and try to find some case where they
         // are distinct.
         var index = 0
-        while (index < las.length) {
+        for (index <- 0 until las.length) {
           sgn = compare(las(index), ras(index))
           if (sgn != 0) return sgn
         } // Compare all elements of the sequences.
