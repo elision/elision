@@ -171,7 +171,7 @@ class EvaMenuBar extends MenuBar {
           
           this.contents += elision.EliMenu.eliMenu
           
-          this.contents += ConsoleMenu.apply(mode)
+          this.contents += console.ConsoleMenu.apply(mode)
           
           this.contents += trees.TreeVisMenu.apply(mode)
           

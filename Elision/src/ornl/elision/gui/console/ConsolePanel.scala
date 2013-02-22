@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.console
 
 import scala.swing._
 import scala.concurrent.ops._
@@ -43,6 +43,13 @@ import scala.actors.Actor
 import sys.process._
 import java.io._
 
+import ornl.elision.gui.GUIActor
+import ornl.elision.gui.mainGUI
+import ornl.elision.gui.ReplThread
+import ornl.elision.gui.copypaste._
+import ornl.elision.gui.elision.EliReplThread
+import ornl.elision.gui.elision.EliRegexes
+import ornl.elision.gui.elision.EliTreeVisPanel
 import ornl.elision.syntax
 
 
@@ -114,14 +121,14 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   
   
   /** The thread for the currently running REPL. */
-    var replThread : ReplThread = null
+  var replThread : ReplThread = null
     
   /** Changes which REPL the ConsolePanel is running and provides a thread for it. */
   def changeMode(mode : String) : Unit = {
     mode match {
       case "Elision" =>
         /** The REPL thread instance */
-        replThread = new elision.EliReplThread
+        replThread = new EliReplThread
         replThread.start
       case "Welcome" => // ignore messages.
       case _ =>
@@ -163,7 +170,7 @@ object ConsolePanel {
   var textArea : EditorPane = null
   
   /** The Elision syntax formatter used for highlighting in the repl. */
-  val formatter = new syntax.SyntaxFormatter(elision.EliRegexes, true, true)
+  val formatter = new syntax.SyntaxFormatter(EliRegexes, true, true)
     
   /** The console's font. */
   val font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
@@ -271,29 +278,11 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
           try {
             var newTxt = _newTxt
             
-            /*
-            if(newTxt == "\n") 
-              newTxt = """<br/>"""
-            else {
-              // Inject our new text with HTML tags for formatting.
-              if(applyFormatting) 
-                newTxt = ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols)
-              else 
-                newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
-              
-              if(applyFormatting && reduceLines) 
-                newTxt = _reduceTo9Lines(newTxt)
-            } // endifelse
-            */
-            
             // Inject our new text with HTML tags for formatting.
             if(applyFormatting) 
               newTxt = _reduceTo9Lines(ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols))
             else 
               newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
-            
-          //  if(applyFormatting && reduceLines) 
-          //    newTxt = _reduceTo9Lines(newTxt)
             
             // append our processed new text to our previous output.
             _updateReadOnlyText(newTxt)
@@ -440,15 +429,10 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
       // keyboard menu shortcuts
 
       if(e.key == swing.event.Key.F1)
-        mainGUI.evaMenuBar.helpItem.doClick   
+        GUIActor ! "helpOpen"
       
-      mainGUI.visPanel.curLevel match {
-        case etvp : elision.EliTreeVisPanel =>
-          if(e.key == swing.event.Key.Escape) {
-              etvp.selectingRuleLHS = false
-          }
-        case _ =>
-      }
+      if(e.key == swing.event.Key.Escape)
+        GUIActor ! "cancelRuleMaker"
             
       
     }

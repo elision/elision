@@ -105,7 +105,7 @@ object GUIActor extends Actor {
                     case "newPrompt" =>
                         System.out.print("\ne> ")
                     case ("reGetHistory", result : Any) =>
-                        ConsolePanel.reGetHistory = result
+                        console.ConsolePanel.reGetHistory = result
                         waitingForReplInput = false
                     case ("guiColumns", cols : Int) =>
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)
@@ -144,11 +144,19 @@ object GUIActor extends Actor {
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
-                    case("replReduceLines", flag : Boolean) =>
+                    case ("replReduceLines", flag : Boolean) =>
                         mainGUI.consolePanel.tos.reduceLines = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
-                    case("loading", flag : Boolean) =>
+                    case ("loading", flag : Boolean) =>
                         mainGUI.visPanel.isLoading = flag
+                    case "helpOpen" =>
+                        mainGUI.evaMenuBar.helpItem.doClick
+                    case "cancelRuleMaker" =>
+                        mainGUI.visPanel.curLevel match {
+                          case etvp : elision.EliTreeVisPanel =>
+                             etvp.selectingRuleLHS = false
+                          case _ =>
+                        }
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
                 }
             case "Welcome" => // ignore messages.

@@ -71,7 +71,7 @@ object mainGUI extends SimpleSwingApplication {
   var mode = ""
   
   /** The panel housing the onboard console */
-  val consolePanel = new ConsolePanel
+  val consolePanel = new console.ConsolePanel
   
   /** The tabbed panel housing information about the visualization properties. */
   val sidePanel = new SidePanel

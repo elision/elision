@@ -35,7 +35,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.console
+
+import ornl.elision.gui.mainGUI
 
 import swing._
 import swing.BorderPanel.Position._
