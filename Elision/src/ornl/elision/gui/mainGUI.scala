@@ -52,9 +52,6 @@ import sys.process._
  */
 object mainGUI extends SimpleSwingApplication {
   
-  /** The universal background color for the GUI's panels */
-  val bgColor = new Color(0xBBBBff)
-  
   /** The default title bar text. */
   val defaultTitle = "Elision Visualization Assistant"
   
@@ -78,6 +75,8 @@ object mainGUI extends SimpleSwingApplication {
   
   /** The panel housing Eva's current visualization. */
   var visPanel = new EvaVisPanel
+  
+  sidePanel.listenTo(visPanel)
   
   GUIActor.start
   

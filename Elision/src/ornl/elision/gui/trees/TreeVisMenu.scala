@@ -200,10 +200,7 @@ class DepthDialog extends Dialog {
             if(fieldInt > 0) {
                 EvaConfig.decompDepth = fieldInt
                 EvaConfig.save
-                mainGUI.visPanel.curLevel match {
-                    case treeVisPanel : TreeVisPanel => 
-                        treeVisPanel.selectNode(treeVisPanel.treeSprite.selectedNode)
-                }  
+                GUIActor ! "treeReselectCurrentNode"  
             }
         } catch {
             case _ =>

@@ -45,6 +45,7 @@ import java.io._
 
 import ornl.elision.gui.EvaConfig
 import ornl.elision.gui.GUIActor
+import ornl.elision.gui.GUIColors
 import ornl.elision.gui.mainGUI
 import ornl.elision.gui.ReplThread
 import ornl.elision.gui.copypaste._
@@ -59,7 +60,7 @@ import ornl.elision.syntax
  *  This panel displays Eva's current REPL in a scrollable EditorPane. 
  */
 class ConsolePanel extends BoxPanel(Orientation.Vertical) {
-  background = mainGUI.bgColor
+  background = GUIColors.bgColor
   preferredSize = new Dimension(Integer.MAX_VALUE, 300)
     
   /** Used for setting border spacings in this panel */
@@ -87,7 +88,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
     
   /** The ScrollPane containing the console. */
   val scrollingConsolePanel = new ScrollPane {
-    background = mainGUI.bgColor
+    background = GUIColors.bgColor
     border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
     
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
@@ -136,6 +137,15 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
     }
   }
+  
+  
+  /** Changes the maximum number of lines to keep in the console at any time. */
+  def setMaxLines(n : Int) : Unit = {
+    
+  }
+  
+  /** Obtains the maximum number of lines kept in the console. */
+  def getMaxLines : Int = tos.maxLines
   
   
   override def paint(g : Graphics2D) : Unit = {
@@ -433,7 +443,7 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
         GUIActor ! "helpOpen"
       
       if(e.key == swing.event.Key.Escape)
-        GUIActor ! "cancelRuleMaker"
+        GUIActor ! ("enableRuleMaker", false)
             
       
     }

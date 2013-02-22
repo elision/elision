@@ -37,6 +37,7 @@
 
 package ornl.elision.gui.trees
 
+import scala.swing.Publisher
 import scala.swing.BorderPanel.Position._
 import scala.concurrent.ops._
 import sys.process._
@@ -165,8 +166,10 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     camera.moveCenter(clickedNodeScreenPos)
     treeSprite.selectNode(clickedNode, EvaConfig.decompDepth)
     
-    mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
-    mainGUI.sidePanel.parsePanel.parseStringFormat(clickedNode.term, clickedNode.isComment)
+//    mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
+//    mainGUI.sidePanel.parsePanel.parseStringFormat(clickedNode.term, clickedNode.isComment)
+    
+    publish(new NodeClickedEvent(clickedNode))
     
     camera.x = clickedNode.worldX
     camera.y = clickedNode.worldY
