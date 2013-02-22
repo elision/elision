@@ -163,3 +163,30 @@ decl.{ operator #name=xor #type=BOOLEAN #cases
 #description="Boolean exclusive or."
 #detail="True if exactly one argument is true, and false otherwise."
 }
+
+//======================================================================
+// Simple inequalities.
+//======================================================================
+
+decl.{! i_less_than($x: INTEGER, $y: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x < y
+      case _ => as_is
+    }
+  """
+  #description="Integer less-than."
+  #detail="Evaluate to true iff $x is less than $y."
+}
+
+decl.{! i_greater_than($x: INTEGER, $y: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x > y
+      case _ => as_is
+    }
+  """
+  #description="Integer less-than."
+  #detail="Evaluate to true iff $x is less than $y."
+}
+
