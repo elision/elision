@@ -846,7 +846,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
       // All parameter types must be the same.
       if (!paramTypeCheck) {
         throw new ArgumentListException("The operator " + toESymbol(name) +
-          " is marked as associative, but all parameters do not hae the " +
+          " is marked as associative, but all parameters do not have the " +
           "same type, as required: " + params.toParseString)
       }
       // The fully-applied type must be the same as the parameter type.
@@ -886,7 +886,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
       // All parameter types must be the same.
       if (!paramTypeCheck) {
         throw new ArgumentListException("The operator " + toESymbol(name) +
-          " is marked as commutative, but all parameters do not hae the " +
+          " is marked as commutative, but all parameters do not have the " +
           "same type, as required: " + params.toParseString)
       }
     }
