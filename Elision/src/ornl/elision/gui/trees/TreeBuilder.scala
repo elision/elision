@@ -429,10 +429,10 @@ class TreeBuilder extends Thread {
     
   /** Enforces the node limit by causing a fatal error when we've reached our node limit. */
   private def enforceNodeLimit : Boolean = {
-    if(nodeCount >= mainGUI.config.nodeLimit && mainGUI.config.nodeLimit > 1) {
-      val node = root.makeChild("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. ", true)
-      System.err.println("Error during TreeBuilder tree construction. \n\tEva tree node limit " + mainGUI.config.nodeLimit + " has been reached!")
-      val node2 = subroot.makeChild("Eva tree node limit " + mainGUI.config.nodeLimit + " has been reached! Halting further tree construction. ", true)
+    if(nodeCount >= EvaConfig.nodeLimit && EvaConfig.nodeLimit > 1) {
+      val node = root.makeChild("Eva tree node limit " + EvaConfig.nodeLimit + " has been reached! Halting further tree construction. ", true)
+      System.err.println("Error during TreeBuilder tree construction. \n\tEva tree node limit " + EvaConfig.nodeLimit + " has been reached!")
+      val node2 = subroot.makeChild("Eva tree node limit " + EvaConfig.nodeLimit + " has been reached! Halting further tree construction. ", true)
       fatalError = true
       true
     }

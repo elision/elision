@@ -45,7 +45,7 @@ class ElisionTreeSprite extends TreeSprite(0,0) {
   override val formatter = new ornl.elision.syntax.SyntaxFormatter(ornl.elision.gui.elision.EliRegexes, true, true)
 	
   /** If false, syntax coloring is disabled for the entire tree. */
-  syntaxColoring = !ornl.elision.gui.mainGUI.config.disableNodeSyntaxColoring
+  syntaxColoring = !ornl.elision.gui.EvaConfig.disableNodeSyntaxColoring
 }
 
 

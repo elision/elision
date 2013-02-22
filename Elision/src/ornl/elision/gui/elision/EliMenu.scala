@@ -105,14 +105,14 @@ class RulePredDialog(val lhs : String) extends Dialog {
         val rhs = input
         
         try {
-            val openDirectory = mainGUI.config.lastOpenPath
+            val openDirectory = EvaConfig.lastOpenPath
             val fc = new FileChooser(new java.io.File(openDirectory))
             fc.fileFilter = new EliFileFilter
 			val result = fc.showSaveDialog(null)
 			val selFile = fc.selectedFile
 			if(selFile != null && result == FileChooser.Result.Approve) {
-				mainGUI.config.lastOpenPath = selFile.getParent
-				mainGUI.config.save
+				EvaConfig.lastOpenPath = selFile.getParent
+				EvaConfig.save
 				
                 var filePath = selFile.getPath
                 if(!filePath.endsWith(".eli")) filePath += ".eli"

@@ -59,8 +59,8 @@ object mainGUI extends SimpleSwingApplication {
   val defaultTitle = "Elision Visualization Assistant"
   
   /** Eva's configuration settings */
-  val config = new EvaConfig
-  GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
+//  val config = new EvaConfig
+  GUIActor.treeBuilder.treeMaxDepth = EvaConfig.maxTreeDepth
   
   /** 
    * This string controls what mode Eva is currently running in. 
@@ -118,8 +118,8 @@ object mainGUI extends SimpleSwingApplication {
     }
     
     // save the new current mode in our config file.
-    config.bootMode = mode
-    config.save
+    EvaConfig.bootMode = mode
+    EvaConfig.save
     
     // Change the mode for mode-dependent components.
     sidePanel.changeMode(mode)
@@ -134,7 +134,7 @@ object mainGUI extends SimpleSwingApplication {
   }
   
   // start in whatever mode was used last.
-  changeMode(config.bootMode)
+  changeMode(EvaConfig.bootMode)
 }
 
 

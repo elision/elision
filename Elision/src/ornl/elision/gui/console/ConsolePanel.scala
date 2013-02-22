@@ -43,6 +43,7 @@ import scala.actors.Actor
 import sys.process._
 import java.io._
 
+import ornl.elision.gui.EvaConfig
 import ornl.elision.gui.GUIActor
 import ornl.elision.gui.mainGUI
 import ornl.elision.gui.ReplThread
@@ -111,7 +112,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   // execute the Elision REPL to run in another thread.
   
   /** Used for REPL output */
-  val tos = new EditorPaneOutputStream(console, mainGUI.config.replMaxLines , new ByteArrayOutputStream)
+  val tos = new EditorPaneOutputStream(console, EvaConfig.replMaxLines , new ByteArrayOutputStream)
   
   /** Used for REPL input */
   val tis = new EditorPaneInputStream(tos)

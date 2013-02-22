@@ -47,7 +47,7 @@ object TreeVisMenu {
     
     // File menu
         
-    var openDirectory = mainGUI.config.lastOpenPath //"."
+    var openDirectory = EvaConfig.lastOpenPath //"."
       
     val openTreeItem = new MenuItem(Action("Open Tree Visualization") {
       val fc = new FileChooser(new java.io.File(openDirectory))
@@ -56,8 +56,8 @@ object TreeVisMenu {
       val selFile = fc.selectedFile
       if(selFile != null && result == FileChooser.Result.Approve) {
         openDirectory = selFile.getParent
-        mainGUI.config.lastOpenPath = openDirectory
-        mainGUI.config.save
+        EvaConfig.lastOpenPath = openDirectory
+        EvaConfig.save
                 GUIActor ! ("OpenTree", selFile)
       }
     })
@@ -69,8 +69,8 @@ object TreeVisMenu {
       val selFile = fc.selectedFile
       if(selFile != null && result == FileChooser.Result.Approve) {
         openDirectory = selFile.getParent
-        mainGUI.config.lastOpenPath = openDirectory
-        mainGUI.config.save
+        EvaConfig.lastOpenPath = openDirectory
+        EvaConfig.save
         GUIActor ! ("SaveTree", selFile)
       }
     })
@@ -82,8 +82,8 @@ object TreeVisMenu {
       val selFile = fc.selectedFile
       if(selFile != null && result == FileChooser.Result.Approve) {
         openDirectory = selFile.getParent
-        mainGUI.config.lastOpenPath = openDirectory
-        mainGUI.config.save
+        EvaConfig.lastOpenPath = openDirectory
+        EvaConfig.save
         GUIActor ! ("SaveTreeJSON", selFile)
       }
     })
@@ -115,27 +115,27 @@ object TreeVisMenu {
         
   // Disable Node Syntax Coloring : 
   val disableNodeColoringItem = new CheckMenuItem("Disable Node Syntax Coloring")
-  disableNodeColoringItem.peer.setState(mainGUI.config.disableNodeSyntaxColoring)
+  disableNodeColoringItem.peer.setState(EvaConfig.disableNodeSyntaxColoring)
   
   disableNodeColoringItem.listenTo(disableNodeColoringItem)
   disableNodeColoringItem.reactions += {
     case _ => 
-      mainGUI.config.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
-      mainGUI.config.save
+      EvaConfig.disableNodeSyntaxColoring = disableNodeColoringItem.peer.getState
+      EvaConfig.save
   }
   disableNodeColoringItem.mnemonic = event.Key.N
     
         
   // Disable Tree Construction : 
   val disableTreeItem = new CheckMenuItem("Disable Tree Construction")
-  disableTreeItem.peer.setState(mainGUI.config.disableTree)
+  disableTreeItem.peer.setState(EvaConfig.disableTree)
   GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
   disableTreeItem.listenTo(disableTreeItem)
   disableTreeItem.reactions += {
     case _ => 
       GUIActor.disableTreeBuilder = disableTreeItem.peer.getState
-      mainGUI.config.disableTree = disableTreeItem.peer.getState
-      mainGUI.config.save
+      EvaConfig.disableTree = disableTreeItem.peer.getState
+      EvaConfig.save
   }
   disableTreeItem.mnemonic = event.Key.T
   
@@ -171,7 +171,7 @@ class DepthDialog extends Dialog {
     val depthInput = new TextField(10) { 
         listenTo(keys) 
         reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = "" + mainGUI.config.decompDepth
+        text = "" + EvaConfig.decompDepth
     }
     val okBtn = new Button(Action("OK") {enterInput(depthInput.text)})
     val cancelBtn = new Button(Action("Cancel") { close } )
@@ -198,8 +198,8 @@ class DepthDialog extends Dialog {
         try {
             val fieldInt = input.toInt
             if(fieldInt > 0) {
-                mainGUI.config.decompDepth = fieldInt
-                mainGUI.config.save
+                EvaConfig.decompDepth = fieldInt
+                EvaConfig.save
                 mainGUI.visPanel.curLevel match {
                     case treeVisPanel : TreeVisPanel => 
                         treeVisPanel.selectNode(treeVisPanel.treeSprite.selectedNode)
@@ -259,8 +259,8 @@ class MaxDepthDialog extends Dialog {
         try {
             val fieldInt = input.toInt
             GUIActor.treeBuilder.treeMaxDepth = fieldInt
-            mainGUI.config.maxTreeDepth = fieldInt
-            mainGUI.config.save
+            EvaConfig.maxTreeDepth = fieldInt
+            EvaConfig.save
             // close the dialog when we finish processing input
             close
         } catch {
@@ -283,7 +283,7 @@ class NodeLimitDialog extends Dialog {
     val linesInput = new TextField(10) { 
         listenTo(keys) 
         reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = "" + mainGUI.config.nodeLimit
+        text = "" + EvaConfig.nodeLimit
     }
     val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
     val cancelBtn = new Button(Action("Cancel") { close } )
@@ -309,8 +309,8 @@ class NodeLimitDialog extends Dialog {
     private def enterInput(input : String) : Unit = {
         try {
             val fieldInt = input.toInt
-            mainGUI.config.nodeLimit = fieldInt
-            mainGUI.config.save
+            EvaConfig.nodeLimit = fieldInt
+            EvaConfig.save
             // close the dialog when we finish processing input
             close
         } catch {

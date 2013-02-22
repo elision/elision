@@ -37,6 +37,7 @@
 
 package ornl.elision.gui.console
 
+import ornl.elision.gui.EvaConfig
 import ornl.elision.gui.mainGUI
 
 import swing._
@@ -115,8 +116,8 @@ class MaxLinesDialog extends Dialog {
         try {
             val fieldInt = input.toInt
             mainGUI.consolePanel.tos.maxLines = fieldInt
-            mainGUI.config.replMaxLines = fieldInt
-            mainGUI.config.save
+            EvaConfig.replMaxLines = fieldInt
+            EvaConfig.save
             // close the dialog when we finish processing input
             close
         } catch {
