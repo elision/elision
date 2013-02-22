@@ -35,7 +35,10 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.console
+
+import ornl.elision.gui.EvaConfig
+import ornl.elision.gui.mainGUI
 
 import swing._
 import swing.BorderPanel.Position._
@@ -82,7 +85,7 @@ class MaxLinesDialog extends Dialog {
     val linesInput = new TextField(10) { 
         listenTo(keys) 
         reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = "" + mainGUI.consolePanel.tos.maxLines
+        text = "" + mainGUI.consolePanel.getMaxLines
     }
     val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
     val cancelBtn = new Button(Action("Cancel") { close } )
@@ -112,9 +115,9 @@ class MaxLinesDialog extends Dialog {
         
         try {
             val fieldInt = input.toInt
-            mainGUI.consolePanel.tos.maxLines = fieldInt
-            mainGUI.config.replMaxLines = fieldInt
-            mainGUI.config.save
+            mainGUI.consolePanel.setMaxLines(fieldInt)
+            EvaConfig.replMaxLines = fieldInt
+            EvaConfig.save
             // close the dialog when we finish processing input
             close
         } catch {

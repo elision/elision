@@ -105,13 +105,13 @@ object GUIActor extends Actor {
                     case "newPrompt" =>
                         System.out.print("\ne> ")
                     case ("reGetHistory", result : Any) =>
-                        ConsolePanel.reGetHistory = result
+                        console.ConsolePanel.reGetHistory = result
                         waitingForReplInput = false
                     case ("guiColumns", cols : Int) =>
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)
                     case ("Eva", cmd : String, args : Any) => 
                         // process a TreeBuilder command received from the Elision.
-                        if(!mainGUI.config.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
+                        if(!EvaConfig.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
                     case ("OpenTree", file : java.io.File) =>
                         treeBuilder.tbActor ! ("OpenTree", file)
                     case ("SaveTree", file : java.io.File) =>
@@ -124,7 +124,7 @@ object GUIActor extends Actor {
                         treeBuilder.tbActor ! "IgnoreNextTree"
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-                        if(!mainGUI.config.disableTree) mainGUI.visPanel.isLoading = true
+                        if(!EvaConfig.disableTree) mainGUI.visPanel.isLoading = true
                         Thread.sleep(100)
                         
                         // here we accumulate the text of the file into one big string.
@@ -144,11 +144,24 @@ object GUIActor extends Actor {
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
-                    case("replReduceLines", flag : Boolean) =>
+                    case ("replReduceLines", flag : Boolean) =>
                         mainGUI.consolePanel.tos.reduceLines = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
-                    case("loading", flag : Boolean) =>
+                    case ("loading", flag : Boolean) =>
                         mainGUI.visPanel.isLoading = flag
+                    case "helpOpen" =>
+                        mainGUI.evaMenuBar.helpItem.doClick
+                    case ("enableRuleMaker", flag : Boolean) =>
+                        mainGUI.visPanel.curLevel match {
+                          case etvp : elision.EliTreeVisPanel =>
+                             etvp.selectingRuleLHS = flag
+                          case _ =>
+                        }
+                    case "treeReselectCurrentNode" =>
+                        mainGUI.visPanel.curLevel match {
+                          case treeVisPanel : trees.TreeVisPanel => 
+                            treeVisPanel.selectNode(treeVisPanel.treeSprite.selectedNode)
+                        }
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
                 }
             case "Welcome" => // ignore messages.

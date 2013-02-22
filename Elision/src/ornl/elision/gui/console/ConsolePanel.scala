@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.console
 
 import scala.swing._
 import scala.concurrent.ops._
@@ -43,6 +43,15 @@ import scala.actors.Actor
 import sys.process._
 import java.io._
 
+import ornl.elision.gui.EvaConfig
+import ornl.elision.gui.GUIActor
+import ornl.elision.gui.GUIColors
+import ornl.elision.gui.mainGUI
+import ornl.elision.gui.ReplThread
+import ornl.elision.gui.copypaste._
+import ornl.elision.gui.elision.EliReplThread
+import ornl.elision.gui.elision.EliRegexes
+import ornl.elision.gui.elision.EliTreeVisPanel
 import ornl.elision.syntax
 
 
@@ -51,7 +60,7 @@ import ornl.elision.syntax
  *  This panel displays Eva's current REPL in a scrollable EditorPane. 
  */
 class ConsolePanel extends BoxPanel(Orientation.Vertical) {
-  background = mainGUI.bgColor
+  background = GUIColors.bgColor
   preferredSize = new Dimension(Integer.MAX_VALUE, 300)
     
   /** Used for setting border spacings in this panel */
@@ -79,7 +88,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
     
   /** The ScrollPane containing the console. */
   val scrollingConsolePanel = new ScrollPane {
-    background = mainGUI.bgColor
+    background = GUIColors.bgColor
     border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
     
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
@@ -104,7 +113,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   // execute the Elision REPL to run in another thread.
   
   /** Used for REPL output */
-  val tos = new EditorPaneOutputStream(console, mainGUI.config.replMaxLines , new ByteArrayOutputStream)
+  val tos = new EditorPaneOutputStream(console, EvaConfig.replMaxLines , new ByteArrayOutputStream)
   
   /** Used for REPL input */
   val tis = new EditorPaneInputStream(tos)
@@ -114,20 +123,29 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   
   
   /** The thread for the currently running REPL. */
-    var replThread : ReplThread = null
+  var replThread : ReplThread = null
     
   /** Changes which REPL the ConsolePanel is running and provides a thread for it. */
   def changeMode(mode : String) : Unit = {
     mode match {
       case "Elision" =>
         /** The REPL thread instance */
-        replThread = new elision.EliReplThread
+        replThread = new EliReplThread
         replThread.start
       case "Welcome" => // ignore messages.
       case _ =>
         System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
     }
   }
+  
+  
+  /** Changes the maximum number of lines to keep in the console at any time. */
+  def setMaxLines(n : Int) : Unit = {
+    
+  }
+  
+  /** Obtains the maximum number of lines kept in the console. */
+  def getMaxLines : Int = tos.maxLines
   
   
   override def paint(g : Graphics2D) : Unit = {
@@ -163,7 +181,7 @@ object ConsolePanel {
   var textArea : EditorPane = null
   
   /** The Elision syntax formatter used for highlighting in the repl. */
-  val formatter = new syntax.SyntaxFormatter(elision.EliRegexes, true, true)
+  val formatter = new syntax.SyntaxFormatter(EliRegexes, true, true)
     
   /** The console's font. */
   val font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 12 )
@@ -271,29 +289,11 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
           try {
             var newTxt = _newTxt
             
-            /*
-            if(newTxt == "\n") 
-              newTxt = """<br/>"""
-            else {
-              // Inject our new text with HTML tags for formatting.
-              if(applyFormatting) 
-                newTxt = ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols)
-              else 
-                newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
-              
-              if(applyFormatting && reduceLines) 
-                newTxt = _reduceTo9Lines(newTxt)
-            } // endifelse
-            */
-            
             // Inject our new text with HTML tags for formatting.
             if(applyFormatting) 
               newTxt = _reduceTo9Lines(ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols))
             else 
               newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
-            
-          //  if(applyFormatting && reduceLines) 
-          //    newTxt = _reduceTo9Lines(newTxt)
             
             // append our processed new text to our previous output.
             _updateReadOnlyText(newTxt)
@@ -440,15 +440,10 @@ class EditorPaneInputStream( var taos : EditorPaneOutputStream) {
       // keyboard menu shortcuts
 
       if(e.key == swing.event.Key.F1)
-        mainGUI.evaMenuBar.helpItem.doClick   
+        GUIActor ! "helpOpen"
       
-      mainGUI.visPanel.curLevel match {
-        case etvp : elision.EliTreeVisPanel =>
-          if(e.key == swing.event.Key.Escape) {
-              etvp.selectingRuleLHS = false
-          }
-        case _ =>
-      }
+      if(e.key == swing.event.Key.Escape)
+        GUIActor ! ("enableRuleMaker", false)
             
       
     }
