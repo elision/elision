@@ -129,6 +129,27 @@ decl.{operator #name=if #cases
 // Meta.
 //======================================================================
 
+decl.{operator #name=_defer #cases
+  %($sem, $op, $arg) -> $$op.$$arg
+  #description="Defer a composition."
+  #detail=
+  "Discard $sem and compute $op.$arg.  This is useful to defer a composition ".
+  "until some event occurs.  In particular, this is useful in a case operator ".
+  "by letting $sem be $$_ or $$__.  Once the evaluation is performed then the ".
+  "metavariable is rewritten, and the composition happens.  For instance, ".
+  "defer($$_, error, \"Invalid value.\") will cause error(\"Invalid value.\") ".
+  "to be generated, but only when $$_ is rewritten (the application is ".
+  "blocked by the metavariable)."
+}
+
+decl.{operator #name=defer #cases
+  %($op, $arg) -> _defer($$__,$$op,$$arg)
+  #description="Defer a composition."
+  #detail=
+  "Computes $op.$arg on the right-hand side of a case operator's map pair ".
+  "but only when that map pair is selected."
+}
+
 decl.{! eval($atom)
   #handler=
   """
@@ -626,6 +647,19 @@ decl.{! showtypes($a)
 //======================================================================
 // Error reporting.
 //======================================================================
+
+decl.{! error($msg: STRING)
+  #handler="""
+    args match {
+      case Args(StringLiteral(_,msg)) =>
+        throw new ornl.elision.util.ElisionException(msg)
+      case _ =>
+    }
+    _no_show
+  """
+  #description="Report an error, terminating any current processing."
+  #detail="Report an error message $msg and terminate current processing."
+}
 
 decl.{! fail()
   #handler=
