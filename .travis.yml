@@ -47,4 +47,3 @@ branches:
 
 script: ./build.sh
 
-
