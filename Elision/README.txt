@@ -43,6 +43,7 @@ Eclipse
 Acknowledgments
 License for JLine
 License for Parboiled
+License for sg-cdb
 
 
 README
@@ -52,7 +53,7 @@ file describes how to build the rewriter, how to run the REPL, and how to set
 up your environment to edit the source in Eclipse.
 
 Visit the Elision web site at:
-http://stacyprowell.com/wiki/doku.php?id=elision
+http://elision.github.com/
 
 Elision contains Parboiled, a Parser Expression Grammar (PEG) library.  See the
 end of this file for license details.  For more information, visit:
@@ -61,6 +62,11 @@ https://github.com/sirthias/parboiled/wiki
 Elision contains JLine, a Java library for command line interaction.  See the
 end of this file for license details.  For more information, visit:
 http://jline.sourceforge.net/
+
+Elision contains sg-cdb, a pure Java implementation of D.J. Bernstein's 
+constant database (cdb) package.  See the end of this file for license
+details.  For more information, visit:
+http://www.strangegizmo.com/products/sg-cdb/
 
 
 Prerequisites
@@ -121,19 +127,20 @@ into Eclipse, you should make sure the following are installed.
 
 *.) Install the Scala IDE.  At present the version of the Scala IDE for Scala
     2.9 can be found at the update site:
-      http://download.scala-ide.org/releases-29/stable/site
+    For Eclipse Indigo:
+      http://download.scala-ide.org/sdk/e37/scala29/stable/site/
+    For Eclipse Juno:
+      http://download.scala-ide.org/sdk/e38/scala29/dev/site/
     Visit http://scala-ide.org/ for the latest version, documentation, etc.
 
 That is all that is actually required.  You may optionally install the following
 plugins.
 
 *.) ShellEd is an excellent editor for working with shell scripts, but at
-    present it only works with Eclipse Indigo.  You can find out more at:
+    present it only works with Eclipse Juno.  You can find out more at:
       http://sourceforge.net/apps/trac/shelled
-    To install ShellEd you need to install the Linux Tools.  The update site is:
-      http://download.eclipse.org/technology/linuxtools/update
     The update site for ShellEd is:
-      https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.1/update
+      https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.2/update
     To install ShellEd you need to add the linux tools update site, but do not
     install anything yet.  Then install ShellEd; it will resolve its
     dependencies and get the components that are actually required.
@@ -426,3 +433,37 @@ and is reproduced below in its entirety.
    See the License for the specific language governing permissions and
    limitations under the License.
 
+
+LICENSE for sg-cdb
+==================
+sg-cdb is released under the BSD "3 clause" license.  It can be found at:
+www.strangegizmo.com/products/sg-cdb/
+and is reproduced below in its entirety.
+
+Copyright � 2000-2006, Michael Alyn Miller <malyn@strangeGizmo.com>. All
+rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    Redistributions of source code must retain the above copyright notice
+    unmodified, this list of conditions, and the following disclaimer.
+    
+    Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+    
+    Neither the name of Michael Alyn Miller nor the names of the contributors
+    to this software may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS �AS IS� AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

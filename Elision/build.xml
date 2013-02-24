@@ -104,11 +104,11 @@ bin, lib, and other folders.</echo>
 		 classpath, etc. -->
 	<target name="init" depends="start,debug,checks">
 		<property name="build.base" 	value="."/>
-		<property name="build.src"  	value="${build.base}/src"/>
+		<property name="build.src"  	value="${build.base}/src/main/scala"/>
 		<property name="build.doc"  	value="${build.base}/doc"/>
 		<property name="build.bin"  	value="${build.base}/bin"/>
 		<property name="build.lib"  	value="${build.base}/lib"/>
-		<property name="build.jar"		value="elision.jar"/>
+		<property name="build.jar"	value="elision.jar"/>
 		<property name="build.latest"	value="${build.base}/latest"/>
 		<echo level="info">Using Scala at ${env.SCALA_HOME}.</echo>
 		<path id="build.classpath">
@@ -174,13 +174,13 @@ bin, lib, and other folders.</echo>
 			unchecked	="on">
 			<src path="${build.src}"/>
 		</scalac>
-		<javac
+		<!-- javac
 			destdir		="${build.bin}"
 			classpathref	="build.classpath"
 			includeantruntime ="false"
 			deprecation	="on">
 			<src path="${build.src}"/>
-		</javac>
+		</javac -->
 		<copy todir="${build.bin}" overwrite="yes">
 			<fileset dir="${build.src}" includes="**/*.eli"/>
 			<filterset>
@@ -278,16 +278,6 @@ bin, lib, and other folders.</echo>
 			<manifest>
 				<attribute name="Build-Date" value="${DSTAMP}"/>
 				<attribute name="Main-Class" value="ornl.elision.Main"/>
-			</manifest>
-		</jar>
-        <jar
-			filesetmanifest	="skip"
-			destfile		="${build.latest}/elision-eva.jar">
-			<fileset dir="${build.bin}"/>
-			<zipgroupfileset dir="${build.lib}" includes="**/*.jar"/>
-			<manifest>
-				<attribute name="Build-Date" value="${DSTAMP}"/>
-				<attribute name="Main-Class" value="ornl.elision.gui.mainGUI"/>
 			</manifest>
 		</jar>
 		<jar destfile = "${build.base}/${DSTAMP}/elision-src.jar">

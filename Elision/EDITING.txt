@@ -1,0 +1,52 @@
+EDITING
+=======
+STOP!  Before you edit any source in Elision and check it in, read the following
+guidelines and then *follow* them!  Failure to do these things has already led
+to bugs being introduced into Elision.  STOP.  READ.  DO.
+
+(1) Use Eclipse
+If you are not using Eclipse to edit Elision, then it is *strongly* recommended
+you start.  The repository contains Eclipse settings that are expected to be
+enforced automatically so code checked in is consistent.  This makes everyone's
+life easier.  The README.txt contains all the details to get you up and editing
+in Eclipse.
+
+(2) No Tabs
+The Elision code base uses two-space indentation.  Do not use tabs.  Set your
+editor to expand tabs to spaces and set the tab stops at two-space increments.
+Please do this now.  Code with tabs may be rejected in the future.  In case you
+care, this is the item that confused someone working on the AC matcher and led
+to a hard-to-diagnose bug.
+
+(3) Stay Under 80 Characters
+Try to keep lines within the 80 character limit.  I know, this annoys some of
+you, but please do it.  This makes it easier to look at code side-by-side, to
+see diffs, to print (so trees don't take over the world), etc.
+
+(4) Comment
+Use complete sentences with capitalization, punctuation, (reasonably) correct
+spelling and grammar in your comments.  Do not use comments like // Fix this.
+Nobody (including you) will know what the hell that means.  Comments should be
+complete thoughts and should be useful.  On the other hand, use the defined
+markers in Eclipse (like TODO) so that the comments get pulled to the task list.
+
+(5) Scaladoc
+Use Scaladoc comments.  See all the other files in this repository for examples
+of the preferred style.  Document all public and protected interfaces and add
+documentation of all parameters and return values.  I know this is against the
+Scaladoc suggestions, but they're wrong.  Document.
+
+(6) Explain
+You probably don't need to comment every line, but sometimes stuff is complex.
+If you write some complex code, take some time to explain it to folks who do not
+understand it.  That will include you the next time you see it.
+
+(7) Do Not Print
+Really, don't check in code with prints and printlns in it.  Just don't.  There
+are plenty of alternative ways to get output from Elision under user control
+without polluting the output of the tool.  Automated systems may consume the
+output, and this will cause them to break.  So just do not do it.
+
+Follow these guidelines and we will all get along, your code can be folded into
+the trunk, and life can be good.  Break them and you'll have to clean them up
+and may be dropped from the committers list.  Really; this isn't hard.

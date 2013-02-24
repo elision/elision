@@ -52,25 +52,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		<endLine><![CDATA[-->]]></endLine>
 		<firstLinePattern><![CDATA[<\?xml version=.*\?>]]></firstLinePattern>
 	</header>
-	<header contentId="org.eclipse.pde.pluginManifest" excluded="true" />
 	<header contentId="org.eclipse.core.runtime.xml" postBlankLines="0" lineFormat="false" preserveFirstLine="true">
 		<beginLine><![CDATA[<!--]]></beginLine>
 		<linePrefix><![CDATA[  ]]></linePrefix>
 		<endLine><![CDATA[-->]]></endLine>
 		<firstLinePattern><![CDATA[<\?xml version=.*\?>]]></firstLinePattern>
 	</header>
+	<header contentId="org.eclipse.pde.pluginManifest" excluded="true" />
 	<header contentId="net.sourceforge.shelled.content-type" postBlankLines="0" lineFormat="false" preserveFirstLine="true">
 		<beginLine><![CDATA[#######################################################################]]></beginLine>
 		<linePrefix><![CDATA[#]]></linePrefix>
 		<endLine><![CDATA[#######################################################################]]></endLine>
 		<firstLinePattern><![CDATA[#!.*]]></firstLinePattern>
 	</header>
+	<header contentId="org.eclipse.wst.dtd.core.dtdsource" excluded="true" />
 	<header contentId="org.eclipse.core.runtime.text" postBlankLines="0" lineFormat="true" preserveFirstLine="false">
 		<beginLine><![CDATA[#-------------------------------------------------------------------------------]]></beginLine>
 		<linePrefix><![CDATA[# ]]></linePrefix>
 		<endLine><![CDATA[#-------------------------------------------------------------------------------]]></endLine>
 	</header>
-	<header contentId="org.eclipse.wst.dtd.core.dtdsource" excluded="true" />
 	<header contentId="org.eclipse.pde.featureManifest" excluded="true" />
 	<header contentId="org.eclipse.jdt.core.javaSource" postBlankLines="0" lineFormat="false" preserveFirstLine="false">
 		<beginLine><![CDATA[/*======================================================================]]></beginLine>
