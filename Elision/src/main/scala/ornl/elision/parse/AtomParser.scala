@@ -315,7 +315,7 @@ object AtomParser {
 			ReplActor ! ("Eva", "addTo", ("rwNode", "props", "properties: ")) 
 			ReplActor ! ("Eva", "setSubroot", "props")			
 			ReplActor ! ("Eva", "addTo", ("rwNode", "list", "atoms: "))
-			val ASList = list.toIndexedSeq[AstNode] map ( astAtom => {
+			val ASList = list.toIndexedSeq map ( astAtom => {
         ReplActor ! ("Eva", "setSubroot", "list") // RWTree.current = listNode
 				val astAtomInt = astAtom.interpret
 				astAtomInt

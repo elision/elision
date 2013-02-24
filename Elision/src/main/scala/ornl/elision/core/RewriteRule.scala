@@ -330,11 +330,11 @@ object RewriteRule {
     // Make the binding.
     val binds:Bindings = Bindings() +
     	(""->mappair) +
-    	("if"->AtomSeq(Associative(true) and Commutative(true), guards.toIndexedSeq[BasicAtom])) +
+    	("if"->AtomSeq(Associative(true) and Commutative(true), guards.toIndexedSeq)) +
     	("rulesets"->
     		AtomSeq(Associative(true) and Commutative(true), rulesets.map {
     			str => Literal(Symbol(str))
-    		}.toIndexedSeq[BasicAtom]))
+    		}.toIndexedSeq))
     new SpecialFormHolder(tag, BindingsAtom(binds))
   }
 

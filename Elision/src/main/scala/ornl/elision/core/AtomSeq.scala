@@ -317,7 +317,7 @@ object AtomSeq {
    * @param atoms	The atoms.
    */
   def apply(props: AlgProp, atoms: BasicAtom*) =
-    new AtomSeq(props, atoms.toIndexedSeq[BasicAtom])
+    new AtomSeq(props, atoms.toIndexedSeq)
   
   /**
    * Process the atoms and build the new sequence.  This reduces any included

@@ -362,7 +362,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
    * @return	The result of applying this operator to the given argument list.
    */
   def apply(atoms: BasicAtom*) =
-    doApply(AtomSeq(NoProps, atoms.toIndexedSeq[BasicAtom]))
+    doApply(AtomSeq(NoProps, atoms.toIndexedSeq))
 
   def doApply(args: BasicAtom, bypass: Boolean) = {
     // Traverse the list of cases and try to find a case that the arguments
