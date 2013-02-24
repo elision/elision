@@ -1,0 +1,151 @@
+/*======================================================================
+ *       _ _     _
+ *   ___| (_)___(_) ___  _ __
+ *  / _ \ | / __| |/ _ \| '_ \
+ * |  __/ | \__ \ | (_) | | | |
+ *  \___|_|_|___/_|\___/|_| |_|
+ * The Elision Term Rewriter
+ * 
+ * Copyright (c) 2012 by UT-Battelle, LLC.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * Collection of administrative costs for redistribution of the source code or
+ * binary form is allowed. However, collection of a royalty or other fee in excess
+ * of good faith amount for cost recovery for such redistribution is prohibited.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER, THE DOE, OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+======================================================================*/
+
+println("Reading Experimental...")
+
+//======================================================================
+// General operators.
+//======================================================================
+
+// Define an operator to emit the context as Scala code to a specified file.
+decl.
+{! exportContext($filename: STRING): NONE
+#description="Export the current context as Scala code."
+#detail="Write the current context as Scala code to the specified file."
+#handler=
+"""
+  args match {
+    case Args(StringLiteral(_, fn)) =>
+      // Open the file for writing.
+      import java.io.FileWriter
+      val fw = new FileWriter(fn)
+      // Write the context.
+      fw.append(context.toString)
+      // Done.
+      fw.flush()
+      fw.close()
+      console.emitln("Wrote context to " + fn + ".")
+    case _ =>
+  }
+  _no_show
+"""}
+
+// Define an operator to invoke the "fast equality" checker.
+{! feq($a,$b): BOOLEAN
+   #handler="""
+     // Run the fast equality handler on the two arguments.
+     args match {
+       case Args(a,b) => feq(a,b,false)
+       case _ => false
+     }
+   """
+   #description="Run the 'fast equality' checker on two atoms."
+   #detail="Run the 'fast equality' checker on $a and $b."
+}
+
+// Run the fast equality checker in stages, and report progress.
+{! sfeq($a,$b): BOOLEAN
+   #handler="""
+     args match {
+       case Args(atom1, atom2) => {
+         if (atom1 eq atom2) {
+           console.emitln(" Identical: true")
+           true
+         } else {
+           console.emitln(" Identical: false")
+           (if (atom1.depth == atom2.depth) {
+             console.emitln("     Depth: true")
+             true
+           } else {
+             console.emitln("     Depth: false")
+             false
+           }) &&
+           (if (atom1.isConstant == atom2.isConstant) {
+             console.emitln(" Constancy: true")
+             true
+           } else {
+             console.emitln(" Constancy: false")
+             false
+           }) &&
+           (if (atom1.isTerm == atom2.isTerm) {
+             console.emitln("  Termness: true")
+             true
+           } else {
+             console.emitln("  Termness: false")
+             false
+           }) &&
+           (if (atom1.hashCode == atom2.hashCode) {
+             console.emitln("      Hash: true")
+             true
+           } else {
+             console.emitln("      Hash: false")
+             false
+           }) &&
+           (if (atom1.otherHashCode == atom2.otherHashCode) {
+             console.emitln("Other Hash: true")
+             true
+           } else {
+             console.emitln("Other Hash: false")
+             false
+           })
+         } // else
+       } // case
+     } // match
+   """
+   #description="Run the 'fast equality' checker in stages."
+   #detail="Run the 'fast equality' checker on $a and $b in stages."
+}
+
+{! inspect($atom): NONE
+   #handler="""
+     args match {
+       case Args(atom) =>
+         console.emitln("     Class: " + atom.getClass().toString())
+         console.emitln("   Elision: " + atom.toParseString)
+         console.emitln("     Scala: " + atom.toString)
+         console.emitln("      Hash: " + atom.hashCode)
+         console.emitln("Other Hash: " + atom.otherHashCode)
+         console.emitln("     Depth: " + atom.depth)
+         console.emitln("      Term: " + atom.isTerm)
+         console.emitln("  Constant: " + atom.isConstant)
+       case _ =>
+     }
+     _no_show
+   """
+   #description="Examine some properties of an atom."
+   #detail="Examine properties of the atom $atom."
+}

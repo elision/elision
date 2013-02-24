@@ -1,0 +1,34 @@
+digraph Elision {
+    subgraph cluster_0 {
+        node [style=filled];
+        "ornl.elision" ;
+        "cli" ;
+        label = "Application";
+        color=green
+    }
+
+    subgraph cluster_1 {
+        node [style=filled];
+        "core" ;
+        "core.matcher" ;
+        "parse" ;
+        "repl" ;
+        label = "Elision";
+        color=blue
+    }
+
+    "core" -> "core.matcher" ;
+    "core.matcher" -> "core" ;
+
+    "ornl.elision" -> "cli" ;
+    "ornl.elision" -> "util" ;
+    "ornl.elision" -> "core" [color=red style=dashed label="REMOVE"] ;
+    "cli" -> "util" ;
+    "core" -> "repl" [color=red style=dashed label="REMOVE"] ;
+    "core" -> "util" ;
+    "parse" -> "core" ;
+    "parse" -> "repl" [color=red style=dashed label="REMOVE"] ;
+    "parse" -> "util" ;
+    "repl" -> "core" ;
+    "repl" -> "parse" ;
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<local-project language="java" version="3.5.4044" flavor="j2se">
+  <property name="hide-externals" value="true" />
+  <property name="show-needs-to-compile" value="false" />
+  <property name="root-file" value="/Users/ysp/workspace" />
+  <property name="detail-mode" value="true" />
+  <property name="project-excluded" value="" />
+  <property name="project-type" value="eclipse_workspace" />
+  <property name="action-set-mod" value="10" />
+  <property name="resolve-name-clashes" value="true" />
+  <property name="hide-deprecated" value="false" />
+  <property name="parse-archive-in-archive" value="false" />
+  <classpath relativeto="/Users/ysp/workspace/Elision">
+    <classpathentry kind="lib" path="bin" />
+  </classpath>
+  <pom-root-files />
+  <excludes>
+    <exclude expression="*._*" active="true" />
+    <exclude expression="ornl.elision.generators*" active="true" />
+    <exclude expression="ornl.elision.core.*&amp;" active="true" />
+  </excludes>
+  <transformations>
+    <transformation in="*" out="{jar}.*" />
+    <transformation in="*.matcher.*" out="{1}.{2}" />
+  </transformations>
+  <restructuring>
+    <set version="2" name="List 1" hiview="Codemap" active="true" todo="false" />
+  </restructuring>
+  <sourcepaths>
+    <pathentry type="file" path="/Users/ysp/workspace/Elision/src" />
+  </sourcepaths>
+</local-project>
+

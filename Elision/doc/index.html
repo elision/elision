@@ -17,6 +17,15 @@
       margin: 0;
     }
   </style>
+<script>
+  function ShowHideContent(elem,contentId){
+    var con = document.getElementById(contentId);
+    var isHidden = ( con.style.display == "none" );
+    this.innerHTML = (isHidden)?"Hide Content":"Show Content";
+    con.style.display = (isHidden)?"block":"none";
+    con=null;
+  }
+</script>
     <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"><title>Elision</title>
     
     <meta content="SJP" name="author">
@@ -53,10 +62,13 @@ documentation, please check the <a href="https://github.com/elision/elision/issu
     <tr><td><b>try it:</b></td>
         <td>[ <a href="http://hundredacres.dyndns.org:8800/etest/">Run Elision in a Web Page (experimental; might be blocked by your firewall)</a>
             ]<br style="font-weight: bold;"></td></tr>
+    <tr><td><b>collaborate:</b></td>
+        <td>[ <a href="https://groups.google.com/forum/#!forum/elision-dev">elision-dev on Google Groups</a>
+            ]<br style="font-weight: bold;"></td></tr>
     </tbody></table>
     <p>To run Elision you must have Java (1.6 or later) installed.&nbsp; To build Elision you must have <a target="_blank" href="http://scala-lang.org">Scala</a> and <a target="_blank" href="http://ant.apache.org">Apache
         Ant</a> installed.</p>
-<p>Elision is built and tested on Linux and Mac OS X using Java 1.6 and Scala 2.9.1.<br>
+<p>Elision is built and tested on Linux and Mac OS X using Java 1.7 and Scala 2.9.2.<br>
 </p>
 
     <p>To use the runnable jar (for Scala), execute it with the scala command:<br>
@@ -68,9 +80,13 @@ documentation, please check the <a href="https://github.com/elision/elision/issu
         licenses for structure101.</p>
 
     <hr style="width: 100%; height: 2px;">
+<span onclick="ShowHideContent(this,'github');"><p><b>Most Recent Commits on GitHub</b> (Click to show/hide.)</a></span>
+<div id="github" style="display:none">
+<p>Latest Commits on GitHub elision/elision.  (Takes a few seconds to load...)</p>
 <script src='http://gitlive.com/githublive.min.js'></script>
 <script>var GithubPush = {num_old:5,nodes:['elision/elision']}</script>
 <div id='commits'></div>
+</div>
     <hr style="width: 100%; height: 2px;">
     <p><small>Elision is Copyright © @YEAR@ by UT-Battelle, LLC,
         all rights reserved.&nbsp; Elision is distributed
