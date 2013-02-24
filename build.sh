@@ -4,8 +4,12 @@
 #
 
 echo "Found the travis.sh script, and executing."
-cd  $CI_HOME/Elision
+cd  Elision
 echo "Switched directory to the Elision project."
-sbt ++$TRAVIS_SCALA_VERSION package
+if [ ! -z $TRAVIS_SCALA_VERSION ] ; then
+  sbt ++$TRAVIS_SCALA_VERSION clean package
+else
+  sbt clean package
+fi
 echo "Completed the build using sbt."
 

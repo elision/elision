@@ -41,13 +41,10 @@ scala:
   - 2.9.2
   - 2.10
 
-jdk:
-  - openjdk7
-  - openjdk6
-
 branches:
   only:
     - sbt
 
-script: sh -e "cd Elision ; sbt ++$TRAVIS_SCALA_VERSION package"
+script: "build.sh"
+
 
