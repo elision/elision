@@ -9,3 +9,5 @@ Elision/**/elision-src.jar
 Elision/**/elision.jar
 system/
 user/
+Elision/target/
+
