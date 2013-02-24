@@ -49,5 +49,5 @@ branches:
   only:
     - sbt
 
-script: travis.sh
+script: sh -e "cd Elision ; sbt ++$TRAVIS_SCALA_VERSION package"
 
