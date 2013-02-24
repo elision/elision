@@ -1,12 +1,12 @@
 
 language: scala
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install scala
+#before_install:
+#  - sudo apt-get update
+#  - sudo apt-get install scala
 scala:
   - 2.9.2
 jdk:
   - openjdk7
   - openjdk6
-script: "cd Elision ; env SCALA_HOME=`scala -e 'println(sys.props(\"scala.home\"))'` ant all"
+#script: "cd Elision ; env SCALA_HOME=`scala -e 'println(sys.props(\"scala.home\"))'` ant all"
 
