@@ -39,6 +39,7 @@
 echo "Found the build script, and executing: $0"
 cd  Elision
 echo "Switched directory to the Elision project: " `pwd`
+echo "Building with Scala version: $SCALA_VERSION"
 if [ ! -z $SCALA_VERSION ] ; then
   sbt ++$SCALA_VERSION clean package
 else
