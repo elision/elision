@@ -40,10 +40,13 @@ echo "Found the build script, and executing: $0"
 cd  Elision
 echo "Switched directory to the Elision project: " `pwd`
 echo "Building with Scala version: $TRAVIS_SCALA_VERSION"
+ret=0
 if [ ! -z $TRAVIS ] ; then
   sbt ++$TRAVIS_SCALA_VERSION clean package
+  ret=$?
 else
   sbt clean package
+  ret=$?
 fi
-echo "Completed the build using sbt."
+exit $ret
 
