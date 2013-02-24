@@ -38,7 +38,7 @@
 
 echo "Found the build script, and executing: $0"
 cd  Elision
-echo -n "Switched directory to the Elision project: " `pwd`
+echo "Switched directory to the Elision project: " `pwd`
 if [ ! -z $SCALA_VERSION ] ; then
   sbt ++$SCALA_VERSION clean package
 else
