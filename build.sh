@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 #######################################################################
 #       _ _     _
 #   ___| (_)___(_) ___  _ __
@@ -35,16 +36,13 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #######################################################################
 
-language: scala
-
-scala:
-  - 2.9.2
-  - 2.10.0
-
-branches:
-  only:
-    - sbt
-
-script: ./build.sh
-
+echo "Found the build script, and executing: $0"
+cd  Elision
+echo -n "Switched directory to the Elision project: " `pwd`
+if [ ! -z $SCALA_VERSION ] ; then
+  sbt ++$SCALA_VERSION clean package
+else
+  sbt clean package
+fi
+echo "Completed the build using sbt."
 
