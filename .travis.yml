@@ -45,6 +45,6 @@ branches:
   only:
     - sbt
 
-script: "build.sh"
+script: ./build.sh
 
 

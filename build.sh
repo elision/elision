@@ -6,8 +6,8 @@
 echo "Found the travis.sh script, and executing."
 cd  Elision
 echo "Switched directory to the Elision project."
-if [ ! -z $TRAVIS_SCALA_VERSION ] ; then
-  sbt ++$TRAVIS_SCALA_VERSION clean package
+if [ ! -z $SCALA_VERSION ] ; then
+  sbt ++$SCALA_VERSION clean package
 else
   sbt clean package
 fi
