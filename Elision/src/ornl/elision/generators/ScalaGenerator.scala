@@ -271,7 +271,7 @@ object ScalaGenerator extends Generator {
         
       case AtomSeq(props, atoms) =>
         buf.append("AtomSeq(")
-        gen(props, context, buf).append(",")
+        gen(props, context, buf)
         atoms foreach {
           gen(_, context, buf.append(","))
         }
