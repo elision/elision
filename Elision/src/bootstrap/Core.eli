@@ -706,7 +706,7 @@ decl.{! showtypes($a)
 // Error reporting.
 //======================================================================
 
-decl.{! error($msg: STRING)
+decl.{! err($msg: STRING)
   #handler="""
     args match {
       case Args(StringLiteral(_,msg)) =>
@@ -728,7 +728,7 @@ decl.{! fail()
   "may be useful if you are trying to debug the system."
 }
 
-{! _declprop($name: STRING, $default, $description: STRING)
+decl.{! _declprop($name: STRING, $default, $description: STRING)
    #description="Declare a property."
    #detail="Declare a property.  The property name is $name, and the ".
            "$description is a human-readable description of the property's ".
