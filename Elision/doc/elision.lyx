@@ -15431,8 +15431,103 @@ Rewrite Rules and Guards
 
 \begin_layout Standard
 A rewrite rule generalizes the notion of a map pair a bit by introducing
- additional components.
- Let's consider how to define some list operations.
+ additional structures.
+ Suppose we have the equation 
+\begin_inset Formula $x=x$
+\end_inset
+
+.
+ We know this is true, no matter what we substitute for 
+\begin_inset Formula $x$
+\end_inset
+
+.
+ Let's define an 
+\family typewriter
+eq
+\family default
+ operator that determines if its two arguments are equal.
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+There is alread such an operator defined in 
+\family typewriter
+bootstrap/Math.eli
+\family default
+, called 
+\family typewriter
+equal
+\family default
+.
+\end_layout
+
+\end_inset
+
+ We might try to write it like this.
+\end_layout
+
+\begin_layout LyX-Code
+decl.{operator #name=eq #type=BOOLEAN #cases
+\end_layout
+
+\begin_layout LyX-Code
+  %($x,$x) -> true,
+\end_layout
+
+\begin_layout LyX-Code
+  %($x,$y) -> _
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+We can apply this to another atom and, if the atom matches, obtain false.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> inc("bootstrap/Math.eli")
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Consider the equation 
+\begin_inset Formula $c+x=d$
+\end_inset
+
+, where 
+\begin_inset Formula $c$
+\end_inset
+
+ and 
+\begin_inset Formula $d$
+\end_inset
+
+ are both literals.
+ This can be reduced to 
+\begin_inset Formula $x=d-c$
+\end_inset
+
+.
+ If the original equation was true, then so is the rewritten one.
+ We might like Elision to automatically transform the first equation into
+ the second one.
 \end_layout
 
 \begin_layout Section
