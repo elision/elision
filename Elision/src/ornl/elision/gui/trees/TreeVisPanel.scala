@@ -162,8 +162,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
       return
     }
     
-    val clickedNodeScreenPos = camera.worldToScreenCoords(clickedNode.getWorldPosition)
-  //  val clickedNodeScreenPos = clickedNode.getScreenPosition
+    val clickedNodeScreenPos = clickedNode.getScreenPosition
     camera.moveCenter(clickedNodeScreenPos)
     treeSprite.selectNode(clickedNode, EvaConfig.decompDepth)
     

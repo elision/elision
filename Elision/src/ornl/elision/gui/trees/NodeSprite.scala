@@ -373,7 +373,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
    */
   def getScreenPosition : geom.Point2D = {
     try {
-      val pt = new Point2D.Double(box.getX, box.getY)
+      val pt = new Point2D.Double(0, 0)
       val scrPt = curTrans.transform(pt, null)
       
       scrPt
