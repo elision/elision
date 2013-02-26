@@ -315,11 +315,11 @@ object AtomParser {
 			ReplActor ! ("Eva", "addTo", ("rwNode", "props", "properties: ")) 
 			ReplActor ! ("Eva", "setSubroot", "props")			
 			ReplActor ! ("Eva", "addTo", ("rwNode", "list", "atoms: "))
-			val ASList = list.toIndexedSeq map ( astAtom => {
+			val ASList = list.toIndexedSeq map { (astAtom: AstNode) => {
         ReplActor ! ("Eva", "setSubroot", "list") // RWTree.current = listNode
 				val astAtomInt = astAtom.interpret
 				astAtomInt
-			})
+			}}
       val result = AtomSeq(propsInt, ASList)
 			ReplActor ! ("Eva", "setSubroot", "rwNode")
 			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
