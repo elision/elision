@@ -367,22 +367,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   def getWorldPosition : geom.Point2D = {
     new geom.Point2D.Double(worldX,worldY)
   }
-  
-  /** 
-   * Returns this node's position in screen coordinates.
-   */
-  def getScreenPosition : geom.Point2D = {
-    try {
-      val pt = new Point2D.Double(0, 0)
-      val scrPt = curTrans.transform(pt, null)
-      
-      scrPt
-    }
-    catch {
-      case _ =>
-        null
-    }
-  }
+
   
   /** Returns the excess height of this node in pixels beyond what it would normally be if its label were only 1 line. */
   def excessHeight : Int = {
