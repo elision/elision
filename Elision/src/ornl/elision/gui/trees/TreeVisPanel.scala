@@ -163,6 +163,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     }
     
     val clickedNodeScreenPos = camera.worldToScreenCoords(clickedNode.getWorldPosition)
+  //  val clickedNodeScreenPos = clickedNode.getScreenPosition
     camera.moveCenter(clickedNodeScreenPos)
     treeSprite.selectNode(clickedNode, EvaConfig.decompDepth)
     
@@ -187,7 +188,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   def threadlogic : Unit = {
     
     if(mouse.justLeftPressed || mouse.justRightPressed) {
-        //    requestFocusInWindow
+      //    requestFocusInWindow
       val clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
       selectNode(clickedNode)
       camera.startDrag(mouse.position)

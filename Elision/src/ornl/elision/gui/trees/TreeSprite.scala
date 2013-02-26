@@ -45,18 +45,18 @@ import sage2D.sprites.Sprite
  * Rather, it represents a tree data structure as a renderable sprite.
  */
 class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
-	
+  
   /** reference to root node. */
   var root : NodeSprite = null
   
-	/** The node currently selected in the tree */
-	var selectedNode : NodeSprite = null
+  /** The node currently selected in the tree */
+  var selectedNode : NodeSprite = null
   
   /** The base x-offset for child nodes from their parent node */
-	val defX = 50
-	
-	/** The minimum y-offset between two sibling nodes */
-	val defY = 40
+  val defX = 50
+  
+  /** The minimum y-offset between two sibling nodes */
+  val defY = 40
   
   /** A constant-width font used in the NodeSprites' labels. */
   val font = new Font("Lucida Console", java.awt.Font.PLAIN, 12)
@@ -89,7 +89,7 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   
   /** syntax formatter (default one only does line-wrapping). */
   val formatter = new ornl.elision.syntax.SyntaxFormatter()
-	
+  
   /** If false, syntax coloring is disabled for the entire tree. */
   var syntaxColoring = false
   
@@ -98,11 +98,11 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   
   
   
-	/** Begins recursive rendering of the tree beginning at the root. */
-	override def draw(g : Graphics2D) : Unit = {
-		root.render(g)
-	}
-	
+  /** Begins recursive rendering of the tree beginning at the root. */
+  override def draw(g : Graphics2D) : Unit = {
+    root.render(g)
+  }
+  
   
   /** 
    * Creates (or replaces) the root node for this tree. 
@@ -115,217 +115,217 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
     root
   }
   
-	
-	/**	
-	 * Detects collisions between the mouse and the tree's decompressed nodes.
-	 * @param mouseWorld	The mouse's position in world coordinates.
-	 * @return	If the mouse is over a node, that node is returned. Otherwise null is returned.
-	 */
-	def detectMouseOver(mouseWorld : geom.Point2D) : NodeSprite = {
-		detectMouseOverRec(mouseWorld, root)
-	}
-	
-	/**	
-	 * Recursively detects collisions between the mouse and the tree's decompressed nodes.
-	 * @param mouseWorld	The mouse's position in world coordinates.
-	 * @param node		The root of the current subtree.
-	 * @return	If the mouse is over a node, that node is returned. Otherwise null is returned.
-	 */
-	private def detectMouseOverRec(mouseWorld : geom.Point2D, node : NodeSprite) : NodeSprite = {
-		
-		// check if the mouse is overlapping this node.
-		if(node.getCollisionBox.contains(mouseWorld.getX, mouseWorld.getY))
-			node
-		else {
-			// recursively check if the mouse is overlapping one of its children.
-			for(i <- 0 to node.children.size - 1) {
-				val child = node.children(i)
+  
+  /**  
+   * Detects collisions between the mouse and the tree's decompressed nodes.
+   * @param mouseWorld  The mouse's position in world coordinates.
+   * @return  If the mouse is over a node, that node is returned. Otherwise null is returned.
+   */
+  def detectMouseOver(mouseWorld : geom.Point2D) : NodeSprite = {
+    detectMouseOverRec(mouseWorld, root)
+  }
+  
+  /**  
+   * Recursively detects collisions between the mouse and the tree's decompressed nodes.
+   * @param mouseWorld  The mouse's position in world coordinates.
+   * @param node    The root of the current subtree.
+   * @return  If the mouse is over a node, that node is returned. Otherwise null is returned.
+   */
+  private def detectMouseOverRec(mouseWorld : geom.Point2D, node : NodeSprite) : NodeSprite = {
+    
+    // check if the mouse is overlapping this node.
+    if(node.getCollisionBox.contains(mouseWorld.getX, mouseWorld.getY))
+      node
+    else {
+      // recursively check if the mouse is overlapping one of its children.
+      for(i <- 0 to node.children.size - 1) {
+        val child = node.children(i)
         
         // check children that match our heuristics.
-				if(!child.isCompressed && mouseWorld.getY >= child.subTreeUpperY && mouseWorld.getY <= child.subTreeLowerY) {
-					val result = detectMouseOverRec(mouseWorld, child)
-					if(result != null)
-						return result
-				} // endif
-			} // endfor
-			null
-		} //endif
-	}
-	
+        if(!child.isCompressed && mouseWorld.getY >= child.subTreeUpperY && mouseWorld.getY <= child.subTreeLowerY) {
+          val result = detectMouseOverRec(mouseWorld, child)
+          if(result != null)
+            return result
+        } // endif
+      } // endfor
+      null
+    } //endif
+  }
+  
 
-	/**	
-	 * Causes node to become selected. When a node is selected, its children nodes are decompressed
-	 * and the immediate children of its ancestor nodes are decompressed out to depth n. 
-	 * Non-immediate children of node and its ancestors are compressed.
-	 * @param node		The node being selected.
-	 * @param n			The decompression depth for expanding the tree relative to node.
-	 */
-	def selectNode(node : NodeSprite, n : Int = 1) : Unit = {
-		
-		// don't allow leaf nodes to be selected
-		if(node == null)
-			return
-		
-		// mark node as selected
-		if(selectedNode != null) selectedNode.isSelected = false
-		node.isSelected = true
-		selectedNode = node
-		
-		// do the n-depth decompression starting at node and working up to root.
-		var ancestor : NodeSprite = node
-		var skipped : NodeSprite = null
-		
-		while(ancestor != null) {
-			nDepthDecompress(ancestor, skipped, n)
-			skipped = ancestor
-			ancestor = ancestor.parent
-		}
-		
-		countLeaves(root)
-		_computeYOffsets(root)
-	}
-	
-	
-	/**
-	 * Attempts to select a node located at the given mouse world coordinates. 
-	 * If the mouse is not over a node, nothing happens.
-	 * @param mouseWorld	The mouse's position in world coordinates.
-	 * @param n				The decompression depth for expanding the tree relative to node.
-	 */
-	def selectNode(mouseWorld : geom.Point2D, n : Int) : Unit = {
-		selectNode(detectMouseOver(mouseWorld),n)
-	}
-	
-	
-	/**
-	 * Recursively decompresses node and its children out to depth n.
-	 * @param node		the root of the current subtree being decompressed
-	 * @param n			the current depth we are recursively decompressing out to
-	 */
-	private def nDepthDecompress(node : NodeSprite, skipped : NodeSprite, n : Int) : Unit = {
-		if(node.isCompressed) {
-			node.isCompressed = false
-		}
+  /**  
+   * Causes node to become selected. When a node is selected, its children nodes are decompressed
+   * and the immediate children of its ancestor nodes are decompressed out to depth n. 
+   * Non-immediate children of node and its ancestors are compressed.
+   * @param node    The node being selected.
+   * @param n      The decompression depth for expanding the tree relative to node.
+   */
+  def selectNode(node : NodeSprite, n : Int = 1) : Unit = {
     
-		if (n <= 0) {
+    // don't allow leaf nodes to be selected
+    if(node == null)
+      return
+    
+    // mark node as selected
+    if(selectedNode != null) selectedNode.isSelected = false
+    node.isSelected = true
+    selectedNode = node
+    
+    // do the n-depth decompression starting at node and working up to root.
+    var ancestor : NodeSprite = node
+    var skipped : NodeSprite = null
+    
+    while(ancestor != null) {
+      nDepthDecompress(ancestor, skipped, n)
+      skipped = ancestor
+      ancestor = ancestor.parent
+    }
+    
+    countLeaves(root)
+    _computeYOffsets(root)
+  }
+  
+  
+  /**
+   * Attempts to select a node located at the given mouse world coordinates. 
+   * If the mouse is not over a node, nothing happens.
+   * @param mouseWorld  The mouse's position in world coordinates.
+   * @param n        The decompression depth for expanding the tree relative to node.
+   */
+  def selectNode(mouseWorld : geom.Point2D, n : Int) : Unit = {
+    selectNode(detectMouseOver(mouseWorld),n)
+  }
+  
+  
+  /**
+   * Recursively decompresses node and its children out to depth n.
+   * @param node    the root of the current subtree being decompressed
+   * @param n      the current depth we are recursively decompressing out to
+   */
+  private def nDepthDecompress(node : NodeSprite, skipped : NodeSprite, n : Int) : Unit = {
+    if(node.isCompressed) {
+      node.isCompressed = false
+    }
+    
+    if (n <= 0) {
       compressChildrenOf(node,skipped)
     }
-		else {
-			if(node.expansion < 0.01) node.expansion = 0.01
-			
-			for(child <- node.children) {
-				if(child != skipped)
-					nDepthDecompress(child, skipped, n-1)
-			}
-		}
-	}
-	
-	
-	/**
-	 * Compresses all the children (if any) of node via depth-first search. 
-	 * It prunes if it encounters a child that is already compressed. 
-	 * @param node		This NodeSprite's children will be compressed.
-	 * @param skipped	  Is the child of node that we just came up from in the 
+    else {
+      if(node.expansion < 0.01) node.expansion = 0.01
+      
+      for(child <- node.children) {
+        if(child != skipped)
+          nDepthDecompress(child, skipped, n-1)
+      }
+    }
+  }
+  
+  
+  /**
+   * Compresses all the children (if any) of node via depth-first search. 
+   * It prunes if it encounters a child that is already compressed. 
+   * @param node    This NodeSprite's children will be compressed.
+   * @param skipped    Is the child of node that we just came up from in the 
    *                  bottom-up select node method. We don't want to compress 
    *                  it or its children. It already compressed any of its 
    *                  children that needed to be compressed.
-	 */
-	private def compressChildrenOf(node : NodeSprite, skipped : NodeSprite = null) : Unit = {
-		import collection.mutable.Stack
-		
-		val stack = new Stack[NodeSprite]
-		
-		for(child <- node.children if (!child.isCompressed && child != skipped)) {
-			stack.push(child)
-		}
-		
-		while(!stack.isEmpty) {
-			val child = stack.pop
-			child.isCompressed = true
-			for(grandChild <- child.children if (!grandChild.isCompressed && grandChild != skipped)) {
-				stack.push(grandChild)
-			}
-		}
-	}
-	
-	
-	/**
-	 * Counts the number of leaf nodes among node's descendants.
+   */
+  private def compressChildrenOf(node : NodeSprite, skipped : NodeSprite = null) : Unit = {
+    import collection.mutable.Stack
+    
+    val stack = new Stack[NodeSprite]
+    
+    for(child <- node.children if (!child.isCompressed && child != skipped)) {
+      stack.push(child)
+    }
+    
+    while(!stack.isEmpty) {
+      val child = stack.pop
+      child.isCompressed = true
+      for(grandChild <- child.children if (!grandChild.isCompressed && grandChild != skipped)) {
+        stack.push(grandChild)
+      }
+    }
+  }
+  
+  
+  /**
+   * Counts the number of leaf nodes among node's descendants.
    * Here, we define a leaf node as any decompressed node with either no 
    * children or whose children are all decompressed.
    * The number of leaves counted is returned and also stored inside each node
    * for convenient reuse.
-	 * @param node		The node whose leaf descendants we are currently counting
-	 * @return			The number of node's leaf descendants
-	 */
-	def countLeaves(node : NodeSprite) : Int = {
-		node.numLeaves = 0
-		
-		var numDecompChildren = 0
-		
-		for(child <- node.children if !child.isCompressed) {
-			numDecompChildren += 1
-			val childsLeaves = countLeaves(child)
-			node.numLeaves += math.max(1,childsLeaves)
-		}
-		
-		node.numLeaves = math.max(node.numLeaves, node.excessHeight/(font.getSize+5) + 0.5).toInt 
-		node.numLeaves
-	}
-	
-	
-	/**
-	 * Recursively determines what the correct y-0ffsets for the nodes should be after decompression.
-	 * These y-offsets will help the tree to look nice when expanded.
-	 * They are stored internally in the tree's NodeSprites.
-	 * @param node		The node for whose children we are currently computing the y-offsets for.
-	 */
-	def _computeYOffsets(node : NodeSprite) : (Double, Double) = {
-		// The number of leaves of previous sibling nodes will be used to determine what node's current child
-		// node's y-offset should be. The first child has no siblings before it. Therefore initialize this to 0.
-		var lastSibsLeaves = 0
-		
-		var firstChild = true
-		
-		// the root node has no y-offset. Just set its world coordinates to that of the tree.
-		if(node == root) {
-			node.worldX = this.x
-			node.worldY = this.y
-		}
-		
-		val nodeLeaves = math.max(node.numLeaves - 1, 0)
-		
-		// compute the y coordinates of the area bounding node's subtree. 
+   * @param node    The node whose leaf descendants we are currently counting
+   * @return      The number of node's leaf descendants
+   */
+  def countLeaves(node : NodeSprite) : Int = {
+    node.numLeaves = 0
+    
+    var numDecompChildren = 0
+    
+    for(child <- node.children if !child.isCompressed) {
+      numDecompChildren += 1
+      val childsLeaves = countLeaves(child)
+      node.numLeaves += math.max(1,childsLeaves)
+    }
+    
+    node.numLeaves = math.max(node.numLeaves, node.excessHeight/(font.getSize+5) + 0.5).toInt 
+    node.numLeaves
+  }
+  
+  
+  /**
+   * Recursively determines what the correct y-offsets for the nodes should be after decompression.
+   * These y-offsets will help the tree to look nice when expanded.
+   * They are stored internally in the tree's NodeSprites.
+   * @param node    The node for whose children we are currently computing the y-offsets for.
+   */
+  def _computeYOffsets(node : NodeSprite) : (Double, Double) = {
+    // The number of leaves of previous sibling nodes will be used to determine what node's current child
+    // node's y-offset should be. The first child has no siblings before it. Therefore initialize this to 0.
+    var lastSibsLeaves = 0
+    
+    var firstChild = true
+    
+    // the root node has no y-offset. Just set its world coordinates to that of the tree.
+    if(node == root) {
+      node.worldX = this.x
+      node.worldY = this.y
+    }
+    
+    val nodeLeaves = math.max(node.numLeaves - 1, 0)
+    
+    // compute the y coordinates of the area bounding node's subtree. 
     // This will be used by the detectMouseOver method 
-		// for efficient mouse collision detection with the tree's nodes.
-		node.subTreeUpperY = node.worldY + node.box.y
-		node.subTreeLowerY = node.worldY + node.box.y + node.box.height
-		
-		// iterate over all of this node's decompressed children and compute their y-offsets.
-		for(child <- node.children if !child.isCompressed) {
+    // for efficient mouse collision detection with the tree's nodes.
+    node.subTreeUpperY = node.worldY + node.box.y
+    node.subTreeLowerY = node.worldY + node.box.y + node.box.height
+    
+    // iterate over all of this node's decompressed children and compute their y-offsets.
+    for(child <- node.children if !child.isCompressed) {
 
-			val childLeaves = math.max(child.numLeaves - 1,0)
-			
-			// compute the child's y-offset with magic
-			child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*defY/2
-			
-			// accumulate this child's leaves onto lastSibsLeaves.
-			lastSibsLeaves += math.max(child.numLeaves - 1 , 0)*2
-			
-			// Now that we have the child's y-offset, compute its world coordinates and store them inside it.
-			val childPos : geom.Point2D = node.getChildPosition(child.index)
-			child.worldX = node.worldX + childPos.getX + node.box.width
-			child.worldY = node.worldY + childPos.getY
-			
-			// recursively compute the child's children's y-offsets.
-			val (subUpper, subLower) = _computeYOffsets(child)
-			node.subTreeUpperY = math.min(node.subTreeUpperY, subUpper)
-			node.subTreeLowerY = math.max(node.subTreeLowerY, subLower)
-		} // endfor
+      val childLeaves = math.max(child.numLeaves - 1,0)
+      
+      // compute the child's y-offset with magic
+      child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*defY/2
+      
+      // accumulate this child's leaves onto lastSibsLeaves.
+      lastSibsLeaves += math.max(child.numLeaves - 1 , 0)*2
+      
+      // Now that we have the child's y-offset, compute its world coordinates and store them inside it.
+      val childPos : geom.Point2D = node.getChildPosition(child.index)
+      child.worldX = node.worldX + childPos.getX + node.box.width
+      child.worldY = node.worldY + childPos.getY
+      
+      // recursively compute the child's children's y-offsets.
+      val (subUpper, subLower) = _computeYOffsets(child)
+      node.subTreeUpperY = math.min(node.subTreeUpperY, subUpper)
+      node.subTreeLowerY = math.max(node.subTreeLowerY, subLower)
+    } // endfor
     
     
-		(node.subTreeUpperY, node.subTreeLowerY)
-	}
+    (node.subTreeUpperY, node.subTreeLowerY)
+  }
 }
 
 

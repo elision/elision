@@ -331,7 +331,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   }
   
   /**
-   * Obtains the position of a child node relative to this node.
+   * Obtains the expanded position of a child node relative to this node.
    * @param index    the index of the child whose position we need.
    * @return      the child node's position relative to its parent.
    */
@@ -342,7 +342,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
     
     new geom.Point2D.Double(childX,childY)
   }
-
+  
   
   /**
    * Gets the width of the longest sibling's box.
@@ -366,6 +366,22 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
    */
   def getWorldPosition : geom.Point2D = {
     new geom.Point2D.Double(worldX,worldY)
+  }
+  
+  /** 
+   * Returns this node's position in screen coordinates.
+   */
+  def getScreenPosition : geom.Point2D = {
+    try {
+      val pt = new Point2D.Double(box.getX, box.getY)
+      val scrPt = curTrans.transform(pt, null)
+      
+      scrPt
+    }
+    catch {
+      case _ =>
+        null
+    }
   }
   
   /** Returns the excess height of this node in pixels beyond what it would normally be if its label were only 1 line. */
