@@ -98,9 +98,9 @@ import ornl.elision.actors.ReplActor
  * 
  * @param typ			The variable type.
  * @param name		The variable name.
- * @param guard		The variable's guard.
- * @param labels	Labels for this variable.
- * @param byName  If true, this is a "by name" variable.
+ * @param guard		The variable's guard.  Default is true.
+ * @param labels	Labels for this variable.  Default is none.
+ * @param byName  If true, this is a "by name" variable.  Default is false.
  */
 class Variable(typ: BasicAtom, val name: String,
     val guard: BasicAtom = Literal.TRUE,
@@ -294,12 +294,13 @@ object Variable extends {
    * 
 	 * @param typ			The variable type.
 	 * @param name		The variable name.
-	 * @param guard		The variable's guard.
-	 * @param labels	Labels for this variable.
+   * @param guard   The variable's guard.  Default is true.
+   * @param labels  Labels for this variable.  Default is none.
+   * @param byName  If true, this is a "by name" variable.  Default is false.
 	 */
   def apply(typ: BasicAtom, name: String, guard: BasicAtom = Literal.TRUE,
-      labels: Set[String] = Set[String]()) =
-        new Variable(typ, name, guard, labels)
+      labels: Set[String] = Set[String](), byName: Boolean = false) =
+        new Variable(typ, name, guard, labels, byName)
   
   /**
    * Extract the parts of a variable.
@@ -328,12 +329,14 @@ object Variable extends {
  * 
  * @param typ			The variable type.
  * @param name		The variable name.
- * @param guard		The variable's guard.
- * @param labels	Labels for this variable.
+ * @param guard   The variable's guard.  Default is true.
+ * @param labels  Labels for this variable.  Default is none.
+ * @param byName  If true, this is a "by name" variable.  Default is false.
  */
 class MetaVariable(typ: BasicAtom, name: String,
     guard: BasicAtom = Literal.TRUE,
-    labels: Set[String] = Set[String]())
+    labels: Set[String] = Set[String](),
+    byName: Boolean = false)
     extends Variable(typ, name, guard, labels) {
   override val isTerm = false
   /** Metavariable prefix. */
@@ -349,18 +352,20 @@ object MetaVariable {
    * 
 	 * @param typ			The variable type.
 	 * @param name		The variable name.
-	 * @param guard		The variable's guard.
-	 * @param labels	Labels for this variable.
-	 */
+   * @param guard   The variable's guard.  Default is true.
+   * @param labels  Labels for this variable.  Default is none.
+   * @param byName  If true, this is a "by name" variable.  Default is false.
+ 	 */
   def apply(typ: BasicAtom, name: String, guard: BasicAtom = Literal.TRUE,
-      labels: Set[String] = Set[String]()) =
-        new MetaVariable(typ, name, guard, labels)
+      labels: Set[String] = Set[String](), byName: Boolean) =
+        new MetaVariable(typ, name, guard, labels, byName)
   
   /**
    * Extract the parts of a metavariable.
    * 
    * @param vx	The variable.
-   * @return	The type, name, guard, and labels.
+   * @return	The type, name, guard, labels, and by-name status.
    */
-  def unapply(vx: MetaVariable) = Some((vx.theType, vx.name, vx.guard, vx.labels))
+  def unapply(vx: MetaVariable) = Some((vx.theType, vx.name, vx.guard,
+      vx.labels, vx.byName))
 }

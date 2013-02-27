@@ -575,11 +575,13 @@ object AtomParser {
 	 * 
 	 * @param typ			The type.
 	 * @param name		The variable name.
-	 * @param guard		The variable's guard.
-	 * @param labels	Labels associated with the variable.
-	 */
+   * @param guard   The variable's guard.  Default is true.
+   * @param labels  Labels for this variable.  Default is none.
+   * @param byName  If true, this is a "by name" variable.  Default is false.
+   */
 	class VariableNode(val typ: AstNode, val name: String,
-	    val grd: Option[AstNode], val labels: Set[String]) extends AstNode {
+	    val grd: Option[AstNode], val labels: Set[String],
+	    val byName: Boolean) extends AstNode {
 	  def interpret: Variable = {
       val typeInt = typ.interpret
   		ReplActor ! ("Eva","pushTable","VariableNode")
@@ -587,14 +589,14 @@ object AtomParser {
   		ReplActor ! ("Eva", "setSubroot", "rwNode")
   		grd match {
   			case None => 
-  				val result = Variable(typeInt, name, Literal.TRUE, labels)
+  				val result = Variable(typeInt, name, Literal.TRUE, labels, byName)
   				ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
           ReplActor ! ("Eva", "popTable", "VariableNode")
   				result
   				
   			case Some(guard) => 
           val guardInt = guard.interpret
-          val result = Variable(typeInt, name, guardInt, labels)
+          val result = Variable(typeInt, name, guardInt, labels, byName)
   				ReplActor ! ("Eva", "addTo", ("rwNode", "guard", "guard: "))
   				ReplActor ! ("Eva", "setSubroot", "guard")
   				ReplActor ! ("Eva", "setSubroot", "rwNode")
@@ -614,11 +616,13 @@ object AtomParser {
 	   * 
 		 * @param typ			The type.
 		 * @param name		The variable name.
-		 * @param guard		The variable's guard.
-		 * @param labels	Labels associated with the variable.
+     * @param guard   The variable's guard.  Default is true.
+     * @param labels  Labels for this variable.  Default is none.
+     * @param byName  If true, this is a "by name" variable.  Default is false.
 	   */
 	  def apply(typ: AstNode, name: String, guard: Option[AstNode],
-	    labels: Set[String]) = new VariableNode(typ, name, guard, labels)
+	    labels: Set[String], byName: Boolean) =
+	      new VariableNode(typ, name, guard, labels, byName)
 	}
 	
 	/**
@@ -627,7 +631,7 @@ object AtomParser {
 	 * @param vx	An ordinary variable node to promote.
 	 */
 	case class MetaVariableNode(vx: VariableNode)
-	extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels) {
+	extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels, vx.byName) {
 	  override def interpret: MetaVariable = {
 	    val vxtypeInt = vx.typ.interpret
   		ReplActor ! ("Eva","pushTable","MetaVariableNode")
@@ -635,14 +639,16 @@ object AtomParser {
   		ReplActor ! ("Eva", "setSubroot", "rwNode")
   		grd match {
   			case None =>
-  				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE, labels)
+  				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE,
+  				    vx.labels, vx.byName)
   				ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
           ReplActor ! ("Eva", "popTable", "MetaVariableNode")
   				result
   				
   			case Some(guard) =>
           val guardInt = guard.interpret
-          val result = MetaVariable(vxtypeInt, vx.name, guardInt, labels)
+          val result = MetaVariable(vxtypeInt, vx.name, guardInt, vx.labels,
+              vx.byName)
   				ReplActor ! ("Eva", "addTo", ("rwNode", "guard", "guard: "))
   				ReplActor ! ("Eva", "setSubroot", "guard")
   				ReplActor ! ("Eva", "setSubroot", "rwNode")
@@ -1459,21 +1465,26 @@ class AtomParser(val context: Context, val trace: Boolean = false,
   
   /** Parse a typed variable or metavariable. */
   def ParsedTypedVariable = rule {
-    ESymbol ~ optional("{ " ~ Atom ~ "} ") ~ ": " ~ FirstAtom ~
+    VarName ~ optional("{ " ~ Atom ~ "} ") ~ ": " ~ FirstAtom ~
     zeroOrMore("@" ~ ESymbol) ~~> (
-      (sval: NakedSymbolNode, grd: Option[AstNode], typ: AstNode,
-          list: List[NakedSymbolNode]) =>
-        VariableNode(typ, sval.str, grd, list.map(_.str).toSet))
+      (sval, grd: Option[AstNode], typ: AstNode, list: List[NakedSymbolNode]) =>
+        VariableNode(typ, sval._1, grd, list.map(_.str).toSet, sval._2))
   }.label("a variable name and type")
   
   /** Parse an untyped variable or metavariable. */
   def ParsedUntypedVariable = rule {
-    ESymbol ~ optional("{ " ~ Atom ~ "} ") ~
+    VarName ~ optional("{ " ~ Atom ~ "} ") ~
     zeroOrMore("@" ~ ESymbol) ~~> (
-      (sval, grd, list) =>
-        VariableNode(SimpleTypeNode(EANY), sval.str, grd,
-            list.map(_.str).toSet))
+      (sval, grd: Option[AstNode], list: List[NakedSymbolNode]) =>
+        VariableNode(SimpleTypeNode(EANY), sval._1, grd, list.map(_.str).toSet,
+            sval._2))
   }.label("a variable name")
+  
+  /** Parse a variable name and determine if this is a by-name variable. */
+  def VarName = rule {
+    ESymbol ~~> (sym => (sym.str, false)) |
+    EString ~~> (str => (str, true))
+  }
 
   //----------------------------------------------------------------------
   // Parse whitespace.
@@ -1867,13 +1878,13 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   lazy val VariableTyped: PackratParser[VariableNode] =
     Esym ~ guard ~ ":" ~ Atom ~ rep(label) ^^ {
       case sym ~ grd ~ _ ~ typ ~ list => VariableNode(
-        typ, sym, grd, list.toSet)
+        typ, sym, grd, list.toSet, false)
     }
 
   lazy val VariableUntyped: PackratParser[VariableNode] =
     Esym ~ guard ~ rep(label) ^^ {
       case sym ~ grd ~ list => VariableNode(
-        SimpleTypeNode(EANY), sym, grd, list.toSet)
+        SimpleTypeNode(EANY), sym, grd, list.toSet, false)
     }
 
   lazy val VariableTerm: PackratParser[VariableNode] =
