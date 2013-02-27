@@ -39,6 +39,7 @@ package ornl.elision.core
 
 import ornl.elision.util.OmitSeq
 import ornl.elision.actors.ReplActor
+import ornl.elision.util.Debugger
 
 /**
  * The ruleset strategy.
@@ -443,9 +444,8 @@ class RewriteRule private (
     // Local function to perform the rewrite if the rule fires.  We return
     // true in the pair no matter what, since the rule fired.
     def doRuleRewrite(candidate: Bindings) = {
-      if (BasicAtom.traceRules) {
-        println("Applied rule '" + this.toParseString + "' to '" + candidate.toParseString + "'")
-      }
+      Debugger.debug("Applied rule: " + this.toParseString +
+          " to: " + candidate.toParseString + "", "rewrite")
       (rewrite.rewrite(candidate)._1, true)
     }
     

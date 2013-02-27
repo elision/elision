@@ -509,26 +509,6 @@ decl.{! tracematch()
   "variety of reasons, so you may see some unexpected output here."
 }
 
-decl.{! tracerules()
-  #handler=
-  """
-    args match {
-      case Args() =>
-        // Toggle tracing.
-        BasicAtom.traceRules = !BasicAtom.traceRules
-        emitln("Rule application tracing is " +
-            (if (BasicAtom.traceRules) "ON." else "OFF."))
-        _no_show
-      case _ => _no_show
-    }
-  """
-  #description="Toggle tracing of rule applications"
-  #detail=
-  "Enable or disable tracing of rule applications. Information about ".
-  "each rule applied during rewriting and the result of each rewrite ".
-  "is printed."
-}
-
 decl.{! printtypes()
   #handler=
   """
