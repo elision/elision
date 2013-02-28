@@ -69,21 +69,17 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   /** The sprite representing the visualization of the rewrite tree */
   var treeSprite : TreeSprite = elision.sprites.ElisionWelcomeTree //.buildWelcomeTree
   treeSprite.selectNode(treeSprite.root, EvaConfig.decompDepth) 
-    
+  
+  var timerLock = false
+  var isLoading = false
+  
   /** A SwingWorker thread used for concurrently rendering the panel's image. */
   val renderThread = new TreeVisThread(this,game.timer)
-  
-  // execute the rendering thread
   renderThread.start
   
   /** The Image containing the latest rendering of the visualization tree. */
   var renderedImage : Image = new BufferedImage(640,480, TreeVisPanel.imageType)
 
-
-  var timerLock = false
-  var isLoading = false
-  
-  
   /** A right-click menu that appears when you right-click a node. */
   val nodeRClickMenu = new NodeRightClickMenu
   
@@ -155,7 +151,6 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
    * after the graph is re-expanded, and displays that node's information in the atom properties panel.
    * @param clickedNode    The node being selected in our tree.
    */
-  
   def selectNode(clickedNode : NodeSprite) : Unit = {
     // don't allow null parameter.
     if(clickedNode == null) {
@@ -166,9 +161,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     camera.moveCenter(clickedNodeScreenPos)
     treeSprite.selectNode(clickedNode, EvaConfig.decompDepth)
     
-//    mainGUI.sidePanel.propsPanel.textArea.text = clickedNode.properties
-//    mainGUI.sidePanel.parsePanel.parseStringFormat(clickedNode.term, clickedNode.isComment)
-    
+    // Let registered Reactors know that the node has been clicked.
     publish(new NodeClickedEvent(clickedNode))
     
     camera.x = clickedNode.worldX
@@ -197,9 +190,9 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
       camera.startDrag(mouse.position)
     }
     if(mouse.wheel == -1)
-      camera.zoomAtScreen(10.0/7.0, mouse.position) // camera.zoomAtScreen(1.25, mouse.position)
+      camera.zoomAtScreen(10.0/7.0, mouse.position)
     if(mouse.wheel == 1)
-      camera.zoomAtScreen(7.0/10.0, mouse.position) // camera.zoomAtScreen(0.8, mouse.position)
+      camera.zoomAtScreen(7.0/10.0, mouse.position)
     
     // update the camera's transform based on its new state.
     camera.pWidth = game.size.width
@@ -209,10 +202,6 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     // update the mouse's current world coordinates
     mouseWorldPosition = camera.screenToWorldCoords(mouse.position)
   }
-  
-  // Once the panel is set up, start the timer.
-  // The timer will call timerLoop and repaint periodically
-  // start()
 }
 
 /** */
@@ -241,12 +230,9 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
         try {
           // run the panel's logic before rendering it.
           treeVis.threadlogic
-          
-          // Create the rendered image.
-          val image = render 
-          
+
           // update the TreeVisPanel's image
-          treeVis.renderedImage = image
+          treeVis.renderedImage = render
         }
         catch {
           case _ =>
@@ -273,14 +259,10 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
     g.setColor(new Color(0xffffff))
     g.fillRect(0,0,treeVis.game.size.width, treeVis.game.size.height)
     
-    // apply the Camera transform
+    // apply the Camera transform and then render.
     g.setTransform(treeVis.camera.getTransform)
-    
-    //testPaint(g)
     treeVis.treeSprite.camera = treeVis.camera
     treeVis.treeSprite.render(g)
-    
-    // dispose of the graphics context
     g.dispose
     
     // return the completed image

@@ -181,8 +181,7 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
       ancestor = ancestor.parent
     }
     
-    countLeaves(root)
-    _computeYOffsets(root)
+    root.computeSubtreeMetrics
   }
   
   
@@ -249,83 +248,10 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   }
   
   
-  /**
-   * Counts the number of leaf nodes among node's descendants.
-   * Here, we define a leaf node as any decompressed node with either no 
-   * children or whose children are all decompressed.
-   * The number of leaves counted is returned and also stored inside each node
-   * for convenient reuse.
-   * @param node    The node whose leaf descendants we are currently counting
-   * @return      The number of node's leaf descendants
-   */
-  def countLeaves(node : NodeSprite) : Int = {
-    node.numLeaves = 0
-    
-    var numDecompChildren = 0
-    
-    for(child <- node.children if !child.isCompressed) {
-      numDecompChildren += 1
-      val childsLeaves = countLeaves(child)
-      node.numLeaves += math.max(1,childsLeaves)
-    }
-    
-    node.numLeaves = math.max(node.numLeaves, node.excessHeight/(font.getSize+5) + 0.5).toInt 
-    node.numLeaves
-  }
   
   
-  /**
-   * Recursively determines what the correct y-offsets for the nodes should be after decompression.
-   * These y-offsets will help the tree to look nice when expanded.
-   * They are stored internally in the tree's NodeSprites.
-   * @param node    The node for whose children we are currently computing the y-offsets for.
-   */
-  def _computeYOffsets(node : NodeSprite) : (Double, Double) = {
-    // The number of leaves of previous sibling nodes will be used to determine what node's current child
-    // node's y-offset should be. The first child has no siblings before it. Therefore initialize this to 0.
-    var lastSibsLeaves = 0
-    
-    var firstChild = true
-    
-    // the root node has no y-offset. Just set its world coordinates to that of the tree.
-    if(node == root) {
-      node.worldX = this.x
-      node.worldY = this.y
-    }
-    
-    val nodeLeaves = math.max(node.numLeaves - 1, 0)
-    
-    // compute the y coordinates of the area bounding node's subtree. 
-    // This will be used by the detectMouseOver method 
-    // for efficient mouse collision detection with the tree's nodes.
-    node.subTreeUpperY = node.worldY + node.box.y
-    node.subTreeLowerY = node.worldY + node.box.y + node.box.height
-    
-    // iterate over all of this node's decompressed children and compute their y-offsets.
-    for(child <- node.children if !child.isCompressed) {
-
-      val childLeaves = math.max(child.numLeaves - 1,0)
-      
-      // compute the child's y-offset with magic
-      child.offsetY = (childLeaves + lastSibsLeaves - nodeLeaves)*defY/2
-      
-      // accumulate this child's leaves onto lastSibsLeaves.
-      lastSibsLeaves += math.max(child.numLeaves - 1 , 0)*2
-      
-      // Now that we have the child's y-offset, compute its world coordinates and store them inside it.
-      val childPos : geom.Point2D = node.getChildPosition(child.index)
-      child.worldX = node.worldX + childPos.getX + node.box.width
-      child.worldY = node.worldY + childPos.getY
-      
-      // recursively compute the child's children's y-offsets.
-      val (subUpper, subLower) = _computeYOffsets(child)
-      node.subTreeUpperY = math.min(node.subTreeUpperY, subUpper)
-      node.subTreeLowerY = math.max(node.subTreeLowerY, subLower)
-    } // endfor
-    
-    
-    (node.subTreeUpperY, node.subTreeLowerY)
-  }
+  
+  
 }
 
 
