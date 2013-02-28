@@ -47,7 +47,7 @@ import scala.actors.Actor
 object GUIActor extends Actor {
     
     /** A reference to the GUI's TreeBuilder. */
-    val treeBuilder = new trees.TreeBuilder
+    val treeBuilder = new elision.EliTreeBuilder
     treeBuilder.start
     
     /** Flag for temporarily disabling the TreeBuilder. */
