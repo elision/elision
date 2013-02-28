@@ -329,13 +329,16 @@ object RewriteRule {
     // Make the map pair.
     val mappair = MapPair(pattern, rewrite)
     // Make the binding.
-    val binds:Bindings = Bindings() +
-    	(""->mappair) +
-    	("if"->AtomSeq(Associative(true) and Commutative(true), guards.toIndexedSeq[BasicAtom])) +
-    	("rulesets"->
-    		AtomSeq(Associative(true) and Commutative(true), rulesets.map {
-    			str => Literal(Symbol(str))
-    		}.toIndexedSeq[BasicAtom]))
+    var binds:Bindings = Bindings() + (""->AtomSeq(NoProps, mappair))
+    if (guards.length > 0) {
+      binds += ("if" -> AtomSeq(NoProps, guards.toIndexedSeq[BasicAtom]))
+    }
+    if (rulesets.size > 0) {
+      binds += ("rulesets" ->
+          AtomSeq(Associative(true) and Commutative(true), rulesets.map {
+            str => Literal(str)
+          }.toIndexedSeq[BasicAtom]))
+    }
     new SpecialFormHolder(tag, BindingsAtom(binds))
   }
 
@@ -370,8 +373,10 @@ object RewriteRule {
     }
     // Get the guards.
     val guards = bh.fetchAs[AtomSeq]("if", Some(EmptySeq))
-    // Get the rulesets.
-    val rulesets = bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq)) map {
+    // Get the rulesets.  We combine two different possibilities here.
+    val rseq = bh.fetchAs[AtomSeq]("ruleset", Some(EmptySeq)) ++
+      bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq))
+    val rulesets = rseq map {
       rs => rs match {
         case SymbolLiteral(_, name) => name.name
         case _ =>
@@ -430,12 +435,9 @@ class RewriteRule private (
       hint: Option[Any] = None): (BasicAtom, Boolean) = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
-      //println("** Checking guards with bindings '" + candidate + "'")
       for (guard <- guards) {
         val (newguard, _) = guard.rewrite(candidate)
         val (newguard1, _) = knownExecutor.context.ruleLibrary.rewrite(newguard)
-        //println("** guard '" + guard.toParseString + "' " +
-        //        " == '" + newguard1.toParseString + "'")
         if (!newguard1.isTrue) return false
       }
       true
@@ -450,10 +452,8 @@ class RewriteRule private (
     }
     
     // First we try to match the given atom against the pattern.
-    //println("Trying to apply rule '" + this.toParseString + "'...")
     pattern.tryMatch(subject, binds, hint) match {
       case fail:Fail => {
-        //println("Application of rule '" + this.toParseString + "' failed.")
         return (subject, false)
       }
       case Match(newbinds) =>
@@ -510,21 +510,11 @@ class RewriteRule private (
   def doRewrite(atom: BasicAtom, hint: Option[Any]) =
     doRewrite(atom, Bindings(), hint)
   
-  /*
   def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
-    // Try to apply the rewrite rule.  Whatever we get back is the result.
-    //println("Rewriting with rule.")
-    _tryRewrite(atom, binds, hint)
-  }
-  */
-
-  def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
-
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       (atom, true)
-    }
-    else {
+    } else {
       // Try to apply the rewrite rule.  Whatever we get back is the result.
      
       // first, check to see if a rule rewrite will even happen before actually applying the rewrite.

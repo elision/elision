@@ -259,7 +259,8 @@ extends Fickle with Mutable {
     _active += getRulesetBit(name)
     _activeNames += name
     Debugger.debug("Enabled ruleset: " + name, "rule.rulesets")
-    Debugger.debug("Active rulesets: " + _activeNames.mkString(", "))
+    Debugger.debug("Active rulesets: " + _activeNames.mkString(", "),
+        "rule.rulesets")
     this
   }
   
@@ -273,7 +274,8 @@ extends Fickle with Mutable {
     _active -= getRulesetBit(name)
     _activeNames -= name
     Debugger.debug("Disabled ruleset: " + name, "rule.rulesets")
-    Debugger.debug("Active rulesets: " + _activeNames.mkString(", "))
+    Debugger.debug("Active rulesets: " + _activeNames.mkString(", "),
+        "rule.rulesets")
     this
   }
   
@@ -520,9 +522,6 @@ extends Fickle with Mutable {
       
       // Yes it has been rewritten with the current rulesets.
       case Some(priorRulesets) if (_active.subsetOf(priorRulesets)) => {
-        //println("!! REWRITE: '" + atom.toParseString + "' is already clean")
-        //println("!! REWRITE: for (atom) " + priorRulesets + " and " +
-        //        "(active) " + _active)
         (atom, false)
       }
       
@@ -561,12 +560,10 @@ extends Fickle with Mutable {
                   pair = _doRewrite(atom, Set.empty)
                   timedOut = BasicAtom.rewriteTimedOut
                 }
-              }
-              else {
+              } else {
                 pair = _doRewrite(atom, Set.empty)
                 timedOut = false
               }
-              //println("!! REWRITE: Setting '" + pair._1.toParseString + "' to clean")
               atom.cleanRulesets match {
                 // The atom has now been rewritten with both the
                 // rulesets it was previosuly rewritten with and the new
@@ -583,7 +580,7 @@ extends Fickle with Mutable {
             case Some(pair) => {
               Debugger.debug("Got cached rewrite: " +
                   atom.toParseString + " to: " + pair._1.toParseString +
-                  " with rulesets: " + _activeNames.mkString(", "))
+                  " with rulesets: " + _activeNames.mkString(", "), "rewrite")
               pair
             }
           }
@@ -642,9 +639,6 @@ extends Fickle with Mutable {
       // Yes it has been rewritten with the current rulesets (and
       // possibly other rulesets..
       case Some(priorRulesets) if (usedRulesetsBits.subsetOf(priorRulesets)) => {
-        //println("!! REWRITE: '" + atom.toParseString + "' is already clean")
-        //println("!! REWRITE: for (atom) " + priorRulesets + " and " +
-        //        "(active) " + usedRulesetsBits)
         (atom, false)
       }
       
@@ -686,7 +680,6 @@ extends Fickle with Mutable {
               pair = _doRewrite(atom, usedRulesets)
               timedOut = false
             }
-            //println("!! REWRITE: Setting '" + pair._1.toParseString + "' to clean")
             atom.cleanRulesets match {
               // The atom has now been rewritten with both the
               // rulesets it was previosuly rewritten with and the new
@@ -1138,6 +1131,81 @@ extends Fickle with Mutable {
  * }}}
  */
 private object Completor {
+  
+  /**
+   * Perform partial completion for the given rule by generating the necessary
+   * synthetic rules.
+   * 
+   * @param rule  The provided rule.
+   * @return  A list of rules, including the original rule and any synthetic
+   *          rules.
+   */
+  private def _complete(rule: RewriteRule, op: Operator, as: AtomSeq):
+      List[RewriteRule] = {
+    // Make the list
+    var list = List[RewriteRule](rule)
+    
+    // Extract the operator properties.
+    val props = op match {
+      case po: SymbolicOperator => po.params.props
+      case _ => NoProps
+    }
+    
+    // If the operator is not associative, we don't need to do anything.
+    if (!props.isA(false)) {
+      return list
+    }
+    
+    // Extract the pattern and rewrite.
+    val pattern = rule.pattern
+    val rewrite = rule.rewrite
+
+    // The operator is associative.  We must at least add an argument on
+    // the right-hand side.  Make and add the argument, and then add the
+    // synthetic rule.
+    var right = Variable(as(0).theType, "::R")
+    var newpatternlist = as.atoms :+ right
+    var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
+    val newRule = RewriteRule(
+        Apply(op, AtomSeq(props, newpatternlist)),
+        Apply(op, AtomSeq(props, newrewritelist)),
+        rule.guards,
+        rule.rulesets,
+        true)
+    list :+= newRule
+    
+    // If the operator is commutative, we are done.
+    if (props.isC(false)) {
+      for (rule <- list) {
+        Debugger.debug("Generated synthetic rule: " + newRule.toParseString,
+            "rule.completion")
+      } // Show the rules.
+      return list
+    }
+    
+    // Repeat the above to add an argument on the left-hand side.
+    var left = Variable(as(0).theType, "::L")
+    newpatternlist = left +: as.atoms
+    newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
+    list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+        Apply(op, AtomSeq(props, newrewritelist)),
+        rule.guards, rule.rulesets, true)
+        
+    // And again add the argument on the right-hand side.
+    newpatternlist = newpatternlist :+ right
+    newrewritelist = newrewritelist :+ right
+    list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+        Apply(op, AtomSeq(props, newrewritelist)),
+        rule.guards, rule.rulesets, true)
+        
+    // Done.
+    for (rule <- list) {
+      Debugger.debug("Generated synthetic rule: " + newRule.toParseString,
+          "rule.completion")
+    } // Show the rules.
+    return list
+  }
+  
   /**
    * Perform partial completion for the given rule by generating the necessary
    * synthetic rules.
@@ -1147,69 +1215,13 @@ private object Completor {
    * 					rules.
    */
   def complete(rule: RewriteRule): List[RewriteRule] = {
-    // Make a new list to hold the rules, and add the original rule.
-    var list = List[RewriteRule](rule)
-    
-    // Extract the pattern and rewrite, and then check the pattern to see if
-    // it uses an operator.
-    val pattern = rule.pattern
-    val rewrite = rule.rewrite
-    pattern match {
-      case Apply(op:OperatorRef, as:AtomSeq) => {
-        // Extract the operator properties.
-        val props = op.operator match {
-          case po: SymbolicOperator => po.params.props
-          case _ => NoProps
-        }
-        
-        // If the operator is not associative, we don't need to do anything.
-        if (!props.isA(false)) {
-          return list
-        }
-        
-        // The operator is associative.  We must at least add an argument on
-        // the right-hand side.  Make and add the argument, and then add the
-        // synthetic rule.
-        var right = Variable(as(0).theType, "::R")
-        var newpatternlist = as.atoms :+ right
-        var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-        val newRule = RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-        list :+= newRule
-        
-        // If the operator is commutative, we are done.
-        if (props.isC(false)) {
-          for (rule <- list) {
-            Debugger.debug("Generated synthetic rule: " + newRule.toParseString,
-                "rule.completion")
-          } // Show the rules.
-          return list
-        }
-        
-        // Repeat the above to add an argument on the left-hand side.
-        var left = Variable(as(0).theType, "::L")
-        newpatternlist = left +: as.atoms
-        newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-            
-        // And again add the argument on the right-hand side.
-        newpatternlist = newpatternlist :+ right
-        newrewritelist = newrewritelist :+ right
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-            
-        // Done.
-        for (rule <- list) {
-          Debugger.debug("Generated synthetic rule: " + newRule.toParseString,
-              "rule.completion")
-        } // Show the rules.
-        return list
-      }
-      case _ => return list
+    rule.pattern match {
+      case Apply(op: OperatorRef, as: AtomSeq) =>
+        _complete(rule, op.operator, as)
+      case Apply(op: Operator, as: AtomSeq) =>
+        _complete(rule, op, as)
+      case _ =>
+        List[RewriteRule](rule)
     }
   }
 }
