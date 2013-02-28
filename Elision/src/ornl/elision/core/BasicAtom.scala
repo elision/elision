@@ -639,8 +639,10 @@ object BasicAtom {
   /** Whether or not to provide type information in toParseString(). */
   var printTypeInfo = false
 
-  /** Whether or not to print out information about rule applications. */
-  var traceRules = false
+  // This has been removed.  The code is kept here for now, but will be
+  // discarded once we have confirmed that nothing else requires this.
+  // /** Whether or not to print out information about rule applications. */
+  // var traceRules = false
   
   /**
    * Every basic atom may have a "spouse" that is a different object.

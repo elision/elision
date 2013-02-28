@@ -33,8 +33,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ======================================================================
- * */
+ ======================================================================*/
 package ornl.elision.core
 
 import scala.annotation.tailrec
@@ -45,6 +44,7 @@ import scala.collection.immutable.HashSet
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.actors.ReplActor
+import ornl.elision.util.Debugger
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -78,9 +78,28 @@ class LiteralPatternException(msg: String) extends ElisionException(msg)
 
 /**
  * A ruleset reference.
+ * 
+ * == Purpose ==
+ * A ruleset reference provides a way to refer to all rules in a particular
+ * ruleset as a single atom.
+ *
+ * == Structure and Syntax ==
+ * A ruleset reference is a strategy - that is, a rewriter.  When placed on
+ * the left side of an applicative equals rules from the ruleset are tried
+ * until all are exhausted and none apply, or a single rule is applied.  That
+ * is, at most one rule is applied.
+ * 
+ * Syntactically ruleset references are symbols of type `RSREF`.
+ * 
+ * == Type ==
+ * All ruleset references have type `RSREF`.
+ * 
+ * == Equality and Matching ==
+ * Ruleset references are equal iff they are the same symbol, and also match
+ * iff they are the same symbol.  Since all ruleset refernces have the same
+ * type, they are matched by name alone.
  */
 abstract class RulesetRef extends BasicAtom with Rewriter {
-
   val depth = 0
   val deBruijnIndex = 0
   val constantPool = None
@@ -106,7 +125,7 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
 }
 
 /**
- * Creation and matching of ruleset references.
+ * Simplify creation and matching of ruleset references.
  */
 object RulesetRef {
   /**
@@ -140,31 +159,32 @@ object RulesetRef {
 }
 
 /**
-* Encapsulate a rule library.
-* 
-* == Purpose ==
-  * A rule library instance contains rules and methods for accessing relevant
-* rules and for performing "automated" rewriting.
-* 
-* Rules can be organized into rulesets.  A single rule may be in multiple
-* rulesets.  A rule can also be placed in no rulesets, though this is not
-* advisable, as it is difficult to access the rule later.  In fact, the
-* only way to see rules that are not part of any active ruleset is via the
-* `getRuleList` method.
-* 
-* The rule library also manages the rulesets.  These must be declared before
-* they can be used, and they can be enabled and disabled to better control
-* rewriting.
-* 
-* @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
-*/
+ * Encapsulate a rule library.
+ * 
+ * == Purpose ==
+ * A rule library instance contains rules and methods for accessing relevant
+ * rules and for performing "automated" rewriting.
+ * 
+ * Rules can be organized into rulesets.  A single rule may be in multiple
+ * rulesets.  A rule can also be placed in no rulesets, though this is not
+ *  advisable, as it is difficult to access the rule later.  In fact, the
+ * only way to see rules that are not part of any active ruleset is via the
+ * `getRuleList` method.
+ * 
+ * The rule library also manages the rulesets.  These must be declared before
+ * they can be used, and they can be enabled and disabled to better control
+ * rewriting.
+ * 
+ * @param allowUndeclared	Iff true, allow the use of undeclared rulesets.
+ */
 class RuleLibrary(val allowUndeclared:Boolean = false)
 extends Fickle with Mutable {
 
-  // needed for writing out the scala code to get the order of operations right
-  // we prepend to the list for performance, so be sure to use a reverseIterator
-  // to get the order. Contains rule additions, ruleset enabling, disabling, 
-  // and declaring
+  // This is needed to correctly order operations when the Scala code for a
+  // rule library is being created.  Note that we prepend to the list for
+  // performance, so be sure to use a reverseIterator to get the items in
+  // order.  Contains rule additions and ruleset operations such as enabling,
+  // disabling, and declaration.
   private var actionList = List[Action]()
   
   /**
@@ -238,9 +258,9 @@ extends Fickle with Mutable {
   def enableRuleset(name: String) = {
     _active += getRulesetBit(name)
     _activeNames += name
-    if (BasicAtom.traceRules) {
-      println("Enable ruleset " + name + ". new rulesets = " + _activeNames)
-    }
+    Debugger.debug("Enabled ruleset: " + name, "rule.rulesets")
+    Debugger.debug("Active rulesets: " + _activeNames.mkString(", "),
+        "rule.rulesets")
     this
   }
   
@@ -253,9 +273,9 @@ extends Fickle with Mutable {
   def disableRuleset(name: String) = {
     _active -= getRulesetBit(name)
     _activeNames -= name
-    if (BasicAtom.traceRules) {
-      println("Disable ruleset " + name + ". new rulesets = " + _activeNames)
-    }
+    Debugger.debug("Disabled ruleset: " + name, "rule.rulesets")
+    Debugger.debug("Active rulesets: " + _activeNames.mkString(", "),
+        "rule.rulesets")
     this
   }
   
@@ -283,7 +303,11 @@ extends Fickle with Mutable {
   * @param limit	The limit of the number of rewrites.
   * @return	This rule library.
   */
-  def setLimit(limit: BigInt) = { _limit = limit ; this }
+  def setLimit(limit: BigInt) = {
+    Debugger.debug("Set limit: " + limit, "rule.library")
+    _limit = limit
+    this
+  }
   
   /**
   * Set whether to rewrite children recursively.
@@ -291,7 +315,12 @@ extends Fickle with Mutable {
   * @param descend	Whether to rewrite children recursively.
   * @return	This rule library.
   */
-  def setDescend(descend: Boolean) = { _descend = descend ; this }
+  def setDescend(descend: Boolean) = {
+    Debugger.debug("Descent: " + (if (descend) "enabled" else "disabled"),
+        "rule.library")
+    _descend = descend
+    this
+  }
   
   /**
    * Set whether to normalize children when rewriting.  The alternative is to
@@ -314,6 +343,8 @@ extends Fickle with Mutable {
    * @return  This rule library.
    */
   def setNormalizeChildren(norm: Boolean) = {
+    Debugger.debug("Normalize Children: " +
+        (if (norm) "enabled" else "disabled"), "rule.library")
     if (norm) _rewritechild = rewrite _
     else _rewritechild = rewriteOnce _
     this
@@ -339,6 +370,8 @@ extends Fickle with Mutable {
 
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
+      Debugger.debug("Rewriting timed out: " + atom.toParseString,
+          "rewrite")
       return (atom, true)
     }
 
@@ -366,28 +399,29 @@ extends Fickle with Mutable {
 
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
+      Debugger.debug("Rewriting timed out: " + atom.toParseString,
+          "rewrite")
       return (atom, true)
     }
 
     // Get the rules.
-    val rules = if (rulesets.isEmpty) getRules(atom) else getRules(atom, rulesets)
+    val rules = if (rulesets.isEmpty) getRules(atom)
+      else getRules(atom, rulesets)
 
-    if (BasicAtom.traceRules) {
-      println("Rewriting atom '" + atom.toParseString + "'...")
-    }
+    
     // Now try every rule until one applies.
+    Debugger.debug("Rewriting atom: " + atom.toParseString, "rewrite")
     for (rule <- rules) {
-      if (BasicAtom.traceRules) {
-        println("Trying rule '" + rule.toParseString + "'...")
-      }
+      Debugger.debug("Trying rule: " + rule.toParseString, "rewrite")
       val (newatom, applied) = rule.doRewrite(atom)
       if (applied) {
-
         // Return the rewrite result.
-        return (newatom, applied)
+        Debugger.debug("Rewrote to: " + newatom.toParseString, "rewrite")
+        return (newatom, true)
       }
     } // Try all rules.
 
+    Debugger.debug("No rule applied to: " + atom.toParseString, "rewrite")
     return (atom, false)
   }
   
@@ -407,6 +441,8 @@ extends Fickle with Mutable {
 
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
+      Debugger.debug("Rewriting timed out: " + atom.toParseString,
+          "rewrite")
       return (atom, true)
     }
 
@@ -486,9 +522,6 @@ extends Fickle with Mutable {
       
       // Yes it has been rewritten with the current rulesets.
       case Some(priorRulesets) if (_active.subsetOf(priorRulesets)) => {
-        //println("!! REWRITE: '" + atom.toParseString + "' is already clean")
-        //println("!! REWRITE: for (atom) " + priorRulesets + " and " +
-        //        "(active) " + _active)
         (atom, false)
       }
       
@@ -499,6 +532,8 @@ extends Fickle with Mutable {
         
         // Has rewriting timed out?
         if (BasicAtom.rewriteTimedOut) {
+          Debugger.debug("Rewriting timed out: " + atom.toParseString,
+              "rewrite")
           (atom, true)
         }
         
@@ -525,12 +560,10 @@ extends Fickle with Mutable {
                   pair = _doRewrite(atom, Set.empty)
                   timedOut = BasicAtom.rewriteTimedOut
                 }
-              }
-              else {
+              } else {
                 pair = _doRewrite(atom, Set.empty)
                 timedOut = false
               }
-              //println("!! REWRITE: Setting '" + pair._1.toParseString + "' to clean")
               atom.cleanRulesets match {
                 // The atom has now been rewritten with both the
                 // rulesets it was previosuly rewritten with and the new
@@ -545,11 +578,9 @@ extends Fickle with Mutable {
               pair
             }
             case Some(pair) => {
-              if (BasicAtom.traceRules) {
-                println("Got cached rewrite '" +
-                        atom.toParseString + "' -> '" + pair._1.toParseString +
-                        "' w. rulesets " + _activeNames)
-              }
+              Debugger.debug("Got cached rewrite: " +
+                  atom.toParseString + " to: " + pair._1.toParseString +
+                  " with rulesets: " + _activeNames.mkString(", "), "rewrite")
               pair
             }
           }
@@ -560,12 +591,10 @@ extends Fickle with Mutable {
           
           // Did rewriting this atom time out?
           if (timedOut) {
-            
             // Return the original atom, with the rewrite flag set to true
             // to indicate a timeout.
-            if (BasicAtom.traceRules) {
-              println("Rewriting of atom '" + atom.toParseString + "' timed out.")
-            }
+            Debugger.debug("Rewriting timed out: " + atom.toParseString,
+                "rewrite")
             (atom, true)
           }
           
@@ -594,7 +623,6 @@ extends Fickle with Mutable {
    *          applied.
    */
   def rewrite(atom: BasicAtom, rulesets: Set[String]) = {
-    
     // Get a bitset for the given set of rulesets.
     val usedRulesetsBits = 
       if (rulesets.isEmpty) _active 
@@ -611,24 +639,21 @@ extends Fickle with Mutable {
       // Yes it has been rewritten with the current rulesets (and
       // possibly other rulesets..
       case Some(priorRulesets) if (usedRulesetsBits.subsetOf(priorRulesets)) => {
-        //println("!! REWRITE: '" + atom.toParseString + "' is already clean")
-        //println("!! REWRITE: for (atom) " + priorRulesets + " and " +
-        //        "(active) " + usedRulesetsBits)
         (atom, false)
       }
       
       // It has never been rewritten.
       case _ => {
-        
         // Has rewriting timed out?
         if (BasicAtom.rewriteTimedOut) {
+          Debugger.debug("Rewriting timed out: " + atom.toParseString,
+              "rewrite")
           (atom, true)
-        }
-        
-        // No timeout.
-        else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
-        else if (atom.isInstanceOf[Variable]) (atom, false)
-        else {
+        } else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) {
+          (atom, false)
+        } else if (atom.isInstanceOf[Variable]) {
+          (atom, false)
+        } else {
           ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
           ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
           ReplActor ! ("Eva", "setSubroot", "rwNode")
@@ -655,7 +680,6 @@ extends Fickle with Mutable {
               pair = _doRewrite(atom, usedRulesets)
               timedOut = false
             }
-            //println("!! REWRITE: Setting '" + pair._1.toParseString + "' to clean")
             atom.cleanRulesets match {
               // The atom has now been rewritten with both the
               // rulesets it was previosuly rewritten with and the new
@@ -669,11 +693,9 @@ extends Fickle with Mutable {
             Memo.put(pair._1, usedRulesetsBits, pair._1, 0)
             pair
             case Some(pair) => {
-              if (BasicAtom.traceRules) {
-                println("Got cached rewrite '" +
-                        atom.toParseString + "' -> '" + pair._1.toParseString +
-                        "' w. rulesets " + usedRulesets)
-              }
+              Debugger.debug("Got cached rewrite: " +
+                  atom.toParseString + " to: " + pair._1.toParseString +
+                  " with rulesets: " + usedRulesets.mkString(", "))
               pair
             }
           }
@@ -684,12 +706,10 @@ extends Fickle with Mutable {
           
           // Did rewriting this atom time out?
           if (timedOut) {
-            
             // Return the original atom, with the rewrite flag set to true
             // to indicate a timeout.
-            if (BasicAtom.traceRules) {
-              println("Rewriting of atom '" + atom.toParseString + "' timed out.")
-            }
+            Debugger.debug("Rewriting timed out: " + atom.toParseString,
+                "rewrite")
             (atom, true)
           }
           
@@ -728,6 +748,8 @@ extends Fickle with Mutable {
 
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
+      Debugger.debug("Rewriting timed out: " + atom.toParseString,
+          "rewrite")
       return (atom, true)
     }
 
@@ -736,9 +758,7 @@ extends Fickle with Mutable {
       case (newatom, false) =>
         return (newatom, bool)
       case (newatom, true) => {
-        if (BasicAtom.traceRules) {
-          println("Rewrote atom to '" + newatom.toParseString + "'")
-        }
+        Debugger.debug("Rewrote to: " + newatom.toParseString, "rewrite")
         if (atom == newatom) {
           return (newatom, true)
         }
@@ -837,18 +857,14 @@ extends Fickle with Mutable {
       // Check the cache.
       Memo.get(atom, _active) match {
         case None => {
-          
           // We do not have a cached value for the current atom. We will
           // need to do the rewrites.
         }
         case Some(pair) => {
-          
           // We have a cached value for this atom. Use it.
-          if (BasicAtom.traceRules) {
-            println("Got cached rewrite '" +
-                    atom.toParseString + "' -> '" + pair._1.toParseString +
-                    "' w. rulesets " + _activeNames)
-          }
+          Debugger.debug("Got cached rewrite: " +
+              atom.toParseString + " to: " + pair._1.toParseString +
+              " with rulesets: " + _activeNames.mkString(", "))
           return pair
         }
       }
@@ -1029,7 +1045,9 @@ extends Fickle with Mutable {
 
     // add apply
     buf append "  def apply(_context: Context):Unit = {\n"
-    for(k <- 0 until actionList.length/5000+1) buf append "    Rules"+k+"(_context)\n"
+    for(k <- 0 until actionList.length/5000+1) {
+      buf append "    Rules"+k+"(_context)\n"
+    }
     buf append "  }\n}\n\n"
     
     // add ruleLibrary actions to Rule* classes
@@ -1113,6 +1131,81 @@ extends Fickle with Mutable {
  * }}}
  */
 private object Completor {
+  
+  /**
+   * Perform partial completion for the given rule by generating the necessary
+   * synthetic rules.
+   * 
+   * @param rule  The provided rule.
+   * @return  A list of rules, including the original rule and any synthetic
+   *          rules.
+   */
+  private def _complete(rule: RewriteRule, op: Operator, as: AtomSeq):
+      List[RewriteRule] = {
+    // Make the list
+    var list = List[RewriteRule](rule)
+    
+    // Extract the operator properties.
+    val props = op match {
+      case po: SymbolicOperator => po.params.props
+      case _ => NoProps
+    }
+    
+    // If the operator is not associative, we don't need to do anything.
+    if (!props.isA(false)) {
+      return list
+    }
+    
+    // Extract the pattern and rewrite.
+    val pattern = rule.pattern
+    val rewrite = rule.rewrite
+
+    // The operator is associative.  We must at least add an argument on
+    // the right-hand side.  Make and add the argument, and then add the
+    // synthetic rule.
+    var right = Variable(as(0).theType, "::R")
+    var newpatternlist = as.atoms :+ right
+    var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
+    val newRule = RewriteRule(
+        Apply(op, AtomSeq(props, newpatternlist)),
+        Apply(op, AtomSeq(props, newrewritelist)),
+        rule.guards,
+        rule.rulesets,
+        true)
+    list :+= newRule
+    
+    // If the operator is commutative, we are done.
+    if (props.isC(false)) {
+      for (rule <- list) {
+        Debugger.debug("Generated synthetic rule: " + newRule.toParseString,
+            "rule.completion")
+      } // Show the rules.
+      return list
+    }
+    
+    // Repeat the above to add an argument on the left-hand side.
+    var left = Variable(as(0).theType, "::L")
+    newpatternlist = left +: as.atoms
+    newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
+    list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+        Apply(op, AtomSeq(props, newrewritelist)),
+        rule.guards, rule.rulesets, true)
+        
+    // And again add the argument on the right-hand side.
+    newpatternlist = newpatternlist :+ right
+    newrewritelist = newrewritelist :+ right
+    list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+        Apply(op, AtomSeq(props, newrewritelist)),
+        rule.guards, rule.rulesets, true)
+        
+    // Done.
+    for (rule <- list) {
+      Debugger.debug("Generated synthetic rule: " + newRule.toParseString,
+          "rule.completion")
+    } // Show the rules.
+    return list
+  }
+  
   /**
    * Perform partial completion for the given rule by generating the necessary
    * synthetic rules.
@@ -1122,61 +1215,13 @@ private object Completor {
    * 					rules.
    */
   def complete(rule: RewriteRule): List[RewriteRule] = {
-    // Make a new list to hold the rules, and add the original rule.
-    var list = List[RewriteRule](rule)
-    
-    // Extract the pattern and rewrite, and then check the pattern to see if
-    // it uses an operator.
-    val pattern = rule.pattern
-    val rewrite = rule.rewrite
-    pattern match {
-      case Apply(op:OperatorRef, as:AtomSeq) => {
-        // Extract the operator properties.
-        val props = op.operator match {
-          case po: SymbolicOperator => po.params.props
-          case _ => NoProps
-        }
-        
-        // If the operator is not associative, we don't need to do anything.
-        if (!props.isA(false)) {
-          return list
-        }
-        
-        // The operator is associative.  We must at least add an argument on
-        // the right-hand side.  Make and add the argument, and then add the
-        // synthetic rule.
-        var right = Variable(as(0).theType, "::R")
-        var newpatternlist = as.atoms :+ right
-        var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-        val newRule = RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-        list :+= newRule
-        
-        // If the operator is commutative, we are done.
-        if (props.isC(false)) {
-          return list
-        }
-        
-        // Repeat the above to add an argument on the left-hand side.
-        var left = Variable(as(0).theType, "::L")
-        newpatternlist = left +: as.atoms
-        newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-            
-        // And again add the argument on the right-hand side.
-        newpatternlist = newpatternlist :+ right
-        newrewritelist = newrewritelist :+ right
-        list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
-            Apply(op, AtomSeq(props, newrewritelist)),
-            rule.guards, rule.rulesets, true)
-            
-        // Done.
-        return list
-      }
-      case _ => return list
+    rule.pattern match {
+      case Apply(op: OperatorRef, as: AtomSeq) =>
+        _complete(rule, op.operator, as)
+      case Apply(op: Operator, as: AtomSeq) =>
+        _complete(rule, op, as)
+      case _ =>
+        List[RewriteRule](rule)
     }
   }
 }

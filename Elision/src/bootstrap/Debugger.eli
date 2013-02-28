@@ -45,8 +45,8 @@ decl.
 {! debugon($tag: STRING)
 #handler=
 """
-  import ornl.elision.Debugger._
-  import ornl.elision.Debugger.Mode._
+  import ornl.elision.util.Debugger._
+  import ornl.elision.util.Debugger.Mode._
   args match {
     case Args(StringLiteral(_, tag)) =>
       enableDebugModes(tag, ON)
@@ -64,8 +64,8 @@ decl.
 {! debugoff($tag: STRING)
 #handler=
 """
-  import ornl.elision.Debugger._
-  import ornl.elision.Debugger.Mode._
+  import ornl.elision.util.Debugger._
+  import ornl.elision.util.Debugger.Mode._
   args match {
     case Args(StringLiteral(_, tag)) =>
       disableDebugModes(tag, ON)
@@ -83,8 +83,8 @@ decl.
 {! enabledebugmode($tag: STRING, $mode: STRING)
 #handler=
 """
-  import ornl.elision.Debugger._
-  import ornl.elision.Debugger.Mode._
+  import ornl.elision.util.Debugger._
+  import ornl.elision.util.Debugger.Mode._
   args match {
     case Args(StringLiteral(_, tag), StringLiteral(_, mode)) =>
       try {
@@ -117,8 +117,8 @@ decl.
 {! disabledebugmode($tag: STRING, $mode: STRING)
 #handler=
 """
-  import ornl.elision.Debugger._
-  import ornl.elision.Debugger.Mode._
+  import ornl.elision.util.Debugger._
+  import ornl.elision.util.Debugger.Mode._
   args match {
     case Args(StringLiteral(_, tag), StringLiteral(_, mode)) =>
       try {
@@ -140,8 +140,8 @@ decl.
 {! debug($msg: STRING, $tag: STRING)
 #handler=
 """
-  import ornl.elision.Debugger._
-  import ornl.elision.Debugger.Mode._
+  import ornl.elision.util.Debugger._
+  import ornl.elision.util.Debugger.Mode._
   args match {
     case Args(StringLiteral(_, msg), StringLiteral(_, tag)) =>
       debug(msg, tag)

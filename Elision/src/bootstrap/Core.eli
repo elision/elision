@@ -229,6 +229,24 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
+decl.{! is_constant($x): BOOLEAN
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isConstant) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is a constant."
+  #detail=
+  "If the atom $x is a constant, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "zealous evaluation."
+}
+
 decl.{! is_bindable($x): BOOLEAN
   #handler=
   """
@@ -548,26 +566,6 @@ decl.{! tracematch()
   "Enable or disable tracing of match attempts.  This generates output from ".
   "the matcher as it attempts to match atoms.  The matcher is called for a ".
   "variety of reasons, so you may see some unexpected output here."
-}
-
-decl.{! tracerules()
-  #handler=
-  """
-    args match {
-      case Args() =>
-        // Toggle tracing.
-        BasicAtom.traceRules = !BasicAtom.traceRules
-        emitln("Rule application tracing is " +
-            (if (BasicAtom.traceRules) "ON." else "OFF."))
-        _no_show
-      case _ => _no_show
-    }
-  """
-  #description="Toggle tracing of rule applications"
-  #detail=
-  "Enable or disable tracing of rule applications. Information about ".
-  "each rule applied during rewriting and the result of each rewrite ".
-  "is printed."
 }
 
 decl.{! printtypes()

@@ -290,7 +290,9 @@ object ElisionGenerator extends Generator {
         buf.append(toESymbol(name)).append(":RSREF")
         
       case vari: Variable =>
-        buf.append(vari.prefix).append(toESymbol(vari.name))
+        buf.append(vari.prefix)
+        buf.append(if (vari.byName) toEString(vari.name)
+            else toESymbol(vari.name))
         if (vari.guard != Literal.TRUE) {
           apply(vari.guard, buf.append("{"), limit-1).append("}")
         }
