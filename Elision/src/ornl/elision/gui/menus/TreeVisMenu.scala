@@ -35,12 +35,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.trees
+package ornl.elision.gui.menus
 
 import swing._
 import swing.BorderPanel.Position._
 
 import ornl.elision.gui._
+import ornl.elision.gui.menus.filefilters._
 
 /** The Tree menu for Eva's menu bar. This only shows up for modes that use a TreeVisPanel for visualization. */
 object TreeVisMenu {
@@ -325,55 +326,5 @@ class NodeLimitDialog extends Dialog {
 }
 
 
-/** A FileFilter that only accepts .treexml files */
-class TreeXMLFileFilter extends javax.swing.filechooser.FileFilter  {
-    def accept(f : java.io.File) : Boolean = {
-        if(f.isDirectory) return true
-        
-        val name = f.getName
-        val lastDot = name.lastIndexOf('.')
-        val ext = name.drop(lastDot+1)
-        if(ext == "treexml") true
-        else false
-    }
-    
-    def getDescription : String = {
-        "Eva treexml files"
-    }
-}
 
-/** A FileFilter that only accepts .treejson files */
-class TreeJSONFileFilter extends javax.swing.filechooser.FileFilter  {
-    def accept(f : java.io.File) : Boolean = {
-        if(f.isDirectory) return true
-        
-        val name = f.getName
-        val lastDot = name.lastIndexOf('.')
-        val ext = name.drop(lastDot+1)
-        if(ext == "treejson") true
-        else false
-    }
-    
-    def getDescription : String = {
-        "Eva treejson files"
-    }
-}
-
-
-/** A FileFilter that only accepts .treexml and .treejson files */
-class TreeFileFilter extends javax.swing.filechooser.FileFilter  {
-    def accept(f : java.io.File) : Boolean = {
-        if(f.isDirectory) return true
-        
-        val name = f.getName
-        val lastDot = name.lastIndexOf('.')
-        val ext = name.drop(lastDot+1)
-        if(ext == "treejson" || ext == "treexml") true
-        else false
-    }
-    
-    def getDescription : String = {
-        "Eva treejson and treexml files"
-    }
-}
 

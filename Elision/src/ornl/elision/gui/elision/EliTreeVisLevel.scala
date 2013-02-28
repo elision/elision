@@ -37,20 +37,58 @@
 
 package ornl.elision.gui.elision
 
+import java.awt._
+import ornl.elision.gui._
+import ornl.elision.gui.menus.NodeRightClickMenu
+import ornl.elision.gui.menus.RulePredDialog
+import ornl.elision.gui.trees._
+import sage2D.GamePanel
 
-/** A FileFilter that only accepts .eli files */
-class EliFileFilter extends javax.swing.filechooser.FileFilter {
-    def accept(f : java.io.File) : Boolean = {
-        if(f.isDirectory) return true
+/** An extension of TreeVisLevel that handles some Elision-specific functions. */
+class EliTreeVisLevel(game : GamePanel) extends TreeVisLevel(game) {
+    var selectingRuleLHS = false
+    
+    /** A right-click menu that appears when you right-click a node. */
+    val nodeRClickMenu = new NodeRightClickMenu
+    
+    changeTree(elision.sprites.ElisionWelcomeTree)
+    
+    override def selectNode(clickedNode : NodeSprite) : Unit = {
+        super.selectNode(clickedNode)
         
-        val name = f.getName
-        val lastDot = name.lastIndexOf('.')
-        val ext = name.drop(lastDot+1)
-        if(ext == "eli") true
-        else false
+        // Interactive rule creation: User selects an atom node for the LHS and then 
+        // inputs the RHS and saves it to an eli file.
+        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
+            val ruleDia = new RulePredDialog(clickedNode.term)
+            selectingRuleLHS = false
+        }
     }
     
-    def getDescription : String = {
-        "Elision eli files"
+    override def decompDepth : Int = EvaConfig.decompDepth
+    
+    override def render(g : Graphics2D) : Unit = {
+        super.render(g)
+        
+        val helpPromptY = (this.game.size.getHeight-10).toInt
+        g.setColor(new Color(0x000000))
+        if(selectingRuleLHS) {
+            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
+        }
+    }
+    
+    listenTo(this)
+    reactions += {
+      case nce : NodeClickedEvent =>
+        val clickedNode = nce.node
+        if(mouse.justRightPressed) {
+          nodeRClickMenu.show(game.peer, mouseScreenPosition.getX.toInt, mouseScreenPosition.getY.toInt, clickedNode)
+        }
     }
 }
+
+
+
+
+
+
+

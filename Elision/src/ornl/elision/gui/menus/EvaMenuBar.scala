@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
+package ornl.elision.gui.menus
 
 import swing._
 import swing.BorderPanel.Position._
@@ -45,6 +45,9 @@ import java.io._
 import java.awt.Color
 import java.awt.Dimension
 import sage2D.GamePanel
+
+import ornl.elision.gui._
+import ornl.elision.gui.menus.filefilters._
 
 /**  Eva's menu bar */
 class EvaMenuBar extends MenuBar {
@@ -132,7 +135,7 @@ class EvaMenuBar extends MenuBar {
     
     val helpItem = new MenuItem(Action("Help") {
       val helpDia = mainGUI.mode match {
-                    case "Elision" => new elision.EliHelpDialog
+                    case "Elision" => new EliHelpDialog
                     case _ => null
                 }
     } )
@@ -142,7 +145,7 @@ class EvaMenuBar extends MenuBar {
     
     val aboutItem = new MenuItem(Action("About") {
       val helpDia = mainGUI.mode match {
-                    case "Elision" => new elision.EliAboutDialog
+                    case "Elision" => new EliAboutDialog
                     case _ => null
                 }
     } )
@@ -156,11 +159,11 @@ class EvaMenuBar extends MenuBar {
     
     mode match {
         case "Elision" =>
-          this.fileFilter = new elision.EliFileFilter
+          this.fileFilter = new EliFileFilter
           this.contents += fileMenu
             fileMenu.contents += openItem
-            fileMenu.contents += trees.TreeVisMenu.openTreeItem
-            fileMenu.contents += trees.TreeVisMenu.saveSubMenu
+            fileMenu.contents += TreeVisMenu.openTreeItem
+            fileMenu.contents += TreeVisMenu.saveSubMenu
             fileMenu.contents += quitItem
           
           this.contents += viewMenu
@@ -168,11 +171,11 @@ class EvaMenuBar extends MenuBar {
           
           this.contents += modeMenu
           
-          this.contents += elision.EliMenu.eliMenu
+          this.contents += EliMenu.eliMenu
           
-          this.contents += console.ConsoleMenu.apply(mode)
+          this.contents += ConsoleMenu.apply(mode)
           
-          this.contents += trees.TreeVisMenu.apply(mode)
+          this.contents += TreeVisMenu.apply(mode)
           
           this.contents += helpMenu
             helpMenu.contents += helpItem
