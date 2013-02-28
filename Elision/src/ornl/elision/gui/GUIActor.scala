@@ -153,13 +153,13 @@ object GUIActor extends Actor {
                         mainGUI.evaMenuBar.helpItem.doClick
                     case ("enableRuleMaker", flag : Boolean) =>
                         mainGUI.visPanel.curLevel match {
-                          case etvp : elision.EliTreeVisPanel =>
+                          case etvp : elision.EliTreeVisLevel =>
                              etvp.selectingRuleLHS = flag
                           case _ =>
                         }
                     case "treeReselectCurrentNode" =>
                         mainGUI.visPanel.curLevel match {
-                          case treeVisPanel : trees.TreeVisPanel => 
+                          case treeVisPanel : trees.TreeVisLevel => 
                             treeVisPanel.selectNode(treeVisPanel.treeSprite.selectedNode)
                         }
                     case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.

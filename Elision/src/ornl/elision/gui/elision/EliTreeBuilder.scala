@@ -885,8 +885,8 @@ class EliTreeBuilderActor(val treeBuilder : EliTreeBuilder) extends Actor {
                     System.out.println("\nLoading tree from: " + file.getPath + "\n")
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                        case tvp : TreeVisPanel =>
+                    val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisLevel =>
                             tvp
                         case _ =>
                             null
@@ -914,8 +914,8 @@ class EliTreeBuilderActor(val treeBuilder : EliTreeBuilder) extends Actor {
                     if(!filePath.endsWith(".treexml")) filePath += ".treexml"
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                        case tvp : TreeVisPanel =>
+                    val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisLevel =>
                             tvp
                         case _ =>
                             null
@@ -934,8 +934,8 @@ class EliTreeBuilderActor(val treeBuilder : EliTreeBuilder) extends Actor {
                     if(!filePath.endsWith(".treejson")) filePath += ".treejson"
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                        case tvp : TreeVisPanel =>
+                    val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisLevel =>
                             tvp
                         case _ =>
                             null
@@ -966,8 +966,8 @@ class EliTreeBuilderActor(val treeBuilder : EliTreeBuilder) extends Actor {
                 }
             case "finishTree" => // FINISH HIM. FATALITY. KO!
                 // get a reference to the tree visualization panel
-                val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                    case tvp : TreeVisPanel =>
+                val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                    case tvp : TreeVisLevel =>
                         tvp
                     case _ =>
                         null

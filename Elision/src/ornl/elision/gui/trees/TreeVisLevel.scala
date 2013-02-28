@@ -53,10 +53,10 @@ import sage2D.input._
 
 
 /**
- * This panel shall display a tree structure showing the rewriting hierarchy 
+ * This level shall display a tree structure showing the rewriting hierarchy 
  * of the last atom string passed to the REPL as input.
  */
-class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
+class TreeVisLevel(game : GamePanel) extends Level(game, null) with HasCamera {
   /** The panel's camera for panning around and zooming in the visualization */
   val camera = new Camera(0, 0, 640, 480)
   
@@ -78,7 +78,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   renderThread.start
   
   /** The Image containing the latest rendering of the visualization tree. */
-  var renderedImage : Image = new BufferedImage(640,480, TreeVisPanel.imageType)
+  var renderedImage : Image = new BufferedImage(640,480, TreeVisLevel.imageType)
   
   /** 
    * We actually run the logic for this level is a thread separate from the EDT. 
@@ -213,7 +213,7 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
 }
 
 /** */
-object TreeVisPanel {
+object TreeVisLevel {
   val imageType = BufferedImage.TYPE_INT_ARGB
 }
 
@@ -222,7 +222,7 @@ object TreeVisPanel {
  * A worker thread for running the Tree Visualization interaction logic and 
  * rendering, so that the EDT doesn't get tied up during large tree renderings. 
  */
-class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thread { 
+class TreeVisThread(val treeVis : TreeVisLevel, val gt : GameTimer) extends Thread { 
     
     var isReady = false
     var exitFlag = false

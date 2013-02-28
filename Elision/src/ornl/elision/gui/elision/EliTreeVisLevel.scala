@@ -44,8 +44,8 @@ import ornl.elision.gui.menus.RulePredDialog
 import ornl.elision.gui.trees._
 import sage2D.GamePanel
 
-/** An extension of TreeVisPanel that handles some Elision-specific functions. */
-class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
+/** An extension of TreeVisLevel that handles some Elision-specific functions. */
+class EliTreeVisLevel(game : GamePanel) extends TreeVisLevel(game) {
     var selectingRuleLHS = false
     
     /** A right-click menu that appears when you right-click a node. */
