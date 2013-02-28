@@ -41,7 +41,7 @@ println("Reading Math...")
 // General operators.
 //======================================================================
 
-decl.{! equal($x,$y): BOOLEAN is %C
+decl.{! eq($x,$y): BOOLEAN is %C
 #handler=
 """
   args match {
@@ -70,7 +70,7 @@ decl.{! mod($b: INTEGER, $d: INTEGER): INTEGER
 #detail="Compute $b mod $d, returning the remainder when $b is divided by $d."
 }
 
-decl.{! neg($x: INTEGER): INTEGER
+decl.{! ineg($x: INTEGER): INTEGER
 #handler=
 """
   args match {
@@ -82,7 +82,7 @@ decl.{! neg($x: INTEGER): INTEGER
 #detail="Compute the negation of the integer $x; that is, compute 0 - $x."
 }
 
-decl.{! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
+decl.{! iadd($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
 #handler=
 """
   // Accumulate the integer literals found.
@@ -103,6 +103,33 @@ decl.{! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
 """
 #description="Compute the integer sum of the arguments."
 #detail="Compute the sum of the integer arguments."
+}
+
+decl.{operator #name=isub #type=INTEGER #cases
+  %($x: INTEGER, $y: INTEGER) -> iadd($$x,ineg($$y)) 
+  #description="Integer subtraction."
+  #detail="Compute the difference of the integer arguments $x - $y."
+}
+
+decl.{! imul($x: INTEGER, $y: INTEGER): INTEGER is %ACD[1]B[0]
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x*y
+      case _ => as_is
+    }"""
+  #description="Integer multiplication."
+  #detail="Compute the product of two integers $x and $y."
+}
+
+decl.{! idiv($num: INTEGER, $den: INTEGER): INTEGER
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x/y
+      case _ => as_is
+    }"""
+  #description="Integer division."
+  #detail="Compute the quotient of two integers $num / $den, and discard ".
+          "any remainder."
 }
 
 //======================================================================

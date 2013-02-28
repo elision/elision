@@ -80,4 +80,14 @@ trait HasHistory {
    * The default implementation returns None.
    */
   def getNextHistoryEntry : Option[String] = None
+  
+  /**
+   * Replace an existing line in the history.  If the line does not exist,
+   * nothing should be done.  This is an optional operation; the default
+   * implementation does nothing.
+   * 
+   * @param index The index of the history item.
+   * @param line  The line to replace the history item.
+   */
+  def replaceHistoryLine(index: Int, line: String) {}
 }
