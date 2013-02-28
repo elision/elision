@@ -40,6 +40,7 @@ package ornl.elision.gui.elision
 import scala.concurrent.ops._
 import sys.process._
 import ornl.elision.gui._
+import ornl.elision.gui.console.ReplThread
 import ornl.elision.util.Console
 import ornl.elision.actors.ReplActor
 

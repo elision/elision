@@ -47,7 +47,6 @@ import ornl.elision.gui.EvaConfig
 import ornl.elision.gui.GUIActor
 import ornl.elision.gui.GUIColors
 import ornl.elision.gui.mainGUI
-import ornl.elision.gui.ReplThread
 import ornl.elision.gui.copypaste._
 import ornl.elision.gui.elision.EliReplThread
 import ornl.elision.gui.elision.EliRegexes
