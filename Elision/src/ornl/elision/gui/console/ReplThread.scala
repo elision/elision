@@ -35,13 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui
-
-import scala.concurrent.ops._
-import sys.process._
-
-import ornl.elision.gui._
-
+package ornl.elision.gui.console
 
 /** A thread to run a REPL in. It's really just a wrapper for a normal Thread that also provides a cleanup method for safely quitting the thread. */
 abstract class ReplThread extends Thread {

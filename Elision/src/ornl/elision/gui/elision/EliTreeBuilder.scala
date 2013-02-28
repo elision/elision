@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.trees
+package ornl.elision.gui.elision
 
 import collection.mutable.ArrayStack
 import collection.mutable.{OpenHashMap => HashMap}
@@ -43,10 +43,11 @@ import scala.actors.Actor
 import scala.xml._
 
 import ornl.elision.gui._
+import ornl.elision.gui.trees._
 
 
 /** A factory class used to contruct TreeSprites. */
-class TreeBuilder extends Thread {
+class EliTreeBuilder extends Thread {
   /** Maintains a stack of id->NodeSprite tables used to obtain the local NodeSprite variables for a particular method scope during Elision's process. */
   val scopeStack = new ArrayStack[HashMap[String, NodeSprite]]
   
@@ -67,11 +68,11 @@ class TreeBuilder extends Thread {
   /** Maximum Eva tree depth. If this is < 0, then there is assumed to be no maximum depth. */
   var treeMaxDepth = -1
   
-  /** If true, this flag makes the TreeBuilder skip all processing commands until it is given a finishTree command. */
+  /** If true, this flag makes the EliTreeBuilder skip all processing commands until it is given a finishTree command. */
   var fatalError = false
   
-  /** A reference for the TreeBuilder's actor. All operations with the TreeBuilder should be done through this actor to ensure concurrency. */
-  val tbActor = new TreeBuilderActor(this)
+  /** A reference for the EliTreeBuilder's actor. All operations with the EliTreeBuilder should be done through this actor to ensure concurrency. */
+  val tbActor = new EliTreeBuilderActor(this)
   
   /** A count of the nodes currently in the tree. */
   var nodeCount = 0
@@ -82,7 +83,7 @@ class TreeBuilder extends Thread {
   /** A flag that causes the treeBuilder to ignore most commands. */
   var ignoreCmds = false
     
-  /** Clears the TreeBuilder's members. */
+  /** Clears the EliTreeBuilder's members. */
   def clear : Unit = {
     root = null
     subroot = null
@@ -95,7 +96,7 @@ class TreeBuilder extends Thread {
   }
     
   /** 
-   * Clears the TreeBuilder and creates a new tree containing only a root node. 
+   * Clears the EliTreeBuilder and creates a new tree containing only a root node. 
    * A scope table is added to the stack with only "root" in it which maps to the root node. 
    * @param rootLabel     The label for the root node of the new tree. This node will automatically be a comment node.
    */
@@ -115,8 +116,8 @@ class TreeBuilder extends Thread {
   }
     
   /**
-   * Creates a TreeSprite from the TreeBuilder and then clears the TreeBuilder.
-   * @return      A TreeSprite corresponding to the structure of NodeSprites in the TreeBuilder with root as its root NodeSprite.
+   * Creates a TreeSprite from the EliTreeBuilder and then clears the EliTreeBuilder.
+   * @return      A TreeSprite corresponding to the structure of NodeSprites in the EliTreeBuilder with root as its root NodeSprite.
    */
   def finishTree : TreeSprite = {
 //  System.err.println("Finishing current tree")
@@ -159,7 +160,7 @@ class TreeBuilder extends Thread {
   }
     
   /**
-   * Sets the current subroot of the TreeBuilder.
+   * Sets the current subroot of the EliTreeBuilder.
    * @param id        The key ID for our desired NodeSprite in the current scope table.
    */
   def setSubroot(id : String) : Unit = {
@@ -173,7 +174,7 @@ class TreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("TreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
+        case _ => System.err.println("EliTreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
           keepgoing = attemptStackRecovery
       }
     }
@@ -253,7 +254,7 @@ class TreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("TreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+        case _ => System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
           keepgoing = attemptStackRecovery
       }
     }
@@ -281,7 +282,7 @@ class TreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("TreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+        case _ => System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
           keepgoing = attemptStackRecovery
       }
     }
@@ -308,7 +309,7 @@ class TreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("TreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+        case _ => System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
           keepgoing = attemptStackRecovery
       }
     }
@@ -331,7 +332,7 @@ class TreeBuilder extends Thread {
           keepgoing = false
         } 
         catch {
-          case _ => System.err.println("TreeBuilder.remLastChild error: key \"" + parentID + "\" does not exist in current scope table.")
+          case _ => System.err.println("EliTreeBuilder.remLastChild error: key \"" + parentID + "\" does not exist in current scope table.")
             keepgoing = attemptStackRecovery
         }
       }
@@ -411,7 +412,7 @@ class TreeBuilder extends Thread {
     System.err.println(str)
   }
   
-  /** A helper method that was used to try recover the TreeBuilder's scope if for some reason a popTable command was forgotten somewhere. 
+  /** A helper method that was used to try recover the EliTreeBuilder's scope if for some reason a popTable command was forgotten somewhere. 
   Now it just halts further tree construction until Elision is done processing its current input. */
   private def attemptStackRecovery : Boolean = {
     if(false && scopeStack.size > 1) {
@@ -419,8 +420,8 @@ class TreeBuilder extends Thread {
       true
     }
     else {
-      addTo("root", "", "Fatal error during TreeBuilder tree construction. \n\tI just don't know what went wrong!")
-      System.err.println("Fatal error during TreeBuilder tree construction. \n\tI just don't know what went wrong!")
+      addTo("root", "", "Fatal error during EliTreeBuilder tree construction. \n\tI just don't know what went wrong!")
+      System.err.println("Fatal error during EliTreeBuilder tree construction. \n\tI just don't know what went wrong!")
       fatalError = true
       false
     }
@@ -431,7 +432,7 @@ class TreeBuilder extends Thread {
   private def enforceNodeLimit : Boolean = {
     if(nodeCount >= EvaConfig.nodeLimit && EvaConfig.nodeLimit > 1) {
       val node = root.makeChild("Eva tree node limit " + EvaConfig.nodeLimit + " has been reached! Halting further tree construction. ", true)
-      System.err.println("Error during TreeBuilder tree construction. \n\tEva tree node limit " + EvaConfig.nodeLimit + " has been reached!")
+      System.err.println("Error during EliTreeBuilder tree construction. \n\tEva tree node limit " + EvaConfig.nodeLimit + " has been reached!")
       val node2 = subroot.makeChild("Eva tree node limit " + EvaConfig.nodeLimit + " has been reached! Halting further tree construction. ", true)
       fatalError = true
       true
@@ -861,7 +862,7 @@ class TreeBuilder extends Thread {
   }
 
     
-    /** Starts a new thread in which the TreeBuilder's actor will run. */
+  /** Starts a new thread in which the EliTreeBuilder's actor will run. */
   override def run : Unit = {
     tbActor.start
   }
@@ -870,22 +871,22 @@ class TreeBuilder extends Thread {
 
 
 
-/** An actor object for doing concurrent operations with a TreeBuilder. */
-class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
+/** An actor object for doing concurrent operations with a EliTreeBuilder. */
+class EliTreeBuilderActor(val treeBuilder : EliTreeBuilder) extends Actor {
     var ignoreNextTree = false
     
     def act() = {
     loop {
       receive {
                 case ("Eva", cmd : String, args : Any) => 
-                    // process a TreeBuilder command received from the Elision.
-                    processTreeBuilderCommands(cmd, args)
+                    // process a EliTreeBuilder command received from the Elision.
+                    processEliTreeBuilderCommands(cmd, args)
                 case ("OpenTree", file : java.io.File) =>
                     System.out.println("\nLoading tree from: " + file.getPath + "\n")
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                        case tvp : TreeVisPanel =>
+                    val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisLevel =>
                             tvp
                         case _ =>
                             null
@@ -913,8 +914,8 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     if(!filePath.endsWith(".treexml")) filePath += ".treexml"
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                        case tvp : TreeVisPanel =>
+                    val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisLevel =>
                             tvp
                         case _ =>
                             null
@@ -933,8 +934,8 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                     if(!filePath.endsWith(".treejson")) filePath += ".treejson"
                     
                     // get a reference to the tree visualization panel
-                    val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                        case tvp : TreeVisPanel =>
+                    val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                        case tvp : TreeVisLevel =>
                             tvp
                         case _ =>
                             null
@@ -954,19 +955,19 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
         }
     }
     
-    /** Called by act when the actor receives a valid TreeBuilder command. Here we actually invoke the methods of the TreeBuilder corresponding to the commands that the actor receives. */
-    def processTreeBuilderCommands(cmd :String, args : Any) : Unit = {
+    /** Called by act when the actor receives a valid EliTreeBuilder command. Here we actually invoke the methods of the EliTreeBuilder corresponding to the commands that the actor receives. */
+    def processEliTreeBuilderCommands(cmd :String, args : Any) : Unit = {
         cmd match {
             case "newTree" =>
                 args match {
                     case label : String =>
                         treeBuilder.newTree(label)
-                    case _ => System.err.println("TreeBuilder.newTree received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.newTree received incorrect arguments: " + args)
                 }
             case "finishTree" => // FINISH HIM. FATALITY. KO!
                 // get a reference to the tree visualization panel
-                val treeVisPanel : TreeVisPanel = mainGUI.visPanel.curLevel match {
-                    case tvp : TreeVisPanel =>
+                val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
+                    case tvp : TreeVisLevel =>
                         tvp
                     case _ =>
                         null
@@ -988,7 +989,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                 args match {
                     case id : String =>
                         treeBuilder.setSubroot(id)
-                    case _ => System.err.println("TreeBuilder.setSubroot received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.setSubroot received incorrect arguments: " + args)
                 }
             case "addToSubroot" =>
                 args match {
@@ -998,7 +999,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                         treeBuilder.addToSubroot(id, commentAtom)
                     case (id : String, atom : ornl.elision.core.BasicAtom) =>
                         treeBuilder.addToSubroot(id, atom)
-                    case _ => System.err.println("TreeBuilder.addToSubroot received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.addToSubroot received incorrect arguments: " + args)
                 }
             case "addTo" =>
                 args match {
@@ -1008,13 +1009,13 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                         treeBuilder.addTo(parentID, id, commentAtom)
                     case (parentID : String, id : String, atom : ornl.elision.core.BasicAtom) =>
                         treeBuilder.addTo(parentID, id, atom)
-                    case _ => System.err.println("TreeBuilder.addTo received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.addTo received incorrect arguments: " + args)
                 }
             case "remLastChild" =>
                 args match {
                     case parentID : String =>
                         treeBuilder.remLastChild(parentID)
-                    case _ => System.err.println("TreeBuilder.remLastChild received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.remLastChild received incorrect arguments: " + args)
                 }
             case "saveNodeCount" => 
                 treeBuilder.saveNodeCount
@@ -1022,15 +1023,15 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                 args match {
                     case flag : Boolean =>
                         treeBuilder.restoreNodeCount(flag)
-                    case _ => System.err.println("TreeBuilder.restoreNodeCount received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.restoreNodeCount received incorrect arguments: " + args)
                 }
             case "toggleIgnore" =>
                 args match {
                     case flag : Boolean =>
                         treeBuilder.toggleIgnore(flag)
-                    case _ => System.err.println("TreeBuilder.toggleIgnore received incorrect arguments: " + args)
+                    case _ => System.err.println("EliTreeBuilder.toggleIgnore received incorrect arguments: " + args)
                 }
-            case _ => System.err.println("GUIActor received bad TreeBuilder command: " + cmd)
+            case _ => System.err.println("GUIActor received bad EliTreeBuilder command: " + cmd)
         }
     }
 }

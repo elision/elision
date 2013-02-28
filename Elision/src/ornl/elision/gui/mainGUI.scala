@@ -81,7 +81,7 @@ object mainGUI extends SimpleSwingApplication {
   GUIActor.start
   
   /** The menu bar */
-  val evaMenuBar = new EvaMenuBar
+  val evaMenuBar = new menus.EvaMenuBar
   
   /** The window's Frame object */
   val frame = new MainFrame {

@@ -35,67 +35,55 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.console
+package ornl.elision.gui.menus
 
-import ornl.elision.gui.EvaConfig
-import ornl.elision.gui.mainGUI
+import ornl.elision.gui._
+import ornl.elision.gui.menus.filefilters._
 
 import swing._
 import swing.BorderPanel.Position._
 
-/** The console menu for Eva's menu bar. */
-object ConsoleMenu {
-    // Console menu	
+/** The menu for Elision-mode-specific things. */
+object EliMenu {
+    // Elision menu	
 		
-	val consoleMenu = new Menu("Console")
-	consoleMenu.mnemonic = event.Key.C
+	val eliMenu = new Menu("Elision")
+	eliMenu.mnemonic = event.Key.C
         
-        // Set Maximum Lines : Opens dialog to change the maximum lines in the onboard console
+        // Create Rule from Node : Create a new rule from an Elision atom in an Eva tree.
 		
-		val setMaxLinesItem = new MenuItem(Action("Set Maximum Lines") {
-			val maxLinesDia = new MaxLinesDialog
-		} )
-		setMaxLinesItem.mnemonic = event.Key.L
+		val makeRuleItem = new MenuItem(new Action("Create Rule from Node") {
+        import javax.swing.KeyStroke
+        import java.awt.event._
+        accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK))
         
-    
-    
-    /** Constructs a Console menu structure appropriate for the given mode. */
-    def apply(mode : String) : Menu = {
-        consoleMenu.contents.clear
-        
-        mode match {
-            case "Elision" =>
-                consoleMenu.contents += setMaxLinesItem
-                
-            case _ =>
-                consoleMenu.contents += setMaxLinesItem
-                
+        def apply = {
+          GUIActor ! ("enableRuleMaker", true)
         }
-        
-        consoleMenu
-    }
+		} )
+		makeRuleItem.mnemonic = event.Key.R
+        eliMenu.contents += makeRuleItem
+
 }
 
 
-/** The dialog window for the "Console > Set Maximum Lines" menu item */
-class MaxLinesDialog extends Dialog {
-    this.title = "Set Maximum Lines"
+class RulePredDialog(val lhs : String) extends Dialog {
+    this.title = "Create Rule from Node"
     val inset = 3
     
     val linesInput = new TextField(10) { 
         listenTo(keys) 
         reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = "" + mainGUI.consolePanel.getMaxLines
+        text = ""
     }
     val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
     val cancelBtn = new Button(Action("Cancel") { close } )
     
     contents = new BorderPanel {
         border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-        val minLines = ConsolePanel.infiniteMaxLines
         layout( new GridPanel(2,1) { 
-                    contents += new Label("Enter max lines: (integer >= " + minLines + ")")
-                    contents += new Label("(<" + minLines + " will make there be no maximum)") 
+                    contents += new Label("Enter new rule right-hand-side:")
+                    contents += new Label(lhs + " -> ")
                 } ) = North
         layout(linesInput) = Center
         layout(new FlowPanel {
@@ -107,28 +95,58 @@ class MaxLinesDialog extends Dialog {
     
     /** 
      * processes the input for the dialog when the user clicks OK or presses Enter 
-     * @param input		The input string being evaluated as the new value for the Console's maximum lines.
+     * @param input		The input string for the rule's RHS.
      */
     private def enterInput(input : String) : Unit = {
         // if the input is an integer > 0, proceed to set the decompression depth to the input. 
         // Otherwise, just close the dialog.
+        val rhs = input
         
         try {
-            val fieldInt = input.toInt
-            mainGUI.consolePanel.setMaxLines(fieldInt)
-            EvaConfig.replMaxLines = fieldInt
-            EvaConfig.save
+            val openDirectory = EvaConfig.lastOpenPath
+            val fc = new FileChooser(new java.io.File(openDirectory))
+            fc.fileFilter = new EliFileFilter
+      			val result = fc.showSaveDialog(null)
+      			val selFile = fc.selectedFile
+      			if(selFile != null && result == FileChooser.Result.Approve) {
+      				EvaConfig.lastOpenPath = selFile.getParent
+      				EvaConfig.save
+				
+                var filePath = selFile.getPath
+                if(!filePath.endsWith(".eli")) filePath += ".eli"
+                
+                // create the parse string for the new rule declaration.
+                var ruleDecl = """decl.{rule
+    """ + lhs + """
+    -> 
+    """ + rhs
+                if(!rhs.contains("#rulesets"))
+                    ruleDecl += """
+    
+    #rulesets DEFAULT"""
+                ruleDecl += """
+}
+"""
+                
+                // save the rule to the file.
+                val fw = new java.io.FileWriter(filePath)
+                fw.write(ruleDecl)
+                fw.close
+                
+                // declare the rule in our context.
+                GUIActor ! "IgnoreNextTree"
+                GUIActor ! ("ReplInput", ruleDecl)
+      		  }
             // close the dialog when we finish processing input
             close
         } catch {
-            case _ : Throwable =>
+            case _ =>
         }
     }
     
     // open the dialog when it is finished setting up
     open
 }
-
 
 
 
