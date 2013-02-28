@@ -64,23 +64,23 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   /** black, just black. */
   val textColor = new Color(0x000000)
   
-  /** comment color: Twilight lavender */
+  /** comment node color: Twilight lavender */
   val comBoxColor = new Color(0xddddff)
   val comBorderColor = new Color(0x5555aa)
   
-  /** rewritten atom colors: Dash blue */
+  /** expandable node colors: Dash blue */
   val boxColor = new Color(0xd7e9ff)
   val borderColor = new Color(0x77a9dd)
   
-  /** verbatim atom colors: Apple orange */
-  val verbBoxColor = new Color(0xffeecc)
-  val verbBorderColor = new Color(0xddaa77)
+  /** debug node colors: Apple orange */
+  val debugBoxColor = new Color(0xffeecc)
+  val debugBorderColor = new Color(0xddaa77)
   
-  /** selected colors : Flutter yellow */
+  /** selected node colors : Flutter yellow */
   val selectedBoxColor = new Color(0xffffcc)
   val selectedBorderColor = new Color(0xaaaa55) 
   
-  /** leaf colors: Rare grey */
+  /** leaf node colors: Rare grey */
   val leafBoxColor = new Color(0xf8f8ff) // leaves don't have a border color. They use the border color of their actual type.
   val selectedLeafBoxColor = new Color(0xffffee)
   
@@ -246,12 +246,6 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
       }
     }
   }
-  
-  
-  
-  
-  
-  
 }
 
 

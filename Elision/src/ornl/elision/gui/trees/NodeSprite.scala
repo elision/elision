@@ -43,8 +43,6 @@ import sage2D.sprites.Sprite
 import sage2D.Camera
 import collection.mutable.ArrayBuffer
 
-import ornl.elision.gui._
-
 /**
  * A sprite used to represent a rewritten term node in a TreeSprite.
  * The x,y coordinates for NodeSprites are relative to their parent's x,y 

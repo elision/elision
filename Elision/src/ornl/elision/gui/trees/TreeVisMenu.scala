@@ -61,7 +61,9 @@ object TreeVisMenu {
                 GUIActor ! ("OpenTree", selFile)
       }
     })
-        
+    
+    val saveSubMenu = new Menu("Save")
+    
     val saveTreeItem = new MenuItem(Action("Save Tree Visualization as XML") {
       val fc = new FileChooser(new java.io.File(openDirectory))
             fc.fileFilter = new TreeXMLFileFilter
@@ -87,8 +89,11 @@ object TreeVisMenu {
         GUIActor ! ("SaveTreeJSON", selFile)
       }
     })
-
-    // Tree menu    
+  
+  saveSubMenu.contents += saveTreeItem
+  saveSubMenu.contents += saveJSONTreeItem
+  
+  // Tree menu    
   val treeMenu = new Menu("Tree")
   treeMenu.mnemonic = event.Key.T
 

@@ -46,6 +46,11 @@ import sage2D.GamePanel
 class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
     var selectingRuleLHS = false
     
+    /** A right-click menu that appears when you right-click a node. */
+    val nodeRClickMenu = new NodeRightClickMenu
+    
+    changeTree(elision.sprites.ElisionWelcomeTree)
+    
     override def selectNode(clickedNode : NodeSprite) : Unit = {
         super.selectNode(clickedNode)
         
@@ -57,6 +62,8 @@ class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
         }
     }
     
+    override def decompDepth : Int = EvaConfig.decompDepth
+    
     override def render(g : Graphics2D) : Unit = {
         super.render(g)
         
@@ -64,6 +71,15 @@ class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
         g.setColor(new Color(0x000000))
         if(selectingRuleLHS) {
             g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
+        }
+    }
+    
+    listenTo(this)
+    reactions += {
+      case nce : NodeClickedEvent =>
+        val clickedNode = nce.node
+        if(mouse.justRightPressed) {
+          nodeRClickMenu.show(game.peer, mouseScreenPosition.getX.toInt, mouseScreenPosition.getY.toInt, clickedNode)
         }
     }
 }

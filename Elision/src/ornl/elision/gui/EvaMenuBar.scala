@@ -160,8 +160,7 @@ class EvaMenuBar extends MenuBar {
           this.contents += fileMenu
             fileMenu.contents += openItem
             fileMenu.contents += trees.TreeVisMenu.openTreeItem
-            fileMenu.contents += trees.TreeVisMenu.saveTreeItem
-            fileMenu.contents += trees.TreeVisMenu.saveJSONTreeItem
+            fileMenu.contents += trees.TreeVisMenu.saveSubMenu
             fileMenu.contents += quitItem
           
           this.contents += viewMenu

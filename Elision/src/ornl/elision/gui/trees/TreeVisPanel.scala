@@ -37,7 +37,6 @@
 
 package ornl.elision.gui.trees
 
-import scala.swing.Publisher
 import scala.swing.BorderPanel.Position._
 import scala.concurrent.ops._
 import sys.process._
@@ -52,8 +51,6 @@ import javax.swing.SwingWorker
 import sage2D._
 import sage2D.input._
 
-import ornl.elision.gui._
-
 
 /**
  * This panel shall display a tree structure showing the rewriting hierarchy 
@@ -66,9 +63,12 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   /** Keeps track of the mouse's position in world coordinates */
   var mouseWorldPosition : Point2D = new Point2D.Double(0,0)
   
+  /** Keeps track of the mouse's position in screen coordinates. Necessary because of multi-threadedness. */
+  var mouseScreenPosition : Point2D = new Point2D.Double(0,0)
+  
   /** The sprite representing the visualization of the rewrite tree */
-  var treeSprite : TreeSprite = elision.sprites.ElisionWelcomeTree //.buildWelcomeTree
-  treeSprite.selectNode(treeSprite.root, EvaConfig.decompDepth) 
+  var treeSprite : TreeSprite = null
+  changeTree(DefaultTreeSprite)
   
   var timerLock = false
   var isLoading = false
@@ -79,9 +79,6 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
   
   /** The Image containing the latest rendering of the visualization tree. */
   var renderedImage : Image = new BufferedImage(640,480, TreeVisPanel.imageType)
-
-  /** A right-click menu that appears when you right-click a node. */
-  val nodeRClickMenu = new NodeRightClickMenu
   
   /** 
    * We actually run the logic for this level is a thread separate from the EDT. 
@@ -159,18 +156,13 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     
     val clickedNodeScreenPos = clickedNode.getScreenPosition
     camera.moveCenter(clickedNodeScreenPos)
-    treeSprite.selectNode(clickedNode, EvaConfig.decompDepth)
+    treeSprite.selectNode(clickedNode, decompDepth)
     
     // Let registered Reactors know that the node has been clicked.
     publish(new NodeClickedEvent(clickedNode))
     
     camera.x = clickedNode.worldX
     camera.y = clickedNode.worldY
-    
-    // right-clicking a node opens a popup menu.
-    if(mouse.justRightPressed) {
-      nodeRClickMenu.show(game.peer, mouse.position.getX.toInt, mouse.position.getY.toInt, clickedNode)
-    }
   }
   
   /** 
@@ -178,21 +170,25 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
    * It's mostly just processing mouse input for controlling the camera and selecting nodes.
    */
   def threadlogic : Unit = {
+    // There could be a change in the mouse's position between calls to mouse due
+    // to the threaded nature of this Level. So, make sure we're using only one
+    // mouse screen position per iteration.
+    mouseScreenPosition = mouse.position
     
     if(mouse.justLeftPressed || mouse.justRightPressed) {
       //    requestFocusInWindow
       val clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
       selectNode(clickedNode)
-      camera.startDrag(mouse.position)
+      camera.startDrag(mouseScreenPosition)
     }
     if(mouse.isLeftPressed) {
-      camera.drag(mouse.position)
-      camera.startDrag(mouse.position)
+      camera.drag(mouseScreenPosition)
+      camera.startDrag(mouseScreenPosition)
     }
     if(mouse.wheel == -1)
-      camera.zoomAtScreen(10.0/7.0, mouse.position)
+      camera.zoomAtScreen(10.0/7.0, mouseScreenPosition)
     if(mouse.wheel == 1)
-      camera.zoomAtScreen(7.0/10.0, mouse.position)
+      camera.zoomAtScreen(7.0/10.0, mouseScreenPosition)
     
     // update the camera's transform based on its new state.
     camera.pWidth = game.size.width
@@ -200,8 +196,20 @@ class TreeVisPanel(game : GamePanel) extends Level(game, null) with HasCamera {
     camera.updateTransform
     
     // update the mouse's current world coordinates
-    mouseWorldPosition = camera.screenToWorldCoords(mouse.position)
+    mouseWorldPosition = camera.screenToWorldCoords(mouseScreenPosition)
   }
+  
+  
+  /** Changes the tree currently being viewed. */
+  def changeTree(newTree : TreeSprite) : Unit = {
+    treeSprite = newTree
+    treeSprite.selectNode(treeSprite.root, decompDepth) 
+    camera.reset
+  }
+  
+  /** Gets the decompression depth of trees in this visualization. Default implementation returns 3.*/
+  def decompDepth : Int = 3
+  
 }
 
 /** */
@@ -272,7 +280,18 @@ class TreeVisThread(val treeVis : TreeVisPanel, val gt : GameTimer) extends Thre
 
 
 
-
+/** 
+ * Eva's welcome message tree for Elision mode.
+ */
+object DefaultTreeSprite extends TreeSprite(0,0) {
+  makeRoot("root")
+    root.makeChild("This ") 
+    root.makeChild("tree") 
+      root(1).makeChild("is") 
+      root(1).makeChild("just")
+        root(1)(1).makeChild("an") 
+        root(1)(1).makeChild("example.") 
+}
 
 
 
