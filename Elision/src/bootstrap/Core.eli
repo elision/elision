@@ -229,6 +229,24 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
+decl.{! is_constant($x): BOOLEAN
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isConstant) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is a constant."
+  #detail=
+  "If the atom $x is a constant, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "zealous evaluation."
+}
+
 decl.{! is_bindable($x): BOOLEAN
   #handler=
   """
