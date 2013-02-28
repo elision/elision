@@ -35,60 +35,57 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.elision
+package ornl.elision.gui.menus.filefilters
 
-import java.awt._
-import ornl.elision.gui._
-import ornl.elision.gui.menus.NodeRightClickMenu
-import ornl.elision.gui.menus.RulePredDialog
-import ornl.elision.gui.trees._
-import sage2D.GamePanel
 
-/** An extension of TreeVisPanel that handles some Elision-specific functions. */
-class EliTreeVisPanel(game : GamePanel) extends TreeVisPanel(game) {
-    var selectingRuleLHS = false
-    
-    /** A right-click menu that appears when you right-click a node. */
-    val nodeRClickMenu = new NodeRightClickMenu
-    
-    changeTree(elision.sprites.ElisionWelcomeTree)
-    
-    override def selectNode(clickedNode : NodeSprite) : Unit = {
-        super.selectNode(clickedNode)
+/** A FileFilter that only accepts .treexml files */
+class TreeXMLFileFilter extends javax.swing.filechooser.FileFilter  {
+    def accept(f : java.io.File) : Boolean = {
+        if(f.isDirectory) return true
         
-        // Interactive rule creation: User selects an atom node for the LHS and then 
-        // inputs the RHS and saves it to an eli file.
-        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
-            val ruleDia = new RulePredDialog(clickedNode.term)
-            selectingRuleLHS = false
-        }
+        val name = f.getName
+        val lastDot = name.lastIndexOf('.')
+        val ext = name.drop(lastDot+1)
+        if(ext == "treexml") true
+        else false
     }
     
-    override def decompDepth : Int = EvaConfig.decompDepth
-    
-    override def render(g : Graphics2D) : Unit = {
-        super.render(g)
+    def getDescription : String = {
+        "Eva treexml files"
+    }
+}
+
+/** A FileFilter that only accepts .treejson files */
+class TreeJSONFileFilter extends javax.swing.filechooser.FileFilter  {
+    def accept(f : java.io.File) : Boolean = {
+        if(f.isDirectory) return true
         
-        val helpPromptY = (this.game.size.getHeight-10).toInt
-        g.setColor(new Color(0x000000))
-        if(selectingRuleLHS) {
-            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
-        }
+        val name = f.getName
+        val lastDot = name.lastIndexOf('.')
+        val ext = name.drop(lastDot+1)
+        if(ext == "treejson") true
+        else false
     }
     
-    listenTo(this)
-    reactions += {
-      case nce : NodeClickedEvent =>
-        val clickedNode = nce.node
-        if(mouse.justRightPressed) {
-          nodeRClickMenu.show(game.peer, mouseScreenPosition.getX.toInt, mouseScreenPosition.getY.toInt, clickedNode)
-        }
+    def getDescription : String = {
+        "Eva treejson files"
     }
 }
 
 
-
-
-
-
-
+/** A FileFilter that only accepts .treexml and .treejson files */
+class TreeFileFilter extends javax.swing.filechooser.FileFilter  {
+    def accept(f : java.io.File) : Boolean = {
+        if(f.isDirectory) return true
+        
+        val name = f.getName
+        val lastDot = name.lastIndexOf('.')
+        val ext = name.drop(lastDot+1)
+        if(ext == "treejson" || ext == "treexml") true
+        else false
+    }
+    
+    def getDescription : String = {
+        "Eva treejson and treexml files"
+    }
+}

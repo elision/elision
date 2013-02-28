@@ -35,7 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.elision
+package ornl.elision.gui.menus.filefilters
 
 
 /** A FileFilter that only accepts .eli files */
