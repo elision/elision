@@ -35,12 +35,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package ornl.elision.gui.trees
+package ornl.elision.gui.elision
 
 import javax.swing.JPopupMenu
 import javax.swing.JMenuItem
 import java.awt.event.ActionListener
 import java.awt.event.ActionEvent
+
+import ornl.elision.gui.trees.NodeSprite
 
 /** A menu that appears when a node is right-clicked. */
 class NodeRightClickMenu extends JPopupMenu with ActionListener {
@@ -54,7 +56,7 @@ class NodeRightClickMenu extends JPopupMenu with ActionListener {
   def actionPerformed(e : ActionEvent) : Unit = {
     val source = e.getSource
     if(source == createRuleItem) {
-      val ruleDia = new ornl.elision.gui.elision.RulePredDialog(node.term)
+      val ruleDia = new RulePredDialog(node.term)
     }
   }
   

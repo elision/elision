@@ -43,8 +43,6 @@ import sage2D.sprites.Sprite
 import sage2D.Camera
 import collection.mutable.ArrayBuffer
 
-import ornl.elision.gui._
-
 /**
  * A sprite used to represent a rewritten term node in a TreeSprite.
  * The x,y coordinates for NodeSprites are relative to their parent's x,y 
@@ -68,9 +66,14 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   var offsetY : Double = 0
   
   /** 
-   * This node's current number of leaf nodes (any decompressed descendant 
-   * node that either has no children or whose children are compressed counts 
-   * as a leaf node) 
+   * This node's subtree's adjusted number of expanded leaf nodes. 
+   * This isn't the actual number of leaf nodes and is really just used for
+   * computing the layout of the nodes in the subtree.
+   */
+  var _adjustedLeafCount : Int = 0
+  
+  /**
+   * The number of leaves in this node's currently expanded subtree.  
    */
   var numLeaves : Int = 0
   
@@ -330,19 +333,115 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
       true
   }
   
+  
   /**
-   * Obtains the position of a child node relative to this node.
+   * Counts the number of expanded leaves in this node's subtree.
+   * This is recursively computed for all nodes in the subtree and the leaf
+   * counts are stored in the numLeaves variable of each node for later use.
+   * @return    The number of "leaves" in this node's expanded subtree.
+   */
+  def countLeaves : Int = {
+    this.numLeaves = 0
+    
+    for(child <- this.children if !child.isCompressed) {
+      this.numLeaves += math.max(1, child.countLeaves)
+    }
+    
+    this.numLeaves
+  }
+  
+  
+  /**
+   * Obtains the expanded position of a child node relative to this node.
    * @param index    the index of the child whose position we need.
    * @return      the child node's position relative to its parent.
    */
   def getChildPosition(index : Int) : geom.Point2D = {
     val longestSib = getLongestSibling
-    val childX = longestSib - box.width + tree.defX + 5*numLeaves
+    val childX = longestSib - box.width + tree.defX + 5*_adjustedLeafCount
     val childY = tree.defY*index + children(index).offsetY
     
     new geom.Point2D.Double(childX,childY)
   }
+  
+  
+  /** 
+   * Computes the layout metrics for this subtree.
+   */
+  def computeSubtreeMetrics : Unit = {
+    _countAdjustedLeaves
+    _computeYOffsets
+  }
+  
+  /**
+   * Recursively computes what the world coordinates for all nodes in this node's 
+   * expanded subtree. These coordinates are stored in their nodes for later use.
+   *
+   * @return    The upper and lower bounding y-coordinates of this node's 
+   *            expanded subtree.
+   */
+  def _computeYOffsets : (Double, Double) = {
+    // the root node has no y-offset. Just set its world coordinates to that of the tree.
+    if(this == tree.root) {
+      worldX = tree.x
+      worldY = tree.y
+    }
+    
+    // The bounds of this node's box are a good place to start.
+    this.subTreeUpperY = this.worldY + this.box.y
+    this.subTreeLowerY = this.worldY + this.box.y + this.box.height
+    
+    // The number of leaves of previous sibling nodes will be used to determine 
+    // what the child's y-offset should be. 
+    var accumulatedChildYOffset = 0 - math.max(this._adjustedLeafCount - 1, 0)/2
+    
+    // Compute the y-bounds of the expanded children too.
+    for(child <- this.children if !child.isCompressed) {
 
+      val leafOffset = math.max(child._adjustedLeafCount - 1,0)
+      
+      // compute the child's y-offset with magic
+      child.offsetY = (accumulatedChildYOffset + leafOffset/2)*tree.defY
+      
+      // add this child's adjusted leaves onto accumulatedChildYOffset.
+      accumulatedChildYOffset += leafOffset
+      
+      // Compute the child's world coordinates.
+      val childPos : geom.Point2D = this.getChildPosition(child.index)
+      child.worldX = this.worldX + childPos.getX + this.box.width
+      child.worldY = this.worldY + childPos.getY
+      
+      // recursively compute the y-offsets.
+      val (subUpper, subLower) = child._computeYOffsets
+      this.subTreeUpperY = math.min(this.subTreeUpperY, subUpper)
+      this.subTreeLowerY = math.max(this.subTreeLowerY, subLower)
+    } // endfor
+    
+    (this.subTreeUpperY, this.subTreeLowerY)
+  }
+  
+  
+  /**
+   * Counts the number of expanded leaves in this node's subtree for the 
+   * purpose of determining layout metrics. Multilined nodes may count 
+   * as more than 1 leaf.
+   * @return    An adjusted number of "leaves" in this node's expanded subtree.
+   */
+  def _countAdjustedLeaves : Int = {
+    this._adjustedLeafCount = 0
+    
+    var numDecompChildren = 0
+    
+    for(child <- this.children if !child.isCompressed) {
+      numDecompChildren += 1
+      this._adjustedLeafCount += math.max(1,child._countAdjustedLeaves)
+    }
+    
+    // count multi-lined nodes as more than 1 node. There is probably a better way to do this...
+    this._adjustedLeafCount = math.max(this._adjustedLeafCount, this._excessHeight/(tree.font.getSize+5) + 0.5).toInt 
+    this._adjustedLeafCount
+  }
+  
   
   /**
    * Gets the width of the longest sibling's box.
@@ -367,9 +466,13 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   def getWorldPosition : geom.Point2D = {
     new geom.Point2D.Double(worldX,worldY)
   }
+
   
-  /** Returns the excess height of this node in pixels beyond what it would normally be if its label were only 1 line. */
-  def excessHeight : Int = {
+  /** 
+   * Returns the excess height of this node in pixels beyond what it would 
+   * normally be if its label were only 1 line. 
+   */
+  def _excessHeight : Int = {
     boxHeight - (tree.font.getSize+5)
   }
   

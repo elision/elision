@@ -901,11 +901,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                             treeSprite = treeBuilder.loadFromFileJSON(file)
                         
                         if(treeSprite != null) {
-                            treeVisPanel.treeSprite = treeSprite
-                        
-                            // once the tree visualization is built, select its root node and center the camera on it.
-                            treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
-                            treeVisPanel.camera.reset
+                            treeVisPanel.changeTree(treeSprite)
                         }
                         
                         GUIActor ! ("loading", false)
@@ -978,13 +974,7 @@ class TreeBuilderActor(val treeBuilder : TreeBuilder) extends Actor {
                 
                 GUIActor ! ("loading", true)
                 if(treeVisPanel != null && !ignoreNextTree) {
-                    
-                    treeVisPanel.treeSprite = treeBuilder.finishTree
-                    
-                    // once the tree visualization is built, select its root node and center the camera on it.
-                    treeVisPanel.selectNode(treeVisPanel.treeSprite.root)
-                    treeVisPanel.camera.reset
-                    
+                  treeVisPanel.changeTree(treeBuilder.finishTree)
                 }
                 
                 ignoreNextTree = false
