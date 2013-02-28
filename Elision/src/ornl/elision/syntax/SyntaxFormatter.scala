@@ -88,6 +88,10 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
    * @param ends      an empty list of insertion indices for </font> tags. This will be populated by this method.
    */
   def _applyRegexes(txt: String, prevChomped : Int, starts : ListBuffer[Int], colors : ListBuffer[String], ends : ListBuffer[Int], depth : Int = 0) : Unit = {
+    if(regexes == null) {
+      return
+    }
+    
     // a consumable copy of the source string.
     var text = txt
     
