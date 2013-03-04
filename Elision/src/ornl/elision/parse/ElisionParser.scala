@@ -37,8 +37,18 @@ import ornl.elision.core.BasicAtom
 import ornl.elision.core.TypeUniverse
 import ornl.elision.core.MapPair
 import ornl.elision.core.Apply
-import ornl.elision.core.Identity
 import ornl.elision.core.Absorber
+import ornl.elision.core.Identity
+import ornl.elision.core.Associative
+import ornl.elision.core.Commutative
+import ornl.elision.core.Idempotent
+import ornl.elision.core.NoProps
+import ornl.elision.core.Variable
+import ornl.elision.core.MetaVariable
+import ornl.elision.core.{ANY => EANY}
+import ornl.elision.core.Lambda
+import ornl.elision.core.SpecialForm
+
 
 
 /**
@@ -71,7 +81,37 @@ object AST {
   def absorber(atom: AST) = new AST {
     def interpret(context: Context) = Absorber(atom.interpret(context))
   }
-  
+  def identity(atom: AST) = new AST {
+    def interpret(context: Context) = Identity(atom.interpret(context))
+  }
+  def associative(atom: AST) = new AST {
+    def interpret(context: Context) = Associative(atom.interpret(context))
+  }
+  def commutative(atom: AST) = new AST {
+    def interpret(context: Context) = Commutative(atom.interpret(context))
+  }
+  def idempotent(atom: AST) = new AST {
+    def interpret(context: Context) = Idempotent(atom.interpret(context))
+  }
+  def variable(meta: Boolean, name: String, byname: Boolean,
+      guard: Option[AST], typ: Option[AST], tags: List[String]) = new AST {
+    def interpret(context: Context) = if (meta) {
+      MetaVariable(typ.getOrElse(known(EANY)).interpret(context), name,
+          guard.getOrElse(known(true)).interpret(context), tags.toSet, byname)
+    } else {
+      Variable(typ.getOrElse(known(EANY)).interpret(context), name,
+          guard.getOrElse(known(true)).interpret(context), tags.toSet, byname)
+    }
+  }
+  def lambda(param: AST, body: AST) = new AST {
+    def interpret(context: Context) =
+      Lambda(param.interpret(context).asInstanceOf[Variable],
+          body.interpret(context))
+  }
+  def special(tag: AST, content: AST) = new AST {
+    def interpret(context: Context) =
+      SpecialForm(tag.interpret(context), content.interpret(context))
+  }
 }
 
 
@@ -182,19 +222,18 @@ extends Parser with Fickle {
    * {{{
    * FirstAtom ::= "(" Atom ")"
    *             | "^TYPE"
+   *             | ParsedVariable
+   *             | "\" ParsedVariable "." FirstAtom
+   *             | "{:" Atom Atom ":}"
    * }}}
    */
   def FirstAtom: Rule1[AST] = rule {
     WS ~ (
         "( " ~ Atom ~ ") " |
-        
-        "^TYPE " ~> (x => known(TypeUniverse))
-        
-//        ParsedVariable |
-        
-//        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom |
-        
-//        "{: " ~ Atom ~ Atom ~ ":} " |
+        "^TYPE " ~> (x => known(TypeUniverse)) |
+        ParsedVariable |
+        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> (lambda(_,_)) |
+        "{: " ~ Atom ~ Atom ~ ":} " ~~> (special(_,_))
         
 //        "{ " ~ ESymbol ~ (
 //            zeroOrMore(Atom) ~ zeroOrMore(
@@ -224,13 +263,21 @@ extends Parser with Fickle {
   // Parse a variable.
   //----------------------------------------------------------------------
   
+  /**
+   * Parse a variable or metavariable.
+   * 
+   * {{{
+   * ( "`$``$`" | "`$`" ) ESymbol
+   * ("{" Atom "}")? (":" FirstAtom)? ("@" ESymbol)*
+   * }}}
+   */
   def ParsedVariable = rule {
-    ("$$" | "$") ~ (
-        (ESymbol | EString) ~
+    ("$$" ~ push(true) | "$" ~ push(false)) ~ (
+        (ESymbol ~ push(false) | EString ~ push(true)) ~
         optional("{ " ~ Atom ~ "} ") ~
         optional(": " ~ FirstAtom) ~
         zeroOrMore("@" ~ ESymbol)
-    )
+    ) ~~> (variable(_, _, _, _, _, _))
   }.label("a variable")
   
   //----------------------------------------------------------------------
@@ -296,41 +343,71 @@ extends Parser with Fickle {
   /**
    * Parse a list of atoms, separated by commas.  No concept of associativity,
    * commutativity, etc., is inferred at this point.
+   * 
+   * {{{
+   * ParsedRawAtomSeq ::= Atom ("," ParsedRawAtomSeq)*
+   * }}}
    */
   def ParsedRawAtomSeq = rule {
     zeroOrMore(Atom, ", ")
   }.label("a comma-separated list of atoms")
   
-  /** Parse an algebraic properties specification. */
+  /**
+   * Parse an algebraic properties specification.
+   * 
+   * {{{
+   * ParsedAlgProp ::=
+   *   ( "B[" Atom "]"
+   *   | "D[" Atom "]"
+   *   | "A" ("[" Atom "]")?
+   *   | "C" ("[" Atom "]")?
+   *   | "D" ("[" Atom "]")?
+   *   | "!A"
+   *   | "!C"
+   *   | "!I" )*
+   * }}}
+   */
   def ParsedAlgProp = rule {
     (zeroOrMore(
-        ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~>
-          (absorber(_)) |
-        ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~>
-          (known(Identity(_)))|
-        ignoreCase("A") ~ optional("[ " ~ Atom ~ "]") |
-        ignoreCase("C") ~ optional("[ " ~ Atom ~ "]") |
-        ignoreCase("I") ~ optional("[ " ~ Atom ~ "]") |
-        ignoreCase("!A") |
-        ignoreCase("!C") |
-        ignoreCase("!I")) ~ WS |
-        WS ~ OperatorPropertiesNode
+        ignoreCase("B") ~ "[ " ~ Atom ~ "]" ~~> (absorber(_)) |
+        ignoreCase("D") ~ "[ " ~ Atom ~ "]" ~~> (identity(_)) |
+        ignoreCase("A") ~ optional("[ " ~ Atom ~ "]") ~~>
+          ((x) => associative(x.getOrElse(known(true)))) |
+        ignoreCase("C") ~ optional("[ " ~ Atom ~ "]") ~~>
+          ((x) => commutative(x.getOrElse(known(true)))) |
+        ignoreCase("I") ~ optional("[ " ~ Atom ~ "]") ~~>
+          ((x) => idempotent(x.getOrElse(known(true)))) |
+        ignoreCase("!A") ~> ((x) => associative(known(false))) |
+        ignoreCase("!C") ~> ((x) => commutative(known(false))) |
+        ignoreCase("!I") ~> ((x) => idempotent(known(false)))
+      ) ~ WS |
+      WS ~ OperatorPropertiesNode
     )
   }.label("an algebraic properties specification.")
   
-  /** Parse an operator properties block. */
+  /**
+   * Parse a long-form algebraic properties specification.
+   * 
+   * {{{
+   * OperatorPropertiesNode ::=
+   *   ( "not"? ( "associative" | "commutative" | "idempotent" )
+   *   | "absorber" Atom
+   *   | "identity" Atom ) ("," OperatorPropertiesNode)*
+   * }}}
+   */
   def OperatorPropertiesNode = rule {
     oneOrMore(
-        ignoreCase("absorber") ~ WS ~ Atom |
-        ignoreCase("identity") ~ WS ~ Atom |
+        ignoreCase("absorber") ~ WS ~ Atom ~~> (absorber(_)) |
+        ignoreCase("identity") ~ WS ~ Atom ~~> (identity(_)) |
         ignoreCase("not") ~ WS ~ (
-          ignoreCase("associative") |
-          ignoreCase("commutative") |
-          ignoreCase("idempotent")
+          ignoreCase("associative") ~> ((x) => associative(known(false))) |
+          ignoreCase("commutative") ~> ((x) => commutative(known(false))) |
+          ignoreCase("idempotent") ~> ((x) => idempotent(known(false)))
         ) |
-        ignoreCase("associative") |
-        ignoreCase("commutative") |
-        ignoreCase("idempotent"), WS ~ ", ") ~ WS
+        ignoreCase("associative") ~> ((x) => associative(known(true))) |
+        ignoreCase("commutative") ~> ((x) => commutative(known(true))) |
+        ignoreCase("idempotent") ~> ((x) => idempotent(known(true))),
+        WS ~ ", ") ~ WS
   }.label("operator properties")
 
   //----------------------------------------------------------------------
