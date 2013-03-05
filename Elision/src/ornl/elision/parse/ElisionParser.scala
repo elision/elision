@@ -31,98 +31,14 @@ package ornl.elision.parse
 
 import org.parboiled.scala.{ANY => PANY}
 import org.parboiled.scala._
-import ornl.elision.core.Context
-import ornl.elision.core.Fickle
-import ornl.elision.core.BasicAtom
-import ornl.elision.core.TypeUniverse
-import ornl.elision.core.MapPair
-import ornl.elision.core.Apply
-import ornl.elision.core.Absorber
-import ornl.elision.core.Identity
-import ornl.elision.core.Associative
-import ornl.elision.core.Commutative
-import ornl.elision.core.Idempotent
-import ornl.elision.core.NoProps
-import ornl.elision.core.Variable
-import ornl.elision.core.MetaVariable
-import ornl.elision.core.{ANY => EANY}
-import ornl.elision.core.Lambda
-import ornl.elision.core.SpecialForm
-
-
-
-/**
- * Base class for abstract syntax tree nodes.
- */
-abstract class AST {
-  def interpret(context: Context): BasicAtom
-}
-
-/**
- * Create abstract syntax tree nodes.
- */
-object AST {
-  /**
-   * Make a simple AST around a known atom.
-   * @param atom  The atom to store.
-   * @return  The AST node.
-   */
-  def known(atom: BasicAtom) = new AST {
-    def interpret(context: Context) = atom
-  }
-  def mappair(left: AST, right: AST) = new AST {
-    def interpret(context: Context) =
-      MapPair(left.interpret(context), right.interpret(context))
-  }
-  def apply(left: AST, right: AST) = new AST {
-    def interpret(context: Context) = 
-      Apply(left.interpret(context), right.interpret(context))
-  }
-  def absorber(atom: AST) = new AST {
-    def interpret(context: Context) = Absorber(atom.interpret(context))
-  }
-  def identity(atom: AST) = new AST {
-    def interpret(context: Context) = Identity(atom.interpret(context))
-  }
-  def associative(atom: AST) = new AST {
-    def interpret(context: Context) = Associative(atom.interpret(context))
-  }
-  def commutative(atom: AST) = new AST {
-    def interpret(context: Context) = Commutative(atom.interpret(context))
-  }
-  def idempotent(atom: AST) = new AST {
-    def interpret(context: Context) = Idempotent(atom.interpret(context))
-  }
-  def variable(meta: Boolean, name: String, byname: Boolean,
-      guard: Option[AST], typ: Option[AST], tags: List[String]) = new AST {
-    def interpret(context: Context) = if (meta) {
-      MetaVariable(typ.getOrElse(known(EANY)).interpret(context), name,
-          guard.getOrElse(known(true)).interpret(context), tags.toSet, byname)
-    } else {
-      Variable(typ.getOrElse(known(EANY)).interpret(context), name,
-          guard.getOrElse(known(true)).interpret(context), tags.toSet, byname)
-    }
-  }
-  def lambda(param: AST, body: AST) = new AST {
-    def interpret(context: Context) =
-      Lambda(param.interpret(context).asInstanceOf[Variable],
-          body.interpret(context))
-  }
-  def special(tag: AST, content: AST) = new AST {
-    def interpret(context: Context) =
-      SpecialForm(tag.interpret(context), content.interpret(context))
-  }
-}
 
 
 /**
  * Implement a parser for Elision atoms.
  * 
- * @param context The context to search for rulesets and operators.
  * @param trace   If true, enable tracing.  False by default.
  */
-class ElisionParser(val context: Context, val trace: Boolean = false)
-extends Parser with Fickle {
+class ElisionParser(val trace: Boolean = false) extends Parser {
   import AST._
 
   //----------------------------------------------------------------------
@@ -202,14 +118,14 @@ extends Parser with Fickle {
    * Atom ::= FirstAtom ("->" Atom | ("." FirstAtom)*)
    * }}}
    */
-  def Atom: Rule1[AST] = rule {
+  def Atom: Rule1[BA] = rule {
     FirstAtom ~ WS ~ (
         "-> " ~ Atom ~~> {
-          (left: AST, right: AST) =>
+          (left: BA, right: BA) =>
             mappair(left, right)
         } |
         zeroOrMore(". " ~ FirstAtom) ~~> {
-          (first: AST, rest: List[AST]) =>
+          (first: BA, rest: List[BA]) =>
             rest.foldLeft(first)(apply(_, _))
         }
     )
@@ -225,39 +141,125 @@ extends Parser with Fickle {
    *             | ParsedVariable
    *             | "\" ParsedVariable "." FirstAtom
    *             | "{:" Atom Atom ":}"
+   *             | "{" ESymbol Atom* ("#" ESymbol ("=" Atom | ParsedAtomSeq))* "}"
+   *             | "%" ParsedAlgProp ("(" ParsedRawAtomSeq ")")?
+   *             | ESymbol ( "(" ParsedRawAtomSeq ")"
+   *                       | ":" ("OPREF" | "RSREF" | FirstAtom)
+   *                       )?
    * }}}
    */
-  def FirstAtom: Rule1[AST] = rule {
+  def FirstAtom: Rule1[BA] = rule {
     WS ~ (
         "( " ~ Atom ~ ") " |
-        "^TYPE " ~> (x => known(TypeUniverse)) |
-        ParsedVariable |
-        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> (lambda(_,_)) |
-        "{: " ~ Atom ~ Atom ~ ":} " ~~> (special(_,_))
         
-//        "{ " ~ ESymbol ~ (
-//            zeroOrMore(Atom) ~ zeroOrMore(
-//                "#" ~ ESymbol ~ (
-//                    "= " ~ Atom |
-//                    zeroOrMore(Atom, ", ")
-//                )
-//            )
-//        ) ~ "} " |
+        "^TYPE " ~> {
+          (x => typeuniverse)
+        } |
+        
+        ParsedVariable |
+        
+        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> {
+          (lambda(_,_))
+        } |
+        
+        "{: " ~ Atom ~ Atom ~ ":} " ~~> {
+          (special(_,_))
+        } |
+        
+        "{! " ~ OperatorPrototype ~
+        optional(optional("is ") ~ optional("%") ~
+            (OperatorPropertiesNode | ParsedAlgProp)) ~
+        zeroOrMore(
+          "#" ~ ESymbol ~ (
+              "= " ~ Atom |
+              ParsedRawAtomSeq ~~> {
+                // Convert the sequence of atoms into a sequence atom.
+                atomseq(noprops, _)
+              }
+          )
+        ) ~ "} " ~~> {
+          // Add pairs to the body list for the parts that are specified by
+          // the prototype.
+          (proto, proplist, binds) =>
+            special(sym("operator"), binding(List(
+                "name"->proto._1,
+                "params"->proto._2,
+                "type"->proto._3) ++ binds))
+        } |
+        
+        "{ " ~ ESymbol ~ (
+            zeroOrMore(Atom) ~ zeroOrMore(
+                "#" ~ ESymbol ~ (
+                    "= " ~ Atom |
+                    ParsedRawAtomSeq ~~> {
+                      // Convert the sequence of atoms into a sequence atom.
+                      atomseq(noprops, _)
+                    }
+                )
+            ) ~~> {
+              // Combine the initial list with the remaining list of pairs.
+              (first: List[BA], second: List[(String,BA)]) =>
+                binding(("", atomseq(noprops, first)) :: second)
+            }
+        ) ~ "} " ~~> {
+          // Build the special form using the tag and content.
+          (tag, binds) => (special(sym(tag),binds))
+        } |
 
-//        "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") |
+        "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") ~~> {
+          (proplist, atoms) =>
+            val props = algprop(proplist)
+            if (atoms.isEmpty) props else atomseq(props, atoms.get)
+        } |
 
-//        ESymbol ~ (
-//            "( " ~ ParsedRawAtomSeq ~ ") " |
-//            ": " ~ (
-//                "OPREF " |
-//                "RSREF " |
-//                FirstAtom
-//            )
-//        ) |
+        ESymbol ~ optional(
+            "( " ~ ParsedRawAtomSeq ~ ") " ~~> {
+                (seq) => ('apply, atomseq(noprops, seq))
+            } |
+            ": " ~ (
+                "OPREF " ~ push(('opref, any)) |
+                "RSREF " ~ push(('rsref, any)) |
+                FirstAtom ~~> {
+                  ('typed, _)
+                }
+            )
+        ) ~~> {
+          // Decide what to do based on what symbol was passed along.
+          (name: String, opt: Option[(Symbol, BA)]) =>
+            val data = opt.getOrElse(('type, any))
+            data._1 match {
+              case 'apply => apply(opref(name), data._2)
+              case 'opref => opref(name)
+              case 'rsref => rsref(name)
+              case 'typed => sym(name, data._2)
+            }
+        } |
 
-//        (EVerb | EString | AnyNumber) ~ optional(": " ~ FirstAtom)
+        (EVerb | EString) ~ optional(": " ~ FirstAtom) ~~> {
+          (name, typ) => string(name,typ.getOrElse(any))
+        } |
+        
+        AnyNumber ~ optional(":" ~ FirstAtom)
     )
   }.label("a simple atom")
+  
+  //----------------------------------------------------------------------
+  // Parse an operator prototype.
+  //----------------------------------------------------------------------
+  
+  /**
+   * Parse an operator prototype.
+   * 
+   * {{{
+   * OperatorPrototype ::= ESymbol "(" ParsedRawAtomSeq ")" (":" FirstAtom)?
+   * }}}
+   */
+  def OperatorPrototype = rule {
+    ESymbol ~ "( " ~ ParsedRawAtomSeq ~ ") " ~ optional(": " ~ FirstAtom) ~~> {
+      (name: String, params: List[BA], typ: Option[BA]) =>
+        (sym(name), atomseq(noprops, params), typ.getOrElse(any))
+    }
+  }
   
   //----------------------------------------------------------------------
   // Parse a variable.
@@ -267,8 +269,8 @@ extends Parser with Fickle {
    * Parse a variable or metavariable.
    * 
    * {{{
-   * ( "`$``$`" | "`$`" ) ESymbol
-   * ("{" Atom "}")? (":" FirstAtom)? ("@" ESymbol)*
+   * ParsedVariable ::= ( "`$``$`" | "`$`" ) ESymbol
+   *                    ("{" Atom "}")? (":" FirstAtom)? ("@" ESymbol)*
    * }}}
    */
   def ParsedVariable = rule {
@@ -284,14 +286,26 @@ extends Parser with Fickle {
   // Symbols and strings.
   //----------------------------------------------------------------------
     
-  /** Parse a verbatim block. */
+  /**
+   * Parse a verbatim block.
+   * 
+   * {{{
+   * EVerb ::= [ any text in triple double-quotation-marks ]
+   * }}}
+   */
   def EVerb = rule {
     "\"\"\"".suppressNode ~
     zeroOrMore(&(!"\"\"\"") ~ PANY) ~> (x => x) ~
     "\"\"\" ".suppressNode
   }.label("a verbatim block")
 
-  /** Parse a double-quoted string. */
+  /**
+   * Parse a double-quoted string.
+   * 
+   * {{{
+   * EString ::= "\"" Character* "\""
+   * }}}
+   */
   def EString = rule {
     "\"".suppressNode ~
     zeroOrMore(Character) ~~> (x => construct(x)) ~
@@ -299,20 +313,34 @@ extends Parser with Fickle {
   }.label("a string")
 
   /**
-   * Parse a character in a string.  The character is added to the end of the
-   * string passed in (if any) and the composite string is returned.  Escapes
-   * are interpreted here.
+   * Parse a character in a string.  This may be an escape.
+   * 
+   * {{{
+   * Character ::= EscapedCharacter | NormalCharacter
+   * }}}
    */
   def Character = rule {
     (EscapedCharacter | NormalCharacter) ~> (x => x)
   }.label("a single character")
 
-  /** Parse an escaped character. */
+  /**
+   * Parse an escaped character.
+   * 
+   * {{{
+   * EscapedCharacter ::= "\" ("'" | "\"" | "n" | "r" | "t" | "\")
+   * }}}
+   */
   def EscapedCharacter = rule {
     "\\" ~ anyOf("""`"nrt\""")
   }.label("a character escape sequence")
 
-  /** Parse a normal character. */
+  /**
+   * Parse a normal character.
+   * 
+   * {{{
+   * NormalCharacter ::= [not \ or "]
+   * }}}
+   */
   def NormalCharacter = rule {
     noneOf(""""\""")
   }.label("a character")
@@ -356,15 +384,15 @@ extends Parser with Fickle {
    * Parse an algebraic properties specification.
    * 
    * {{{
-   * ParsedAlgProp ::=
-   *   ( "B[" Atom "]"
-   *   | "D[" Atom "]"
-   *   | "A" ("[" Atom "]")?
-   *   | "C" ("[" Atom "]")?
-   *   | "D" ("[" Atom "]")?
-   *   | "!A"
-   *   | "!C"
-   *   | "!I" )*
+   * ParsedAlgProp ::= OperatorPropertiesNode
+   *                 | ( "B[" Atom "]"
+   *                   | "D[" Atom "]"
+   *                   | "A" ("[" Atom "]")?
+   *                   | "C" ("[" Atom "]")?
+   *                   | "D" ("[" Atom "]")?
+   *                   | "!A"
+   *                   | "!C"
+   *                   | "!I" )*
    * }}}
    */
   def ParsedAlgProp = rule {
