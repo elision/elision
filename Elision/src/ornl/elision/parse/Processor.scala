@@ -30,13 +30,23 @@
 package ornl.elision.parse
 
 import ornl.elision.core._
-import ornl.elision.parse.AtomParser.{Presult, Failure, Success, AstNode}
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
 import ornl.elision.util.Timeable
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasHistory
 import ornl.elision.actors.ReplActor
+import ornl.elision.util.ElisionException
+
+/**
+ * Manage the default parser kind to use.
+ */
+object ProcessorControl {
+  /** The default parser to use. */
+  var parserKind = 'new
+  /** Whether to bootstrap. */
+  var bootstrap = true
+}
 
 /**
  * Indicate that it is possible to enable and disable tracing of parsing at
@@ -129,14 +139,50 @@ with HasHistory {
   /** The queue of handlers, in order. */
   private var _queue = List[Processor.Handler]()
   
-  /** The parser to use. */
-  private var _parser = new AtomParser(context, _trace, _toggle)
+  /** The kind of parser to use. */
+  private var _parserKind = ProcessorControl.parserKind
   
+  /** The parser to use. */
+  private var _parser: AbstractParser = _makeParser
+
   /** Specify the console.  We don't know the number of lines. */
   val console = PrintConsole
   
   /** The list of context checkpoints */
   val checkpoints = new collection.mutable.ArrayBuffer[(java.util.Date, Context)]
+
+  /**
+   * Create the chosen parser.
+   * 
+   * @return The new parser.
+   */
+  private def _makeParser = _parserKind match {
+    case 'old => new AtomParser(context, _trace, _toggle)
+    case 'combinator => new AtomParser(context, _trace, _toggle)
+    case 'new => new ElisionParser(_trace)
+  }
+  
+  /**
+   * Set the parser.
+   * 
+   * @param kind  The kind of parser to use.  Must be one of the known
+   *              values.  At present that is `old`, `combinator`, and `new`.
+   */
+  def setParser(kind: Symbol) {
+    kind match {
+      case 'old =>
+        _toggle = false
+        _parserKind = 'old
+      case 'combinator =>
+        _toggle = true
+        _parserKind = 'old
+      case 'new =>
+        _parserKind = 'new
+      case _ =>
+        throw new ElisionException("Unknown parser: " + kind)
+    }
+    _parser = _makeParser
+  }
   
   /**
    * Display the banner, version, and build information on the current
@@ -281,7 +327,7 @@ with HasHistory {
   def parse(text: String) = {
     _parser.parseAtoms(text) match {
       case Failure(err) => ParseFailure(err)
-      case Success(nodes) => ParseSuccess(nodes map (_.interpret))
+      case Success(nodes) => ParseSuccess(nodes map (_.interpret(context)))
     }
   }
   
@@ -307,7 +353,7 @@ with HasHistory {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
-                val atom = newnode.interpret
+                val atom = newnode.interpret(context)
                 ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
                 ReplActor ! ("Eva", "setSubroot", "interpret")
                 ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
@@ -324,14 +370,13 @@ with HasHistory {
   			  } // Process all the nodes.
     	}
     } catch {
-      case ElisionException(msg) =>
+      case ee: ElisionException =>
         if(_crashRoot) {
           // An error is encountered and execution of the root operation must stop.
-          throw new ElisionException(msg)
-        }
-        else {
+          throw new Exception(ee)
+        } else {
           // An error is encountered, but we only skip the rest of execution at this level.
-          console.error(msg)
+          console.error(ee.msg)
         }
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
@@ -360,7 +405,7 @@ with HasHistory {
     showElapsed
   }
   
-  private def _handleNode(node: AstNode): Option[AstNode] = {
+  private def _handleNode(node: AST.BA): Option[AST.BA] = {
     // Pass the node to the handlers.  If any returns None, we are done.
     var theNode = node
     for (handler <- _queue) {
@@ -407,7 +452,7 @@ with HasHistory {
     if (enable != _trace) {
       // The trace state has changed.  Re-create the parser.
       _trace = enable
-      _parser = new AtomParser(context, _trace, _toggle)
+      _parser = _makeParser
     }
   }
  
@@ -421,7 +466,7 @@ with HasHistory {
     if (enable != _toggle) {
       // The toggle state has changed.  Re-create the parser.
       _toggle = enable
-      _parser = new AtomParser(context, _trace, _toggle)
+      _parser = _makeParser
     }
   }
   
@@ -567,15 +612,15 @@ with HasHistory {
             // and then we will perform more iterations until either all the elements are successfully
             // read in or we are unable to successfully read any more remaining elements. 
             
-            val unresolved = new collection.mutable.Queue[AstNode]
+            val unresolved = new collection.mutable.Queue[AST.BA]
             val origBinds = context.binds
             val origOpLib = context.operatorLibrary
             val origRuleLib = context.ruleLibrary
             
-            // Parse all the elements into AstNodes
+            // Parse all the elements into AST nodes.
             
             corePrint("Parsing operators...")
-            val unresolvedOps = new collection.mutable.Queue[AstNode]
+            val unresolvedOps = new collection.mutable.Queue[AST.BA]
             val reOpLib = new OperatorLibrary(context.operatorLibrary.allowRedefinition)
             
             _parser.parseAtoms(ops) match {
@@ -590,7 +635,7 @@ with HasHistory {
             }
             
             corePrint("Parsing bindings...")
-            val unresolvedBinds = new collection.mutable.Queue[AstNode]
+            val unresolvedBinds = new collection.mutable.Queue[AST.BA]
             
             _parser.parseAtoms(binds) match {
                 case Failure(err) =>
@@ -600,7 +645,7 @@ with HasHistory {
             }
             
             corePrint("Parsing rules...")
-            val unresolvedRules = new collection.mutable.Queue[AstNode]
+            val unresolvedRules = new collection.mutable.Queue[AST.BA]
             val reRuleLib = new RuleLibrary(context.ruleLibrary.allowUndeclared)
             
             _parser.parseAtoms(rules) match {
@@ -632,7 +677,7 @@ with HasHistory {
                     for(i <- 0 until opSize) {
                         val node = unresolvedOps.dequeue
                         try {
-                            node.interpret match {
+                            node.interpret(context) match {
                                 case op : Operator =>
                                     reOpLib.add(op)
                                     corePrint(" Added operator " + op.name)
@@ -653,7 +698,7 @@ with HasHistory {
                     
                     val node = unresolvedBinds.dequeue
                     try {
-                        node.interpret match {
+                        node.interpret(context) match {
                             case reBinds : BindingsAtom =>
                                 context.binds = reBinds.mybinds
                                 corePrint(" Added the bindings")
@@ -675,7 +720,7 @@ with HasHistory {
                     for(i <- 0 until ruleSize) {
                         val node = unresolvedRules.dequeue
                         try {
-                            node.interpret match {
+                            node.interpret(context) match {
                                 case rule : RewriteRule =>
                                     reRuleLib.add(rule)
                                     corePrint(" Added a rule ")
@@ -710,7 +755,7 @@ with HasHistory {
                 while(!unresolvedOps.isEmpty) {
                     val node = unresolvedOps.dequeue
                     try {
-                        node.interpret
+                        node.interpret(context)
                     }
                     catch {
                         case err : Throwable =>
@@ -724,7 +769,7 @@ with HasHistory {
                 while(!unresolvedBinds.isEmpty) {
                     val node = unresolvedBinds.dequeue
                     try {
-                        node.interpret
+                        node.interpret(context)
                     }
                     catch {
                         case err : Throwable =>
@@ -738,7 +783,7 @@ with HasHistory {
                 while(!unresolvedRules.isEmpty) {
                     val node = unresolvedRules.dequeue
                     try {
-                        node.interpret
+                        node.interpret(context)
                     }
                     catch {
                         case err : Throwable =>
@@ -853,7 +898,7 @@ object Processor {
      * @return	An optional replacement node, or `None` if the node should be
      * 					*discarded*.
      */
-    def handleNode(node: AtomParser.AstNode): Option[AstNode] = Some(node)
+    def handleNode(node: AST.BA): Option[AST.BA] = Some(node)
     
     /**
      * Handle an atom.  The default return value for this method is

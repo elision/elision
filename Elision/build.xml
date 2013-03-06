@@ -126,11 +126,13 @@ bin, lib, and other folders.</echo>
 			classpath="${build.classpath}"/>
 		<xmlproperty file="${build.base}/etc/config.xml"
 			collapseattributes="yes"/>
+		<property name="build.version"
+			value="${configuration.version.major}.${configuration.version.minor}.${configuration.version.trivial}"/>
 		<echo level="info">Build information from config.xml:</echo>
 		<echo level="info">  Name ........ ${configuration.name}</echo>
 		<echo level="info">  Maintainer .. ${configuration.maintainer}</echo>
 		<echo level="info">  Web ......... ${configuration.web}</echo>
-		<echo level="info">  Version ..... ${configuration.version.major}.${configuration.version.minor}</echo>
+		<echo level="info">  Version ..... ${build.version}</echo>
 		<echo level="info">  Build ....... ${DSTAMP}${TSTAMP}</echo>
 		<echo level="verbose">Using CLASSPATH=${build.classpath}.</echo>
 		<echo level="info">Starting build of Elision on ${TODAY} at ${TSTAMP}.</echo>
@@ -184,10 +186,11 @@ bin, lib, and other folders.</echo>
 		<copy todir="${build.bin}" overwrite="yes">
 			<fileset dir="${build.src}" includes="**/*.eli"/>
 			<filterset>
-			        <filter token="DSTAMP" value="${DSTAMP}"/>
-			        <filter token="YEAR" value="${YEAR}"/>
-			        <filter token="TODAY" value="${TODAY}"/>
-			        <filter token="TSTAMP" value="${TSTAMP}"/>
+		        <filter token="DSTAMP" value="${DSTAMP}"/>
+		        <filter token="YEAR" value="${YEAR}"/>
+		        <filter token="TODAY" value="${TODAY}"/>
+		        <filter token="TSTAMP" value="${TSTAMP}"/>
+                <filter token="VERSION" value="${build.version}"/>
 		  	</filterset>
 		</copy>
 		<copy file="${build.base}/etc/elision_configuration.dtd"
@@ -201,6 +204,7 @@ bin, lib, and other folders.</echo>
 				<filter token="YEAR" value="${YEAR}"/>
 				<filter token="TODAY" value="${TODAY}"/>
 				<filter token="TSTAMP" value="${TSTAMP}"/>
+				<filter token="VERSION" value="${build.version}"/>
 			</filterset>
 		</copy>
         </target>
@@ -230,7 +234,7 @@ bin, lib, and other folders.</echo>
 			classpathref	="build.classpath"
 			deprecation	="on"
 			unchecked	="on"
-			doctitle	="${configuration.name} API Version ${configuration.version.major}.${configuration.version.minor} Build ${DSTAMP}${TSTAMP}">
+			doctitle	="${configuration.name} API Version ${build.version} Build ${DSTAMP}${TSTAMP}">
 			<include name="**/*.scala"/>
 			<exclude name="**/*.eli"/>
 		</scaladoc>

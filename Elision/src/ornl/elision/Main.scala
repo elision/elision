@@ -36,6 +36,7 @@ import ornl.elision.cli.Switch
 import ornl.elision.cli.ArgSwitch
 import ornl.elision.util.Debugger
 import ornl.elision.util.Version
+import ornl.elision.parse.ProcessorControl
 
 /**
  * This is the entry point when running from the jar file.  This also provides
@@ -106,9 +107,21 @@ object Main extends App {
   // Define the special global switches that can come before the command.
   private val _globals = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
+      Switch(Some("noboot"), Some('N'), "Suppress bootstrapping.",
+          () => {
+            ProcessorControl.bootstrap = false
+            None
+          }),
       ArgSwitch(Some("debug"), Some('d'), "Enable a debugging tag.", "TAG",
           (tag: String) => {
             Debugger.enableDebugModes(tag, Debugger.Mode.ON)
+            None
+          }),
+      ArgSwitch(Some("parser"), Some('p'),
+          "Select the parser to use.  Choices are old, combinator, and new.",
+          "PARSER",
+          (parser: String) => {
+            ProcessorControl.parserKind = Symbol(parser)
             None
           })
   )
