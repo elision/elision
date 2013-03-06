@@ -109,8 +109,7 @@ decl.{! def($op)
 // bootstrap definitions.  Define inc next.  It expects to get access
 // to a set of known, already read files, and we use the executors cache
 // for this.
-decl.
-{! inc($fn: STRING)
+decl.{! inc($fn: STRING)
 #handler=
 """
   // We use a mutable set in the executor cache to store the names of all
@@ -148,8 +147,7 @@ decl.
 }
 
 // Do all your base belong to us?
-decl.
-{! _bomb()
+decl.{! _bomb()
 #handler=
 """
   console.sendln("Somebody set up us the bomb!")
@@ -162,8 +160,7 @@ decl.
 }
 
 // Create an operator that emits the atom as a side effect.
-decl.
-{! print($a: STRING)
+decl.{! print($a: STRING)
 #handler=
 """
   args match {
@@ -177,8 +174,7 @@ decl.
 "Print the provided string literal to the console."
 }
 
-decl.
-{! println($a: STRING)
+decl.{! println($a: STRING)
 #handler=
 """
   args match {
