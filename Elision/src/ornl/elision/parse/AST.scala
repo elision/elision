@@ -54,6 +54,14 @@ import ornl.elision.core.RulesetRef
 import ornl.elision.core.TypeUniverse
 import ornl.elision.core.SymbolLiteral
 import ornl.elision.core.StringLiteral
+import ornl.elision.core.SYMBOL
+import ornl.elision.core.STRING
+import ornl.elision.core.IntegerLiteral
+import ornl.elision.core.FloatLiteral
+import ornl.elision.core.INTEGER
+import ornl.elision.core.FLOAT
+import ornl.elision.core.NamedRootType
+import ornl.elision.core.BOOLEAN
 
 
 /**
@@ -78,6 +86,9 @@ object AST {
   /** Quick reference for an abstract syntax tree node holding a `BasicAtom`. */
   type BA = AST[BasicAtom]
   
+  /** Marker trait used to indicate a "naked" symbol.  These are special. */
+  trait Naked
+  
   /**
    * Make a simple AST around a known atom.
    * 
@@ -89,27 +100,118 @@ object AST {
   }
   
   /**
+   * Process a symbol whose type is unspecified.  These might be special
+   * root type names, or the special literals `true` or `false`.
+   * 
+   * @param value   Value of the symbol.
+   * @return  The resulting AST.
+   */
+  def sym(value: String) = new BA with Naked {
+    def interpret(context: Context) = {
+      value match {
+        case "true" => true
+        case "false" => false
+        case _ =>
+          val lookup = (if (value == "_") "ANY" else value)
+          NamedRootType.get(lookup) match {
+            case Some(nrt) => nrt
+            case _ => SymbolLiteral(SYMBOL, Symbol(value))
+          }
+      }
+    }
+  }
+  
+  /**
    * Quick method to make a symbol AST.
    * 
    * @param value   Value of the symbol.
-   * @param typ     The type AST.  If omitted, it is any.
+   * @param typ     The type AST.
    * @return  The new symbol AST.
    */
-  def sym(value: String, typ: BA = any) = new AST[SymbolLiteral] {
-    def interpret(context: Context) =
-      SymbolLiteral(typ.interpret(context), Symbol(value))
+  def sym(value: String, typ: BA) = new BA {
+    def interpret(context: Context) = {
+      // Check for Boolean literals here.
+      typ.interpret(context) match {
+        case BOOLEAN if value == "true" => true
+        case BOOLEAN if value == "false" => false
+        case t:Any => Literal(t, Symbol(value))
+      }
+    }
   }
   
   /**
    * Quick method to make a string AST.
    * 
    * @param value   Value of the string.
-   * @param typ     The type AST.  If omitted, it is any.
+   * @param typ     The type AST.  If omitted, it is `STRING`.
    * @return  The new string AST.
    */
-  def string(value: String, typ: BA = any) = new AST[StringLiteral] {
+  def string(value: String, typ: BA = known(STRING)) = new AST[StringLiteral] {
     def interpret(context: Context) =
       StringLiteral(typ.interpret(context), value)
+  }
+  
+  /**
+   * Make an AST for a number.
+   * 
+   * @param oflag   Optional flag indicating if the number is negative.
+   * @param whole   The whole part of the number, as radix / digits.
+   * @param frac    The fractional part of the number, as radix / digits.
+   * @param exp     The exponent of the number, as negative flag / radix / digits.
+   * @param otyp    The overriding type for the number.
+   * @return  The constructed literal, either an integer or a float literal.
+   */
+  def number(oflag: Option[Boolean],
+      whole: (Int, String),
+      frac: Option[(Int, String)],
+      exp: Option[(Boolean, Int, String)],
+      otyp: Option[BA]) = new AST[Literal[_]] {
+    def interpret(context: Context) = {
+      // Get flag.
+      val neg = oflag.getOrElse(false)
+      // If either a fractional part or an exponent is specified, interpret
+      // this as a float.  Otherwise interpret this as an integer.
+      if (frac.isEmpty && exp.isEmpty) {
+        // Interpret this as an integer.
+        val typ = otyp.getOrElse(known(INTEGER)).interpret(context)
+        IntegerLiteral(typ,
+            if (neg) -BigInt(whole._2, whole._1)
+            else BigInt(whole._2, whole._1))
+      } else {
+        // Interpret this as a float.  Pull out the pieces.
+        val integer = whole._2
+        val fraction = frac match {
+          case None => ""
+          case Some((base, digits)) => digits
+        }
+        var exponent = exp match {
+          case None => 0
+          case Some((neg, base, digits)) =>
+            if (neg) -Integer.parseInt(digits, base)
+            else Integer.parseInt(digits, base)
+        }
+        
+        // We need to modify the integer and fraction parts to create the
+        // proper significand.  This is done as follows.  If there are n digits
+        // in the fraction, then we need to subtract n from the exponent.  We
+        // converted the exponent into an integer above.
+        
+        // Correct the significand by adding the integer and fractional part
+        // together.  This looks odd, but remember that they are still
+        // strings.
+        val significand = integer + fraction
+        
+        // Now adjust the exponent to account for the fractional part.  Since
+        // the decimal moves right, we subtract from the original exponent.
+        exponent -= fraction.length
+        
+        // Now interpret this as floating point literal.
+        val typ = otyp.getOrElse(known(FLOAT)).interpret(context)
+        FloatLiteral(typ,
+            if (neg) -BigInt(significand, whole._1)
+            else BigInt(significand, whole._1), exponent, whole._1)
+      }
+    }
   }
   
   /**
@@ -142,8 +244,16 @@ object AST {
    * @return  AST for the application.
    */
   def apply(left: BA, right: BA) = new BA {
-    def interpret(context: Context) = 
-      Apply(left.interpret(context), right.interpret(context))
+    def interpret(context: Context) = {
+      // If the left element is a naked symbol, then try to interpret it as
+      // an operator.  Otherwise just interpret it.
+      val op = left.interpret(context) match {
+        case SymbolLiteral(_, value) if left.isInstanceOf[Naked] =>
+          context.operatorLibrary(value.name)
+        case value: Any => value
+      }
+      Apply(op, right.interpret(context))
+    }
   }
   
   /**

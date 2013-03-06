@@ -488,6 +488,22 @@ decl.{! traceparse()
   "tracing."
 }
 
+decl.{! set_parser($parsername: SYMBOL)
+  #handler="""
+    import ornl.elision.parse.Processor
+    args match {
+      case Args(SymbolLiteral(_, name)) =>
+        if (exec.isInstanceOf[Processor]) {
+          emitln("Switching to parser: " + name + ".")
+          exec.asInstanceOf[Processor].setParser(name)
+        }
+      case _ =>
+    }
+    _no_show"""
+  #description="Select the parser to use."
+  #detail="Specify the parser to use.  Choices are old, new, and combinator."
+}
+
 decl.{! _toggleparser_set($parsername: STRING)
   #handler=
   """

@@ -31,15 +31,39 @@ package ornl.elision.parse
 
 import org.parboiled.scala.{ANY => PANY}
 import org.parboiled.scala._
-
+import org.parboiled.errors.ErrorUtils
+import scala.io.Source
 
 /**
  * Implement a parser for Elision atoms.
  * 
  * @param trace   If true, enable tracing.  False by default.
  */
-class ElisionParser(val trace: Boolean = false) extends Parser {
+class ElisionParser(val trace: Boolean = false)
+extends Parser with AbstractParser {
   import AST._
+  
+  //----------------------------------------------------------------------
+  // Perform parsing.
+  //----------------------------------------------------------------------
+    
+  /**
+   * Entry point to parse all atoms from the given source.
+   * 
+   * @param line  The string to parse.
+   * @return  The parsing result.
+   */
+  def parseAtoms(source: Source): Presult = {
+    val tr =
+      if (trace) TracingParseRunner(Atoms)
+      else ReportingParseRunner(Atoms)
+    val parsingResult = tr.run(source)
+    parsingResult.result match {
+      case Some(nodes) => Success(nodes)
+      case None => Failure("Invalid MPL2 source:\n" +
+          ErrorUtils.printParseErrors(parsingResult))
+    }
+  }
 
   //----------------------------------------------------------------------
   // Build character literals.
@@ -183,7 +207,7 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
           (proto, proplist, binds) =>
             special(sym("operator"), binding(List(
                 "name"->proto._1,
-                "params"->proto._2,
+                "params"->atomseq(algprop(proplist.getOrElse(List())), proto._2),
                 "type"->proto._3) ++ binds))
         } |
         
@@ -198,8 +222,10 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
                 )
             ) ~~> {
               // Combine the initial list with the remaining list of pairs.
-              (first: List[BA], second: List[(String,BA)]) =>
-                binding(("", atomseq(noprops, first)) :: second)
+              (first: List[BA], second: List[(String,BA)]) => {
+                if (first.isEmpty) binding(second)
+                else binding(("", atomseq(noprops, first)) :: second)
+              }
             }
         ) ~ "} " ~~> {
           // Build the special form using the tag and content.
@@ -226,20 +252,33 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
         ) ~~> {
           // Decide what to do based on what symbol was passed along.
           (name: String, opt: Option[(Symbol, BA)]) =>
-            val data = opt.getOrElse(('type, any))
+            val data = opt.getOrElse(('plain, any))
             data._1 match {
               case 'apply => apply(opref(name), data._2)
               case 'opref => opref(name)
               case 'rsref => rsref(name)
               case 'typed => sym(name, data._2)
+              case 'plain => sym(name)
             }
         } |
 
         (EVerb | EString) ~ optional(": " ~ FirstAtom) ~~> {
-          (name, typ) => string(name,typ.getOrElse(any))
+          (name, otyp) => otyp match {
+            case Some(typ) => string(name, typ)
+            case None => string(name)
+          }
         } |
         
-        AnyNumber ~ optional(":" ~ FirstAtom)
+        AnyNumber ~ optional(":" ~ FirstAtom) ~~> {
+          // Construct a number from all the pieces.  The number can be either
+          // an integer or a float.
+          (flag: Option[Boolean],
+              whole: (Int, String),
+              frac: Option[(Int, String)],
+              exp: Option[(Boolean, Int, String)], 
+              otyp: Option[BA]) =>
+            number(flag, whole, frac, exp, otyp)
+        }
     )
   }.label("a simple atom")
   
@@ -257,7 +296,7 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
   def OperatorPrototype = rule {
     ESymbol ~ "( " ~ ParsedRawAtomSeq ~ ") " ~ optional(": " ~ FirstAtom) ~~> {
       (name: String, params: List[BA], typ: Option[BA]) =>
-        (sym(name), atomseq(noprops, params), typ.getOrElse(any))
+        (sym(name), params, typ.getOrElse(any))
     }
   }
   
@@ -447,7 +486,7 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    * positive or negative.
    */
   def AnyNumber = rule {
-    optional("-") ~ (
+    optional("-" ~ push(true)) ~ (
       HNumber |
       BNumber |
       DNumber |
@@ -459,7 +498,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    */
   def HNumber = rule {
     HInteger ~
-      optional("." ~ zeroOrMore(HDigit)) ~
+      optional("." ~ zeroOrMore(HDigit) ~> {
+        (16, _)
+      }) ~
       optional(ignoreCase("p") ~ Exponent)
   }.label("a hexadecimal number")
 
@@ -468,7 +509,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    */
   def BNumber = rule {
     BInteger ~
-      optional("." ~ zeroOrMore(BDigit)) ~
+      optional("." ~ zeroOrMore(BDigit) ~> {
+        (2, _)
+      }) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
   }.label("a binary number")
 
@@ -477,7 +520,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    */
   def DNumber = rule {
     DInteger ~
-      optional("." ~ zeroOrMore(DDigit)) ~
+      optional("." ~ zeroOrMore(DDigit) ~> {
+        (10, _)
+      }) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
   }.label("a decimal number")
 
@@ -486,7 +531,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    */
   def ONumber = rule {
     OInteger ~
-      optional("." ~ zeroOrMore(ODigit)) ~
+      optional(".".suppressNode ~ zeroOrMore(ODigit) ~> {
+        (8, _)
+      }) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
   }.label("an octal number")
 
@@ -495,7 +542,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    * linking "e" or "p" exponent indicator.
    */
   def Exponent = rule {
-      optional("+" | "-") ~ AnyInteger
+      optional("+" ~ push(false) | "-" ~ push(true)) ~ AnyInteger ~~> {
+        (sign, num) => (sign.getOrElse(false), num._1, num._2)
+      }
   }.label("an exponent")
 
   /**
@@ -514,7 +563,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    * @return  An unsigned integer.
    */
   def HInteger = rule {
-    ignoreCase("0x") ~ oneOrMore(HDigit)
+    ignoreCase("0x").suppressNode ~ oneOrMore(HDigit) ~> {
+      (16, _)
+    }
   }.label("a hexadecimal integer")
 
   /**
@@ -522,7 +573,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    * @return  An unsigned integer.
    */
   def BInteger = rule {
-    ignoreCase("0b") ~ oneOrMore(BDigit)
+    ignoreCase("0b").suppressNode ~ oneOrMore(BDigit) ~> {
+      (2, _)
+    }
   }.label("a binary integer")
 
   /**
@@ -530,7 +583,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    * @return  An unsigned integer.
    */
   def DInteger = rule {
-    group(("1" - "9") ~ zeroOrMore(DDigit))
+    group(("1" - "9") ~ zeroOrMore(DDigit)) ~> {
+      (10, _)
+    }
   }.label("a decimal integer")
 
   /**
@@ -538,7 +593,9 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
    * @return  An unsigned integer.
    */
   def OInteger = rule {
-    group("0" ~ zeroOrMore(ODigit))
+    group("0" ~ zeroOrMore(ODigit)) ~> {
+      (8, _)
+    }
   }.label("an octal integer")
 
   /** Parse a decimal digit. */
@@ -554,17 +611,6 @@ class ElisionParser(val trace: Boolean = false) extends Parser {
   
   /** Parse a binary digit. */
   def BDigit = rule { "0" | "1" }.label("a binary digit")
-  
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
-  //----------------------------------------------------------------------
   
   //----------------------------------------------------------------------
   // Parse whitespace.
