@@ -126,6 +126,19 @@ trait Console {
   def width_=(size: Int) { _width = size }
   
   /**
+   * Obtains the length of a page of text.  If output (sent at one time)
+   * exceeds this, then the pager is invoked.
+   * @return  The number of lines on the screen, minus one.
+   */
+  def height : Int = { _height }
+  
+  /**
+   * Obtains the number of columns of output until wrapping is assumed.
+   * @return  The number of columns.
+   */
+  def width : Int = { _width }
+  
+  /**
    * Specify a closure to invoke when a screen has filled.  By default this is
    * the pager specified by `defaultPause`.  The pager should return a Boolean
    * value that is true to continue, and false if output should be terminated.
