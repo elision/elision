@@ -412,10 +412,12 @@ class ERepl extends Processor {
    * @return  True on success, and false when a failure is reported.
    */
   def bootstrap(quiet: Int = 1): Boolean = {
+    // See if we are told not to bootstrap.
+    if (! ProcessorControl.bootstrap) return true
+    
     // Load all the startup definitions, etc.
     console.reset
     console.quiet = quiet
-  //console.write("bootstrapFile = " + bootstrapFile)
     if (!read(bootstrapFile, false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load " + bootstrapFile + ".  Cannot continue.")
@@ -476,7 +478,6 @@ class ERepl extends Processor {
           return
         }
     }
-
     
     // Report startup time.
     stopTimer

@@ -107,7 +107,7 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   /** 
    * Creates (or replaces) the root node for this tree. 
    * @param term      The root's label
-   * @isComment       If true, the root's label won't use syntax coloring.
+   * @param isComment If true, the root's label won't use syntax coloring.
    * @return          The root node.
    */
   def makeRoot(term : String = "Root", isComment : Boolean = true) : NodeSprite = {

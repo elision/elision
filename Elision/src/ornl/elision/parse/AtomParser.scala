@@ -61,27 +61,6 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * supporting functions.
  */
 object AtomParser {
-	
-	//----------------------------------------------------------------------
-	// Parse result.
-	//----------------------------------------------------------------------
-  
-  /** A parse result. */
-  abstract sealed class Presult
-  
-  /**
-   * The parse was successful.
-   * 
-   * @param nodes	The nodes parsed.
-   */
-  case class Success(nodes: List[AstNode]) extends Presult
-  
-  /**
-   * The parse failed.
-   * 
-   * @param err	The reason for the parsing failure.
-   */
-  case class Failure(err: String) extends Presult
 
   //----------------------------------------------------------------------
   // Build character literals.
@@ -144,12 +123,19 @@ object AtomParser {
 	/**
 	 * An abstract syntax tree node resulting from parsing an atom.
 	 */
-	sealed abstract class AstNode {
+	sealed abstract class AstNode extends AST.BA {
 	  /**
 	   * Interpret this abstract syntax tree to generate an atom.
 	   * @return	The generated atom.
 	   */
 	  def interpret: BasicAtom
+	  
+	  /**
+	   * Interpret this abstract syntax tree to generate an atom.
+	   * @param context    The context.
+	   * @return The generated atom.
+	   */
+	  def interpret(context: Context): BasicAtom = interpret
 	}
 	
 	//----------------------------------------------------------------------
@@ -1022,7 +1008,7 @@ object AtomParser {
  */
 class AtomParser(val context: Context, val trace: Boolean = false,
     toggle: Boolean = false)
-  extends Parser with Fickle {
+  extends Parser with AbstractParser with Fickle {
   import AtomParser._
 
   //----------------------------------------------------------------------
@@ -1035,7 +1021,7 @@ class AtomParser(val context: Context, val trace: Boolean = false,
    * @param line	The string to parse.
    * @return	The parsing result.
    */
-  def parseAtoms(line: String): Presult = {
+  override def parseAtoms(line: String): Presult = {
     if (toggle) {
       val parser = new ParseCombinators(context)
       import scala.util.parsing.combinator.Parsers
@@ -2051,9 +2037,9 @@ class ParseCombinators(val context: Context) extends JavaTokenParsers with Packr
   // END a number.
   //======================================================================
   import scala.annotation.tailrec
-  import ornl.elision.parse.AtomParser.Presult
-  import ornl.elision.parse.AtomParser.{ Success => PSuccess }
-  import ornl.elision.parse.AtomParser.{ Failure => PFailure }
+  import ornl.elision.parse.Presult
+  import ornl.elision.parse.{ Success => PSuccess }
+  import ornl.elision.parse.{ Failure => PFailure }
   
   @tailrec
   private def run3(input: Input, result: Presult): Presult = {
