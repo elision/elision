@@ -234,7 +234,11 @@ class ERepl extends Processor {
     
     if(useConsoleColoring) {
       // color-format the atom's parseString and print it.
-      val atomParseString = ConsoleStringFormatter.format(prefix + atom.toParseString)
+      val formatCols = console.width
+      val formatRows = console.height
+      val atomParseString = ConsoleStringFormatter.format(prefix + atom.toParseString, formatCols)
+      ornl.elision.util.AnsiPrintConsole.width = formatCols
+      ornl.elision.util.AnsiPrintConsole.height = formatRows
       ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
     }
     else {
