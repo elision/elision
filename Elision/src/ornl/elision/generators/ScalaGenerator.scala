@@ -309,7 +309,9 @@ object ScalaGenerator extends Generator {
         gen(mvari.theType, context, buf).append(",")
         buf.append(toEString(mvari.name)).append(",")
         gen(mvari.guard, context, buf).append(",")
-        buf.append(mvari.labels.map(toEString(_)).mkString("Set(", ",", ")"))
+        buf.append(mvari.labels.map(toEString(_)).mkString("Set(", ",", ")")).
+          append(",")
+        buf.append(mvari.byName.toString)
         buf.append(")")
         
       case vari: Variable =>
@@ -317,7 +319,9 @@ object ScalaGenerator extends Generator {
         gen(vari.theType, context, buf).append(",")
         buf.append(toEString(vari.name)).append(",")
         gen(vari.guard, context, buf).append(",")
-        buf.append(vari.labels.map(toEString(_)).mkString("Set(", ",", ")"))
+        buf.append(vari.labels.map(toEString(_)).mkString("Set(", ",", ")")).
+          append(",")
+        buf.append(vari.byName.toString)
         buf.append(")")
     }
     buf
