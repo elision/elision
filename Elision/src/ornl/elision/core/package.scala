@@ -202,7 +202,6 @@ package object core {
    * @return  True if equal, false if not.
    */
   def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean) = {
-    //val risky = knownExecutor.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
     (atom1 eq atom2) || (
         (atom1.depth == atom2.depth) &&
         (atom1.isConstant == atom2.isConstant) &&
