@@ -60,7 +60,13 @@ class NativeHandlerException(msg: String) extends ElisionException(msg)
 
 /**
  * A little class to use to pass data back and forth from the subordinate
- * interpreter.
+ * interpreter.  Since a native handler must return an atom, this is the
+ * return value of the passed closure.
+ * 
+ * A native handler is parsed by a subordinate Scala interpreter.  This has
+ * to bind something available in *this* scope - specifically it binds up
+ * an instance of `HandHolder` and passes it back.  Initially this holds
+ * `None`, but if the hander can be parsed it returns `Some` closure.
  *
  * @param handler		The handler.
  */
@@ -68,7 +74,11 @@ class HandHolder(
   var handler: Option[ApplyData => BasicAtom])
 
 /**
- * Data block and special functions provided to a native handler.
+ * Data block and special functions provided to a native handler.  A native
+ * handler takes an instance of this class and hands back an atom.
+ * 
+ * Certain information is populated based on the current __implicit__
+ * `Executor` instance.  This is done at construction time.
  *
  * @param op			The operator.
  * @param args		The argument list.
@@ -317,7 +327,6 @@ object CaseOperator {
    * @param co	The case operator.
    * @return	A triple of the name, type, and cases.
    */
-    // TODO: might need to change theType to type in unapply
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases,
       co.description, co.detail))
 }
@@ -414,8 +423,8 @@ class CaseOperator private (sfh: SpecialFormHolder,
  * @param args		The argument list.
  * @param binds		Bindings of parameter to argument.
  */
-class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings)
-// ' // '
+class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq,
+    val binds: Bindings)
 
 /**
  * Construction and matching of typed symbolic operators.
@@ -435,23 +444,24 @@ object TypedSymbolicOperator {
   // Get the current class path and convert it into a proper path expression.
   private lazy val _urls =
     java.lang.Thread.currentThread.getContextClassLoader match {
-      case cl: java.net.URLClassLoader => cl.getURLs.toList
-      case other => sys.error("classloader is not a URLClassLoader. " +
-                              "It is a " + other.getClass.getName)
-    }
+    case cl: java.net.URLClassLoader => cl.getURLs.toList
+    case other => sys.error("classloader is not a URLClassLoader. " +
+        "It is a " + other.getClass.getName)
+  }
   private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
 
   // Build a settings with the correct classpath.
   private val _settings = try {
-     new scala.tools.nsc.Settings(println _) {
+    new scala.tools.nsc.Settings(println _) {
       override val classpath = PathSetting("-cp", "Classpath", _classpath)
-    }} catch {
-      case e: Exception => {
-        println(e.getMessage)
-	println(e)
-	throw e
     }
+  } catch {
+    case e: Exception => {
+      println(e.getMessage)
+      println(e)
+      throw e
     }
+  }
 
   /** Make an interpreter. */
   private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
