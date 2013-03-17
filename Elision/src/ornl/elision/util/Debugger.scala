@@ -180,6 +180,9 @@ object Debugger {
    * if the tag is enabled.  Use this by specifying the tag, and then giving
    * the actions in brackets after.
    * 
+   * The drawback is that you cannot use an `else`, and if you bind up vars or
+   * vals in the block, they are out of scope outside the block.
+   * 
    * {{{
    * ifdebug("tim") {
    *   println("Tim is go!")
