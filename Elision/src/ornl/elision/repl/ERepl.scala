@@ -138,9 +138,6 @@ class ERepl extends Processor {
       }
   }
   
-  /** Whether to apply console-colored syntax formatting. */
-  var useConsoleColoring = true
-  
   //======================================================================
   // Configure the history for this REPL.
   //======================================================================
@@ -208,6 +205,8 @@ class ERepl extends Processor {
   declareProperty("showscala", "Show the Scala source for each atom.", false)
   declareProperty("usepager",
       "Use the pager when output is longer than the screen.", true)
+  declareProperty("syntaxcolor", "Use syntax-based coloring of atoms where " +
+  		"it is supported.", true)
   
   //======================================================================
   // Define the REPL control fields.
@@ -232,16 +231,16 @@ class ERepl extends Processor {
     ReplActor ! ("guiReplFormat", true, "formatting on")
     
     
-    if(useConsoleColoring) {
+    if(getProperty[Boolean]("syntaxcolor")) {
       // color-format the atom's parseString and print it.
       val formatCols = console.width
       val formatRows = console.height
-      val atomParseString = ConsoleStringFormatter.format(prefix + atom.toParseString, formatCols)
+      val atomParseString = ConsoleStringFormatter.format(
+          prefix + atom.toParseString, formatCols)
       ornl.elision.util.AnsiPrintConsole.width = formatCols
       ornl.elision.util.AnsiPrintConsole.height = formatRows
       ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-    }
-    else {
+    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
     }

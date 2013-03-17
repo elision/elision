@@ -564,26 +564,6 @@ decl.{ operator #name=toggleparser #cases
   "use the specified parser."
 }
 
-decl.{! tracematch()
-  #handler=
-  """
-    args match {
-      case Args() =>
-        // Toggle tracing.
-        BasicAtom.traceMatching = !BasicAtom.traceMatching
-        emitln("Match tracing is " +
-            (if (BasicAtom.traceMatching) "ON." else "OFF."))
-        _no_show
-      case _ => _no_show
-    }
-  """
-  #description="Toggle tracing of matching attempts."
-  #detail=
-  "Enable or disable tracing of match attempts.  This generates output from ".
-  "the matcher as it attempts to match atoms.  The matcher is called for a ".
-  "variety of reasons, so you may see some unexpected output here."
-}
-
 decl.{! printtypes()
   #handler=
   """
@@ -669,21 +649,15 @@ decl.{! history()
   "between sessions, if possible."
 }
 
-decl.{! syntaxColoring()
-  #handler=
-  """
-    exec match {
-      case repl: ornl.elision.repl.ERepl =>
-        repl.useConsoleColoring = !repl.useConsoleColoring
-        emitln("Syntax coloring is " + (if (repl.useConsoleColoring) "ON." else "OFF."))
-      case _ =>
-    }
+decl.{! syntax_coloring($f)
+  #handler="""
+    exec.setProperty[Boolean]("syntaxcolor",
+      !exec.getProperty[Boolean]("syntaxcolor"))
     _no_show
   """
-  #description="Toggle whether to use syntax coloring."
-  #detail=
-  "Enable or disable syntax coloring for displayed result atoms. ".
-  "This is ON by default. "
+  #description="Specify whether to use syntax coloring."
+  #detail="Enable (true) or disable (false) syntax coloring for displayed ".
+    "result atoms."
 }
 
 //======================================================================

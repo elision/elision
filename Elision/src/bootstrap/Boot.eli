@@ -68,42 +68,18 @@
 
 // Declare the decl operator that allows us to use the notation decl.thing.
 _decl({operator
-#name=decl
-#evenmeta=true
-#description="Declare a rule or operator in the current context."
-#detail=
-"Given a rewrite rule, add the rewrite rule to the rule library in the ".
-"current context.  Given an operator, add the operator to the operator ".
-"library in the current context."
-#cases
-  %($item) -> _decl($$item),
-  $item -> _decl($$item)
-})
-
-// Preserve the old def operator, in case someone is still using it.
-decl.{! def($op)
-#handler=
-"""
-  console.warn("The def operator is deprecated.  Please use decl instead.")
-  args match {
-    case Args(op: Operator) =>
-      // Add the operator to the library.
-      context.operatorLibrary.add(op)
-      console.emitln("Defined operator " + toESymbol(op.name) + ".")
-      ApplyData._no_show
-    case Args(op) =>
-      console.error("Atom is not a named operator: " + op.toParseString)
-      ApplyData._no_show
-    case _ =>
-      ApplyData._no_show
-  }
-"""
-#evenmeta=true
-#description="Add the named operator to the context."
-#detail=
-"This will add the operator op to the current context.  This makes ".
-"the operator available by name, or through an OPREF."
-}
+    #name=decl
+    #evenmeta=true
+    #description="Declare a rule or operator in the current context."
+    #detail=
+    "Given a rewrite rule, add the rewrite rule to the rule library in the ".
+    "current context.  Given an operator, add the operator to the operator ".
+    "library in the current context."
+    #cases
+      %($item) -> _decl($$item),
+      $item -> _decl($$item)
+    }
+)
 
 // The next operator we need is inc so we can read the rest of the
 // bootstrap definitions.  Define inc next.  It expects to get access

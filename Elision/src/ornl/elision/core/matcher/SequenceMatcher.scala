@@ -46,6 +46,7 @@ import ornl.elision.core.Match
 import ornl.elision.core.Outcome
 import ornl.elision.core.MatchIterator
 import ornl.elision.actors.ReplActor
+import ornl.elision.util.Debugger
 
 /**
  * Match two sequences of atoms.
@@ -74,29 +75,24 @@ object SequenceMatcher {
    */
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
       binds: Bindings = Bindings()): Outcome = {
-        if (BasicAtom.traceMatching) {
-          if (BasicAtom.traceVerbose(this)) {
-            println("Sequence Matcher called: ")
-            println("    Patterns: " + patterns.mkParseString("",",",""))
-            println("    Subjects: " + subjects.mkParseString("",",",""))
-            println("    Bindings: " + binds.toParseString)
-          } else if (BasicAtom.traceTerse(this)) {
-            println("Sequence: " + patterns.mkParseString("(",",",")") + " ~> " +
-                    subjects.mkParseString("(",",",") ") + binds.toParseString)
-          }
-        }
+    Debugger.ifdebug("matching") {
+      println("Sequence Matcher called: ")
+      println("    Patterns: " + patterns.mkParseString("",",",""))
+      println("    Subjects: " + subjects.mkParseString("",",",""))
+      println("    Bindings: " + binds.toParseString)
+    }
 
-        // Has rewriting timed out?
-        if (BasicAtom.rewriteTimedOut) {
-          Fail("Timed out")
-        }
-        else if (patterns.length != subjects.length) {
-          Fail("Sequences are not the same length.")
-        }
-        else {
-          _tryMatch(patterns, subjects, binds, 0)
-        }
-      }
+    // Has rewriting timed out?
+    if (BasicAtom.rewriteTimedOut) {
+      Fail("Timed out")
+    }
+    else if (patterns.length != subjects.length) {
+      Fail("Sequences are not the same length.")
+    }
+    else {
+      _tryMatch(patterns, subjects, binds, 0)
+    }
+  }
   
   //  GUI changes
   /**
