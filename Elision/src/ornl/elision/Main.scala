@@ -98,6 +98,7 @@ object Main extends App {
     println()
     CLI(_globals, _settings)
     println()
+    println("Use the command \"help\" to get a list of all commands.")
     println("Try -h after a command to see help on the command.")
     System.exit(0)
     None

@@ -55,8 +55,6 @@ object ReplMain {
     println("repl")
     println()
     CLI(_switches, _settings)
-    println()
-    println("Try -h after a command to see help on the command.")
     System.exit(0)
     None
   }
