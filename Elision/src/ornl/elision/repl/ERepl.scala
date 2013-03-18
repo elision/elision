@@ -285,6 +285,7 @@ class ERepl extends Processor {
           prefix + atom.toParseString, formatCols)
       ornl.elision.util.AnsiPrintConsole.width = formatCols
       ornl.elision.util.AnsiPrintConsole.height = formatRows
+      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
       ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
     } else {
       // use the standard printing console and print without syntax coloring.
