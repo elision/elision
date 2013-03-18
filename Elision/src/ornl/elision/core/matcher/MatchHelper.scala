@@ -38,6 +38,7 @@
 package ornl.elision.core.matcher
 import ornl.elision.core._
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.Debugger
 
 /**
  * Provide some support methods for matching.
@@ -71,7 +72,7 @@ object MatchHelper {
           subjects = subjects.omit(sindex)
       }
     } // Omit constants from the lists.
-    if (BasicAtom.traceMatching) {
+    Debugger.ifdebug("matching") {
 	    println("Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
 	    println("                    Subjects: " + subjects.mkParseString("", ",", ""))
     }

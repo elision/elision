@@ -27,7 +27,42 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package ornl.elision.cli
+
 /**
- * Provide basic profiling services for Elision.
+ * Base class for a settings definition.
+ * 
+ * @param name        The name of the setting.
+ * @param envvar      An optional environment variable name.
+ * @param default     An optional default value of the setting.
+ * @param description A human-readable description of the setting.
  */
-package ornl.elision.profile;
+case class Setting(
+    val name: String,
+    val envvar: Option[String],
+    val javaprop: Option[String],
+    val default: Option[String],
+    val description: String) {
+
+  /**
+   * Get a display version of the environment variable name.
+   */
+  val varname = envvar match {
+    case None => None
+    case Some(varname) =>
+      Some((if (CLI.iswin) "%"+varname+"%" else "$"+varname))
+  }
+  
+  /**
+   * Set the default value.
+   */
+  val value = envvar match {
+    case None =>
+      default
+    case Some(varname) =>
+      System.getenv(varname) match {
+        case null => default
+        case str: String => Some(str)
+      }
+  }
+}

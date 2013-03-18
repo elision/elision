@@ -39,6 +39,7 @@ package ornl.elision.core.matcher
 import ornl.elision.core._
 import ornl.elision.util.OmitSeq
 import scala.collection.immutable.Vector
+import ornl.elision.util.Debugger
 
 /**
  * Match two sequences whose elements can be re-ordered or re-grouped.  That is,
@@ -65,7 +66,6 @@ object ACMatcher {
     }
 
     // Check the length.
-    //println("plist = " + plist + "\nslist = " + slist)
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
@@ -177,8 +177,6 @@ object ACMatcher {
         // Get the patterns and subjects that remain.
         val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
         val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
-        //println("pats = " + pats + "\nsubs = " + subs)        
-        //println("patterns = " + patterns + "\nsubjects = " + subjects)
 
         // If there is exactly one pattern then match it immediately.
         if (pats.atoms.length == 1) {
@@ -257,15 +255,12 @@ object ACMatcher {
                       // The pattern variable is already bound to
                       // something. That something MUST appear in the subject
                       // list.
-                      //println("** Elision: Pattern variable '" + patVar.name +
-                      //        "' already bound to '" + atom.toParseString + "'")
                       var gotIt = false
                       for (subVal <- subs) {
                         
                         // Have we found the bound value?
                         if (!gotIt) {
                           if (subVal == atom) {
-                            //println("** Elision: Found subject match.")
                             gotIt = true
                             
                             // We have now found a match in the subjects for
@@ -289,7 +284,6 @@ object ACMatcher {
                       if (!gotIt) {
                         
                         // No, we did not. There is no way this can match.
-                        //println("FAST FAIL, Match already bound variables failed...")
                         failFast = true
                       }
                     }
@@ -297,11 +291,8 @@ object ACMatcher {
                 }
                 
                 case _ => {
-                  
                   // This is unexpected. We expect all the remaining
                   // things in the pattern to be variables.
-                  //println("BOGUS!!: '" + patItem.toString + "' is not a
-                  //variable!!!")
                   
                   // Since nothing is bound to this pattern variable it
                   // must remain in the pattern list.
@@ -313,8 +304,6 @@ object ACMatcher {
           // If we get here all of the previously bound pattern
           // variables that still appear in the pattern have at least 1
           // thing they match in the subject. Do the actual matching.
-          
-          //println("** new bindings (2) = " + bindings)
           if (!failFast) {
             
             // We might have already discarded some patterns/subjects
@@ -375,7 +364,7 @@ object ACMatcher {
     import scala.annotation.tailrec
     @tailrec
     final protected def findNext {
-      if (BasicAtom.traceMatching) print("AC Searching... ")
+      Debugger.debug("AC Searching... ", "matching")
 
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
@@ -392,22 +381,22 @@ object ACMatcher {
 	                          binds, op) match {
 	          case fail:Fail =>
 	            // We ignore this case.  We only fail if we exhaust all attempts.
-              if (BasicAtom.traceMatching) println(fail)
-	          findNext
+	            Debugger.debug(fail.toString, "matching")
+	            findNext
 	          case Match(binds) =>
 	            // This case we care about.  Save the bindings as the current match.
 	            _current = binds
-	          if (BasicAtom.traceMatching) println("AC Found.")
+	            Debugger.debug("AC Found.", "matching")
 	          case Many(iter) =>
 	            // We've potentially found many matches.  We save this as a local
 	            // iterator and then use it in the future.
 	            _local = iter
-	          findNext
+	            findNext
 	        } else {
 	          // We have exhausted the permutations.  We have exhausted this
 	          // iterator.
 	          _exhausted = true
-	          if (BasicAtom.traceMatching) println("AC Exhausted.")
+	          Debugger.debug("AC Exhausted.", "matching")
 	        }
       }
     }

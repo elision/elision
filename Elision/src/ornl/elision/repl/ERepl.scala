@@ -31,11 +31,56 @@ package ornl.elision.repl
 
 import ornl.elision.parse._
 import ornl.elision.actors.ReplActor
+import ornl.elision.cli.Setting
+import ornl.elision.cli.CLI
+import ornl.elision.cli.Switch
 
 /**
  * Implement an interface to run the REPL from the prompt.
  */
 object ReplMain {
+  
+  /** Access to system properties. */
+  private val _prop = new scala.sys.SystemProperties
+  
+  /**
+   * Print usage information.  This is a switch handler (see
+   * [[ornl.elision.cli.Switches]]) and satisfies the contract for such a
+   * method.
+   * 
+   * @return  Always `None`.
+   */
+  private def _usage(): Option[String] = {
+    println("Usage:")
+    println("repl")
+    println()
+    CLI(_switches, _settings)
+    System.exit(0)
+    None
+  }
+
+  /**
+   * Define the switches.
+   */
+  val _switches = Seq(
+      Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _))
+
+  /**
+   * Define some settings.
+   */
+  val _settings = Seq(
+      Setting("elision.root", Some("ELISION_ROOT"), Some("user.home"),
+          Some(_prop("user.home")), "Specify where Elision should read " +
+          		"(and store) its history and the most recent context."),
+      Setting("elision.history", Some("ELISION_HISTORY"), None,
+          Some((if (CLI.iswin) "elision-history.eli" else ".elision-history.eli")),
+          "Name of file where Elision will store the REPL history."),
+      Setting("elision.context", Some("ELISION_CONTEXT"), None,
+          Some((if (CLI.iswin) "elision-context.eli" else ".elision-context.eli")),
+          "Name of file where Elision will store the most recent context."),
+      Setting("elision.rc", Some("ELISIONRC"), None,
+          Some((if (CLI.iswin) "elision.ini" else ".elisionrc")),
+          "Name of file to read after bootstrapping Elision."))
   
   /**
    * Entry point when run from the prompt.
@@ -43,6 +88,7 @@ object ReplMain {
    * @param args  The command line arguments.
    */
   def main(args: Array[String]) {
+    CLI(args, _switches, _settings)
     runRepl
   }
   
@@ -138,9 +184,6 @@ class ERepl extends Processor {
       }
   }
   
-  /** Whether to apply console-colored syntax formatting. */
-  var useConsoleColoring = true
-  
   //======================================================================
   // Configure the history for this REPL.
   //======================================================================
@@ -208,6 +251,8 @@ class ERepl extends Processor {
   declareProperty("showscala", "Show the Scala source for each atom.", false)
   declareProperty("usepager",
       "Use the pager when output is longer than the screen.", true)
+  declareProperty("syntaxcolor", "Use syntax-based coloring of atoms where " +
+  		"it is supported.", true)
   
   //======================================================================
   // Define the REPL control fields.
@@ -232,21 +277,16 @@ class ERepl extends Processor {
     ReplActor ! ("guiReplFormat", true, "formatting on")
     
     
-    if(useConsoleColoring) {
-      import ornl.elision.util.AnsiPrintConsole
-      
+    if(getProperty[Boolean]("syntaxcolor")) {
       // color-format the atom's parseString and print it.
       val formatCols = console.width
       val formatRows = console.height
-      val atomParseString = ConsoleStringFormatter.format(prefix + atom.toParseString, formatCols)
-      
-      AnsiPrintConsole.width = formatCols
-      AnsiPrintConsole.height = formatRows
-      AnsiPrintConsole.quiet = console.quiet
-      
-      AnsiPrintConsole.emitln(atomParseString)
-    }
-    else {
+      val atomParseString = ConsoleStringFormatter.format(
+          prefix + atom.toParseString, formatCols)
+      ornl.elision.util.AnsiPrintConsole.width = formatCols
+      ornl.elision.util.AnsiPrintConsole.height = formatRows
+      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
     }
@@ -502,7 +542,7 @@ class ERepl extends Processor {
     
     // Start main loop.
     while(true) { {
-        // Hold the accumulted line.
+        // Hold the accumulated line.
         var line = ""
         
         // Hold the next segment read from the prompt.
@@ -528,8 +568,7 @@ class ERepl extends Processor {
             print("" + (if (console.quiet > 0) p2 else p1))
     				ReplActor.waitOnGUI()
     				ReplActor.guiInput
-    			} 
-    			else {
+    			} else {
     			  // Get input directly from the console. 
     			  
     				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
