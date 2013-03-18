@@ -208,11 +208,11 @@ extends BasicAtom with Applicable {
   def doApply(atom: BasicAtom, bypass: Boolean) = {
     ReplActor ! ("Eva", "pushTable", "Lambda doApply")
     // top node of this subtree
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda doApply: ")) // val rwNode = RWTree.addToCurrent("Lambda doApply: ")
+    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda doApply: ")) 
 	
-    ReplActor ! ("Eva", "addTo", ("rwNode", "body", "body: ", body)) //val bodyNode = RWTree.addTo(rwNode, "body", body)
-  	ReplActor ! ("Eva", "addTo", ("rwNode", "atom", "argument: ", atom)) // val atomNode = RWTree.addTo(rwNode, "match atom :?", atom)
-  	ReplActor ! ("Eva", "setSubroot", "body") // RWTree.current = bodyNode
+    ReplActor ! ("Eva", "addTo", ("rwNode", "body", "body: ", body)) 
+  	ReplActor ! ("Eva", "addTo", ("rwNode", "atom", "argument: ", atom)) 
+  	ReplActor ! ("Eva", "setSubroot", "body") 
 	
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
@@ -229,12 +229,12 @@ extends BasicAtom with Applicable {
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
 		      val newbody = body.rewrite(binds)._1
-	        ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) // RWTree.addTo(rwNode, newbody)
+	        ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) 
           ReplActor ! ("Eva", "popTable", "Lambda doApply")
           newbody
 	      case Many(iter) =>
 	        val newbody = body.rewrite(iter.next)._1
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) // RWTree.addTo(rwNode, newbody)
+          ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) 
           ReplActor ! ("Eva", "popTable", "Lambda doApply")
           newbody
 	    }
@@ -243,7 +243,7 @@ extends BasicAtom with Applicable {
         // Trapped unbounded recursion.
         val errorString = "Lambda application results in unbounded recursion: (" +
         this.toParseString + ").(" + atom.toParseString + ")"
-        ReplActor ! ("Eva", "addTo", ("rwNode", "", errorString)) // RWTree.addTo(rwNode, errorString)
+        ReplActor ! ("Eva", "addTo", ("rwNode", "", errorString)) 
         ReplActor ! ("Eva", "popTable", "Lambda doApply")
         throw new LambdaUnboundedRecursionException(errorString)
     }
