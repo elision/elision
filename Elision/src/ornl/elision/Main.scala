@@ -30,13 +30,13 @@
 package ornl.elision
 import scala.collection.mutable.StringBuilder
 import ornl.elision.util.Text
-import ornl.elision.cli.Switches
-import ornl.elision.cli.SwitchUsage
 import ornl.elision.cli.Switch
 import ornl.elision.cli.ArgSwitch
 import ornl.elision.util.Debugger
 import ornl.elision.util.Version
 import ornl.elision.parse.ProcessorControl
+import ornl.elision.cli.CLI
+import ornl.elision.cli.Setting
 
 /**
  * This is the entry point when running from the jar file.  This also provides
@@ -94,10 +94,9 @@ object Main extends App {
    */
   private def _usage(): Option[String] = {
     println("Usage:")
-    println("[global switches...] [command] [command switches and arguments...])")
+    println("[global switches...] [command] [command switches and arguments...]")
     println()
-    println("Global switches:")
-    SwitchUsage(_globals)
+    CLI(_globals, _settings)
     println()
     println("Try -h after a command to see help on the command.")
     System.exit(0)
@@ -125,11 +124,14 @@ object Main extends App {
             None
           })
   )
+  
+  // Define the special global settings that can be specified.
+  private val _settings = Seq()
 
   // Process the arguments and invoke the correct item.  If we received no
   // command, we pass the empty string to get the default command.
   try {
-    // Process the switches.  Stop when the first argument is encountered.
+    // Process the command line.  Stop when the first argument is encountered.
     // To do this, we implement an argument handler that sets a flag and then
     // generates an error that terminates the argument parse.  We preserve
     // the argument.
@@ -140,12 +142,12 @@ object Main extends App {
       cmd = arg
       (Some(""), true)
     }
-    val (remain, err, pos) = Switches(args, _globals, firstarg _)
+    val state = CLI(args, _globals, _settings, firstarg _)
     
     // Check for an actual error, and display it if we find one.  We then exit.
-    if (err != None && !okay) {
+    if (state.errstr != None && !okay) {
       // There was an actual error!
-      fail(args, pos, err.get)
+      fail(args, state.errindex, state.errstr.get)
       sys.exit(1)
     }
     
@@ -153,7 +155,7 @@ object Main extends App {
     // invoke the default command.  We add one to the position to omit the
     // command, and we note that if no command was present the slice is
     // empty (as it should be).
-    Version.invoke(cmd, args.slice(pos+1, args.length))
+    Version.invoke(cmd, args.slice(state.errindex+1, args.length))
   } catch {
     case ex: Version.MainException =>
       println("ERROR: " + ex.getMessage)
