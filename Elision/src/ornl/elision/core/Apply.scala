@@ -287,6 +287,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
 	  
     // If we have no bindings, don't rewrite the operator.
     if (binds == null) {
+      ReplActor ! ("Eva", "popTable", "OpApply rewrite")
       (this, false)
     } else {
       // We have bindings. Rewrite the operator.
@@ -295,6 +296,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
       (binds.rewrites get this) match {
         // We have already done this rewrite.
         case Some(rewrite) =>
+          ReplActor ! ("Eva", "popTable", "OpApply rewrite")
           rewrite
         
         // We don't have a cached rewrite.

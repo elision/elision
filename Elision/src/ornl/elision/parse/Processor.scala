@@ -353,16 +353,12 @@ with HasHistory {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
-                val atom = newnode.interpret(context)
-                ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
+  			        ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
                 ReplActor ! ("Eva", "setSubroot", "interpret")
-                ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
-                ReplActor ! ("Eva", "setSubroot", "handle")
+                val atom = newnode.interpret(context)
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
-                    ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
-                    ReplActor ! ("Eva", "setSubroot", "result")
   			            // Hand off the node.
   			            _result(newatom)
   			        }
@@ -420,10 +416,22 @@ with HasHistory {
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
     // Pass the atom to the handlers.  If any returns None, we are done.
     var theAtom = atom
-  	ReplActor ! ("Eva", "pushTable", "_handleAtom")
-  	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
+  	
+    ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handlers Tree: "))
+    ReplActor ! ("Eva", "setSubroot", "handle")
+    
+    var handlersCount = 1
+    
     for (handler <- _queue) {
+      ReplActor ! ("Eva", "pushTable", "_handleAtom")
+      
+      ReplActor ! ("Eva", "addToSubroot", ("handlerNode", "handler " + handlersCount + ":"))
+      ReplActor ! ("Eva", "setSubroot", "handlerNode")
+      handlersCount += 1
+      
+      ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
       ReplActor ! ("Eva", "setSubroot", "atomNode")
+      
       handler.handleAtom(theAtom) match {
         case None => 
           ReplActor ! ("Eva", "popTable", "_handleAtom")
@@ -431,12 +439,18 @@ with HasHistory {
         case Some(alt) =>
           theAtom = alt
       }
+      
+      ReplActor ! ("Eva", "popTable", "_handleAtom")
     } // Perform all handlers.
-    ReplActor ! ("Eva", "popTable", "_handleAtom")
+    
     return Some(theAtom)
   }
   
   private def _result(atom: BasicAtom) {
+    ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
+    ReplActor ! ("Eva", "setSubroot", "result")
+    ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
+    
     for (handler <- _queue) {
       handler.result(atom)
     }

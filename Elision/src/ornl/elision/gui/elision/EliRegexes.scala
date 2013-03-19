@@ -74,7 +74,7 @@ object EliRegexes extends syntax.SyntaxRegexes {
     
   val boolConstants = new Regex("""(true|false|Nothing)""",
     "all")
-  val keywords = new Regex("""(operator|is|case|->|@|=)""",
+  val keywords = new Regex("""(operator|is|cases|case|->|@|=)""",
     "all")
   val algProps = new Regex("""(associative|commutative|idempotent|identity|absorber|not)""",
     "all")
