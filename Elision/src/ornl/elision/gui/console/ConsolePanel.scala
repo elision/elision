@@ -140,7 +140,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   
   /** Changes the maximum number of lines to keep in the console at any time. */
   def setMaxLines(n : Int) : Unit = {
-    
+    tos.maxLines = n
   }
   
   /** Obtains the maximum number of lines kept in the console. */
