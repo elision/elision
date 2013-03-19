@@ -30,6 +30,8 @@
 package ornl.elision.cli
 
 import ornl.elision.util.Text
+import ornl.elision.util.Debugger
+import ornl.elision.util.toQuotedString
 
 /**
  * Provide algorithms to implement a command line interface.
@@ -40,6 +42,35 @@ object CLI {
   val iswin = System.getProperty("os.name").toLowerCase().indexOf("win") >= 0
   
   /**
+   * Print out an error message about the command line, highlighting the
+   * offending element.  You should follow this with calling `sys.exit(N)`,
+   * where `N` is the (non-zero) exit value you want.
+   * 
+   * To use this pass the arguments, the position of the bad argument, and
+   * the error message.  The arguments are printed, and the offending
+   * argument is "underlined" with carets.
+   * 
+   * @param args      The command line arguments.
+   * @param position  The index of the bad argument or switch.
+   * @param err       Text describing the error.
+   */
+  def fail(args: Array[String], position: Int, err: String) {
+    (new Text()).addln("ERROR: "+err).wrap(80) foreach (println(_))
+    println()
+    var index = 0
+    var line = ""
+    while (index < position) {
+      print(args(index))
+      print(" ")
+      line += " "*(args(index).length + 1)
+      index += 1
+    } // Move to the offending item.
+    println(args(index))
+    print(line)
+    println("^"*(args(index).length))
+  }
+
+  /**
    * Encode the state of the command line after processing.
    * 
    * @param remain      Remaining command line arguments.
@@ -48,7 +79,19 @@ object CLI {
    * @param errindex    Index of the element causing the error.
    */
   case class CLIState(remain: List[String], settings: Map[String,String],
-      errstr: Option[String], errindex: Int)
+      errstr: Option[String], errindex: Int) {
+    Debugger.debug(
+        """|Creating a CLI State Object:
+           |  remain:    %s
+           |  settings:  %s
+           |  errstr:    %s
+           |  errindex:  %d
+           |""".stripMargin.format(
+               remain.mkString(","),
+               settings.mkString(","),
+               errstr.toString,
+               errindex), "cli")
+  }
     
   /**
    * Process the command line arguments, extract any switches and process them,
@@ -99,6 +142,9 @@ object CLI {
    * @param args          The command line arguments.
    * @param switches      Known command line switches.
    * @param settings      Known settings.
+   * @param keepunknown   Preserve unknown settings.  If true, then any
+   *                      settings that are not recognized are kept and
+   *                      returned as arguments.
    * @param handler       A handler to invoke whenever an argument is found.
    *                      The default handler always returns `(None, true)`.
    * @return  The state of the command line after processing.
@@ -107,6 +153,7 @@ object CLI {
       args: Array[String],
       switches: Seq[AbstractSwitch],
       settings: Seq[Setting],
+      keepunknown: Boolean,
       handler: (String) => (Option[String], Boolean) = (str) => (None, true)):
       CLIState = {
     var index = 0
@@ -124,6 +171,8 @@ object CLI {
       // See if this argument starts with a dash.  If so, it is possibly a
       // switch, and we will process it as such.
       val arg = args(index)
+      Debugger.debug("Looking at argument %d: %s".format(
+          index, toQuotedString(arg)), "cli")
       // The argument starts with a dash; it might be a switch.  Try to match
       // it against the different permissible kinds of switches.  We start
       // with the most complex first.
@@ -133,6 +182,8 @@ object CLI {
       val Setting = """^\[(.*)=(.*)\]$""".r
       arg match {
         case Assignment(name, value) =>
+          Debugger.debug("  Assignment("+toQuotedString(name)+","+
+              toQuotedString(value)+")", "cli")
           // This is a switch that assigns a value to some named option.
           switches.find(_.long.getOrElse(null) == name) match {
             case None =>
@@ -153,6 +204,7 @@ object CLI {
           }
           
         case Longswitch(name) =>
+          Debugger.debug("  Longswitch("+toQuotedString(name)+")", "cli")
           // This is just a long switch.
           switches find (_.long.getOrElse(null) == name) match {
             case None =>
@@ -173,6 +225,7 @@ object CLI {
           }
           
         case Shortswitch(singles) =>
+          Debugger.debug("  Shortswitch("+toQuotedString(singles)+")", "cli")
           // This can be a collection of short switches (and maybe even
           // their arguments) on a single dash.
           var chindex = 0
@@ -223,10 +276,27 @@ object CLI {
           } // Loop over all characters.
           
         case Setting(name, value) =>
-          // Found a setting.  Record it for posterity.
-          sets += (name -> value)
+          Debugger.debug("  Setting("+toQuotedString(name)+","+
+              toQuotedString(value)+")", "cli")
+          // Found a setting.  Decide what to do.
+          settings find (_.name == name) match {
+            case None =>
+              // The setting was not found.  If we are preserving unknowns,
+              // keep it.  If not, generate an error.
+              if (keepunknown) {
+                remain :+= arg
+              } else {
+                return CLIState(remain, sets, Some("The setting "+
+                    ornl.elision.util.toQuotedString(name)+" is not known."),
+                    index)
+              }
+            case Some(set: Setting) =>
+              // The setting was found.  Save the value for later.
+              sets += (name -> value)
+          }
           
         case _ =>
+          Debugger.debug("  Argument("+toQuotedString(arg)+")", "cli")
           // Does not match; must be an argument.  Handle it.
           // There is a special case to consider here.  If there are three
           // dashes at the start, then discard the first two.  This is a trick
