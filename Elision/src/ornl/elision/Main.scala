@@ -57,35 +57,6 @@ import ornl.elision.cli.Setting
 object Main extends App {
   
   /**
-   * Print out an error message about the command line, highlighting the
-   * offending element.  You should follow this with calling `sys.exit(N)`,
-   * where `N` is the (non-zero) exit value you want.
-   * 
-   * To use this pass the arguments, the position of the bad argument, and
-   * the error message.  The arguments are printed, and the offending
-   * argument is "underlined" with carets.
-   * 
-   * @param args      The command line arguments.
-   * @param position  The index of the bad argument or switch.
-   * @param err       Text describing the error.
-   */
-  def fail(args: Array[String], position: Int, err: String) {
-    (new Text()).addln("ERROR: "+err).wrap(80) foreach (println(_))
-    println()
-    var index = 0
-    var line = ""
-    while (index < position) {
-      print(args(index))
-      print(" ")
-      line += " "*(args(index).length + 1)
-      index += 1
-    } // Move to the offending item.
-    println(args(index))
-    print(line)
-    println("^"*(args(index).length))
-  }
-  
-  /**
    * Print usage information.  This is a switch handler (see
    * [[ornl.elision.cli.Switches]]) and satisfies the contract for such a
    * method.
@@ -143,20 +114,21 @@ object Main extends App {
       cmd = arg
       (Some(""), true)
     }
-    val state = CLI(args, _globals, _settings, firstarg _)
+    val state = CLI(args, _globals, _settings, true, firstarg _)
     
     // Check for an actual error, and display it if we find one.  We then exit.
     if (state.errstr != None && !okay) {
       // There was an actual error!
-      fail(args, state.errindex, state.errstr.get)
+      CLI.fail(args, state.errindex, state.errstr.get)
       sys.exit(1)
     }
     
     // Decide what to do.  If we have a command, invoke it.  If not, then
-    // invoke the default command.  We add one to the position to omit the
-    // command, and we note that if no command was present the slice is
-    // empty (as it should be).
-    Version.invoke(cmd, args.slice(state.errindex+1, args.length))
+    // invoke the default command.  If the command was found, then we need to
+    // omit it from the argument list.  Otherwise leave the list as-is.
+    val start = (if (cmd.length == 0) state.errindex else state.errindex+1)
+    val newargs = (state.remain ++ args.slice(start, args.length).toList).toArray
+    Version.invoke(cmd, newargs)
   } catch {
     case ex: Version.MainException =>
       println("ERROR: " + ex.getMessage)

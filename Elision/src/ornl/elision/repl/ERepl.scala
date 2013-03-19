@@ -88,8 +88,14 @@ object ReplMain {
    * @param args  The command line arguments.
    */
   def main(args: Array[String]) {
-    CLI(args, _switches, _settings)
-    runRepl
+    val state = CLI(args, _switches, _settings, false)
+    // Check for an error, and display it if we find one.  We then stop.
+    if (state.errstr != None) {
+      // There was an actual error!
+      CLI.fail(args, state.errindex, state.errstr.get)
+    } else {
+      runRepl
+    }
   }
   
   /**
