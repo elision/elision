@@ -41,7 +41,6 @@ import scala.collection.IndexedSeq
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher._
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.actors.ReplActor
 
 /**
  * Fast access to an untyped empty sequence.
@@ -223,28 +222,17 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 	}
 
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-    ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
-    ReplActor ! ("Eva", "setSubroot", "props")
-    
     // Rewrite the properties.
     val (newprop, pchanged) = props.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
-    ReplActor ! ("Eva", "setSubroot", "atoms")
     
     // We must rewrite every child atom, and collect them into a new sequence.
     val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
       val newAS = new AtomSeq(newprop, newseq)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))      
-      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (newAS, true)
     } else {
-      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (this, false)
     }
   }

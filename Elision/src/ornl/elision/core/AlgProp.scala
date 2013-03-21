@@ -38,7 +38,6 @@
 package ornl.elision.core
 import ornl.elision.util.ElisionException
 import ornl.elision.util.other_hashify
-import ornl.elision.actors.ReplActor
 
 /**
  * Indicate a properties specification is illegal.  This typically indicates a
@@ -247,8 +246,6 @@ class AlgProp(
    * atom sequence.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
-    ReplActor ! ("Eva","pushTable", "AlgProp doApply")
-    ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) 
   	rhs match {
   		/* A Note to Maintainers
   		 * Remember that for the "and" method the properties of the second
@@ -257,13 +254,9 @@ class AlgProp(
   		case ap: AlgProp => (ap and this)
   		case as: AtomSeq => 
   			val newAS = AtomSeq(as.props and this, as.atoms)
-  			ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) 
-        ReplActor ! ("Eva", "popTable", "AlgProp doApply")
   			newAS
   		case _ => 
   			val newSA = SimpleApply(this, rhs)
-  			ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) 
-        ReplActor ! ("Eva", "popTable", "AlgProp doApply")
   			newSA
   	}
   }
@@ -276,18 +269,11 @@ class AlgProp(
    * @return	The rewritten optional atom.
    */
   private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable","AlgProp _rewrite")
   	opt match {
   		case None => 
-  			ReplActor ! ("Eva","addToSubroot",("","n/a"))
-  			ReplActor ! ("Eva","popTable","AlgProp _rewrite")
   			(None, false)
   		case Some(atom) => {
-        ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
-        ReplActor ! ("Eva", "setSubroot", "atomNode")
         val newatom = atom.rewrite(binds)
-        ReplActor ! ("Eva", "addTo", ("atomNode", "", newatom._1)) 
-        ReplActor ! ("Eva","popTable","AlgProp _rewrite")
         (Some(newatom._1), newatom._2)
   		}
   	}
@@ -295,30 +281,15 @@ class AlgProp(
   
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
-    ReplActor ! ("Eva","pushTable","AlgProp rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: "))
-    ReplActor ! ("Eva", "setSubroot", "A")
     val assoc = _rewrite(associative, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: "))
-    ReplActor ! ("Eva", "setSubroot", "C")
     val commu = _rewrite(commutative, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: "))
-    ReplActor ! ("Eva", "setSubroot", "I")
     val idemp = _rewrite(idempotent, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: "))
-    ReplActor ! ("Eva", "setSubroot", "B")
     val absor = _rewrite(absorber, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: "))
-    ReplActor ! ("Eva", "setSubroot", "D")
     val ident = _rewrite(identity, binds)
     if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
       val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAlgProp))      
-      ReplActor ! ("Eva","popTable","AlgProp rewrite")
       (newAlgProp, true)
     } else {
-      ReplActor ! ("Eva","popTable","AlgProp rewrite")
       (this, false)
     }
   }  

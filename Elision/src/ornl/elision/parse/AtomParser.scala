@@ -47,7 +47,6 @@ import ornl.elision.core.{ ANY => EANY }
 import ornl.elision.util.ElisionException
 import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.parsing.combinator.PackratParsers
-import ornl.elision.actors.ReplActor
 
 /**
  * A special form was incorrectly formatted.
@@ -148,10 +147,6 @@ object AtomParser {
 	 */
 	case class SimpleTypeNode(TYPE: NamedRootType) extends AstNode {
 	  def interpret = {
-			ReplActor ! ("Eva","pushTable","SimpleTypeNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SimpleTypeNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", TYPE))
-      ReplActor ! ("Eva", "popTable", "SimpleTypeNode")
 			TYPE
 		}
 	}
@@ -161,10 +156,6 @@ object AtomParser {
 	 */
 	case class TypeUniverseNode() extends AstNode {
 	  def interpret = {
-			ReplActor ! ("Eva","pushTable","TypeUniverseNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "TypeUniverseNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", TypeUniverse))
-      ReplActor ! ("Eva", "popTable", "TypeUniverseNode")
 			TypeUniverse
 		}
 	}
@@ -181,11 +172,6 @@ object AtomParser {
 	case class OperatorNode(str: String, lib: OperatorLibrary) extends AstNode {
 	  def interpret = {
       val result = lib(str)
-			ReplActor ! ("Eva","pushTable","OperatorNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OperatorNode.interpret: "))
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) 
-			ReplActor ! ("Eva", "popTable", "OperatorNode")
 			result
 		}
 	}
@@ -202,11 +188,6 @@ object AtomParser {
 	case class RulesetNode(str: String, lib: RuleLibrary) extends AstNode {
 	  def interpret = {
       val result = lib(str)
-			ReplActor ! ("Eva","pushTable","RulesetNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RulesetNode.interpret: "))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "rwNode", result)
-      ReplActor ! ("Eva", "popTable", "RulesetNode")
 			result
 		}
 	}
@@ -224,11 +205,6 @@ object AtomParser {
 	case class ApplicationNode(context: Context, op: AstNode, arg: AstNode)
 	extends AstNode {
 	  def interpret = {
-  		ReplActor ! ("Eva","pushTable","ApplicationNode")
-  		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "ApplicationNode.interpret: "))
-      ReplActor ! ("Eva", "addTo", ("rwNode", "op", "operator: "))
-      ReplActor ! ("Eva", "setSubroot", "op")
-
 	    // If the operator is a naked symbol, we try to interpret it as an
 	    // operator.  Otherwise we just interpret it.
 	    val atom = op match {
@@ -240,12 +216,6 @@ object AtomParser {
 	        op.interpret
 	    }
       val result = Apply(atom, arg.interpret)
-  		ReplActor ! ("Eva", "addTo", ("op", "oprw", atom))
-      ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "argument: "))
-      ReplActor ! ("Eva", "setSubroot", "arg")
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) 
-      ReplActor ! ("Eva", "popTable", "ApplicationNode")
       result
 	  }
 	}
@@ -264,16 +234,6 @@ object AtomParser {
       val lvarInt = lvar.interpret
       val bodyInt = body.interpret
       val result = Lambda(lvarInt, bodyInt)
-			ReplActor ! ("Eva","pushTable","LambdaNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "LambdaNode.interpret"))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "param", "parameter: "))
-			ReplActor ! ("Eva", "setSubroot", "param")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "body", "body: "))
-			ReplActor ! ("Eva", "setSubroot", "body")
-			ReplActor ! ("Eva", "setSubroot", "rwNode")			
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "LambdaNode")
 			result
 		}
 	}
@@ -295,21 +255,11 @@ object AtomParser {
 	   */
 	  def interpret = {
       val propsInt = props.interpret
-			ReplActor ! ("Eva","pushTable","AtomSeqNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeqNode.interpret: "))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "props", "properties: ")) 
-			ReplActor ! ("Eva", "setSubroot", "props")			
-			ReplActor ! ("Eva", "addTo", ("rwNode", "list", "atoms: "))
 			val ASList = list.toIndexedSeq[AstNode] map ( astAtom => {
-        ReplActor ! ("Eva", "setSubroot", "list") // RWTree.current = listNode
 				val astAtomInt = astAtom.interpret
 				astAtomInt
 			})
       val result = AtomSeq(propsInt, ASList)
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "AtomSeqNode")
 			result
 		}
 	}
@@ -322,10 +272,6 @@ object AtomParser {
 	case object TrueNode extends AstNode {
 	  def interpret = {
       val result = Literal.TRUE
-			ReplActor ! ("Eva","pushTable","TrueNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "TrueNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "TrueNode")
 			result
 		}
 	}
@@ -334,10 +280,6 @@ object AtomParser {
 	case object FalseNode extends AstNode {
 	  def interpret = {
       val result = Literal.FALSE
-			ReplActor ! ("Eva","pushTable","FalseNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "FalseNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "FalseNode")
 			result
 		}
 	}
@@ -389,9 +331,6 @@ object AtomParser {
 	  
 	  private def _interpret(atom: Option[AstNode]) = atom match {
 	    case None => 
-  			ReplActor ! ("Eva","pushTable","_AlgPropNode")
-  			ReplActor ! ("Eva", "addToSubroot", ("", "n/a")) 
-        ReplActor ! ("Eva", "popTable", "_AlgPropNode")
   			None
 	    case Some(real) =>
 	      Some(real.interpret)
@@ -408,21 +347,6 @@ object AtomParser {
       val absorInt = _interpret(withAbsorber)
       val identInt = _interpret(withIdentity)
       val result = AlgProp(assocInt, commuInt, idempInt, absorInt, identInt)
-			ReplActor ! ("Eva","pushTable","AlgPropNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgPropNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: ")) 
-      ReplActor ! ("Eva", "setSubroot", "A")
-      ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: "))
-      ReplActor ! ("Eva", "setSubroot", "C")
-      ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: ")) 
-      ReplActor ! ("Eva", "setSubroot", "I")
-      ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: "))
-      ReplActor ! ("Eva", "setSubroot", "B")
-      ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: "))
-      ReplActor ! ("Eva", "setSubroot", "D")
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "AlgPropNode")
 			result
 		} 
 	}
@@ -454,18 +378,10 @@ object AtomParser {
 	case class BindingsNode(map: List[(NakedSymbolNode,AstNode)]) extends AstNode {
 	  def interpret = {
       var binds = Bindings()
-	    ReplActor ! ("Eva","pushTable","BindingsNode")
-	    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsNode.interpret: "))
-	    ReplActor ! ("Eva", "setSubroot", "rwNode")
 	    for ((str,node) <- map) {
-	      ReplActor ! ("Eva", "addTo", ("rwNode", "bind", str + " -> "))
-	      ReplActor ! ("Eva", "setSubroot", "bind")
 	      binds += (str.str -> node.interpret)
 	    }
       val result = BindingsAtom(binds)
-      ReplActor ! ("Eva", "setSubroot", "rwNode")		
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "BindingsNode")
       result
 	  }
 	}
@@ -485,15 +401,6 @@ object AtomParser {
       val leftInt = left.interpret
       val rightInt = right.interpret
       val result = MapPair(leftInt, rightInt)
-			ReplActor ! ("Eva","pushTable","MapPairNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPairNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ")) 
-			ReplActor ! ("Eva", "setSubroot", "left")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: "))
-			ReplActor ! ("Eva", "setSubroot", "right")
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "MapPairNode")
 			result
 		}
 	}
@@ -511,11 +418,6 @@ object AtomParser {
 	case class NakedSymbolNode(str: String) extends AstNode {
 	  def interpret = {
       val result = SymbolLiteral(SYMBOL, Symbol(str))
-			ReplActor ! ("Eva","pushTable","NakedSymbolNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "NakedSymbolNode.interpret: ")) 
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "NakedSymbolNode")
 			result
 		}
 	}
@@ -530,12 +432,6 @@ object AtomParser {
 	  def interpret = {
       val typeInt = typ.interpret
       val result = Literal(typeInt, name)
-			ReplActor ! ("Eva","pushTable","SymbolNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SymbolNode.interpret: "))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", typeInt)) 
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "SymbolNode")
 			result
 		}
 	}
@@ -544,10 +440,6 @@ object AtomParser {
 	object AnyNode extends AstNode {
 	  def interpret = {
       val result = EANY
-			ReplActor ! ("Eva","pushTable","AnyNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AnyNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) 
-      ReplActor ! ("Eva", "popTable", "AnyNode")
 			result
 		}
 	}
@@ -570,24 +462,14 @@ object AtomParser {
 	    val byName: Boolean) extends AstNode {
 	  def interpret: Variable = {
       val typeInt = typ.interpret
-  		ReplActor ! ("Eva","pushTable","VariableNode")
-  		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "VariableNode.interpret: "))
-  		ReplActor ! ("Eva", "setSubroot", "rwNode")
   		grd match {
   			case None => 
   				val result = Variable(typeInt, name, Literal.TRUE, labels, byName)
-  				ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "VariableNode")
   				result
   				
   			case Some(guard) => 
           val guardInt = guard.interpret
           val result = Variable(typeInt, name, guardInt, labels, byName)
-  				ReplActor ! ("Eva", "addTo", ("rwNode", "guard", "guard: "))
-  				ReplActor ! ("Eva", "setSubroot", "guard")
-  				ReplActor ! ("Eva", "setSubroot", "rwNode")
-  				ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "VariableNode")
   				result
   		}
 	  }
@@ -620,26 +502,16 @@ object AtomParser {
 	extends VariableNode(vx.typ, vx.name, vx.grd, vx.labels, vx.byName) {
 	  override def interpret: MetaVariable = {
 	    val vxtypeInt = vx.typ.interpret
-  		ReplActor ! ("Eva","pushTable","MetaVariableNode")
-  		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MetaVariableNode.interpret: "))
-  		ReplActor ! ("Eva", "setSubroot", "rwNode")
   		grd match {
   			case None =>
   				val result = MetaVariable(vxtypeInt, vx.name, Literal.TRUE,
   				    vx.labels, vx.byName)
-  				ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "MetaVariableNode")
   				result
   				
   			case Some(guard) =>
           val guardInt = guard.interpret
           val result = MetaVariable(vxtypeInt, vx.name, guardInt, vx.labels,
               vx.byName)
-  				ReplActor ! ("Eva", "addTo", ("rwNode", "guard", "guard: "))
-  				ReplActor ! ("Eva", "setSubroot", "guard")
-  				ReplActor ! ("Eva", "setSubroot", "rwNode")
-  				ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "MetaVariableNode")
   				result
   		}
 	  }
@@ -660,15 +532,6 @@ object AtomParser {
       val tagInt = tag.interpret
       val contentInt = content.interpret
       val result = SpecialForm(tagInt, contentInt)
-			ReplActor ! ("Eva","pushTable","SpecialFormNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SpecialFormNode.interpret: "))
-			ReplActor ! ("Eva", "addTo", ("rwNode", "tag", "tag: ")) 
-			ReplActor ! ("Eva", "setSubroot", "tag")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "content", "content: "))
-			ReplActor ! ("Eva", "setSubroot", "content")
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result)) 
-      ReplActor ! ("Eva", "popTable", "SpecialFormNode")
 			result
 		}
 	}
@@ -684,11 +547,7 @@ object AtomParser {
 	 * @param sym		The symbol text.
 	 */
 	case class SymbolLiteralNode(typ: Option[AstNode], sym: String) extends AstNode {
-	  def interpret: BasicAtom = {
-  	  ReplActor ! ("Eva","pushTable","SymbolLiteralNode")
-  		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SymbolLiteralNode.interpret: "))
-  		ReplActor ! ("Eva", "setSubroot", "rwNode")
-			
+	  def interpret: BasicAtom = {			
 	    // If there is no type, or the type is the type universe, then check the
 	    // symbol to see if it is a known root type.  This is also where the
 	    // symbol _ gets turned into ANY.
@@ -696,51 +555,34 @@ object AtomParser {
 	      val lookup = (if (sym == "_") "ANY" else sym)
 	      NamedRootType.get(lookup) match {
 	        case Some(nrt) => 
-	          ReplActor ! ("Eva", "addTo", ("rwNode", "", nrt))
-            ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
             return nrt
             
 	        case _ =>
 	      }
 	    }
-  	  ReplActor ! ("Eva", "setSubroot", "rwNode")
   	  
 	    // There are interesting "untyped" cases.  Without type, true and false
 	    // should be made Booleans, and Nothing should have type ANY.
 	    if (typ == None) sym match {
 	      case "true" => 
-	        ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.TRUE))
-          ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
           return Literal.TRUE
           
 	      case "false" => 
-	        ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.FALSE))
-          ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
           return Literal.FALSE
           
 	      case _ => 
           val newLit = Literal(SYMBOL, Symbol(sym))
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", newLit))
-          ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
           return newLit
 	    } else {
 	      typ.get.interpret match {
 	        case BOOLEAN if sym == "true" => 
-	          ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.TRUE)) 
-            ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
             return Literal.TRUE
             
 	        case BOOLEAN if sym == "false" => 
-            ReplActor ! ("Eva", "addTo", ("rwNode", "", Literal.FALSE))
-            ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
             return Literal.FALSE
               
 	        case t:Any => 
             val result = Literal(t, Symbol(sym))
-	          ReplActor ! ("Eva", "addTo", ("rwNode", "", t))				
-            ReplActor ! ("Eva", "setSubroot", "rwNode")
-            ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-            ReplActor ! ("Eva", "popTable", "SymbolLiteralNode")
             return result
 	      }
 	    }
@@ -757,11 +599,6 @@ object AtomParser {
 	  def interpret = {
       val typeInt = typ.interpret
       val result = Literal(typeInt, str)
-			ReplActor ! ("Eva","pushTable","StringLiteralNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "StringLiteralNode.interpret: "))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "StringLiteralNode")
 			result
 		}
 	}
@@ -840,11 +677,6 @@ object AtomParser {
 	  def interpret = {
       val typeInt = typ.interpret
       val result = Literal(typeInt, asInt)
-			ReplActor ! ("Eva","pushTable","UnsignedIntegerNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "UnsignedIntegerNode.interpret: "))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")			
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-			ReplActor ! ("Eva", "popTable", "UnsignedIntegerNode")
 			result
 		}
 	  
@@ -866,11 +698,6 @@ object AtomParser {
 	  def interpret = {
       val typeInt = typ.interpret
       val result = Literal(typeInt, asInt)
-			ReplActor ! ("Eva","pushTable","SignedIntegerNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SignedIntegerNode.interpret"))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "SignedIntegerNode")
 			result
 		}
 	  
@@ -980,11 +807,6 @@ object AtomParser {
 	  def interpret = {
       val typeInt = typ.interpret
       val result = Literal(typeInt, norm._1.asInt.toInt, norm._2.asInt.toInt, radix)
-			ReplActor ! ("Eva","pushTable","FloatNode")
-			ReplActor ! ("Eva", "addToSubroot", ("rwNode", "FloatNode.interpret"))
-			ReplActor ! ("Eva", "setSubroot", "rwNode")
-			ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "FloatNode")
 			result
 		}
 	  
