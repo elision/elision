@@ -37,7 +37,6 @@
 * */
 package ornl.elision.core
 import ornl.elision.util.ElisionException
-import ornl.elision.actors.ReplActor
 
 /* Notes on De Bruijn indices.
  * 
@@ -172,12 +171,7 @@ extends BasicAtom with Applicable {
 	  case _ => Fail("Lambdas only match other lambdas.", this, subject)
 	}
 
-  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
-    ReplActor ! ("Eva", "pushTable", "Lambda rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "body", body))
-    ReplActor ! ("Eva", "setSubroot", "body")
-	
+  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {	
     // We test for a special case here.  If the bindings specify that we
     // should rewrite our own bound De Bruijn index, we explicitly ignore
     // it.
@@ -185,11 +179,8 @@ extends BasicAtom with Applicable {
     body.rewrite(newbinds) match {
 	    case (newatom, changed) if changed => 
   			val newLambda = Lambda(lvar, newatom)
-  			ReplActor ! ("Eva", "addTo", ("rwNode", "", newLambda))
-        ReplActor ! ("Eva", "popTable", "Lambda rewrite")
         (newLambda, true)
 	    case _ => 
-        ReplActor ! ("Eva", "popTable", "Lambda rewrite")
         (this, false)
 	  }
   }
@@ -205,15 +196,7 @@ extends BasicAtom with Applicable {
       false
   }
   
-  def doApply(atom: BasicAtom, bypass: Boolean) = {
-    ReplActor ! ("Eva", "pushTable", "Lambda doApply")
-    // top node of this subtree
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Lambda doApply: ")) 
-	
-    ReplActor ! ("Eva", "addTo", ("rwNode", "body", "body: ", body)) 
-  	ReplActor ! ("Eva", "addTo", ("rwNode", "atom", "argument: ", atom)) 
-  	ReplActor ! ("Eva", "setSubroot", "body") 
-	
+  def doApply(atom: BasicAtom, bypass: Boolean) = {	
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
     // overflow here, and bail out.
@@ -223,19 +206,14 @@ extends BasicAtom with Applicable {
 	    // types, use a bind.
 	    lvar.tryMatch(atom) match {
 	      case fail:Fail =>
-          ReplActor ! ("Eva", "popTable", "Lambda doApply")
 	        throw new LambdaVariableMismatchException(
 	            "Lambda argument does not match parameter: " + fail.theReason)
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
 		      val newbody = body.rewrite(binds)._1
-	        ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) 
-          ReplActor ! ("Eva", "popTable", "Lambda doApply")
           newbody
 	      case Many(iter) =>
 	        val newbody = body.rewrite(iter.next)._1
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", newbody)) 
-          ReplActor ! ("Eva", "popTable", "Lambda doApply")
           newbody
 	    }
     } catch {
@@ -243,8 +221,6 @@ extends BasicAtom with Applicable {
         // Trapped unbounded recursion.
         val errorString = "Lambda application results in unbounded recursion: (" +
         this.toParseString + ").(" + atom.toParseString + ")"
-        ReplActor ! ("Eva", "addTo", ("rwNode", "", errorString)) 
-        ReplActor ! ("Eva", "popTable", "Lambda doApply")
         throw new LambdaUnboundedRecursionException(errorString)
     }
   }
@@ -277,12 +253,7 @@ object Lambda {
    * @param lvar	The lambda parameter.
    * @param body	The lambda body.
    */
-  def apply(lvar: Variable, body: BasicAtom): Lambda = {
-    ReplActor ! ("Eva", "pushTable", "obj Lambda apply")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Lamda apply: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "lvar", "parameter: ", lvar))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "body", "body: ", body))
-	
+  def apply(lvar: Variable, body: BasicAtom): Lambda = {	
     // Make and return the new lambda.
     if (useDeBruijnIndices) {
       // Decide what De Bruijn index to use for this lambda.  We will use one
@@ -302,34 +273,27 @@ object Lambda {
       }
 	    
 	    // Now make a new De Bruijn variable for the index.
-      ReplActor ! ("Eva", "setSubroot", "lvar") // RWTree.current = lvarNode
 	    val newvar = (
         if (lvar.isTerm)
         	new DBIV(lvar.theType, dBI, lvar.guard, lvar.labels)
         else
         	new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
         )
-        ReplActor ! ("Eva", "addTo", ("lvar", "", newvar)) // RWTree.addTo(lvarNode, newvar) 
 		
 	    // Bind the old variable to the new one and rewrite the body.
 	    var binds = Bindings()
 	    binds += (lvar.name -> newvar)
-	    ReplActor ! ("Eva", "setSubroot", "body") // RWTree.current = bodyNode
 	    val (newbody, notfixed) = body.rewrite(binds)
-	    ReplActor ! ("Eva", "addTo", ("body", "", newbody)) // RWTree.addTo(bodyNode, newbody)
 	    
 	    // Compute the new lambda.
 	    if (notfixed)	{
-        ReplActor ! ("Eva", "popTable", "obj Lambda apply")
         new Lambda(newvar, newbody, false)
       }
 	    else {
-        ReplActor ! ("Eva", "popTable", "obj Lambda apply")
         new Lambda(newvar, body, true)
       }
     }
     else {
-      ReplActor ! ("Eva", "popTable", "obj Lambda apply")
       new Lambda(lvar, body, false)
     }
   }

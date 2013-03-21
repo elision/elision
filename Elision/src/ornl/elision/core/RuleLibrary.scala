@@ -43,7 +43,6 @@ import scala.collection.immutable.List
 import scala.collection.immutable.HashSet
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
-import ornl.elision.actors.ReplActor
 import ornl.elision.util.Debugger
 
 /**
@@ -541,12 +540,6 @@ extends Fickle with Mutable {
         else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) (atom, false)
         else if (atom.isInstanceOf[Variable]) (atom, false)
         else {
-          ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-          ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
-          ReplActor ! ("Eva", "setSubroot", "rwNode")
-          val tempDisabled = ReplActor.disableGUIComs
-          if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-          
           // Check the cache.
           var timedOut = false
           val (newatom, flag) = Memo.get(atom, _active) match {
@@ -584,10 +577,6 @@ extends Fickle with Mutable {
               pair
             }
           }
-          
-          ReplActor.disableGUIComs = tempDisabled
-          if(flag) ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom))
-          ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
           
           // Did rewriting this atom time out?
           if (timedOut) {
@@ -653,14 +642,7 @@ extends Fickle with Mutable {
           (atom, false)
         } else if (atom.isInstanceOf[Variable]) {
           (atom, false)
-        } else {
-          ReplActor ! ("Eva","pushTable", "RuleLibrary rewrite")
-          ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RuleLibrary rewrite: ", atom))
-          ReplActor ! ("Eva", "setSubroot", "rwNode")
-          val tempDisabled = ReplActor.disableGUIComs
-          
-          if (ReplActor.disableRuleLibraryVis) ReplActor.disableGUIComs = true
-          
+        } else {          
           // Check the cache.
           val usedRulesets = if (rulesets.isEmpty) _activeNames else rulesets
           var timedOut = false
@@ -699,10 +681,6 @@ extends Fickle with Mutable {
               pair
             }
           }
-          
-          ReplActor.disableGUIComs = tempDisabled
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom))
-          ReplActor ! ("Eva", "popTable", "RuleLibrary rewrite")
           
           // Did rewriting this atom time out?
           if (timedOut) {

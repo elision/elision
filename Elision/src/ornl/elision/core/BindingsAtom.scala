@@ -42,7 +42,6 @@ import scala.collection.mutable.ListBuffer
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.actors.ReplActor
 
 /**
  * Encapsulate a set of bindings as an atom.
@@ -112,32 +111,18 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   }
 	
   def rewrite(binds: Bindings) = {
-  	ReplActor ! ("Eva", "pushTable", "BindingsAtom rewrite")
-      // top node of this subtree
-  	ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom rewrite: ")) // val rwNode = RWTree.addToCurrent("BindingsAtom")
-	
     var changed = false
     var newmap = Bindings()
-    for ((key, value) <- mybinds) {	
-  	  ReplActor ! ("Eva", "addTo", ("rwNode", "val", key + " -> ", value)) //val valNode = RWTree.addTo(rwNode, key + " -> ", value) 
-  	  ReplActor ! ("Eva", "setSubroot", "val") // RWTree.current = valNode
-          
+    for ((key, value) <- mybinds) {	          
       val (newvalue, valuechanged) = value.rewrite(binds)
-        
-  	  ReplActor ! ("Eva", "addTo", ("val", "", newvalue)) // RWTree.addTo(valNode, newvalue)
-      
       changed |= valuechanged
       newmap += (key -> newvalue)
     } // Rewrite all bindings.
   	
     if (changed) {
-  		ReplActor ! ("Eva", "setSubroot", "rwNode") // RWTree.current = rwNode
   		val newBA = BindingsAtom(newmap)
-  		ReplActor ! ("Eva", "addTo", ("rwNode", "", newBA)) // RWTree.addTo(rwNode, newBA)
-          ReplActor ! ("Eva", "popTable", "BindingsAtom rewrite")
   		(newBA, true) 
   	} else {
-      ReplActor ! ("Eva", "popTable", "BindingsAtom rewrite")
       (this, false)
     }
   }
@@ -151,12 +136,6 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   }
   
   def doApply(atom: BasicAtom, bypass: Boolean) = {
-		ReplActor ! ("Eva", "pushTable", "BindingsAtom doApply")
-    // top node of this subtree
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "BindingsAtom doApply: ")) 
-		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) 
-		
-		ReplActor ! ("Eva", "setSubroot", "atom")
 		// Check the argument to see if it is a single symbol.
 		atom match {
 		  case SymbolLiteral(SYMBOL, sym) =>
@@ -164,26 +143,14 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   			// then the answer is NONE.
   			mybinds.get(sym.name) match {
   			  case Some(oatom) => 
-    				ReplActor ! ("Eva", "addTo", ("atom", "", oatom)) 
-    				ReplActor ! ("Eva", "addTo", ("rwNode", "", oatom)) 
-                    
-            ReplActor ! ("Eva", "popTable", "BindingsAtom doApply")
     				oatom
   			  case _ => 
-    				ReplActor ! ("Eva", "addTo", ("atom", "", NONE)) 
-    				ReplActor ! ("Eva", "addTo", ("rwNode", "", NONE)) 
-    				
-            ReplActor ! ("Eva", "popTable", "BindingsAtom doApply")
             NONE
   			}
 		  case _ =>
 			  // Try to rewrite the argument using the bindings and whatever we get
 			  // back is the result.
 			  val newatom = atom.rewrite(mybinds)._1
-			  ReplActor ! ("Eva", "addTo", ("atom", "", newatom)) 
-			  ReplActor ! ("Eva", "addTo", ("rwNode", "", newatom)) 
-			  
-        ReplActor ! ("Eva", "popTable", "BindingsAtom doApply")
         newatom
     }
   }

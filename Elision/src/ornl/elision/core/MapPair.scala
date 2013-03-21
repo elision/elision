@@ -37,7 +37,6 @@
 * */
 package ornl.elision.core
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.actors.ReplActor
 
 object MapPair {
   /**
@@ -95,25 +94,14 @@ with Rewriter {
   }
 	
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
-    ReplActor ! ("Eva","pushTable", "MapPair rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair rewrite: ")) 
-    ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left))
-    ReplActor ! ("Eva", "setSubroot", "left")
     val newleft = left.rewrite(binds)
-	
-    ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) 
-    ReplActor ! ("Eva", "setSubroot", "right")
     val newright = right.rewrite(binds)
 	
     if (newleft._2 || newright._2) {
-  		ReplActor ! ("Eva", "setSubroot", "rwNode") 
   		val newMP = MapPair(newleft._1, newright._2)
-  		ReplActor ! ("Eva", "addTo", ("rwNode", "", newMP)) 
-      ReplActor ! ("Eva", "popTable", "MapPair rewrite")
       (newMP, true)
     }
     else {
-      ReplActor ! ("Eva", "popTable", "MapPair rewrite")
       (this, false)
     }
   }
@@ -124,27 +112,14 @@ with Rewriter {
    * The first match with the left-hand side is used to rewrite the right.
    */
   def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable", "MapPair doRewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair doRewrite: ", atom))
-		ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left))
-		ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right))
-		ReplActor ! ("Eva", "setSubroot", "left")
-		
 		left.tryMatch(atom, Bindings(), hint) match {
 			case file:Fail => 
-        ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
         (atom, false)
 			case Match(binds) =>
-				ReplActor ! ("Eva", "setSubroot", "right") 
 				val res = right.rewrite(binds)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1))
-        ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
 				(res._1, true)
 			case Many(iter) =>
-				ReplActor ! ("Eva", "setSubroot", "right")
 				val res = right.rewrite(iter.next)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1))
-        ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
 				(res._1, true)
 	  }
   }

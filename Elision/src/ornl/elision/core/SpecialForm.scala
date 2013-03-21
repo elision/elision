@@ -37,7 +37,6 @@
 * */
 package ornl.elision.core
 import ornl.elision.util.ElisionException
-import ornl.elision.actors.ReplActor
 
 /**
  * Construction of a special form failed for the specified reason.
@@ -278,28 +277,13 @@ extends BasicAtom {
   }
 	
   def rewrite(binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable","SpecialForm rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SpecialForm rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "tag", "Tag: ", tag))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "content", "Content: ", content))
-    
-    ReplActor ! ("Eva", "setSubroot", "tag")
     val newtag = tag.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("tag", "", newtag._1))
-    
-    ReplActor ! ("Eva", "setSubroot", "content") 
     val newcontent = content.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("content", "", newcontent._1)) 
 	
     if (newtag._2 || newcontent._2) {
-      ReplActor ! ("Eva", "setSubroot", "rwNode") 
       val newSF = SpecialForm(newtag._1, newcontent._1)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newSF))
-      
-      ReplActor ! ("Eva", "popTable", "SpecialForm rewrite")
       (newSF, true)
     } else {
-      ReplActor ! ("Eva", "popTable", "SpecialForm rewrite")
       (this, false)
     }
   }
