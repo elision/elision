@@ -43,26 +43,26 @@ declare(IF, STRAT)
 // The no-op strategy leaves atoms unmodified.  The flag is always set to
 // true.
 decl.{! s_noop(): STRATEGY
-#description="No-op strategy."
-#detail=
-"This is a trivial strategy that leaves the atom unmodified and sets the ".
-"flag to true."
+  #description="No-op strategy."
+  #detail=
+    "This is a trivial strategy that leaves the atom unmodified and sets the ".
+    "flag to true."
 }
 decl.{ rule (s_noop().$a) -> {bind atom->$a flag->true} #ruleset STRAT }
   
 // Declare operators to modify the flag returned from a strategy.
 decl.{! s_true($s: STRATEGY): STRATEGY
-#description="Apply a strategy and force the flag to be true."
-#detail=
-"Apply strategy $s and then force the flag to be true."
+  #description="Apply a strategy and force the flag to be true."
+  #detail=
+    "Apply strategy $s and then force the flag to be true."
 }
 decl.{ rule (s_true($s).$a) -> (($s.$a).{bind atom->$atom flag->true})
   #ruleset STRAT }
 
 decl.{! s_false($s: STRATEGY): STRATEGY
-#description="Apply a strategy and force the flag to be false."
-#detail=
-"Apply strategy $s and then force the flag to be false."
+  #description="Apply a strategy and force the flag to be false."
+  #detail=
+  "Apply strategy $s and then force the flag to be false."
 }
 decl.{ rule (s_false($s).$a) -> (($s.$a).{bind atom->$atom flag->false}) 
   #ruleset STRAT }
@@ -73,10 +73,10 @@ decl.{ rule (s_false($s).$a) -> (($s.$a).{bind atom->$atom flag->false})
 // executed.
 decl.{! s_if($test: STRATEGY, $thenpart: STRATEGY @lazy,
 	$elsepart: STRATEGY @lazy): STRATEGY
-#description="Conditionally apply strategies."
-#detail=
-"Apply the strategy $test.  If the flag is true, then apply strategy ".
-"$thenpart.  If the flag is false, then apply the strategy $elsepart."
+  #description="Conditionally apply strategies."
+  #detail=
+    "Apply the strategy $test.  If the flag is true, then apply strategy ".
+    "$thenpart.  If the flag is false, then apply the strategy $elsepart."
 }
 decl.{ rule (s_if($test, $thenpart, $elsepart).$a) ->
   (($test.$a).if($flag, ($thenpart.$atom), ($elsepart.$atom)))
@@ -85,39 +85,39 @@ decl.{ rule (s_if($test, $thenpart, $elsepart).$a) ->
 // The while strategy executes the subordinate strategy for as long as it
 // yields the true flag.
 decl.{! s_while($test: STRATEGY): STRATEGY
-#description="Apply a strategy as long as the returned flag is true."
-#detail=
-"Apply the strategy $test repeatedly so long as the flag is true."
+  #description="Apply a strategy as long as the returned flag is true."
+  #detail=
+    "Apply the strategy $test repeatedly so long as the flag is true."
 }
 decl.{ rule (s_while($test).$a) ->
   (s_if($test, s_while($test), s_noop()).$a) #ruleset STRAT }
   
 decl.{! s_then($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
-#description="Apply a sequence of strategies, unconditionally."
-#detail=
-"Apply a sequence of strategies, in order, unconditionally."
+  #description="Apply a sequence of strategies, unconditionally."
+  #detail=
+    "Apply a sequence of strategies, in order, unconditionally."
 }
 decl.{ rule (s_then($p, $q).$a) -> ($q.(($p.$a).$atom)) #ruleset STRAT }
   
 decl.{! s_and($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
-#description="Apply a sequence of strategies and stop at false."
-#detail=
-"Apply a sequence of strategies, in order.  Stop as soon as the flag ".
-"is set to false."
+  #description="Apply a sequence of strategies and stop at false."
+  #detail=
+    "Apply a sequence of strategies, in order.  Stop as soon as the flag ".
+    "is set to false."
 }
 decl.{ rule (s_and($p, $q).$a) -> (s_if($p, $q, s_noop()).$a) #ruleset STRAT }
   
 decl.{! s_or($x: STRATEGY, $y: STRATEGY): STRATEGY is associative
-#description="Apply a sequence of strategies and stop at true."
-#detail=
-"Apply a sequence of strategies, in order.  Stop as soon as the flag ".
-"is set to true."
+  #description="Apply a sequence of strategies and stop at true."
+  #detail=
+    "Apply a sequence of strategies, in order.  Stop as soon as the flag ".
+    "is set to true."
 }
 decl.{ rule (s_or($p, $q).$a) -> (s_if($p, s_noop(), $q).$a) #ruleset STRAT }
   
 decl.{! s_td($part: STRATEGY): STRATEGY
-#description="Apply a strategy top-down."
-#detail=
-"Map the strategy to the atom, and then to the children."
+  #description="Apply a strategy top-down."
+  #detail=
+    "Map the strategy to the atom, and then to the children."
 }
 decl.{ rule (s_td($s).$a) -> (s_then($s,{map s_td($s)}).$a) #ruleset STRAT }
