@@ -614,6 +614,24 @@ decl.{! showtypes($a)
   "is also printed."
 }
 
+decl.{! traverse($op:OPREF)
+  #handler="""
+    args match {
+      case Args(op: Operator) =>
+        Operator.traverse(System.out, op, Set(), 'elision)
+      case Args(opref: OperatorRef) =>
+        Operator.traverse(System.out, opref.operator, Set(), 'elision)
+      case _ =>
+        warn("The traverse operator only works for operator instances.")
+    }
+    _no_show
+  """
+  #detail="Emit an operator and all necessary supporting operators to ".
+    "fully re-create it.  The operators are emitted in the order they must ".
+    "be declared."
+  #description="Fully write an operator's definition."
+}
+
 //======================================================================
 // Error reporting.
 //======================================================================

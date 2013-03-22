@@ -43,6 +43,11 @@ import ornl.elision.util.ElisionException
 import scala.tools.nsc.interpreter.Results
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher.SequenceMatcher
+import ornl.elision.generators.ScalaGenerator
+import ornl.elision.generators.ElisionGenerator
+import scala.collection.mutable.{Set => MSet}
+import scala.collection.mutable.Stack
+import scala.collection.mutable.Queue
 
 /**
  * An incorrect argument list was supplied to an operator.
@@ -185,6 +190,48 @@ object Operator {
   def unapply(op: Operator) = op match {
     case so: SymbolicOperator => Some((so.name, so.theType, so.params))
     case co: CaseOperator => Some((co.name, co.theType, co.cases))
+  }
+    
+  def traverse(app: Appendable, op: Operator, known: Set[Operator],
+      kind: Symbol): Set[Operator] = {
+    var newknown = known
+    
+    // A visitor to collect mentioned operators.  Note that the symbolic
+    // operators are hard-coded, and we never write them.
+    def collector(atom: BasicAtom, istype: Boolean) = {
+      if (atom != op) {
+        atom match {
+          case op: TypedSymbolicOperator =>
+            if (! newknown.contains(op))
+              newknown = traverse(app, op, newknown, kind)
+          case sop: SymbolicOperator =>
+          case op: Operator =>
+            if (! newknown.contains(op))
+              newknown = traverse(app, op, newknown, kind)
+          case or: OperatorRef =>
+            val op = or.operator
+            if (! newknown.contains(op))
+              newknown = traverse(app, op, newknown, kind)
+          case _ =>
+        }
+      }
+      true
+    }
+    
+    // Write all the operators this one depends on.
+    AtomWalker(op, collector)
+    
+    // Write this atom.
+    kind match {
+      case 'scala =>
+        ScalaGenerator(op, app)
+      case _ =>
+        ElisionGenerator(op, app)
+    }
+    app.append('\n')
+    
+    // This is now a known operator.
+    newknown + op
   }
 }
 
