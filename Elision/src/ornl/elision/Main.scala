@@ -87,13 +87,6 @@ object Main extends App {
           (tag: String) => {
             Debugger.enableDebugModes(tag, Debugger.Mode.ON)
             None
-          }),
-      ArgSwitch(Some("parser"), Some('p'),
-          "Select the parser to use.  Choices are old, combinator, and new.",
-          "PARSER",
-          (parser: String) => {
-            ProcessorControl.parserKind = Symbol(parser)
-            None
           })
   )
   

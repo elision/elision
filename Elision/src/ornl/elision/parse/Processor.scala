@@ -151,37 +151,11 @@ with HasHistory {
   val checkpoints = new collection.mutable.ArrayBuffer[(java.util.Date, Context)]
 
   /**
-   * Create the chosen parser.
+   * Create the parser.
    * 
    * @return The new parser.
    */
-  private def _makeParser = _parserKind match {
-    case 'old => new AtomParser(context, _trace, _toggle)
-    case 'combinator => new AtomParser(context, _trace, _toggle)
-    case 'new => new ElisionParser(_trace)
-  }
-  
-  /**
-   * Set the parser.
-   * 
-   * @param kind  The kind of parser to use.  Must be one of the known
-   *              values.  At present that is `old`, `combinator`, and `new`.
-   */
-  def setParser(kind: Symbol) {
-    kind match {
-      case 'old =>
-        _toggle = false
-        _parserKind = 'old
-      case 'combinator =>
-        _toggle = true
-        _parserKind = 'old
-      case 'new =>
-        _parserKind = 'new
-      case _ =>
-        throw new ElisionException("Unknown parser: " + kind)
-    }
-    _parser = _makeParser
-  }
+  private def _makeParser = new ElisionParser(_trace)
   
   /**
    * Display the banner, version, and build information on the current
