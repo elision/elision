@@ -45,9 +45,82 @@ object PrintConsole extends Console {
  * output, which is able to interpret ANSI escape sequences.
  */
 object AnsiPrintConsole extends Console {
+  private val _prop = new scala.sys.SystemProperties
+  private val _ENDL = _prop("line.separator")
+  
+  private val resetColorEsc = "\u001B[0m"
+  private var restoreColorEsc = resetColorEsc
+  
+  
   def write(text: String) { 
     AnsiConsole.out.print(text) 
+    
+    // save the last coloring escape sequence.
+    val escIndex = text.lastIndexOf("\u001B[")
+    if(escIndex >= 0) {
+      var escSeq = text.substring(escIndex)
+      val escEnd = escSeq.indexOf("m")
+      if(escEnd > 0) {
+        restoreColorEsc = escSeq.substring(0, escEnd+1)
+      }
+    }
   }
+  
+  
+  /**
+   * Pauses the AnsiConsole correctly
+   * and preserves color formatting.
+   * 
+   * @return  true if the user doesn't enter 'q'.
+   */
+  private def ansiPause() : Boolean = {
+    write(resetColorEsc + "--More--" + restoreColorEsc)
+    AnsiConsole.out.flush
+    
+    val ch = scala.io.Source.stdin.reader.read.toChar
+    
+    if (ch != '\n') write(_ENDL)
+    ch != 'q'
+  }
+  
+  /**
+   * Emits text to the AnsiConsole while also checking the page
+   * size. It does no line wrapping because the SyntaxFormatter already
+   * did this for us.
+   * 
+   * @param text  The text to emit, already processed by a SyntaxFormatter.
+   */
+  private def ansiWriteText(text: String) {
+    if (height <= 0) {
+      write(text)
+    }
+    else {
+      // Break the string into lines at the newlines.
+      val lines = text.split("\n")
+      
+      if(lines.length < height) {
+        write(text)
+      }
+      else {
+        var _count = 0
+        for(line <- lines) {
+          write(line + "\n")
+          _count += 1
+          if(_count >= height) {
+            _count = 0
+            if(!doPause) {
+              return 
+            } // if quit
+          } // if do page
+        } // end for
+      } // page case
+    } 
+    
+  }
+  
+  
+  writeText_=(ansiWriteText)
+  pause_=(ansiPause)
 }
 
 /**
@@ -191,7 +264,7 @@ trait Console {
    * 
    * @param text  The text to emit.
    */
-  private def writeText(text: String) {
+  private def _defaultWriteText(text: String) {
     if (_height <= 0) write(text)
     else {
       // Break the string into lines, first at the newlines.
@@ -229,6 +302,23 @@ trait Console {
         } // Emit all lines.
       } // Not a screenful case.
     } // Not paging case.
+  }
+  
+  /** The writeText closure to use. */
+  private var _writeText : (String) => Unit = _defaultWriteText _
+  
+  /** Invokes the closure used to write text to this Console. */
+  private def writeText(text : String) = { _writeText(text) }
+  
+  /**
+   * Specify a closure to invoke when text is written to the Console.  
+   * By default this is the writer specified by `_defaultWriteText`. 
+   * The writer should accept a String of text to be printed as its parameter.
+   * 
+   * @param writer  The writer to invoke.
+   */
+  def writeText_=(writer : (String) => Unit) = {
+    _writeText = writer
   }
   
   /**

@@ -30,7 +30,6 @@
 package ornl.elision.repl
 
 import ornl.elision.parse._
-import ornl.elision.actors.ReplActor
 import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
@@ -106,10 +105,6 @@ object ReplMain {
   def runRepl(settings: Map[String,String]) {
     val erepl = new ERepl(settings)
     ornl.elision.core.knownExecutor = erepl
-    ReplActor.start
-    ReplActor.history = erepl
-    ReplActor.console = erepl.console
-    ReplActor ! ("disableGUIComs", true)
     erepl.run()
     erepl.clean()
   }
@@ -249,12 +244,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     
-
-  	if(ReplActor.guiMode) 
-  	  ReplActor.waitOnGUI(() => ReplActor.guiActor ! ("replFormat",true)
-        , "formatting on") 
-    ReplActor ! ("guiReplFormat", true, "formatting on")
-    
     
     if(getProperty[Boolean]("syntaxcolor")) {
       // color-format the atom's parseString and print it.
@@ -264,18 +253,12 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
           prefix + atom.toParseString, formatCols)
       ornl.elision.util.AnsiPrintConsole.width = formatCols
       ornl.elision.util.AnsiPrintConsole.height = formatRows
+      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
       ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
     } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
     }
-      
-    
-	
-  	if(ReplActor.guiMode) 
-  	  ReplActor.waitOnGUI(() => ReplActor.guiActor ! ("replFormat",false)
-  	    , "formatting off") 
-    ReplActor ! ("guiReplFormat", false, "formatting off")
   }
   
   this.register(
@@ -498,7 +481,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
     } catch {
       case _ =>     
         if (!bootstrap()) {
-          ReplActor ! (":quit", true)
           return
         }
     }
@@ -508,11 +490,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
     printf("Startup Time: " + getLastTimeString + "\n")
     SymbolicOperator.reportTime
 	
-    // activates communications with the GUI if we are using it.
-    if(ReplActor.guiMode) {
-      ReplActor ! ("disableGUIComs", false)
-    }
-
     // Configure the console and history.
     val cr = new ConsoleReader
     val term = cr.getTerminal
@@ -538,18 +515,8 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
         def fetchline(p1: String, p2: String): Boolean = {
           Processor.fileReadStack.clear
           Processor.fileReadStack.push("Console")
-        	
-          // Getting input from user depends on if a GUI is being used.
-          segment = if (ReplActor.guiMode) {  
-            // Get input from the GUI.
 
-            println()
-            print("" + (if (console.quiet > 0) p2 else p1))
-    				ReplActor.waitOnGUI()
-    				ReplActor.guiInput
-    			} else {
-    			  // Get input directly from the console. 
-    			  
+          segment = {
     				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
     				// Reset the terminal size now, if we can, and if the user wants to
     				// use the pager.
@@ -594,9 +561,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
         
         // Watch for the end of stream or the special :quit token.
         if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-          // Tell the ReplActor to exit its thread.
-          ReplActor.exitFlag = true
-          ReplActor ! (":quit", true)
           return
         }
         
@@ -605,9 +569,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
         
         // Run the line.
         try {
-          // Create the root of our rewrite tree it contains a String of the REPL input.
-          ReplActor ! ("Eva", "newTree", line)
-          
           execute(line)
         } catch {
           case ornl.elision.util.ElisionException(msg) =>
@@ -628,10 +589,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
             if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
             coredump("Internal error.", Some(th))
         }
-        
-        // send the completed rewrite tree to the GUI's actor
-        if(ReplActor.guiActor != null && !ReplActor.disableGUIComs && line != "")
-          ReplActor ! ("Eva", "finishTree", None)
       }
     } // Forever read, eval, print.
   }

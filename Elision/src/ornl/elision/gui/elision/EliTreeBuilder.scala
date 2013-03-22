@@ -174,7 +174,9 @@ class EliTreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("EliTreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
+        case _ => 
+          System.err.println("EliTreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
+          
           keepgoing = attemptStackRecovery
       }
     }
@@ -188,7 +190,7 @@ class EliTreeBuilder extends Thread {
    * @param atom          The BasicAtom the new atom node is being constructed from 
    */
   def addToSubroot(id : String, comment : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-    if(this.isMaxDepth || fatalError || ignoreCmds) return
+    if(this.isMaxDepth || fatalError || ignoreCmds || subroot == null) return
     
 //    printIndent("addToSubroot: " + id)
     
@@ -206,7 +208,7 @@ class EliTreeBuilder extends Thread {
    * @param commentAtom   The String being used as the new node's label.
    */
   def addToSubroot(id : String, commentAtom : String) : Unit = {
-    if(this.isMaxDepth || fatalError || ignoreCmds) return
+    if(this.isMaxDepth || fatalError || ignoreCmds || subroot == null) return
 
 //    printIndent("addToSubroot: " + id)
 
@@ -222,7 +224,7 @@ class EliTreeBuilder extends Thread {
    * @param atom          The BasicAtom the new node is being constructed from.
    */
   def addToSubroot(id : String, atom : ornl.elision.core.BasicAtom) : Unit = {
-    if(this.isMaxDepth || fatalError || ignoreCmds) return
+    if(this.isMaxDepth || fatalError || ignoreCmds || subroot == null) return
 
 //    printIndent("addToSubroot: " + id)
 
@@ -254,7 +256,9 @@ class EliTreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+        case _ => 
+          System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+          
           keepgoing = attemptStackRecovery
       }
     }
@@ -282,7 +286,9 @@ class EliTreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+        case _ => 
+          System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+          
           keepgoing = attemptStackRecovery
       }
     }
@@ -309,7 +315,9 @@ class EliTreeBuilder extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+        case _ => 
+          System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
+          
           keepgoing = attemptStackRecovery
       }
     }
@@ -332,7 +340,9 @@ class EliTreeBuilder extends Thread {
           keepgoing = false
         } 
         catch {
-          case _ => System.err.println("EliTreeBuilder.remLastChild error: key \"" + parentID + "\" does not exist in current scope table.")
+          case _ => 
+            System.err.println("EliTreeBuilder.remLastChild error: key \"" + parentID + "\" does not exist in current scope table.")
+            
             keepgoing = attemptStackRecovery
         }
       }
@@ -365,8 +375,7 @@ class EliTreeBuilder extends Thread {
   
   /** Helper method used to create a comment NodeSprite */
   private def createCommentNode(commentAtom : String, parent : NodeSprite) : NodeSprite = {
-    val node = parent.makeChild(commentAtom, true) // new NodeSprite(commentAtom, parent, true)
-    // parent.addChild(node)
+    val node = parent.makeChild(commentAtom, true)
     nodeCount += 1
     enforceNodeLimit
     node
@@ -420,7 +429,17 @@ class EliTreeBuilder extends Thread {
       true
     }
     else {
-      addTo("root", "", "Fatal error during EliTreeBuilder tree construction. \n\tI just don't know what went wrong!")
+      if(subroot != null) 
+        subroot.makeChild("The tree building error happened here. ", true)
+      
+      System.err.println("current scope (depth: " + scopeStack.size + ")") 
+      for(key <- curScope.keys) {
+          System.err.println(key)
+      }
+      System.err.println(curScope.toString)
+      
+      if(root != null)
+        root.makeChild("Fatal error during EliTreeBuilder tree construction. \n\tI just don't know what went wrong!", true)
       System.err.println("Fatal error during EliTreeBuilder tree construction. \n\tI just don't know what went wrong!")
       fatalError = true
       false

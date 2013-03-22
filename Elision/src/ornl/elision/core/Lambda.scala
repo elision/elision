@@ -150,10 +150,8 @@ extends BasicAtom with Applicable {
   lazy val depth = body.depth + 1
     
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) =
-    subject match {
+      hints: Option[Any]) = subject match {
 	  case Lambda(olvar, obody) => if (olvar == lvar) {
-
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
         Fail("Timed out", this, subject)

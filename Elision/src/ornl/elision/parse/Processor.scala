@@ -35,7 +35,6 @@ import ornl.elision.util.FileResolver
 import ornl.elision.util.Timeable
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasHistory
-import ornl.elision.actors.ReplActor
 import ornl.elision.util.ElisionException
 
 /**
@@ -280,11 +279,7 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-    ReplActor ! ("Eva", "pushTable", "Processor read")
-    ReplActor ! ("Eva", "addToSubroot", ("read", "Reading: " + filename))
-    ReplActor ! ("Eva", "setSubroot", "read")
     _execute(_parser.parseAtoms(source)) 
-    ReplActor ! ("Eva", "popTable", "Processor read")
   }
   
   /**
@@ -335,7 +330,6 @@ with HasHistory {
     import ornl.elision.util.ElisionException
     startTimer
     
-	  ReplActor ! ("Eva","pushTable","Processor _execute")
     try {
     	result match {
   			case Failure(err) =>
@@ -345,24 +339,14 @@ with HasHistory {
   			  // We assume that there is at least one handler; otherwise not much
   			  // will happen.  Process each node.
   			  for (node <- nodes) {
-            var nodeLabel : String = "line node: "
-            ReplActor ! ("Eva", "setSubroot", "subroot")
-            ReplActor ! ("Eva", "addToSubroot", ("lineNode", nodeLabel))
-            ReplActor ! ("Eva", "setSubroot", "lineNode")
   			    _handleNode(node) match {
   			      case None =>
   			      case Some(newnode) =>
   			        // Interpret the node.
                 val atom = newnode.interpret(context)
-                ReplActor ! ("Eva", "addTo", ("lineNode", "interpret", "Interpretation Tree: "))
-                ReplActor ! ("Eva", "setSubroot", "interpret")
-                ReplActor ! ("Eva", "addTo", ("lineNode", "handle", "Handler Tree: "))
-                ReplActor ! ("Eva", "setSubroot", "handle")
   			        _handleAtom(atom) match {
   			          case None =>
   			          case Some(newatom) =>
-                    ReplActor ! ("Eva", "addTo", ("lineNode", "result", "Result Tree: "))
-                    ReplActor ! ("Eva", "setSubroot", "result")
   			            // Hand off the node.
   			            _result(newatom)
   			        }
@@ -398,9 +382,6 @@ with HasHistory {
         else console.error("in: " + trace(0))
         coredump("Internal error.", Some(th))
     }
-    
-    ReplActor ! ("Eva","popTable","Processor _execute")
-    
     stopTimer
     showElapsed
   }
@@ -420,23 +401,24 @@ with HasHistory {
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
     // Pass the atom to the handlers.  If any returns None, we are done.
     var theAtom = atom
-  	ReplActor ! ("Eva", "pushTable", "_handleAtom")
-  	ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
+
+    var handlersCount = 1
+    
     for (handler <- _queue) {
-      ReplActor ! ("Eva", "setSubroot", "atomNode")
+      handlersCount += 1
+      
       handler.handleAtom(theAtom) match {
         case None => 
-          ReplActor ! ("Eva", "popTable", "_handleAtom")
           return None
         case Some(alt) =>
           theAtom = alt
       }
     } // Perform all handlers.
-    ReplActor ! ("Eva", "popTable", "_handleAtom")
+    
     return Some(theAtom)
   }
   
-  private def _result(atom: BasicAtom) {
+  private def _result(atom: BasicAtom) {    
     for (handler <- _queue) {
       handler.result(atom)
     }

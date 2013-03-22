@@ -82,8 +82,6 @@ object ReplActor extends Actor {
 	def act() = {
 		loop {
 			react {
-        case ("Eva", cmd : String, args : Any) =>
-          if(guiMode && !disableGUIComs) guiActor ! ("Eva", cmd, args)
         case ("disableGUIComs", flag : Boolean) =>
           disableGUIComs = flag
         case (":quit", true) =>
