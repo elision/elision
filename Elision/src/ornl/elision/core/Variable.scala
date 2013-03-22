@@ -246,6 +246,18 @@ class Variable(typ: BasicAtom, val name: String,
         }
     }
   }
+  
+  /**
+   * Make a non-meta version of this variable.
+   * @return  The new variable.
+   */
+  def asVariable = this
+
+  /**
+   * Make a meta version of this variable.
+   * @return  The new metavariable.
+   */
+  def asMetaVariable = MetaVariable(typ, name, guard, labels, byName)
       
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   lazy val otherHashCode = typ.otherHashCode +
@@ -324,6 +336,18 @@ class MetaVariable(typ: BasicAtom, name: String,
   override lazy val hashCode = typ.hashCode * 37 + name.hashCode
   override lazy val otherHashCode = typ.otherHashCode +
     8193*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
+    
+  /**
+   * Make a non-meta version of this metavariable.
+   * @return  The new variable.
+   */
+  override def asVariable = Variable(typ, name, guard, labels, byName)
+  
+  /**
+   * Make a meta version of this metavariable.  I.e., do nothing.
+   * @return  This metavariable.
+   */
+  override def asMetaVariable = this
   
   override def replace(map: Map[BasicAtom, BasicAtom]) = {
     // Variables are complex critters.  We need to replace in (1) the type,

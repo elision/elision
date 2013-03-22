@@ -288,11 +288,13 @@ object Lambda {
 	    // Now make new De Bruijn variables for the index.
       val newvar = new DBIV(lvar.theType, dBI, lvar.guard, lvar.labels)
       val newmvar = new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
+      
+      // Create a map.
+      val map = Map[BasicAtom, BasicAtom](
+          lvar.asVariable -> newvar, lvar.asMetaVariable -> newmvar)
 		
 	    // Bind the old variable to the new one and rewrite the body.
-	    var binds = Bindings()
-	    binds += (lvar.name -> newvar)
-	    val (newbody, notfixed) = body.rewrite(binds)
+	    val (newbody, notfixed) = body.replace(map)
 	    
 	    // Compute the new lambda.
 	    if (notfixed)	{
