@@ -821,38 +821,34 @@ with HasHistory {
    
    /** Saves a context checkpoint. */
    def saveCheckPt : Int = {
-        val date = new java.util.Date
-        
-        val contextCpy = context.cloneContext
-        
-        val checkPt = (date, contextCpy)
-        checkpoints += checkPt
-        
-        checkpoints.size - 1
+      val date = new java.util.Date
+      val contextCpy = context.clone
+      val checkPt = (date, contextCpy)
+      checkpoints += checkPt
+      checkpoints.size - 1
    }
    
    /** Loads a context checkpoint. */
    def loadCheckPt(index : Int) : Boolean = {
-        try{
-            val checkpt = checkpoints(index)
-            context = checkpt._2
-            true
-        }
-        catch {
-            case _ => false
-        }
+      try{
+        val checkpt = checkpoints(index)
+        context = checkpt._2
+        true
+      }
+      catch {
+        case _ => false
+      }
    }
    
    /** Displays the list of saved checkpoints. */
    def displayCheckPts : Unit = {
-        console.emitln("Saved checkpoints: ")
-        for(i <- 0 until checkpoints.size) {
-            val (date, checkpt) = checkpoints(i)
-            console.emitln(i + " saved at " + date)
-        }
-        if(checkpoints.isEmpty) console.emitln("None")
-   }
-   
+      console.emitln("Saved checkpoints: ")
+      for(i <- 0 until checkpoints.size) {
+        val (date, checkpt) = checkpoints(i)
+        console.emitln(i + " saved at " + date)
+      }
+      if(checkpoints.isEmpty) console.emitln("None")
+   }   
 }
 
 /**

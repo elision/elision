@@ -33,12 +33,11 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ * ======================================================================*/
 package ornl.elision.core
+
 import ornl.elision.util.ElisionException
 import ornl.elision.util.other_hashify
-import ornl.elision.actors.ReplActor
 
 /**
  * Indicate a properties specification is illegal.  This typically indicates a
@@ -104,14 +103,17 @@ class AlgProp(
     val commutative: Option[BasicAtom] = None,
     val idempotent: Option[BasicAtom] = None,
     val absorber: Option[BasicAtom] = None,
-    val identity: Option[BasicAtom] = None) extends BasicAtom with Applicable {
+    val identity: Option[BasicAtom] = None)
+    extends BasicAtom with Applicable {
   
   private def _codify(atom: Option[BasicAtom]) = atom match {
     case None => None.hashCode
     case Some(atom) => atom.hashCode
   }
   
-  lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+  lazy val otherHashCode =
+    (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+    
   override lazy val hashCode =
     (((((_codify(associative) * 31) +
     _codify(commutative) * 31) +
@@ -247,81 +249,72 @@ class AlgProp(
    * atom sequence.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean) = {
-    ReplActor ! ("Eva","pushTable", "AlgProp doApply")
-    ReplActor ! ("Eva","addToSubroot", ("rwNode","AlgProp doApply: ")) 
   	rhs match {
   		/* A Note to Maintainers
   		 * Remember that for the "and" method the properties of the second
   		 * override those of the first.
   		 */
-  		case ap: AlgProp => (ap and this)
+  		case ap: AlgProp =>
+  		  (ap and this)
   		case as: AtomSeq => 
-  			val newAS = AtomSeq(as.props and this, as.atoms)
-  			ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS)) 
-        ReplActor ! ("Eva", "popTable", "AlgProp doApply")
-  			newAS
+  			AtomSeq(as.props and this, as.atoms)
   		case _ => 
-  			val newSA = SimpleApply(this, rhs)
-  			ReplActor ! ("Eva", "addTo", ("rwNode", "", newSA)) 
-        ReplActor ! ("Eva", "popTable", "AlgProp doApply")
-  			newSA
+  			SimpleApply(this, rhs)
   	}
   }
-  
-  /**
-   * Rewrite an optional atom.
-   * 
-   * @param opt		The optional atom.
-   * @param binds	The bindings.
-   * @return	The rewritten optional atom.
-   */
-  private def _rewrite(opt: Option[BasicAtom], binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable","AlgProp _rewrite")
-  	opt match {
-  		case None => 
-  			ReplActor ! ("Eva","addToSubroot",("","n/a"))
-  			ReplActor ! ("Eva","popTable","AlgProp _rewrite")
-  			(None, false)
-  		case Some(atom) => {
-        ReplActor ! ("Eva", "addToSubroot", ("atomNode", atom))
-        ReplActor ! ("Eva", "setSubroot", "atomNode")
-        val newatom = atom.rewrite(binds)
-        ReplActor ! ("Eva", "addTo", ("atomNode", "", newatom._1)) 
-        ReplActor ! ("Eva","popTable","AlgProp _rewrite")
-        (Some(newatom._1), newatom._2)
-  		}
-  	}
-  }
-  
   
   def rewrite(binds: Bindings): (AlgProp, Boolean) = {
-    ReplActor ! ("Eva","pushTable","AlgProp rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AlgProp rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "A", "associative: "))
-    ReplActor ! ("Eva", "setSubroot", "A")
-    val assoc = _rewrite(associative, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "C", "commutative: "))
-    ReplActor ! ("Eva", "setSubroot", "C")
-    val commu = _rewrite(commutative, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "I", "idempotent: "))
-    ReplActor ! ("Eva", "setSubroot", "I")
-    val idemp = _rewrite(idempotent, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "B", "absorber: "))
-    ReplActor ! ("Eva", "setSubroot", "B")
-    val absor = _rewrite(absorber, binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "D", "identity: "))
-    ReplActor ! ("Eva", "setSubroot", "D")
-    val ident = _rewrite(identity, binds)
+    def _rewrite(opt: Option[BasicAtom]) = {
+      opt match {
+        case None => 
+          (None, false)
+          
+        case Some(atom) => {
+          val newatom = atom.rewrite(binds)
+          (Some(newatom._1), newatom._2)
+        }
+      }
+    }
+    
+    val assoc = _rewrite(associative)
+    val commu = _rewrite(commutative)
+    val idemp = _rewrite(idempotent)
+    val absor = _rewrite(absorber)
+    val ident = _rewrite(identity)
     if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
-      val newAlgProp = AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAlgProp))      
-      ReplActor ! ("Eva","popTable","AlgProp rewrite")
-      (newAlgProp, true)
+      (AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
     } else {
-      ReplActor ! ("Eva","popTable","AlgProp rewrite")
       (this, false)
     }
   }  
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    def _replace(opt: Option[BasicAtom]) = opt match {
+      case None =>
+        (None, false)
+        
+      case Some(atom) =>
+        val (newatom, flag) = atom.replace(map)
+        (Some(newatom), flag)
+    }
+    
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+        
+      case None =>
+        val (newA, flagA) = _replace(associative)
+        val (newC, flagC) = _replace(commutative)
+        val (newI, flagI) = _replace(idempotent)
+        val (newB, flagB) = _replace(absorber)
+        val (newD, flagD) = _replace(identity)
+        if (flagA || flagC || flagI || flagB || flagD) {
+          (AlgProp(newA, newC, newI, newB, newD), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
   
   /**
    * Match two optional atoms against one another.  A match is really only
@@ -337,10 +330,16 @@ class AlgProp(
    */
   private def _match(pat: Option[BasicAtom], sub: Option[BasicAtom],
       binds: Bindings) = pat match {
-    case None => Match(binds)
-    case Some(pattern) => sub match {
-      case None => pattern.tryMatch(ANY, binds)
-      case Some(subject) => pattern.tryMatch(subject, binds)
+    case None =>
+      Match(binds)
+      
+    case Some(pattern) =>
+      sub match {
+        case None =>
+          pattern.tryMatch(ANY, binds)
+          
+        case Some(subject) =>
+          pattern.tryMatch(subject, binds)
     }
   }
   
@@ -355,11 +354,16 @@ class AlgProp(
    */
   private def _matchAll(plist: List[Option[BasicAtom]],
       slist: List[Option[BasicAtom]], binds: Bindings): Outcome =
-    if (plist.length == 0) Match(binds)
-    else {
+    if (plist.length == 0) {
+      Match(binds)
+    } else {
       _match(plist.head, slist.head, binds) match {
-        case fail: Fail => fail
-        case Match(newbinds) => _matchAll(plist.tail, slist.tail, newbinds)
+        case fail: Fail =>
+          fail
+          
+        case Match(newbinds) =>
+          _matchAll(plist.tail, slist.tail, newbinds)
+          
         case Many(iter) =>
           Many(iter ~> ((newbinds: Bindings) =>
             _matchAll(plist.tail, slist.tail, newbinds)))
@@ -368,20 +372,17 @@ class AlgProp(
   
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]) = subject match {
-    case ap: AlgProp => {
-
+    case ap: AlgProp =>
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
         Fail("Timed out", this, subject)
-      }
-
-      else {
+      } else {
         _matchAll(
           List(associative, commutative, idempotent, absorber, identity),
           List(ap.associative, ap.commutative, ap.idempotent, ap.absorber, ap.identity),
           binds)
       }
-    }
+      
     case _ => Fail("Properties only match other properties.", this, subject)
   }
   
@@ -450,6 +451,7 @@ class AlgProp(
       idempotent == ap.idempotent &&
       absorber == ap.absorber &&
       identity == ap.identity
+      
     case _ => false
   }
 

@@ -41,7 +41,6 @@ import scala.collection.IndexedSeq
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher._
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.actors.ReplActor
 
 /**
  * Fast access to an untyped empty sequence.
@@ -223,29 +222,50 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 	}
 
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-    ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
-    ReplActor ! ("Eva", "setSubroot", "props")
-    
     // Rewrite the properties.
     val (newprop, pchanged) = props.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
-    ReplActor ! ("Eva", "setSubroot", "atoms")
     
     // We must rewrite every child atom, and collect them into a new sequence.
-    val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
+    var schanged = false
+    val newseq = atoms map {
+      atom =>
+        val (newatom, changed) = atom.rewrite(binds)
+        schanged |= changed
+        newatom
+    }
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
-      val newAS = new AtomSeq(newprop, newseq)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))      
-      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
-      (newAS, true)
+      (new AtomSeq(newprop, newseq), true)
     } else {
-      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        var flag1 = false
+        val newatoms = atoms map {
+          atom =>
+            val (newatom, changed) = atom.replace(map)
+            flag1 |= changed
+            newatom
+        }
+        // The algebraic properties must rewrite to a valid algebraic
+        // properties atom, or we must discard it since we cannot build a
+        // legal algebraic properties atom otherwise.
+        val (newprops, flag2) = props.replace(map) match {
+          case (ap: AlgProp, flag: Boolean) => (ap, flag)
+          case _ => (props, false)
+        }
+        if (flag1 || flag2) {
+          (AtomSeq(newprops, newatoms), true)
+        } else {
+          (this, false)
+        }
     }
   }
 
@@ -266,19 +286,11 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * Two sequences are equal iff their properties and atoms are equal.
    */
   override def equals(other: Any) = {
-    val t0 = System.nanoTime
-    val result = other match {
+    other match {
       case oseq: AtomSeq =>
         feq(oseq, this, (props == oseq.props) && (atoms == oseq.atoms))
-        
       case _ => false
     }
-
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** AtomSeq: equals time = " + (t1.toDouble-t0.toDouble)/1000000000)
-    }
-    result
   }
 }
 

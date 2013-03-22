@@ -42,13 +42,13 @@ import ornl.elision.util.ElisionException
 /**
  * A context provides access to operator libraries and rules, along with
  * the global set of bindings in force at any time.
- * 
+ *
  * '''This class is likely to change.'''
- * 
+ *
  * == Use ==
  * In general it is not necessary to make an instance; one is typically
  * provided by a higher-level (semantically) class.
- * 
+ *
  * This class provides for management of four things:
  *  - A set of [[ornl.elision.core.Bindings]].
  *  - An instance of [[ornl.elision.core.OperatorLibrary]].
@@ -56,28 +56,25 @@ import ornl.elision.util.ElisionException
  *  - "Automatic" rewriting of atoms using rules.
  */
 class Context extends Fickle with Mutable {
-  
-  /** Creates a copy of this context */
-  def cloneContext : Context = {
+
+  override def clone = {
     val clone = new Context
-    
-    clone.binds = this.binds.cloneBinds
+    clone.binds = this.binds.clone
     clone.operatorLibrary = this.operatorLibrary.cloneOpLib
     clone.ruleLibrary = this.ruleLibrary.cloneRuleLib
-    
     clone
   }
-  
+
   //======================================================================
   // Global bindings management.
   //======================================================================
-  
+
   /** The current bindings. */
   private var _binds: Bindings = Bindings()
-  
+
   /**
    * Bind a variable in this context.
-   * 
+   *
    * @param vname		The variable name to bind.
    * @param atom		The atom to bind to the variable.
    * @return	This context.
@@ -86,10 +83,10 @@ class Context extends Fickle with Mutable {
     _binds += (vname -> atom)
     this
   }
-  
+
   /**
    * Unbind a variable in this context.
-   * 
+   *
    * @param vname		The variable name.
    * @return	This context.
    */
@@ -97,47 +94,47 @@ class Context extends Fickle with Mutable {
     _binds -= vname
     this
   }
-  
+
   /**
    * Get the current bindings for this context.
-   * 
+   *
    * @return	The bindings for this context.
    */
   def binds = _binds
-  
+
   /**
    * Set the bindings to use. Any prior value is lost.
    *
    * @param bindings    The new bindings.
    * @return            This context.
    */
-   def binds_=(bindings : Bindings) = {
-        require(bindings != null)
-        _binds = bindings
-        this
-   }
-  
+  def binds_=(bindings: Bindings) = {
+    require(bindings != null)
+    _binds = bindings
+    this
+  }
+
   //======================================================================
   // Operator library management.
   //======================================================================
-  
+
   /** The current operator library. */
   private var _oplib: OperatorLibrary = _
-  
+
   /**
    * Get the current operator library.  If none has explicitly been set, then
    * a default instance is created and returned.
-   * 
+   *
    * @return	The current operator library.
    */
   def operatorLibrary = {
     if (_oplib == null) { _oplib = new OperatorLibrary() }
     _oplib
   }
-    
+
   /**
    * Set the operator library to use.  Any prior value is lost.
-   * 
+   *
    * @param lib	The new operator library.
    * @return	This context.
    */
@@ -146,28 +143,28 @@ class Context extends Fickle with Mutable {
     _oplib = lib
     this
   }
-  
+
   //======================================================================
   // Rule library management.
   //======================================================================
-  
+
   /** The current rule library. */
   private var _rulelib: RuleLibrary = _
-  
+
   /**
    * Get the current rule library.  If none has explicitly been set, then
    * a default instance is created and returned.
-   * 
+   *
    * @return	The current rule library.
    */
   def ruleLibrary = {
     if (_rulelib == null) { _rulelib = new RuleLibrary() }
     _rulelib
   }
-    
+
   /**
    * Set the rule library to use.  Any prior value is lost.
-   * 
+   *
    * @param lib	The new rule library.
    * @return	This context.
    */
@@ -176,15 +173,15 @@ class Context extends Fickle with Mutable {
     _rulelib = lib
     this
   }
-  
+
   //======================================================================
   // Printing.
   //======================================================================
-  
+
   /**
    * Generate a newline-separated list of rules that can be parsed using the
    * atom parser to reconstruct the set of rules in this context.
-   * 
+   *
    * @return	The parseable rule sets.
    */
   def toParseString = {
@@ -199,11 +196,11 @@ class Context extends Fickle with Mutable {
     buf append "// END of context.\n"
     buf.toString()
   }
-  
+
   /**
    * Generate a newline-separated list of rules that can be parsed by Scala
    * to reconstruct the set of rules in this context.
-   * 
+   *
    * @return	The parseable rule sets.
    */
   override def toString = {
@@ -225,19 +222,19 @@ class Context extends Fickle with Mutable {
     buf append ruleLibrary.toString
     buf.toString()
   }
-//  override def toString = {
-//    val buf = new StringBuilder
-//    buf append "import ornl.elision.core._\n"
-//    buf append "object LoadContext {\n"
-//    buf append "  def main(args: Array[String]) {\n"
-//    buf append "    val _context = new Context()\n"
-//    buf append "    _mkoplib(_context)\n"
-//    buf append "    _mkrulelib(_context)\n"
-//    buf append "    println(_context.toParseString)\n"
-//    buf append "  }\n"
-//    buf append operatorLibrary.toString
-//    buf append ruleLibrary.toString
-//    buf append "}\n"
-//    buf.toString()
-//  }
+  //  override def toString = {
+  //    val buf = new StringBuilder
+  //    buf append "import ornl.elision.core._\n"
+  //    buf append "object LoadContext {\n"
+  //    buf append "  def main(args: Array[String]) {\n"
+  //    buf append "    val _context = new Context()\n"
+  //    buf append "    _mkoplib(_context)\n"
+  //    buf append "    _mkrulelib(_context)\n"
+  //    buf append "    println(_context.toParseString)\n"
+  //    buf append "  }\n"
+  //    buf append operatorLibrary.toString
+  //    buf append ruleLibrary.toString
+  //    buf append "}\n"
+  //    buf.toString()
+  //  }
 }

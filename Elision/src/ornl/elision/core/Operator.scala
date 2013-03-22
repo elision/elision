@@ -66,7 +66,7 @@ class NativeHandlerException(msg: String) extends ElisionException(msg)
  * A native handler is parsed by a subordinate Scala interpreter.  This has
  * to bind something available in *this* scope - specifically it binds up
  * an instance of `HandHolder` and passes it back.  Initially this holds
- * `None`, but if the hander can be parsed it returns `Some` closure.
+ * `None`, but if the handler can be parsed it returns `Some` closure.
  *
  * @param handler		The handler.
  */

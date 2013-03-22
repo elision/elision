@@ -113,6 +113,14 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
    * Ruleset references cannot be rewritten.
    */
   def rewrite(binds: Bindings) = (this, false)
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = map.get(this) match {
+    case None =>
+      (this, false)
+    
+    case Some(atom) =>
+      (atom, true)
+  }
     
   override def hashCode = 61*name.hashCode
   lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1

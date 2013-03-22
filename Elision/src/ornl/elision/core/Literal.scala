@@ -39,7 +39,6 @@ package ornl.elision.core
 
 import scala.collection.immutable.HashMap
 import ornl.elision.util.other_hashify
-import ornl.elision.actors.ReplActor
 
 /**
  * Represent a literal.  This is the common root class for all literals.
@@ -238,22 +237,27 @@ extends Literal[BigInt](typ) {
   def this(value: Int) = this(INTEGER, value)
   
   def rewrite(binds: Bindings) = {
-		ReplActor ! ("Eva", "pushTable", "IntegerLiteral rewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("type", theType))
-    ReplActor ! ("Eva", "setSubroot", "type")
-		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			ReplActor ! ("Eva", "setSubroot", "subroot") 
-  			val newLit = Literal(newtype, value)
-  			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit))
-        ReplActor ! ("Eva", "popTable", "IntegerLiteral rewrite")
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
-        ReplActor ! ("Eva", "popTable", "IntegerLiteral rewrite")
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (IntegerLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -268,22 +272,27 @@ extends Literal[String](typ) {
   def this(value: String) = this(STRING, value)
   
   def rewrite(binds: Bindings) = {
-		ReplActor ! ("Eva", "pushTable", "StringLiteral rewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("type", theType))
-    ReplActor ! ("Eva", "setSubroot", "type")
-		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			ReplActor ! ("Eva", "setSubroot", "subroot")
-  			val newLit = Literal(newtype, value)
-  			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit))
-        ReplActor ! ("Eva", "popTable", "StringLiteral rewrite")
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
-        ReplActor ! ("Eva", "popTable", "StringLiteral rewrite")
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (StringLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -300,22 +309,27 @@ extends Literal[Symbol](typ) {
   override lazy val otherHashCode = (value.toString).foldLeft(BigInt(0))(other_hashify)
 
   def rewrite(binds: Bindings) = {
-		ReplActor ! ("Eva", "pushTable", "SymbolLiteral rewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("type", theType))
-    ReplActor ! ("Eva", "setSubroot", "type")
-		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			ReplActor ! ("Eva", "setSubroot", "subroot")
-  			val newLit = Literal(newtype, value)
-  			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit))
-        ReplActor ! ("Eva", "popTable", "SymbolLiteral rewrite")
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
-        ReplActor ! ("Eva", "popTable", "SymbolLiteral rewrite")
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (SymbolLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -341,22 +355,27 @@ extends Literal[Boolean](typ) {
   def this(value: Boolean) = this(BOOLEAN, value)
   
   def rewrite(binds: Bindings) = {
-		ReplActor ! ("Eva", "pushTable", "BooleanLiteral rewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("type", theType))
-    ReplActor ! ("Eva", "setSubroot", "type")
-		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			ReplActor ! ("Eva", "setSubroot", "subroot") 
-  			val newLit = Literal(newtype, value)
-  			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit))
-        ReplActor ! ("Eva", "popTable", "BooleanLiteral rewrite")
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
-        ReplActor ! ("Eva", "popTable", "BooleanLiteral rewrite")
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (BooleanLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -538,22 +557,27 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
     this(FLOAT, significand, exponent, radix)
 	
   def rewrite(binds: Bindings) = {
-		ReplActor ! ("Eva", "pushTable", "FloatLiteral rewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("type", theType))
-    ReplActor ! ("Eva", "setSubroot", "type")
-		
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			ReplActor ! ("Eva", "setSubroot", "subroot")
-  			val newLit = Literal(newtype, significand, exponent, radix)
-  			ReplActor ! ("Eva", "addTo", ("subroot", "", newLit))
-        ReplActor ! ("Eva", "popTable", "FloatLiteral rewrite")
-        (newLit, true)
+        (Literal(newtype, significand, exponent, radix), true)
 		  case _ =>
-        ReplActor ! ("Eva", "popTable", "FloatLiteral rewrite")
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (Literal(newtype, significand, exponent, radix), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**

@@ -62,13 +62,13 @@ object ReplMain {
   /**
    * Define the switches.
    */
-  val _switches = Seq(
+  private val _switches = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _))
 
   /**
    * Define some settings.
    */
-  val _settings = Seq(
+  private val _settings = Seq(
       Setting("elision.root", Some("ELISION_ROOT"), Some("user.home"),
           Some(_prop("user.home")), "Specify where Elision should read " +
           		"(and store) its history and the most recent context."),
@@ -94,15 +94,17 @@ object ReplMain {
       // There was an actual error!
       CLI.fail(args, state.errindex, state.errstr.get)
     } else {
-      runRepl
+      runRepl(state.settings)
     }
   }
   
   /**
    * Start the REPL.
+   * 
+   * @param settings  Settings overrides.
    */
-  def runRepl {
-    val erepl = new ERepl
+  def runRepl(settings: Map[String,String]) {
+    val erepl = new ERepl(settings)
     ornl.elision.core.knownExecutor = erepl
     ReplActor.start
     ReplActor.history = erepl
@@ -129,8 +131,10 @@ object ReplMain {
  * Interaction with the REPL is described in the documentation of the `run`
  * method.  The REPL provides for command line editing, a persistent history,
  * and special operations.
+ * 
+ * @param settings  Optional settings overrides.
  */
-class ERepl extends Processor {
+class ERepl(settings: Map[String,String] = Map()) extends Processor {
   import ornl.elision.core._
 	import scala.tools.jline.console.history.FileHistory
 	import scala.tools.jline.console.ConsoleReader
@@ -143,52 +147,21 @@ class ERepl extends Processor {
 
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
+  private val _sep = _prop.get("file.separator")
   
   /** The user's home folder. */
-  private val _home = {
-	  val root = System.getenv("ELISION_ROOT")
-	  if (root != null) {
-	    root
-	  } else {
-	    _prop("user.home")
-	  }
-	}
+  private val _home = new File(settings("elision.root")).toString
   
   /** Figure out the location to store the history. */
-  protected val _filename = {
-	  val hce = System.getenv("ELISION_HISTORY")
-	  if (hce != null) {
-	    hce
-	  } else {
-      val fname = (if (_prop("path.separator") == ":") ".elision-history.eli"
-        else "elision-history.eli")
-      _home + _prop("file.separator") + fname
-	  }
-	}
+  protected val _filename =
+    new File(_home, settings("elision.history")).toString
   
   /** Figure out where to stash the context on exit. */
-  protected val _lastcontext = {
-    val cce = System.getenv("ELISION_CONTEXT")
-    if (cce != null) {
-      cce
-    } else {
-      val fname = (if (_prop("path.separator") == ":") ".elision-context.eli"
-        else "elision-context.eli")
-      _home + _prop("file.separator") + fname
-    }
-  }
+  protected val _lastcontext =
+    new File(_home, settings("elision.context")).toString
   
   /** Figure out the startup file that is read after bootstrapping. */
-  protected val _rc = {
-      val rce = System.getenv("ELISIONRC")
-      if (rce != null) {
-        rce
-      } else {
-        _home + _prop("file.separator") + (
-            if (_prop("path.separator") == ":") ".elisionrc"
-            else "elision.ini")
-      }
-  }
+  protected val _rc = new File(_home, settings("elision.rc")).toString
   
   //======================================================================
   // Configure the history for this REPL.
@@ -533,7 +506,7 @@ class ERepl extends Processor {
     // Report startup time.
     stopTimer
     printf("Startup Time: " + getLastTimeString + "\n")
-    TypedSymbolicOperator.reportTime
+    SymbolicOperator.reportTime
 	
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiMode) {

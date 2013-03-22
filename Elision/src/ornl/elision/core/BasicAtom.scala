@@ -272,7 +272,11 @@ abstract class BasicAtom extends HasOtherHash {
   /**
    * Get all the variables referenced in an atom. Override this if the
    * atom can actually contain variables.
-   *
+   * 
+   * The set uses hash codes to distinguish elements, and variables and
+   * metavariables have distinct hash codes, so `$``x` and `$``$``x` will
+   * both be included - if present - in the result.
+   * 
    * @return A set of the variables referenced in the atom, if it has
    * any. 
    */
@@ -412,6 +416,19 @@ abstract class BasicAtom extends HasOtherHash {
    * 					changed.
    */
   def rewrite(binds: Bindings): (BasicAtom, Boolean)
+  
+  /**
+   * Systematically replace one basic atom with another basic atom.
+   * 
+   * Note that you can use this to search for a subterm.  The idea is to map
+   * the subterm to itself (so no real "change" is made) and then look at the
+   * flag on return.
+   * 
+   * @param map   A mapping from old atom to replacement atom.
+   * @return  The result of the replacement (a potentially new atom), and a
+   *          flag indicating whether or not any replacement was performed.
+   */
+  def replace(map: Map[BasicAtom, BasicAtom]): (BasicAtom, Boolean)
 
   /**
    * Generate a parseable string from this atom.  The returned string should

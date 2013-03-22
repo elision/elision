@@ -40,7 +40,6 @@ package ornl.elision.core
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.OpenHashMap
 import ornl.elision.util.other_hashify
-import ornl.elision.actors.ReplActor
 
 /**
  * Represent a variable.
@@ -203,67 +202,25 @@ class Variable(typ: BasicAtom, val name: String,
     }
   }
 	  
-	/*
-	def rewrite(binds: Bindings) = {
-    // If this variable is bound in the provided bindings, replace it with the
-    // bound value.
-    binds.get(name) match {
-      case Some(atom) =>
-        (atom, true)
-      case None =>
-        // While the atom is not bound, its type might have to be rewritten.
-        theType.rewrite(binds) match {
-          case (newtype, changed) =>
-            if (changed) (Variable(newtype, name), true) else (this, false)
-          case _ => (this, false)
-        }
-    }
-  }
-  */
-
   def rewrite(binds: Bindings) = {
-	  ReplActor ! ("Eva","pushTable","Variable rewrite")
-	  ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Variable rewrite: "))
-	  ReplActor ! ("Eva", "addTo", ("rwNode", "type", theType))
-
     // If we have no bindings, don't rewrite the variable.
     if (binds == null) {
       (this, false)
-    }
-	  
-    // We have bindings. Check to see if we can rewrite the variable.
-    else {
-
-      // If this variable is bound in the provided bindings, replace it with the
-      // bound value.
+    } else {
+      // If this variable is bound in the provided bindings, replace it with
+      // the bound value.
       binds.get(name) match {
-        case Some(atom) => {
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", atom)) // RWTree.addTo(rwNode, atom)
-          
-          ReplActor ! ("Eva", "popTable", "Variable rewrite")
+        case Some(atom) =>
 	        (atom, true)
-        }
+        
         case None => {
-	        ReplActor ! ("Eva", "setSubroot", "type")
-          
-	        // While the atom is not bound, its type might have to be rewritten.
+	        // Though the atom is not bound, its type still might have to be
+          // rewritten.
           theType.rewrite(binds) match {
-            case (newtype, changed) => {
-	            ReplActor ! ("Eva", "addTo", ("type", "", newtype))
-              if (changed) { 
-	              ReplActor ! ("Eva", "setSubroot", "rwNode")
-	              val newVar = Variable(newtype, name)
-	              ReplActor ! ("Eva", "addTo", ("rwNode", "", newVar))
-                
-                ReplActor ! ("Eva", "popTable", "Variable rewrite")
-	              (newVar, true) 
-	            } else {
-                ReplActor ! ("Eva", "popTable", "Variable rewrite")
-                (this, false)
-              }
-            }
+            case (newtype, true) =>
+              (Variable(newtype, name), true)
+            
             case _ => {
-              ReplActor ! ("Eva", "popTable", "Variable rewrite")
               (this, false)
             }
           }
@@ -271,14 +228,37 @@ class Variable(typ: BasicAtom, val name: String,
       }
     }
   }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    // Variables are complex critters.  We need to replace in (1) the type,
+    // (2) the guard(s), and (3) the variable itself.  We try the easiest
+    // case first.
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag1) = theType.replace(map)
+        val (newguard, flag2) = guard.replace(map)
+        if (flag1 || flag2) {
+          (Variable(newtype, name, newguard, labels, byName), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
       
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
-  lazy val otherHashCode = typ.otherHashCode + 8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
+  lazy val otherHashCode = typ.otherHashCode +
+    8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(varx: Any) = varx match {
     case ovar:Variable =>
-      feq(ovar, this, ovar.theType == theType &&
-    		ovar.name == name && ovar.guard == guard && ovar.labels == labels)
+      feq(ovar, this,
+          ovar.theType == theType &&
+          ovar.name == name &&
+          ovar.guard == guard &&
+          ovar.labels == labels &&
+          ovar.isTerm == isTerm)
     		
     case _ =>
       false
@@ -341,6 +321,27 @@ class MetaVariable(typ: BasicAtom, name: String,
   override val isTerm = false
   /** Metavariable prefix. */
   override val prefix = "$$"
+  override lazy val hashCode = typ.hashCode * 37 + name.hashCode
+  override lazy val otherHashCode = typ.otherHashCode +
+    8193*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
+  
+  override def replace(map: Map[BasicAtom, BasicAtom]) = {
+    // Variables are complex critters.  We need to replace in (1) the type,
+    // (2) the guard(s), and (3) the variable itself.  We try the easiest
+    // case first.
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag1) = theType.replace(map)
+        val (newguard, flag2) = guard.replace(map)
+        if (flag1 || flag2) {
+          (MetaVariable(newtype, name, newguard, labels, byName), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**

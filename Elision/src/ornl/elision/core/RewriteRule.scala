@@ -38,7 +38,6 @@
 package ornl.elision.core
 
 import ornl.elision.util.OmitSeq
-import ornl.elision.actors.ReplActor
 import ornl.elision.util.Debugger
 
 /**
@@ -76,24 +75,15 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     if (!_conc) {
       return (SimpleApply(this, atom), false)
     } else {
-      ReplActor ! ("Eva","pushTable","RulesetStrategy doRewrite")
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", 
-          "RulesetStrategy doRewrite: ")) 
-      ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) 
-      ReplActor ! ("Eva", "setSubroot", "atom") 
-      
       // Get the rules.
       val rules = context.ruleLibrary.getRules(atom, _namelist)
       // Now try every rule until one applies.
       for (rule <- rules) {
         val (newatom, applied) = rule.doRewrite(atom, hint)
         if (applied) {
-          ReplActor ! ("Eva", "addTo", ("atom", "", newatom))
-          ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
           return (newatom, applied)
         }
       } // Try all rules.
-      ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
       return (atom, false)
     }
   }
@@ -160,59 +150,32 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     asInstanceOf[IndexedSeq[SymbolLiteral]].
     map(_.value.name).
     toSet
+    
   private lazy val _exSet =
     exclude.
     filter(_.isInstanceOf[SymbolLiteral]).
     asInstanceOf[IndexedSeq[SymbolLiteral]].
     map(_.value.name).
     toSet
-	/*
-	def doRewrite(atom: BasicAtom, hint: Option[Any]) = atom match {
-	  // We only process two kinds of atoms here: atom lists and operator
-	  // applications.  Figure out what we have.
-	  case AtomSeq(props, atoms) =>
-	    // All we can do is apply the lhs to each atom in the list.
-	    (AtomSeq(props, atoms.map(Apply(lhs,_))), true)
-	  case Apply(op, seq: AtomSeq) => op match {
-	    case so: SymbolicOperator => _apply(so, seq)
-	    case _ => (Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_)))), true)
-	  }
-	  case _ =>
-	    // Do nothing in this case.
-	    (atom, false)
-	}
-	*/
   
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable","MapStrategy doRewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapStrategy doRewrite: "))
-		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom))
-		ReplActor ! ("Eva", "setSubroot", "atom") 
-	
 		atom match {
 		  // We only process two kinds of atoms here: atom lists and operator
 		  // applications.  Figure out what we have.
 		  case AtomSeq(props, atoms) =>
   			// All we can do is apply the lhs to each atom in the list.
-  			val newAS = AtomSeq(props, atoms.map(Apply(lhs,_)))
-  			ReplActor ! ("Eva", "addTo", ("atom", "", newAS))
-        ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
-        (newAS, true)
+  			(AtomSeq(props, atoms.map(Apply(lhs,_))), true)
+  			
 		  case Apply(op, seq: AtomSeq) => op match {
     			case so: SymbolicOperator => 
-    				val newApply = _apply(so, seq)
-    				ReplActor ! ("Eva", "addTo", ("atom", "", newApply._1))
-            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
-    				newApply
+    				_apply(so, seq)
+    				
     			case _ => 
-    				val newApply = Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_))))
-    				ReplActor ! ("Eva", "addTo", ("atom", "", newApply))
-            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
-    				(newApply, true)
-  		  }
+    				(Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_)))), true)
+  		}
+		  
 		  case _ =>
 			  // Do nothing in this case.
-        ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
         (atom, false)
 		}
 	}
@@ -516,31 +479,7 @@ class RewriteRule private (
       (atom, true)
     } else {
       // Try to apply the rewrite rule.  Whatever we get back is the result.
-     
-      // first, check to see if a rule rewrite will even happen before actually applying the rewrite.
-      // Tell the GUI to ignore tree construction messages while doing this.
-      //  ReplActor ! ("Eva", "toggleIgnore", true)
-      //  ReplActor ! ("Eva", "toggleIgnore", false)
-     
-      // proceed with applying the rewrite rule.
-      ReplActor ! ("Eva","pushTable","RewriteRule doRewrite")
-      ReplActor ! ("Eva", "saveNodeCount", "RewriteRule doRewrite")
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RewriteRule doRewrite: "))
-      ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom))
-      ReplActor ! ("Eva", "setSubroot", "atom")
-      val rwResult = _tryRewrite(atom, binds, hint)
-     
-      // if the rewrite rule was not fruitful, discard its subtree and restore the GUI's node count.
-      if(rwResult._2) {
-        ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1))
-      }
-      else {
-        ReplActor ! ("Eva", "remLastChild", "subroot")
-      }
-      
-      ReplActor ! ("Eva", "restoreNodeCount", !rwResult._2)
-      ReplActor ! ("Eva", "popTable", "RewriteRule doRewrite")
-      rwResult
+      _tryRewrite(atom, binds, hint)
     }
   }
 }
