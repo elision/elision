@@ -201,7 +201,7 @@ extends Fickle with Mutable {
    * 
    * @return  The clone.
    */
-  def cloneRuleLib : RuleLibrary = {
+  override def clone: RuleLibrary = {
     val clone = new RuleLibrary(allowUndeclared)
     
     clone._kind2rules.clear

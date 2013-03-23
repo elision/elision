@@ -60,8 +60,8 @@ class Context extends Fickle with Mutable {
   override def clone = {
     val clone = new Context
     clone.binds = this.binds.clone
-    clone.operatorLibrary = this.operatorLibrary.cloneOpLib
-    clone.ruleLibrary = this.ruleLibrary.cloneRuleLib
+    clone.operatorLibrary = this.operatorLibrary.clone
+    clone.ruleLibrary = this.ruleLibrary.clone
     clone
   }
 

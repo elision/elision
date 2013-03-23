@@ -87,7 +87,7 @@ extends Fickle with Mutable {
  	private var _opRefList = List[OperatorRef]()
  	
   /** Makes a copy of this operator library. */
-  def cloneOpLib : OperatorLibrary = {
+  override def clone : OperatorLibrary = {
     val clone = new OperatorLibrary(this.allowRedefinition)
     
     clone._nameToOperator.clear
