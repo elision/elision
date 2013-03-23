@@ -522,6 +522,25 @@ decl.{! timing($f:BOOLEAN)
   "The result shows minutes, seconds, and milliseconds."
 }
 
+decl.{! nanotime()
+  #handler="""Literal(System.nanoTime)"""
+  #description="Get current system time as an integer."
+  #detail="Get current system time as an integer."
+}
+
+decl.{! heap()
+  #handler="""
+    val rt = Runtime.getRuntime
+    emitln("Max Memory:   "+rt.maxMemory)
+    emitln("Total Memory: "+rt.totalMemory)
+    emitln("Free Memory:  "+rt.freeMemory)
+    Literal(rt.maxMemory - rt.totalMemory + rt.freeMemory)
+  """
+  #description="Get the current heap status."
+  #detail="Show max, current total, and current free memory.  The ".
+    "maximum available free memory is the value of this operator."
+}
+
 //======================================================================
 // Display.
 //======================================================================
