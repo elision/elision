@@ -38,6 +38,8 @@
 package ornl.elision.core
 
 import ornl.elision.util.ElisionException
+import ornl.elision.generators.ScalaGenerator
+import ornl.elision.generators.ElisionGenerator
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -172,6 +174,145 @@ class Context extends Fickle with Mutable {
     require(lib != null)
     _rulelib = lib
     this
+  }
+  
+  //======================================================================
+  // Serialization
+  //======================================================================
+  
+  /* How Serialization Works
+   * =======================
+   * Serialization is complicated by the fact that some operators depends on
+   * other operators in their definition.  It is also the case that an operator
+   * named X might depend on another operator named X, captured as a closure.
+   * Likewise some operators and other objects depend on rulesets, and those
+   * have to be declared appropriately.  Finally, the order of rule declaration
+   * is significant.
+   * 
+   * Serialization of a context works as follows.
+   * (1) Serialize the rules in the order they were declared.  Whenever an
+   *     operator or ruleset is encountered, emit its declaration right there,
+   *     and also emit anything it depends on.
+   * (2) Emit any ruleset declarations not already visited.
+   * (3) Emit any operators not already visited, first emitting any operators
+   *     and rulesets they depend on.
+   * (4) Emit the bindings.
+   * 
+   * If we are creating Scala code, then we have to handle native operators.
+   * To make that simpler, we use a trick to avoid compilation of the native
+   * operators.  The trick is to emit the native handler code so it is
+   * installed at operator creation, which is allowed by a protected method.
+   */
+  
+  /**
+   * Write the context to the given appendable.
+   * 
+   * @param app   The appendable to get the context.
+   */
+  def write(app: Appendable) = {
+    
+  }
+  
+  case class Known(operators: Set[Operator] = Set(),
+      rulesets: Set[RulesetRef] = Set()) {
+    def apply(atom: BasicAtom) = atom match {
+      case op: Operator if operators.contains(op) => true
+      case rs: RulesetRef if rulesets.contains(rs) => true
+      case _ => false
+    }
+    
+    def +(atom: BasicAtom) = atom match {
+      case op: Operator =>
+        Known(operators + op, rulesets)
+        
+      case rs: RulesetRef =>
+        Known(operators, rulesets + rs)
+    }
+  }
+  
+  /**
+   * Write an atom's dependencies, then write the atom itself.  The
+   * dependencies considered are operators and rulesets.
+   * 
+   * The idea is that by processing the resulting declarations in order the
+   * same atom is reconstructed.
+   * 
+   * @param app       An appendable to get the output.
+   * @param target    The atom.
+   * @param known     The known items.
+   * @param kind      The format for the output.  Can be either `'elision`
+   *                  or `'scala`.
+   * @return  The updated known 
+   */
+  def traverse(app: Appendable, target: BasicAtom, known: Known,
+      kind: Symbol): Known = {
+    if (known(target)) return known
+    var newknown = known
+    
+    // A visitor to collect mentioned operators.  Note that the symbolic
+    // operators are hard-coded, and we never write them.
+    def collector(atom: BasicAtom, istype: Boolean) = {
+      if (atom != target) {
+        atom match {
+          case op: TypedSymbolicOperator =>
+            if (! known(op))
+              newknown = traverse(app, op, newknown, kind)
+              
+          case sop: SymbolicOperator =>
+            
+          case op: Operator =>
+            if (! known(op))
+              newknown = traverse(app, op, newknown, kind)
+              
+          case or: OperatorRef =>
+            val op = or.operator
+            if (! known(op))
+              newknown = traverse(app, op, newknown, kind)
+              
+          case rs: RulesetRef =>
+            if (! known(rs))
+              newknown = traverse(app, rs, newknown, kind)
+              
+          case rule: RewriteRule =>
+            newknown = traverse(app, rule, newknown, kind)
+              
+          case _ =>
+        }
+      }
+      true
+    }
+    
+    // Write all the atoms this atom depends on.
+    target match {
+      case opref: OperatorRef =>
+        AtomWalker(opref.operator, collector)
+        
+      case rule: RewriteRule =>
+        for (rsname <- rule.rulesets) {
+          AtomWalker(RulesetRef(this.ruleLibrary, rsname), collector)
+        } // Explore all the referenced rulesets.
+        AtomWalker(target, collector)
+        
+      case _ =>
+        AtomWalker(target, collector)
+    }
+    
+    // Write this atom.
+    kind match {
+      case 'scala =>
+        ScalaGenerator(target, app)
+      case _ =>
+        ElisionGenerator(target, app)
+    }
+    app.append('\n')
+    
+    // This is now a known operator or ruleset - if that's what it is.
+    return target match {
+      case op: Operator => newknown + op
+      case opref: OperatorRef => newknown + opref.operator
+      case rs: RulesetRef => newknown + rs
+      case _ => newknown
+    }
   }
 
   //======================================================================

@@ -614,15 +614,13 @@ decl.{! showtypes($a)
   "is also printed."
 }
 
-decl.{! traverse($op:OPREF)
+decl.{! _traverse($atom, $kind: SYMBOL)
   #handler="""
     args match {
-      case Args(op: Operator) =>
-        Operator.traverse(System.out, op, Set(), 'elision)
-      case Args(opref: OperatorRef) =>
-        Operator.traverse(System.out, opref.operator, Set(), 'elision)
+      case Args(atom, kind: SymbolLiteral) =>
+        context.traverse(System.out, atom, context.Known(), kind.value)
       case _ =>
-        warn("The traverse operator only works for operator instances.")
+        error("Second argument must be a symbol literal.")
     }
     _no_show
   """
@@ -630,6 +628,17 @@ decl.{! traverse($op:OPREF)
     "fully re-create it.  The operators are emitted in the order they must ".
     "be declared."
   #description="Fully write an operator's definition."
+  #evenmeta=true
+}
+
+decl.{operator #name=traverse #cases
+  %($atom, $kind: SYMBOL) -> defer(_traverse:OPREF, %($$atom, $$kind)),
+  %($atom) -> defer(_traverse:OPREF, %($$atom, elision))
+  #detail="Emit an operator and all necessary supporting operators to ".
+    "fully re-create it.  The operators are emitted in the order they must ".
+    "be declared."
+  #description="Fully write an operator's definition."
+  #evenmeta=true
 }
 
 //======================================================================
