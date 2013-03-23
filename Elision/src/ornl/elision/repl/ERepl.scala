@@ -289,10 +289,10 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
       override def init(exec: Executor) = {
         declareProperty("autoop",
             "If the current result is an operator, automatically declare it " +
-            "in the operator library.", true)
+            "in the operator library.", false)
         declareProperty("autorule",
             "If the current atom is a rewrite rule, automatically declare it " +
-            "in the rule library.", true)
+            "in the rule library.", false)
         true
       }
       override def handleAtom(atom: BasicAtom) = {
