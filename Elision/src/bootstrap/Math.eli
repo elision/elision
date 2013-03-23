@@ -188,13 +188,10 @@ decl.{! or($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[true]D[false]
 }
 
 decl.{ operator #name=xor #type=BOOLEAN #cases
-  %(true) -> true,
-  %(false) -> false,
-  %(true, false) -> true,
-  %(false, true) -> true,
-  %(true, true) -> false,
-  %(false, false) -> false,
+  %($P: BOOLEAN) -> $$P,
+  %ACD[false](false, $P: BOOLEAN) -> $$P,
   %ACD[false](true, $Q: BOOLEAN) -> not($$Q),
+  %ACD[false]($P: BOOLEAN, $P: BOOLEAN) -> false,
   %ACD[false]($P: BOOLEAN, $Q: BOOLEAN) -> _
 #description="Boolean exclusive or."
 #detail="True if exactly one argument is true, and false otherwise."
