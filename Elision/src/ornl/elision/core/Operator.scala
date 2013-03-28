@@ -48,6 +48,7 @@ import ornl.elision.generators.ElisionGenerator
 import scala.collection.mutable.{Set => MSet}
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
+import ornl.elision.util.Debugger
 
 /**
  * An incorrect argument list was supplied to an operator.
@@ -649,8 +650,8 @@ object SymbolicOperator {
    * Print out the time spent compiling native handlers.
    */
   def reportTime() {
-    print("Time Compiling Native Handlers: ")
-    println(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
+    Debugger.debugf("Time Compiling Native Handlers: ")
+    Debugger.debugln(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
   }
 
   /**
@@ -946,13 +947,8 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               // Add the arguments directly to this list.  We can assume the
               // sub-list has already been processed, so no deeper checking
               // is needed.  This flattens associative lists, as required.
-              //println("ASSOC: Add args " + opargs)
-              //println("ASSOC: Old seq " + newseq)
               newseq = newseq.omit(index)
               newseq = newseq.insert(index, opargs)
-              //OmitSeq.debug = true
-              //println("ASSOC: New seq " + newseq)
-              //OmitSeq.debug = false
             case _ =>
               // Nothing to do except increment the pointer.
               index += 1

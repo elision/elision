@@ -124,7 +124,7 @@ object Debugger {
   /** The last tick time. */
   private var _tick = new Timeable() {
     def reportElapsed() {
-      println(getLastTimeString)
+      console.emitln(getLastTimeString)
     }
   }
   _tick.startTimer
@@ -132,7 +132,7 @@ object Debugger {
   /** The last start time. */
   private var _start = new Timeable() {
     def reportElapsed() {
-      println(getLastTimeString)
+      console.emitln(getLastTimeString)
     }
   }
   _start.startTimer
@@ -188,7 +188,7 @@ object Debugger {
    * 
    * {{{
    * Debugger("tim") {
-   *   println("Tim is go!")
+   *   Debugger.debugln("Tim is go!")
    * }
    * }}}
    * 
