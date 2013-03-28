@@ -409,8 +409,8 @@ class RewriteRule private (
     // Local function to perform the rewrite if the rule fires.  We return
     // true in the pair no matter what, since the rule fired.
     def doRuleRewrite(candidate: Bindings) = {
-      Debugger.debug("Applied rule: " + this.toParseString +
-          " to: " + candidate.toParseString + "", "rewrite")
+      Debugger("rewrite", "Applied rule: " + this.toParseString +
+          " to: " + candidate.toParseString + "")
       (rewrite.rewrite(candidate)._1, true)
     }
     

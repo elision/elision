@@ -37,12 +37,11 @@ package ornl.elision.util
  * do not attempt to use this class to debug `Console`!
  * 
  * To use this class set up your debugging modes via `setDebugModes`, and
- * then use `debug` to print debugging messages.  The first argument is passed
+ * then use `apply` to print debugging messages.  The second argument is passed
  * by name, so you can use this to avoid construction costs by deferring method
  * invocation.
  * 
- * The tag is the second element to the debug statement to enable omitting it;
- * if omitted, the tag is treated as the empty string.
+ * The tag is the first element to the debug statement and may not be omitted.
  * 
  * {{{
  * import ornl.elision.Debugger._
@@ -53,19 +52,19 @@ package ornl.elision.util
  * enableDebugModes("start", ON|START)
  * enableDebugModes("stop", ON|STOP)
  * 
- * debug("Debug point reached.", "simple", 4)
+ * Debugger("simple", "Debug point reached.", 4)
  * ...
- * debug("Starting timer.", "start")
+ * Debugger("start", "Starting timer.")
  * ...
- * debug("Reporting elapsed time.", "stop")
+ * Debugger("stop", "Reporting elapsed time.")
  * }}}
  * 
- * Alternately, include the things you want to do in an `ifdebug` block.
+ * Alternately, include the things you want to do in an `Debugger` block.
  * 
  * {{{
  * import ornl.elision.Debugger._
  * 
- * ifdebug("simple") {
+ * Debugger("simple") {
  *   println("The simple mode is enabled.")
  *   for (i <- 1 upto 1000) println(i)
  * }
@@ -73,6 +72,9 @@ package ornl.elision.util
  * 
  * There are several things you can do; see [ornl.elision.Debugger.Mode] for
  * the various debug modes you can enable.
+ * 
+ * Note that by default all tags are disabled except for the empty string tag
+ * `""`, which is `ON`.
  */
 object Debugger {
   
@@ -101,8 +103,6 @@ object Debugger {
     
     /** Convert a mode into a bit mask. */
     implicit def mode2bit(mode: Mode.Value) = (1 << mode.id)
-    
-    /** Convert a string into a mode. */
   }
   import Mode._
   
@@ -117,6 +117,9 @@ object Debugger {
    * constants in this object [ornl.elision.Debugger.Mode].
    */
   private var _modes = scala.collection.mutable.Map[String,Int]()
+  
+  // By default the empty string tag is enabled.
+  _modes("") = ON
   
   /** The last tick time. */
   private var _tick = new Timeable() {
@@ -184,7 +187,7 @@ object Debugger {
    * vals in the block, they are out of scope outside the block.
    * 
    * {{{
-   * ifdebug("tim") {
+   * Debugger("tim") {
    *   println("Tim is go!")
    * }
    * }}}
@@ -193,20 +196,80 @@ object Debugger {
    * @param action  The action to perform.  This is only evaluated iff the tag
    *                is enabled.
    */
-  def ifdebug(tag: String = "")(action: =>Unit) {
-    if ((_modes.getOrElse(tag,0) & ON) != 0) {
+  def apply(tag: String)(action: => Unit) {
+    if ((_modes.getOrElse(tag, 0) & ON) != 0) {
       action
     }
   }
   
   /**
+   * Simple interface for use from Java to write a debug message.  The message
+   * is always evaluated, as Java does not allow by-name parameters.
+   * @param tag     The debugging tag.
+   * @param message The message to write.
+   * @param id      The id.
+   */
+  def D(tag: String, message: String, id: Int) = apply(tag, message, id)
+  
+  /**
+   * Simple interface for use from Java to write a debug message.  The message
+   * is always evaluated, as Java does not allow by-name parameters.
+   * @param tag     The debugging tag.
+   * @param message The message to write.
+   */
+  def D(tag: String, message: String) = apply(tag, message)
+  
+  /**
+   * Simple interface for use from Java to obtain a mode id.
+   * @param name    The name of a mode.
+   * @return  An `id` value to use with other methods where `Mode` is
+   *          required.
+   */
+  def mode(name: String) = Mode.withName(name).id
+  
+  /**
+   * Simple interface for use from Java to enable a debugging tag.
+   * @param tag     The debugging tag.
+   */
+  def debugon(tag: String) = enableDebugModes(tag, ON)
+  
+  /**
+   * Simple interface for use from Java to disable a debugging tag.
+   * @param tag     The debugging tag.
+   */
+  def debugoff(tag: String) = disableDebugModes(tag, ON)
+  
+  /**
+   * Simple interface for use from Java to print a message with the
+   * empty string for its tag.  This is the tag that is enabled by default.
+   * The message is always evaluated, as Java does not allow by-name
+   * parameters.  This method writes behaves in the same manner as `printf`.
+   * @param message The message to write.
+   */
+  def debugf(format: String, items: Any*) = apply("", format.format(items:_*))
+  
+  /**
+   * Simple interface for use from Java to print a message with the
+   * empty string for its tag.  This is the tag that is enabled by default.
+   * The message is always evaluated, as Java does not allow by-name
+   * parameters.  This methods behaves in the same manner as `println`.
+   * @param message The message to write.
+   */
+  def debugln(message: Any) = apply("", message)
+  
+  /**
    * Emit a debugging tag based on the enabled modes.
    * 
-   * @param message A closure to generate the message to write.
+   * {{{
+   * Debugger("simple", "Processing item: " + num)
+   * }}}
+   * 
    * @param tags    A tag for this message.
+   * @param message A closure to generate an object.  The object is then
+   *                converted to a string via `toString` before writing.
    * @param id      An optional id number.  This is printed if positive.
    */
-  def debug(message: => String, tag: String = "", id: Int = -1) {
+  def apply(tag: String, message: => Any, id: Int = -1) {
     // Get the mode for this message.
     val mode = _modes.getOrElse(tag, 0)
     if ((mode & ON) == 0) return
@@ -244,10 +307,10 @@ object Debugger {
     //    F F      T
     if ((mode & (NONL|STACK)) != mode2bit(NONL)) {
       // Print a newline.
-      console.panicln(message)
+      console.panicln(message.toString)
     } else {
       // No newline.
-      console.panic(message)
+      console.panic(message.toString)
     }
     
     // If the user wants a stack trace, give them a stack trace.

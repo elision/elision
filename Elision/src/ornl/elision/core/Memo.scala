@@ -34,6 +34,7 @@ import ornl.elision.util.PropertyManager
 import scala.collection.mutable.BitSet
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
+import ornl.elision.util.Debugger
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are
@@ -124,7 +125,7 @@ object Memo {
    * Print information about the Elision cache.
    */
   def showStats {
-    println("""
+    knownExecutor.console.panicln("""
         |Elision Cache
         |=============
         |Hits:          %10d
@@ -270,9 +271,12 @@ object Memo {
     }
 
     // Return the cache lookup result.
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("lookup time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
     return r
   }
@@ -325,8 +329,11 @@ object Memo {
 
     // Return the cache lookup result.
     val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    Debugger("memo") {
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("lookup time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
     return r
   }
@@ -376,9 +383,12 @@ object Memo {
     }
 
     // Return the cache lookup result.
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("lookup time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
     return r
   }
@@ -429,9 +439,12 @@ object Memo {
         _cacheFIFO.enqueue(((atom.hashCode, atom.otherHashCode), rulesets))
       }
     }
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("add time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
   }
   
@@ -460,9 +473,12 @@ object Memo {
         _incCacheCounter(((atom.hashCode, atom.otherHashCode), rulesets)) 
       }
     }
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("add time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
   }
   
@@ -486,9 +502,12 @@ object Memo {
         _cache.put(((atom.hashCode, atom.otherHashCode), rulesets), (value, level))
       }
     }
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("add time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
   }
   

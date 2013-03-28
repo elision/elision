@@ -204,23 +204,65 @@ class Context extends Fickle with Mutable {
    * installed at operator creation, which is allowed by a protected method.
    */
   
+  def declare(atom: BasicAtom) = atom match {
+    case op: Operator =>
+      operatorLibrary.add(op)
+      op
+      
+    case SymbolLiteral(_, sym) =>
+      ruleLibrary.declareRuleset(sym.name)
+      RulesetRef(this, sym.name)
+      
+    case rule: RewriteRule =>
+      ruleLibrary.add(rule)
+      rule
+      
+    case MapPair(vari: Variable, value: BasicAtom) =>
+      bind(vari.name, value)
+      value
+      
+    case x: Any =>
+      x
+  }
+  
   /**
    * Write the context to the given appendable.
    * 
    * @param app   The appendable to get the context.
    */
   def write(app: Appendable) = {
-    
+    // Write boilerplate
   }
   
+  /**
+   * Maintain the set of known operators and rulesets.  No  `te that this is
+   * immutable
+   * 
+   * @param operators The set of known operators.
+   * @param rulesets  The set of known rulesets.
+   */
   case class Known(operators: Set[Operator] = Set(),
       rulesets: Set[RulesetRef] = Set()) {
+    
+    /**
+     * Test whether an atom (an operator or ruleset) is known.
+     * 
+     * @param atom    Can be any atom, but only operators and rulesets have
+     *                the potential to be "known."
+     * @return  True iff the atom is known.
+     */
     def apply(atom: BasicAtom) = atom match {
       case op: Operator if operators.contains(op) => true
       case rs: RulesetRef if rulesets.contains(rs) => true
       case _ => false
     }
     
+    /**
+     * Add an atom to the known set.
+     * 
+     * @param atom    The atom to add.
+     * @return  A new `Known` instance.
+     */
     def +(atom: BasicAtom) = atom match {
       case op: Operator =>
         Known(operators + op, rulesets)
@@ -247,7 +289,20 @@ class Context extends Fickle with Mutable {
   def traverse(app: Appendable, target: BasicAtom, known: Known,
       kind: Symbol): Known = {
     if (known(target)) return known
+    if (target.isInstanceOf[OperatorRef]) {
+      return traverse(app, target.asInstanceOf[OperatorRef].operator,
+          known, kind)
+    }
     var newknown = known
+    
+    // Boilerplate text for both cases.
+    val pre = Map(
+        'elision -> ("{!_($atom) #handler=\"\"\"context.declare(args(0))\"\"\""+
+        		" #evenmeta=true}.%("),
+        'scala -> "context.declare(")
+    val post = Map(
+        'elision -> ")",
+        'scala -> ")")
     
     // A visitor to collect mentioned operators.  Note that the symbolic
     // operators are hard-coded, and we never write them.
@@ -298,13 +353,17 @@ class Context extends Fickle with Mutable {
     }
     
     // Write this atom.
+    if (kind == 'scala) {
+      ElisionGenerator(target, app.append("// ")).append('\n')
+    }
+    app.append(pre(kind))
     kind match {
       case 'scala =>
         ScalaGenerator(target, app)
       case _ =>
         ElisionGenerator(target, app)
     }
-    app.append('\n')
+    app.append(post(kind)).append('\n')
     
     // This is now a known operator or ruleset - if that's what it is.
     return target match {
@@ -363,19 +422,4 @@ class Context extends Fickle with Mutable {
     buf append ruleLibrary.toString
     buf.toString()
   }
-  //  override def toString = {
-  //    val buf = new StringBuilder
-  //    buf append "import ornl.elision.core._\n"
-  //    buf append "object LoadContext {\n"
-  //    buf append "  def main(args: Array[String]) {\n"
-  //    buf append "    val _context = new Context()\n"
-  //    buf append "    _mkoplib(_context)\n"
-  //    buf append "    _mkrulelib(_context)\n"
-  //    buf append "    println(_context.toParseString)\n"
-  //    buf append "  }\n"
-  //    buf append operatorLibrary.toString
-  //    buf append ruleLibrary.toString
-  //    buf append "}\n"
-  //    buf.toString()
-  //  }
 }

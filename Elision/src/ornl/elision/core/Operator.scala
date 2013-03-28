@@ -569,12 +569,6 @@ object SymbolicOperator {
     new scala.tools.nsc.Settings(println _) {
       override val classpath = PathSetting("-cp", "Classpath", _classpath)
     }
-  } catch {
-    case e: Exception => {
-      println(e.getMessage)
-      println(e)
-      throw e
-    }
   }
 
   /** Make an interpreter. */
