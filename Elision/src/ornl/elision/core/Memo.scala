@@ -208,8 +208,8 @@ object Memo {
       _hits = 0
       _misses = 0
     }
-    
   }
+  
   /**
    * Test the cache for an atom.
    * 
@@ -228,7 +228,6 @@ object Memo {
   }
   
   def get_FIFO(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
-
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
@@ -282,7 +281,6 @@ object Memo {
   }
   
   def get_LFU(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
-
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
@@ -338,9 +336,7 @@ object Memo {
     return r
   }
   
-  
   def get_old(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
-
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
@@ -393,10 +389,6 @@ object Memo {
     return r
   }
   
-  
-  
-  
-  
   /**
    * Put something in the cache.
    * 
@@ -414,9 +406,7 @@ object Memo {
       put_old(atom,rulesets,value,level)
   }
   
-  
   def put_FIFO(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
-
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
@@ -447,10 +437,8 @@ object Memo {
       }
     }
   }
-  
-  
+ 
   def put_LFU(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
-
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
@@ -482,9 +470,7 @@ object Memo {
     }
   }
   
-  
   def put_old(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
-
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
@@ -510,7 +496,6 @@ object Memo {
       }
     }
   }
-  
   
   /** Implementation of a replacement policy for _cache. */
   def _replacementPolicyCache {
@@ -568,8 +553,6 @@ object Memo {
     }
   }
   
-  
-  
   def _replacementPolicyCacheLFU {
     if(_cache.size < _maxsize)
        return
@@ -612,10 +595,6 @@ object Memo {
     _cacheCounter.clear
   }
   
-  
-  
-  
-  
   /** Implementation of a replacement policy for _normal. */
   def _replacementPolicyNormal {
     if(_replacementPolicy.equals("LFU"))
@@ -625,7 +604,6 @@ object Memo {
     else if(_replacementPolicy.equals("FIFO"))
       _replacementPolicyNormalFIFO
   }
-  
   
   def _replacementPolicyNormalFIFO {
     if(_normal.size < _maxsize)
@@ -637,7 +615,6 @@ object Memo {
       _normal.remove(key)
     }
   }
-  
   
   def _replacementPolicyNormalLRU {
     if(_normal.size < _maxsize)
@@ -716,9 +693,6 @@ object Memo {
     // replace the counter with a new one.
     _normalCounter.clear
   }
-  
-  
-  
   
   /** safely increments the counter for a key in _cacheCounter. */
   def _incCacheCounter(key : ((Int,BigInt),BitSet)) {
