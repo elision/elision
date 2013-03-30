@@ -650,8 +650,8 @@ object SymbolicOperator {
    * Print out the time spent compiling native handlers.
    */
   def reportTime() {
-    Debugger.debugf("Time Compiling Native Handlers: ")
-    Debugger.debugln(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
+    knownExecutor.console.emit("Time Compiling Native Handlers: ")
+    knownExecutor.console.emitln(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
   }
 
   /**
