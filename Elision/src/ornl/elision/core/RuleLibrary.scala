@@ -864,7 +864,6 @@ extends Fickle with Mutable {
       return (atom, false)
     }
     
-    
     def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
       if (subject == this) Match(binds) else subject match {
         case rr:RulesetRef if (rr.name == name) => Match(binds)
@@ -889,6 +888,14 @@ extends Fickle with Mutable {
    * bit set that tells which rulesets the rule is in.
    */
   private val _op2rules = MMap[String,ListBuffer[(BitSet,RewriteRule)]]()
+  
+  /**
+   * Map rule names to the rules that were added with that name.  Rules do not
+   * require names, but if a rule has a name it must be unique among all added
+   * rules.  This requires special enforcement during addition, and also means
+   * that it is sometimes necessary to remove rules.
+   */
+  private val _name2rules = MMap[String, List[RewriteRule]]()
 
   /**
    * Add a rewrite rule to this context.
@@ -915,7 +922,28 @@ extends Fickle with Mutable {
     }
     
     // Complete the rule.
-    for (rule2 <- Completor.complete(rule)) doAdd(rule2)
+    val rules = Completor.complete(rule)
+    
+    // Rules can have names, and adding a rule with the same name as a
+    // previously-added rule replaces the prior rule.  This is a novel
+    // case, since typically rules added first have precedence.
+    // For this reason, if the rule has a name first remove any prior rules
+    // with the same name.  Then record the rules under the name.
+    rule.name match {
+      case None =>
+      case Some(value) =>
+        // The rule has a name.  See if we need to remove prior rules that
+        // were added with that name.
+        _name2rules.get(value) match {
+          case None =>
+          case Some(priors) =>
+            for (prior <- priors) doRemove(prior)
+        }
+        _name2rules(value) = rules
+    }
+    
+    // Add the rules.
+    for (rule2 <- rules) doAdd(rule2)
     this
   }
 
@@ -944,6 +972,26 @@ extends Fickle with Mutable {
     // Okay, now add the rule to the list.  We perform no checking to see if
     // the rule is already present.
     list += Pair(bits, rule)
+    this
+  }
+  
+  /**
+   * Remove a rewrite rule from this context.
+   * 
+   * @param rule  The rewrite rule to remove.
+   * @throws  NoSuchRulesetException
+   *          At least one ruleset mentioned in the rule has not been declared,
+   *          and undeclared rulesets are not allowed.
+   */
+  private def doRemove(rule: RewriteRule) = {
+    // Get the list for the kind of atom the rule's pattern uses.
+    val list = getRuleList(rule.pattern)
+    // Get the bitset for the rule's ruleset membership.
+    val bits = new BitSet()
+    for (rs <- rule.rulesets) bits += getRulesetBit(rs)
+    // Now remove every instance of the rule from the list.
+    for (idx <- list.indices.reverse)
+      if (list(idx) == (bits, rule)) list.remove(idx)
     this
   }
 

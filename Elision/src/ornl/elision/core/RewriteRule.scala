@@ -268,8 +268,9 @@ object RewriteRule {
    */
   def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
       rulesets: Set[String]) = {
-    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets)
-    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, false)
+    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets, None,
+        "", "")
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, None)
   }
   
   /**
@@ -283,12 +284,36 @@ object RewriteRule {
    */
   def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
       rulesets: Set[String], synthetic: Boolean) = {
-    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets)
-    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, synthetic)
+    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets, None,
+        "", "")
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, None, "", "",
+        synthetic)
+  }
+  
+  /**
+   * Create a rewrite rule.
+   * 
+   * @param pattern     The pattern to match.
+   * @param rewrite     The rewrite to apply on match.
+   * @param guards      Guards that must be true to accept a match.
+   * @param rulesets    The rulesets that contain this rule.
+   * @param name        Optional rule name.
+   * @param description Optional rule description.
+   * @param detail      Optional detailed rule description.
+   * @param synthetic   If true, this is a synthetic rule.
+   */
+  def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
+      rulesets: Set[String], name: Option[String], description: String,
+      detail: String, synthetic: Boolean) = {
+    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets, name,
+        description, detail)
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, name, description,
+        detail, synthetic)
   }
   
   private def _makeSpecialFormHolder(pattern: BasicAtom, rewrite: BasicAtom,
-      guards: Seq[BasicAtom], rulesets: Set[String]) = {
+      guards: Seq[BasicAtom], rulesets: Set[String], name: Option[String],
+      description: String, detail: String) = {
     // Make the map pair.
     val mappair = MapPair(pattern, rewrite)
     // Make the binding.
@@ -302,6 +327,16 @@ object RewriteRule {
             str => Literal(str)
           }.toIndexedSeq[BasicAtom]))
     }
+    name match {
+      case None =>
+      case Some(value) => binds += ("name" -> Literal(Symbol(value)))
+    }
+    if (description != "") {
+      binds += ("description" -> Literal(description))
+    }
+    if (detail != "") {
+      binds += ("detail" -> Literal(detail))
+    }
     new SpecialFormHolder(tag, BindingsAtom(binds))
   }
 
@@ -313,13 +348,15 @@ object RewriteRule {
    *          synthetic.
    */
   def unapply(rule: RewriteRule) = Some((rule.pattern, rule.rewrite,
-      rule.guards, rule.rulesets, rule.synthetic))
+      rule.guards, rule.rulesets, rule.name, rule.description, rule.detail,
+      rule.synthetic))
       
   def apply(sfh: SpecialFormHolder): RewriteRule = {
     // A rewrite rule must be given with a binding.
     val bh = sfh.requireBindings
     // Check the content.
-    bh.check(Map(""->true, "if"->false, "ruleset"->false, "rulesets"->false))
+    bh.check(Map(""->true, "if"->false, "ruleset"->false, "rulesets"->false,
+        "name"->false, "description"->false, "detail"->false))
     // Get the map pair.
     val mappair = bh.fetchAs[AtomSeq]("")
     if (mappair.length < 1)
@@ -347,8 +384,16 @@ object RewriteRule {
               "Ruleset specification is not a symbol: " + rs.toParseString)
       }
     }
+    // Get the (optional) name.
+    val name = (if (bh.has("name"))
+      Some(bh.fetchAs[SymbolLiteral]("name").value.name) else None)
+    // Get the description and detail.
+    val description = bh.fetchAs[StringLiteral]("description",
+        Some(Literal(""))).value
+    val detail = bh.fetchAs[StringLiteral]("detail", Some(Literal(""))).value
     // Build the rule.
-    new RewriteRule(sfh, pair.left, pair.right, guards.atoms, rulesets.toSet)
+    new RewriteRule(sfh, pair.left, pair.right, guards.atoms, rulesets.toSet,
+        name, description, detail)
   }
 }
 
@@ -366,12 +411,20 @@ object RewriteRule {
  * @param rewrite			The rewrite to apply on match.
  * @param guards			Guards that must be true to accept a match.
  * @param rulesets		The rulesets that contain this rule.
+ * @param name        Optional rule name.
+ * @param description Optional rule description.
+ * @param detail      Optional detailed rule description.
  * @param synthetic		If true, this is a synthetic rule.
  */
 class RewriteRule private (
     sfh: SpecialFormHolder,
-    val pattern: BasicAtom, val rewrite: BasicAtom,
-    val guards: Seq[BasicAtom], val rulesets: Set[String],
+    val pattern: BasicAtom,
+    val rewrite: BasicAtom,
+    val guards: Seq[BasicAtom],
+    val rulesets: Set[String],
+    val name: Option[String] = None,
+    val description: String = "",
+    val detail: String = "",
     val synthetic: Boolean = false)
     extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
   override val theType = STRATEGY

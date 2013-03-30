@@ -191,7 +191,7 @@ object ScalaGenerator extends Generator {
           case Some(text) => buf.append(",").append(toEString(text))
         }
         buf.append(")")
-      case RewriteRule(pat, rew, gua, rs, syn) =>
+      case RewriteRule(pat, rew, gua, rs, nm, des, det, syn) =>
         buf.append("RewriteRule(")
         gen(pat, context, buf).append(",")
         gen(rew, context, buf).append(",")
@@ -204,6 +204,12 @@ object ScalaGenerator extends Generator {
         }
         buf.append("),")
         buf.append(rs.map(toEString(_)).toString).append(",")
+        buf.append(nm match {
+          case None => "None"
+          case Some(value) => "Some("+toEString(value)+")"
+        }).append(",")
+        buf.append(toEString(des)).append(",")
+        buf.append(toEString(det)).append(",")
         buf.append(syn.toString).append(")")
       case SpecialForm(tag, content) =>
         buf.append("SpecialForm(")
