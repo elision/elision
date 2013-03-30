@@ -214,6 +214,13 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   }
   
   /**
+   * Determine whether the given key is present in this holder.
+   * @param key   The key to check.
+   * @return  True iff the key is present.
+   */
+  def has(key: String) = content.contains(key)
+  
+  /**
    * Extract a special form instance from this holder.  This directly creates
    * a special form; it does not interpret it based on the tag.  If the latter
    * is what you want, use the `interpret` method.
