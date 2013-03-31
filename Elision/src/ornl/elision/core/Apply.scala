@@ -177,8 +177,7 @@ object Apply {
     val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
       BasicAtom.timeoutTime.value = -1L
-    }
-    else {
+    } else {
       BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
     }
 
