@@ -73,8 +73,8 @@ class UndefinedOperatorException(msg: String) extends ElisionException(msg)
  * 													as described above.  A warning is always generated!
  * 													This is true by default.
  */
-class OperatorLibrary(
-    val allowRedefinition: Boolean = true) extends Fickle with Mutable {
+class OperatorLibrary(val allowRedefinition: Boolean = true)
+extends Fickle with Mutable {
 
   /**
    * The mapping from operator name to operator.  This holds the mapping as it
@@ -82,22 +82,22 @@ class OperatorLibrary(
    */
  	private var _nameToOperator = MMap[String, OperatorRef]()
  	
- 	// NOTE: We prepend to this list for performance. When reading for insertion order,
- 	// be sure to use a reverseIterator
- 	private var opRefList = List[OperatorRef]()
+ 	// NOTE: We prepend to this list for performance. When reading for insertion
+ 	// order, be sure to use a reverseIterator
+ 	private var _opRefList = List[OperatorRef]()
  	
-    /** Makes a copy of this operator library. */
-    def cloneOpLib : OperatorLibrary = {
-        val clone = new OperatorLibrary(this.allowRedefinition)
-        
-        clone._nameToOperator.clear
-        for(mapping <- this._nameToOperator) {
-            clone._nameToOperator += mapping
-        }
-
-        clone.opRefList = opRefList
-        clone
+  /** Makes a copy of this operator library. */
+  override def clone : OperatorLibrary = {
+    val clone = new OperatorLibrary(this.allowRedefinition)
+    
+    clone._nameToOperator.clear
+    for(mapping <- this._nameToOperator) {
+        clone._nameToOperator += mapping
     }
+
+    clone._opRefList = _opRefList
+    clone
+  }
     
  	/**
  	 * Turn the operator library into a sequence of newline-terminated strings
@@ -107,125 +107,6 @@ class OperatorLibrary(
  	 */
  	def toParseString =
  	  _nameToOperator.values.map(_.operator.toParseString).mkString("","\n","\n")
- 	  
- 	/**
- 	 * Turn the operator library into a sequence of newline-terminated strings
- 	 * that are parseable as Scala.
- 	 * 
- 	 * @return	A parseable version of this instance.
- 	 */
- 	override def toString = {
-    val buf = new StringBuilder
-
-    // make the master Ops
-    buf append "object Ops {\n  import ornl.elision.core.Context\n"
-
-    // add apply
-    buf append "  def apply(_context: Context):Unit = {\n"
-    for(k <- 0 until opRefList.length/5000+1) 
-      buf append "    Ops"+k+"(_context)\n"
-    buf append "  }\n}\n\n"
-    
-    // add ruleLibrary actions to Ops* classes
-    var start = 0
-    var end = 0
-    var runNum = 0
-    var needBrace = false
-    opRefList.reverseIterator.zipWithIndex.foreach { case (v,i) =>  {
-      // update end so we can get the range right for the apply()
-      end = i
-      
-      if(i%5000==0 && needBrace) {
-        buf append "\n  def apply(_context: Context):Unit = {\n"
-        for(j <- start to end)
-          buf append "    op"+j+"(_context)\n"
-        buf append "  }\n}\n"
-        needBrace = false
-      }
-      if(i%5000==0) {
-        start = i
-        buf append "object Ops"+runNum+" {\n  import ornl.elision.core._\n"
-        runNum = runNum + 1 
-        needBrace = true
-      }      
-      
-      buf append "  def op"+i+"(_context: Context):Unit = " +
-      "_context.operatorLibrary.add(" + v.operator.toString +
-      ".asInstanceOf[Operator])\n"
-
-    }}
-    if(needBrace) {
-        buf append "  def apply(_context: Context):Unit = {\n"
-        for(j <- start to end)
-          buf append "    op"+j+"(_context)\n"
-        buf append "  }\n}\n"      
-    }
-    
-    // phew, now lets make OpsNative. operators which are native and
-    // used in Ops get their compiled native handlers here
-    buf append "object OpsNative {\n"
-    buf append "  import ornl.elision.core._\n"
-    buf append "  import ornl.elision.repl.ERepl\n\n"
-    buf append "  implicit val exec = knownExecutor match { case x: ERepl => x; case _ => new ERepl }\n"
-    buf append "  exec.context = LoadContext._context\n\n"
-    
-    // since operators can be defined multiple times, we need to take
-    // the last occurrences of an operator from the operatorList while
-    // preserving order
-    val opRefListUniqLast: List[OperatorRef] = 
-      opRefList.reverseIterator.foldRight(List[OperatorRef]())
-      { (v,a) => { if(!a.map(_.name).contains(v.name)) v::a else a } }
-    
-    opRefListUniqLast.foreach { e =>
-      e.operator match {
-        case tso: TypedSymbolicOperator => if(tso.handler.isDefined) {
-          var handlertxt = new String(
-              new sun.misc.BASE64Decoder().decodeBuffer(tso.handlerB64))
-          buf append "  def `native$"+tso.name+"`():Option[ApplyData => BasicAtom] = {\n\n" 
-          buf append "def handler(_data: ApplyData): BasicAtom = {\n"
-          buf append "import _data.{ exec => _, _ }\n"
-          buf append "import ApplyData._\n"
-          buf append "import console._\n"
-          buf append handlertxt + "\n"
-          buf append "}\n"
-          buf append "  Some(handler _)\n"
-          buf append "  }\n\n"
-        }
-        case _ => ()
-      }
-    }
-    buf append "}\n\n"
-    
-    buf.toString()  
- 	}
-
- 	/**
- 	 * Register a native handler for an operator.  The operator must already be
- 	 * defined.  Note that the handler is not always invoked; only if
- 	 * an operator is applied to an argument list is the handler invoked, and
- 	 * then only if the argument list survives processing for the operator
- 	 * properties (absorber, etc.).
- 	 * 
- 	 * @param name		The operator name.  This is always passed to the handler
- 	 * 								as the first argument.  This makes it possible to write
- 	 * 								a single handler for many similar operators.
- 	 * @param handler	The handler.  It must take the operator and the argument
- 	 * 								list, and will be passed the bindings resulting from
- 	 * 								matching the parameters against the arguments.  It must
- 	 * 								return a new atom.
- 	 */
- 	def register(name: String, handler: ApplyData => BasicAtom) = {
- 	  // Go fetch the operator.  It must be defined.
- 	  _nameToOperator.get(name) match {
- 	    case None =>
- 	      warn("Operator " + name + " undeclared; ignoring native handler.")
- 	    case Some(op) =>
- 	      if (!op.operator.isInstanceOf[SymbolicOperator]) 
-          warn("Operator " + name + " is not symbolic; ignoring native handler.")
- 	      op.operator.asInstanceOf[SymbolicOperator].handler = Some(handler)
- 	  }
- 	  this
- 	}
  	
  	/**
  	 * Get the named operator, if it is defined.  If not already defined, and
@@ -236,9 +117,14 @@ class OperatorLibrary(
  	 * @return	The operator, if known.
  	 */
  	def apply(name: String) = get(name) match {
- 	  case None => throw new UndefinedOperatorException(
- 	      "The operator " + toESymbol(name) + " is not known.")
- 	  case Some(op) => op
+ 	  case None =>
+ 	    val uoe = new UndefinedOperatorException("The operator " + toESymbol(name) +
+ 	        " is not known.")
+ 	    uoe.printStackTrace
+ 	    throw uoe
+ 	    
+ 	  case Some(op) =>
+ 	    op
  	}
  	
  	/**
@@ -274,7 +160,7 @@ class OperatorLibrary(
  	    }
     // Accept this and store it in the map.  Return the operator reference.
  	  val ref = OperatorRef(op)
- 	  opRefList = ref :: opRefList
+ 	  _opRefList = ref :: _opRefList
     _nameToOperator += (name -> ref)
  	  ref
  	}

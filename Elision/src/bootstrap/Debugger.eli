@@ -144,7 +144,7 @@ decl.
   import ornl.elision.util.Debugger.Mode._
   args match {
     case Args(StringLiteral(_, msg), StringLiteral(_, tag)) =>
-      debug(msg, tag)
+      Debugger(msg, tag)
     case _ =>
   }
   _no_show

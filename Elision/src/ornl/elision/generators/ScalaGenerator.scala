@@ -178,21 +178,20 @@ object ScalaGenerator extends Generator {
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(")")
       case TypedSymbolicOperator(name, typ, params, description, detail,
-          evenMeta, handlerB64) =>
+          evenMeta, handlertxt) =>
         buf.append("TypedSymbolicOperator(")
         buf.append(toEString(name)).append(",")
         gen(typ, context, buf).append(",")
         gen(params, context, buf).append(",")
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(",")
-        buf.append(if(evenMeta) "true" else "false").append(",")
-        buf.append(toEString(handlerB64)).append(",")
-        // this is VERY tightly coupled with OperatorLibrary.toString
-        // FIXME What is this about?
-        if(handlerB64 != "") buf.append("OpsNative.`native$"+name+"`")
-        else buf.append("None")
+        buf.append(if(evenMeta) "true" else "false")
+        handlertxt match {
+          case None =>
+          case Some(text) => buf.append(",").append(toEString(text))
+        }
         buf.append(")")
-      case RewriteRule(pat, rew, gua, rs, syn) =>
+      case RewriteRule(pat, rew, gua, rs, nm, des, det, syn) =>
         buf.append("RewriteRule(")
         gen(pat, context, buf).append(",")
         gen(rew, context, buf).append(",")
@@ -205,6 +204,12 @@ object ScalaGenerator extends Generator {
         }
         buf.append("),")
         buf.append(rs.map(toEString(_)).toString).append(",")
+        buf.append(nm match {
+          case None => "None"
+          case Some(value) => "Some("+toEString(value)+")"
+        }).append(",")
+        buf.append(toEString(des)).append(",")
+        buf.append(toEString(det)).append(",")
         buf.append(syn.toString).append(")")
       case SpecialForm(tag, content) =>
         buf.append("SpecialForm(")

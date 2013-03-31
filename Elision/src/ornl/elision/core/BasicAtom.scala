@@ -272,7 +272,11 @@ abstract class BasicAtom extends HasOtherHash {
   /**
    * Get all the variables referenced in an atom. Override this if the
    * atom can actually contain variables.
-   *
+   * 
+   * The set uses hash codes to distinguish elements, and variables and
+   * metavariables have distinct hash codes, so `$``x` and `$``$``x` will
+   * both be included - if present - in the result.
+   * 
    * @return A set of the variables referenced in the atom, if it has
    * any. 
    */
@@ -305,7 +309,7 @@ abstract class BasicAtom extends HasOtherHash {
   def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
       hints: Option[Any] = None) = {
     var what = 0L
-    Debugger.ifdebug("matching") {
+    Debugger("matching") {
       // We compute a hash code for this match.  This is used in the output to
       // associate lines referring to the match, since matches can be nested and
       // (potentially) interleaved.
@@ -313,26 +317,26 @@ abstract class BasicAtom extends HasOtherHash {
     
       // The match attempt is starting.  Write out information about the
       // attempted match.
-      printf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
-      println("  pattern: " + this.toParseString + "\n  subject: " +
+      Debugger.debugf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
+      Debugger.debugln("  pattern: " + this.toParseString + "\n  subject: " +
           subject.toParseString + "\n  with: " + binds.toParseString)
     }
         
     // Perform the match.
     val outcome = doMatch(subject, binds, hints)
     
-    Debugger.ifdebug("matching") {
+    Debugger("matching") {
       // Write out information about the result of the match attempt.
       outcome match {
         case fail:Fail =>
-        	printf("FAILURE (%x): ", what)
-          println(fail)
+        	Debugger.debugf("FAILURE (%x): ", what)
+          Debugger.debugln(fail)
         case Match(bnd) =>
-      		printf("SUCCESS (%x): ", what)
-          println(bnd.toParseString)
+      		Debugger.debugf("SUCCESS (%x): ", what)
+          Debugger.debugln(bnd.toParseString)
         case many:Many =>
-        	printf("SUCCESS (%x): ", what)
-          println("  Many Matches")
+        	Debugger.debugf("SUCCESS (%x): ", what)
+          Debugger.debugln("  Many Matches")
       }
     }
     
@@ -412,6 +416,19 @@ abstract class BasicAtom extends HasOtherHash {
    * 					changed.
    */
   def rewrite(binds: Bindings): (BasicAtom, Boolean)
+  
+  /**
+   * Systematically replace one basic atom with another basic atom.
+   * 
+   * Note that you can use this to search for a subterm.  The idea is to map
+   * the subterm to itself (so no real "change" is made) and then look at the
+   * flag on return.
+   * 
+   * @param map   A mapping from old atom to replacement atom.
+   * @return  The result of the replacement (a potentially new atom), and a
+   *          flag indicating whether or not any replacement was performed.
+   */
+  def replace(map: Map[BasicAtom, BasicAtom]): (BasicAtom, Boolean)
 
   /**
    * Generate a parseable string from this atom.  The returned string should
@@ -516,50 +533,35 @@ object BasicAtom {
     // rewrite_timeout property can wind up referencing a different
     // executor than what Elision is actually using.
     val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-    //println("** rewrite_timeout == " + rewrite_timeout)
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
-
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
-      //println("** 1. computeTimeout == " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
-    }
-    
-    // Are we already timing out a rewrite?
-    else if (timeoutTime.value > -1) {
-
+    } else if (timeoutTime.value > -1) {
       // Return the previously computed timeout value.
-      //println("** 2. computeTimeout == " + timeoutTime.value)
       timeoutTime.value
-    }
-
-    // No timeouts.
-    else {
-      //println("** 2. computeTimeout == " + -1L)
+    } else {
       -1L
     }
   }
 
   /**
    * Check to see if we are timing out rewrites.
+   * @return  True if rewrite timeout is enabled (positive) or disabled
+   *          (non-positive).
    */
   def timingOut = {
-    val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-    (rewrite_timeout > 0)
+    knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt] > 0
   }
 
   /**
    * Check to see if the current rewrite has timed out.
+   * @return  True iff the current rewrite should time out.
    */
   def rewriteTimedOut = {
-
-    //println("** Checking timeout. " +
-    //        Platform.currentTime + ">=" + timeoutTime.value +
-    //        " == " + (Platform.currentTime >= timeoutTime.value))
     if (timingOut && (timeoutTime.value > 0)) {
       (Platform.currentTime >= timeoutTime.value)
-    }
-    else {
+    } else {
       false
     }
   }

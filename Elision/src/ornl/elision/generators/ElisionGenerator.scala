@@ -160,8 +160,20 @@ object ElisionGenerator extends Generator {
    * @return        The result.
    */
   private def _gen(atom: SpecialForm, buf: Appendable, limit: Int): Appendable = {
-    apply(atom.tag, buf.append("{:"), limit-1).append(" ")
-    apply(atom.content, buf, limit-1).append(":}")
+    if (atom.tag.isInstanceOf[SymbolLiteral] && atom.content.isInstanceOf[BindingsAtom]) {
+      // Use the expanded form for this special form.
+      val kind = atom.tag.asInstanceOf[SymbolLiteral].value.name
+      buf.append("{").append(toESymbol(kind))
+      for (pair <- atom.content.asInstanceOf[BindingsAtom]) {
+        buf.append(" #").append(toESymbol(pair._1))
+        apply(pair._2, buf.append("="), limit-1)
+      } // Write all bindings.
+      buf.append("}")
+    } else {
+      // Use the pair form.
+      apply(atom.tag, buf.append("{:"), limit-1).append(" ")
+      apply(atom.content, buf, limit-1).append(":}")
+    }
   }
   
   /**
@@ -242,16 +254,10 @@ object ElisionGenerator extends Generator {
         if (limit == 1) {
           buf.append("...")
         } else {
-
-          // Sort the atom sequence if it is commutative.
-          var printAtoms = atoms
-          if (props.isC(false)) {
-            printAtoms = atoms.sortWith(_.otherHashCode < _.otherHashCode)
-          }
           var index = 0
-          while (index < printAtoms.size) {
+          while (index < atoms.size) {
             if (index > 0) buf.append(",")
-            apply(printAtoms(index), buf, limit-1)
+            apply(atoms(index), buf, limit-1)
             index += 1
           } // Add all atoms.
         }

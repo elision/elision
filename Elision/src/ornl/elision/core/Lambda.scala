@@ -150,10 +150,8 @@ extends BasicAtom with Applicable {
   lazy val depth = body.depth + 1
     
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) =
-    subject match {
+      hints: Option[Any]) = subject match {
 	  case Lambda(olvar, obody) => if (olvar == lvar) {
-
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
         Fail("Timed out", this, subject)
@@ -171,18 +169,35 @@ extends BasicAtom with Applicable {
 	  case _ => Fail("Lambdas only match other lambdas.", this, subject)
 	}
 
-  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {	
+  def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
     // We test for a special case here.  If the bindings specify that we
     // should rewrite our own bound De Bruijn index, we explicitly ignore
     // it.
     val newbinds = binds - lvar.name
     body.rewrite(newbinds) match {
 	    case (newatom, changed) if changed => 
-  			val newLambda = Lambda(lvar, newatom)
-        (newLambda, true)
+  			(Lambda(lvar, newatom), true)
 	    case _ => 
         (this, false)
 	  }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newvar, flag) = lvar.replace(map)
+        val (newlvar, flag1) =
+          (if (newvar.isInstanceOf[Variable])
+            (newvar.asInstanceOf[Variable], flag) else (lvar, false))
+        val (newbody, flag2) = body.replace(map)
+        if (flag1 || flag2) {
+          (Lambda(newlvar, newbody), true)
+        } else {
+          (this, false)
+        }
+    }
   }
   
   override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
@@ -196,7 +211,7 @@ extends BasicAtom with Applicable {
       false
   }
   
-  def doApply(atom: BasicAtom, bypass: Boolean) = {	
+  def doApply(atom: BasicAtom, bypass: Boolean) = {
     // Lambdas are very general; their application can lead to a stack overflow
     // because it is possible to model unbounded recursion.  Catch the stack
     // overflow here, and bail out.
@@ -210,18 +225,16 @@ extends BasicAtom with Applicable {
 	            "Lambda argument does not match parameter: " + fail.theReason)
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
-		      val newbody = body.rewrite(binds)._1
-          newbody
+		      body.rewrite(binds)._1
 	      case Many(iter) =>
-	        val newbody = body.rewrite(iter.next)._1
-          newbody
+	        body.rewrite(iter.next)._1
 	    }
     } catch {
       case ex:java.lang.StackOverflowError =>
         // Trapped unbounded recursion.
-        val errorString = "Lambda application results in unbounded recursion: (" +
-        this.toParseString + ").(" + atom.toParseString + ")"
-        throw new LambdaUnboundedRecursionException(errorString)
+        throw new LambdaUnboundedRecursionException(
+            "Lambda application results in unbounded recursion: (" +
+            this.toParseString + ").(" + atom.toParseString + ")")
     }
   }
 }
@@ -253,7 +266,7 @@ object Lambda {
    * @param lvar	The lambda parameter.
    * @param body	The lambda body.
    */
-  def apply(lvar: Variable, body: BasicAtom): Lambda = {	
+  def apply(lvar: Variable, body: BasicAtom): Lambda = {
     // Make and return the new lambda.
     if (useDeBruijnIndices) {
       // Decide what De Bruijn index to use for this lambda.  We will use one
@@ -272,28 +285,24 @@ object Lambda {
 	      override val deBruijnIndex = dBI
       }
 	    
-	    // Now make a new De Bruijn variable for the index.
-	    val newvar = (
-        if (lvar.isTerm)
-        	new DBIV(lvar.theType, dBI, lvar.guard, lvar.labels)
-        else
-        	new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
-        )
+	    // Now make new De Bruijn variables for the index.
+      val newvar = new DBIV(lvar.theType, dBI, lvar.guard, lvar.labels)
+      val newmvar = new DBIM(lvar.theType, dBI, lvar.guard, lvar.labels)
+      
+      // Create a map.
+      val map = Map[BasicAtom, BasicAtom](
+          lvar.asVariable -> newvar, lvar.asMetaVariable -> newmvar)
 		
 	    // Bind the old variable to the new one and rewrite the body.
-	    var binds = Bindings()
-	    binds += (lvar.name -> newvar)
-	    val (newbody, notfixed) = body.rewrite(binds)
+	    val (newbody, notfixed) = body.replace(map)
 	    
 	    // Compute the new lambda.
 	    if (notfixed)	{
         new Lambda(newvar, newbody, false)
-      }
-	    else {
+      } else {
         new Lambda(newvar, body, true)
       }
-    }
-    else {
+    } else {
       new Lambda(lvar, body, false)
     }
   }
