@@ -250,6 +250,7 @@ object AST {
       val op = left.interpret(context) match {
         case SymbolLiteral(_, value) if left.isInstanceOf[Naked] =>
           context.operatorLibrary(value.name)
+          
         case value: Any => value
       }
       Apply(op, right.interpret(context))
