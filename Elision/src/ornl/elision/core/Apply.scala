@@ -33,8 +33,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ * ======================================================================*/
 package ornl.elision.core
 
 import scala.compat.Platform
@@ -82,10 +81,24 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
     val (nop, nof) = op.rewrite(binds)
     val (narg, naf) = arg.rewrite(binds)
     if (nof || naf) {
-  		val newApply = Apply(nop, narg)
-  		(newApply, true) 
+  		(Apply(nop, narg), true)
   	} else { 
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newop, flag1) = op.replace(map)
+        val (newarg, flag2) = arg.replace(map)
+        if (flag1 || flag2) {
+          (Apply(newop, newarg), true)
+        } else {
+          (this, false)
+        }
     }
   }
   
@@ -164,30 +177,26 @@ object Apply {
     val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
       BasicAtom.timeoutTime.value = -1L
-    }
-    else {
+    } else {
       BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
     }
 
     // Do not try to compute if metaterms are present.
     var retval: BasicAtom = null
     if (!op.evenMeta && !arg.isTerm) {
-      val result = SimpleApply(op, arg)
-      retval = result
+      retval = SimpleApply(op, arg)
     } else {
       op match {
   		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
   		    // If the argument is also a string literal, then we want to simply
   		    // concatenate them.
-  		    val result = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
-          retval = result
+  		    retval = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
           
   	    case app:Applicable =>
   	      try {
   		      // The lhs is applicable; invoke its apply method.  This will
   		      // return some atom, and that atom is the overall result.
-  		      val result = app.doApply(arg, bypass)
-            retval = result
+  		      retval = app.doApply(arg, bypass)
   	      } catch {
   	        case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
@@ -200,17 +209,15 @@ object Apply {
   	      // The lhs is a rewriter; invoke its rewrite method.  This will return
   	      // a pair.  We need to convert the pair to a binding.
   	      val (r_atom, r_flag) = rew.doRewrite(arg)
-  	      val result = BindingsAtom(Bindings() +
+  	      retval = BindingsAtom(Bindings() +
   	          ("atom" -> r_atom) +
   	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
-          retval = result
           
   	    case _ =>
   	      // The lhs is something else.  It may be a variable or some other
   	      // expression that we have yet to evaluate.  Just build a simple
   	      // apply of the lhs and rhs.
-  	      val result = SimpleApply(op, arg)
-          retval = result
+  	      retval = SimpleApply(op, arg)
 	    }
     }
 

@@ -226,14 +226,46 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     val (newprop, pchanged) = props.rewrite(binds)
     
     // We must rewrite every child atom, and collect them into a new sequence.
-    val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
+    var schanged = false
+    val newseq = atoms map {
+      atom =>
+        val (newatom, changed) = atom.rewrite(binds)
+        schanged |= changed
+        newatom
+    }
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-      val newAS = new AtomSeq(newprop, newseq)
-      (newAS, true)
+      (new AtomSeq(newprop, newseq), true)
     } else {
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        var flag1 = false
+        val newatoms = atoms map {
+          atom =>
+            val (newatom, changed) = atom.replace(map)
+            flag1 |= changed
+            newatom
+        }
+        // The algebraic properties must rewrite to a valid algebraic
+        // properties atom, or we must discard it since we cannot build a
+        // legal algebraic properties atom otherwise.
+        val (newprops, flag2) = props.replace(map) match {
+          case (ap: AlgProp, flag: Boolean) => (ap, flag)
+          case _ => (props, false)
+        }
+        if (flag1 || flag2) {
+          (AtomSeq(newprops, newatoms), true)
+        } else {
+          (this, false)
+        }
     }
   }
 
@@ -254,19 +286,11 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * Two sequences are equal iff their properties and atoms are equal.
    */
   override def equals(other: Any) = {
-    val t0 = System.nanoTime
-    val result = other match {
+    other match {
       case oseq: AtomSeq =>
         feq(oseq, this, (props == oseq.props) && (atoms == oseq.atoms))
-        
       case _ => false
     }
-
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** AtomSeq: equals time = " + (t1.toDouble-t0.toDouble)/1000000000)
-    }
-    result
   }
 }
 

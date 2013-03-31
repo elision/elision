@@ -80,7 +80,7 @@ object CLI {
    */
   case class CLIState(remain: List[String], settings: Map[String,String],
       errstr: Option[String], errindex: Int) {
-    Debugger.debug(
+    Debugger("cli",
         """|Creating a CLI State Object:
            |  remain:    %s
            |  settings:  %s
@@ -90,7 +90,7 @@ object CLI {
                remain.mkString(","),
                settings.mkString(","),
                errstr.toString,
-               errindex), "cli")
+               errindex))
   }
     
   /**
@@ -171,8 +171,8 @@ object CLI {
       // See if this argument starts with a dash.  If so, it is possibly a
       // switch, and we will process it as such.
       val arg = args(index)
-      Debugger.debug("Looking at argument %d: %s".format(
-          index, toQuotedString(arg)), "cli")
+      Debugger("cli", "Looking at argument %d: %s".format(
+          index, toQuotedString(arg)))
       // The argument starts with a dash; it might be a switch.  Try to match
       // it against the different permissible kinds of switches.  We start
       // with the most complex first.
@@ -182,8 +182,8 @@ object CLI {
       val Setting = """^\[(.*)=(.*)\]$""".r
       arg match {
         case Assignment(name, value) =>
-          Debugger.debug("  Assignment("+toQuotedString(name)+","+
-              toQuotedString(value)+")", "cli")
+          Debugger("cli", "  Assignment("+toQuotedString(name)+","+
+              toQuotedString(value)+")")
           // This is a switch that assigns a value to some named option.
           switches.find(_.long.getOrElse(null) == name) match {
             case None =>
@@ -204,7 +204,7 @@ object CLI {
           }
           
         case Longswitch(name) =>
-          Debugger.debug("  Longswitch("+toQuotedString(name)+")", "cli")
+          Debugger("cli", "  Longswitch("+toQuotedString(name)+")")
           // This is just a long switch.
           switches find (_.long.getOrElse(null) == name) match {
             case None =>
@@ -225,7 +225,7 @@ object CLI {
           }
           
         case Shortswitch(singles) =>
-          Debugger.debug("  Shortswitch("+toQuotedString(singles)+")", "cli")
+          Debugger("cli", "  Shortswitch("+toQuotedString(singles)+")")
           // This can be a collection of short switches (and maybe even
           // their arguments) on a single dash.
           var chindex = 0
@@ -276,8 +276,8 @@ object CLI {
           } // Loop over all characters.
           
         case Setting(name, value) =>
-          Debugger.debug("  Setting("+toQuotedString(name)+","+
-              toQuotedString(value)+")", "cli")
+          Debugger("cli", "  Setting("+toQuotedString(name)+","+
+              toQuotedString(value)+")")
           // Found a setting.  Decide what to do.
           settings find (_.name == name) match {
             case None =>
@@ -296,7 +296,7 @@ object CLI {
           }
           
         case _ =>
-          Debugger.debug("  Argument("+toQuotedString(arg)+")", "cli")
+          Debugger("cli", "  Argument("+toQuotedString(arg)+")")
           // Does not match; must be an argument.  Handle it.
           // There is a special case to consider here.  If there are three
           // dashes at the start, then discard the first two.  This is a trick

@@ -236,15 +236,28 @@ extends Literal[BigInt](typ) {
    */
   def this(value: Int) = this(INTEGER, value)
   
-  def rewrite(binds: Bindings) = {		
+  def rewrite(binds: Bindings) = {
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			val newLit = Literal(newtype, value)
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (IntegerLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -261,12 +274,25 @@ extends Literal[String](typ) {
   def rewrite(binds: Bindings) = {
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			val newLit = Literal(newtype, value)
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (StringLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -284,12 +310,26 @@ extends Literal[Symbol](typ) {
 
   def rewrite(binds: Bindings) = {
 		theType.rewrite(binds) match {
-		  case (newtype, true) =>  			val newLit = Literal(newtype, value)
-        (newLit, true)
+		  case (newtype, true) =>
+        (Literal(newtype, value), true)
 		  case _ =>
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (SymbolLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -317,12 +357,25 @@ extends Literal[Boolean](typ) {
   def rewrite(binds: Bindings) = {
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			val newLit = Literal(newtype, value)
-        (newLit, true)
+        (Literal(newtype, value), true)
 		  case _ =>
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (BooleanLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**
@@ -506,12 +559,25 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
   def rewrite(binds: Bindings) = {
 		theType.rewrite(binds) match {
 		  case (newtype, true) =>
-  			val newLit = Literal(newtype, significand, exponent, radix)
-        (newLit, true)
+        (Literal(newtype, significand, exponent, radix), true)
 		  case _ =>
         (this, false)
 		}
 	}
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (Literal(newtype, significand, exponent, radix), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
 }
 
 /**

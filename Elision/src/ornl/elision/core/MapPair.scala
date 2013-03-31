@@ -88,7 +88,8 @@ with Rewriter {
       hints: Option[Any]): Outcome = subject match {
     case MapPair(oleft, oright) =>
       SequenceMatcher.tryMatch(Vector(left, right),
-                               Vector(oleft, oright), binds)
+          Vector(oleft, oright), binds)
+                               
     case _ =>
       Fail("Subject of match is not a pair.", this, subject)
   }
@@ -96,17 +97,29 @@ with Rewriter {
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
     val newleft = left.rewrite(binds)
     val newright = right.rewrite(binds)
-	
     if (newleft._2 || newright._2) {
-  		val newMP = MapPair(newleft._1, newright._2)
-      (newMP, true)
-    }
-    else {
+      (MapPair(newleft._1, newright._2), true)
+    } else {
       (this, false)
     }
   }
 	
-
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+        
+      case None =>
+        val (newleft, flag1) = left.replace(map)
+        val (newright, flag2) = right.replace(map)
+        if (flag1 || flag2) {
+          (MapPair(newleft, newright), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
+  
   /**
    * Apply this map pair to the given atom, yielding a potentially new atom.
    * The first match with the left-hand side is used to rewrite the right.
@@ -115,12 +128,12 @@ with Rewriter {
 		left.tryMatch(atom, Bindings(), hint) match {
 			case file:Fail => 
         (atom, false)
+        
 			case Match(binds) =>
-				val res = right.rewrite(binds)
-				(res._1, true)
+				(right.rewrite(binds)._1, true)
+				
 			case Many(iter) =>
-				val res = right.rewrite(iter.next)
-				(res._1, true)
+				(right.rewrite(iter.next)._1, true)
 	  }
   }
   

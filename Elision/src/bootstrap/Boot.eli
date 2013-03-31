@@ -83,7 +83,7 @@ _decl({operator
 
 // The next operator we need is inc so we can read the rest of the
 // bootstrap definitions.  Define inc next.  It expects to get access
-// to a set of known, already read files, and we use the executors cache
+// to a set of known, already read files, and we use the executor's cache
 // for this.
 decl.{! inc($fn: STRING)
 #handler=

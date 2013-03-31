@@ -42,6 +42,7 @@ import scala.collection.mutable.HashSet
 import org.parboiled.errors.ParsingException
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
+import ornl.elision.util.Debugger
 
 /**
  * The core classes and definitions that make up the Elision runtime.
@@ -68,6 +69,7 @@ package object core {
   implicit var knownExecutor: Executor = new Executor {
     val console = PrintConsole 
     val context = new Context()
+    val settings = Map[String,String]()
     def parse(text: String): ParseResult = ParseFailure(
         "This default executor cannot parse text; override this with a full " +
         "executor implementation to properly support parsing from within " +
@@ -93,7 +95,7 @@ package object core {
         case knownExecutor.ParseFailure(_) => None
       }
     } catch {
-      case th: ParsingException => println(th.getMessage)
+      case th: ParsingException => Debugger.debugln(th.getMessage)
     }
   }
 
@@ -163,12 +165,13 @@ package object core {
   
   /**
    * Issue a warning.  This should be wired to whatever error reporting
-   * mechanism you want to use.
+   * mechanism you want to use.  This uses the console of the known
+   * executor, so that must be correctly set first.
    * 
    * @param text	The text of the warning.
    */
   def warn(text: String) {
-    println("WARNING: " + text)
+    knownExecutor.console.warn("WARNING: " + text)
   }
 
   /**
@@ -260,20 +263,6 @@ package object core {
     def omit(index: Int) = OmitSeq(seq, index)
   }
 
-  //======================================================================
-  // Strange debugging methods.
-  //======================================================================
-  
-  def D(atom: BasicAtom) = {
-    println(atom.toParseString)
-    atom
-  }
-  
-  def D[A <: Seq[BasicAtom]](seq: A) = {
-    println(seq.mkParseString("{",",","}"))
-    seq
-  }
-  
   //======================================================================
   // WARNING: Here be IMPLICITS!
   //======================================================================

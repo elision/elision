@@ -159,7 +159,7 @@ object CMatcher {
     import scala.annotation.tailrec
     @tailrec
     final protected def findNext {
-      Debugger.debug("C Searching... ", "matching")
+      Debugger("matching", "C Searching... ")
 
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
@@ -176,13 +176,13 @@ object CMatcher {
           SequenceMatcher.tryMatch(patterns, _perms.next, binds) match {
             case fail:Fail =>
               // We ignore this case.  We only fail if we exhaust all attempts.
-              Debugger.debug(fail.toString, "matching")
+              Debugger("matching", fail.toString)
               findNext
             case Match(binds1) =>
               // This case we care about.  Save the bindings as the current match.
               _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
                   binds1.subjects.getOrElse(subjects))
-              Debugger.debug("C Found.", "matching")
+              Debugger("matching", "C Found.")
             case Many(iter) =>
               // We've potentially found many matches.  We save this as a local
               // iterator and then use it in the future.
@@ -193,7 +193,7 @@ object CMatcher {
           // We have exhausted the permutations.  We have exhausted this
           // iterator.
           _exhausted = true
-          Debugger.debug("C Exhausted.", "matching")
+          Debugger("matching", "C Exhausted.")
         }
       }
     }

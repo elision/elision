@@ -69,23 +69,6 @@ trait TraceableParse {
 }
 
 /**
- * Indicates if it is possible to toggle the parser used
- */
-trait ToggleableParser {
-  /**
-   * Specify whether to toggle the parser.
-   * 
-   * @param enable  If true, toggle the parser.  If false, do not.
-   */
-  def toggle_=(enable: Boolean): Unit
-  
-  /**
-   * Determine whether the parser used to toggled
-   */
-  def toggle: Boolean
-}
-
-/**
  * A processor is responsible for reading and handling atoms.
  * 
  * The processor instance maintains a [[ornl.elision.core.Context]] instance
@@ -97,12 +80,13 @@ trait ToggleableParser {
  * instance to parse atoms.  You can enable and disable tracing of the parser
  * via the `trace` field.
  * 
+ * @param settings  The settings from the command line parser.
  * @param context		The context to use; if none is provided, use an empty one.
  */
-class Processor(var context: Context = new Context)
+class Processor(val settings: Map[String, String],
+    var context: Context = new Context)
 extends Executor
 with TraceableParse
-with ToggleableParser
 with Timeable
 with HasHistory {
   // Set up the stacktrace property.
@@ -129,59 +113,27 @@ with HasHistory {
   /** Whether to trace the parser. */
   private var _trace = false
 
-  /** Select the parser to use */
-  private var _toggle = false
-  
   /** Whether to stop execution at the root level if an error occurs. */
   private var _crashRoot = true
   
   /** The queue of handlers, in order. */
   private var _queue = List[Processor.Handler]()
-  
-  /** The kind of parser to use. */
-  private var _parserKind = ProcessorControl.parserKind
-  
-  /** The parser to use. */
-  private var _parser: AbstractParser = _makeParser
 
   /** Specify the console.  We don't know the number of lines. */
   val console = PrintConsole
   
   /** The list of context checkpoints */
   val checkpoints = new collection.mutable.ArrayBuffer[(java.util.Date, Context)]
+  
+  /** The parser to use. */
+  private var _parser: AbstractParser = _makeParser
 
   /**
-   * Create the chosen parser.
+   * Create the parser.
    * 
    * @return The new parser.
    */
-  private def _makeParser = _parserKind match {
-    case 'old => new AtomParser(context, _trace, _toggle)
-    case 'combinator => new AtomParser(context, _trace, _toggle)
-    case 'new => new ElisionParser(_trace)
-  }
-  
-  /**
-   * Set the parser.
-   * 
-   * @param kind  The kind of parser to use.  Must be one of the known
-   *              values.  At present that is `old`, `combinator`, and `new`.
-   */
-  def setParser(kind: Symbol) {
-    kind match {
-      case 'old =>
-        _toggle = false
-        _parserKind = 'old
-      case 'combinator =>
-        _toggle = true
-        _parserKind = 'old
-      case 'new =>
-        _parserKind = 'new
-      case _ =>
-        throw new ElisionException("Unknown parser: " + kind)
-    }
-    _parser = _makeParser
-  }
+  private def _makeParser = new ElisionParser(_trace)
   
   /**
    * Display the banner, version, and build information on the current
@@ -362,11 +314,13 @@ with HasHistory {
           // An error is encountered, but we only skip the rest of execution at this level.
           console.error(ee.msg)
         }
+        
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
         val trace = ex.getStackTrace()
         if (!getProperty[Boolean]("stacktrace")) ex.printStackTrace()
         else console.error("in: " + trace(0))
+        
       case oom: java.lang.OutOfMemoryError =>
         System.gc()
         console.error("Memory exhausted.  Trying to recover...")
@@ -375,6 +329,7 @@ with HasHistory {
         val free = rt.freeMemory()
         val perc = free.toDouble / mem.toDouble * 100
         console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+        
       case th: Throwable =>
         console.error("(" + th.getClass + ") " + th.getMessage())
         val trace = th.getStackTrace()
@@ -437,20 +392,6 @@ with HasHistory {
       _parser = _makeParser
     }
   }
- 
-  /**
-   * Specify whether to toggle the parser.
-   * 
-   * @param enable  If true, trace the parser.  If false, do not.
-   */
-  def toggle_=(enable: Boolean) {
-    // If the toggle state has changed, re-create the parser.
-    if (enable != _toggle) {
-      // The toggle state has changed.  Re-create the parser.
-      _toggle = enable
-      _parser = _makeParser
-    }
-  }
   
   /**
    * Specify whether to stop root execution on errors.
@@ -466,11 +407,6 @@ with HasHistory {
    * Determine whether tracing is enabled.
    */
   def trace = _trace
-
-  /**
-   * Determine which parser to use
-   */
-  def toggle = _toggle
   
   /**
    * Determine if root execution stops when an error occurs.
@@ -551,290 +487,275 @@ with HasHistory {
         th.printStackTrace()
         sys.exit(1)
     }
-  } 
-  
-  
+  }  
+
   /**  
    * Reloads a core dump created with fail().
    * 
    * @param corePath    The path to the core dump file.
    */
-   def loadCoredump(corePath : String) = {
-        import java.io._
-        import xml._
-        
-        try {
-            val cfile = new java.io.PrintWriter("coreReloadResults.txt")
-            
-            def corePrint(str : String) {
-                cfile.println(str)
-                console.emitln(str)
+  def loadCoredump(corePath : String) = {
+    import java.io._
+    import xml._
+
+    try {
+      val cfile = new java.io.PrintWriter("coreReloadResults.txt")
+      def corePrint(str : String) {
+        cfile.println(str)
+        console.emitln(str)
+      }
+
+      // Extract the XML from the core dump file.
+      val coreFile = new File(corePath)
+      val coreXML = XML.loadFile(coreFile)
+
+      // Display the core dump's error information
+      val err = coreXML \ "error"
+      val errMsg = err \ "@message"
+      corePrint("Core dump error message: " + errMsg)
+      val stackTrace = (err \\ "item").map(_.text).mkString("\n") 
+      corePrint(stackTrace)
+      
+      corePrint("Reloading context...")
+      val ops = (coreXML \ "operator-library").text
+      val binds = (coreXML \ "binds").text
+      val rules = (coreXML \ "rule-library").text
+
+      // In the reloading process, it's likely that the operators, bindings,
+      // and rules are out of order.  So in order to try to resolve all the
+      // rules, we will perform an initial iteration to read in this data,
+      // and then we will perform more iterations until either all the elements
+      // are successfully read in or we are unable to successfully read any
+      // more remaining elements. 
+
+      val unresolved = new collection.mutable.Queue[AST.BA]
+      val origBinds = context.binds
+      val origOpLib = context.operatorLibrary
+      val origRuleLib = context.ruleLibrary
+
+      // Parse all the elements into AST nodes.
+      corePrint("Parsing operators...")
+      val unresolvedOps = new collection.mutable.Queue[AST.BA]
+      val reOpLib = new OperatorLibrary(context.operatorLibrary.allowRedefinition)
+      _parser.parseAtoms(ops) match {
+        case Failure(err) =>
+          corePrint(err)
+          
+        case Success(nodes) =>
+          context.operatorLibrary = reOpLib
+          for(node <- nodes) {
+            unresolvedOps.enqueue(node)
+          }
+      }
+
+      corePrint("Parsing bindings...")
+      val unresolvedBinds = new collection.mutable.Queue[AST.BA]
+      _parser.parseAtoms(binds) match {
+        case Failure(err) =>
+          corePrint(err)
+          
+        case Success(nodes) =>
+          unresolvedBinds.enqueue(nodes(0))
+      }
+
+      corePrint("Parsing rules...")
+      val unresolvedRules = new collection.mutable.Queue[AST.BA]
+      val reRuleLib = new RuleLibrary(context.ruleLibrary.allowUndeclared)
+      _parser.parseAtoms(rules) match {
+        case Failure(err) =>
+          corePrint(err)
+          
+        case Success(nodes) =>
+            context.ruleLibrary = reRuleLib
+            for (node <- nodes) {
+              unresolvedRules.enqueue(node)
             }
-            
-            // Extract the XML from the core dump file.
-            val coreFile = new File(corePath)
-            val coreXML = XML.loadFile(coreFile)
-            
-            // Display the core dump's error information
-            val err = coreXML \ "error"
-            val errMsg = err \ "@message"
-            corePrint("Core dump error message: " + errMsg)
-            
-            val stackTrace = (err \\ "item").map(_.text).mkString("\n") 
-            corePrint(stackTrace)
-            
-            corePrint("Reloading context...")
-            
-            val ops = (coreXML \ "operator-library").text
-            val binds = (coreXML \ "binds").text
-            val rules = (coreXML \ "rule-library").text
-            
-            // In the reloading process, it's likely that the operators, bindings, and rules are out of order.
-            // So in order to try to resolve all the rules, we will perform an initial iteration to read in this data, 
-            // and then we will perform more iterations until either all the elements are successfully
-            // read in or we are unable to successfully read any more remaining elements. 
-            
-            val unresolved = new collection.mutable.Queue[AST.BA]
-            val origBinds = context.binds
-            val origOpLib = context.operatorLibrary
-            val origRuleLib = context.ruleLibrary
-            
-            // Parse all the elements into AST nodes.
-            
-            corePrint("Parsing operators...")
-            val unresolvedOps = new collection.mutable.Queue[AST.BA]
-            val reOpLib = new OperatorLibrary(context.operatorLibrary.allowRedefinition)
-            
-            _parser.parseAtoms(ops) match {
-                case Failure(err) =>
-                    corePrint(err)
-                case Success(nodes) =>
-                    context.operatorLibrary = reOpLib
-                    
-                    for(node <- nodes) {
-                        unresolvedOps.enqueue(node)
-                    }
-            }
-            
-            corePrint("Parsing bindings...")
-            val unresolvedBinds = new collection.mutable.Queue[AST.BA]
-            
-            _parser.parseAtoms(binds) match {
-                case Failure(err) =>
-                    corePrint(err)
-                case Success(nodes) =>
-                    unresolvedBinds.enqueue(nodes(0))
-            }
-            
-            corePrint("Parsing rules...")
-            val unresolvedRules = new collection.mutable.Queue[AST.BA]
-            val reRuleLib = new RuleLibrary(context.ruleLibrary.allowUndeclared)
-            
-            _parser.parseAtoms(rules) match {
-                case Failure(err) =>
-                    corePrint(err)
-                case Success(nodes) =>
-                    context.ruleLibrary = reRuleLib
-                    
-                    for(node <- nodes) {
-                        unresolvedRules.enqueue(node)
-                    }
-            }
-            
-            // iterate until all elements are resolved or no more elements could be resolved.
-            
-            var lastNetQSize = unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size + 1
-            var iterations = 1
-            
-            while(!(unresolvedOps.isEmpty && unresolvedBinds.isEmpty && unresolvedRules.isEmpty) && 
-                unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size < lastNetQSize) {
-                
-                lastNetQSize = unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size
-                corePrint("\nReloading elements: Iteration " + iterations + "...")
-                
-                // attempt to reload operators.
-                if(!unresolvedOps.isEmpty) {
-                    corePrint(" Reloading operators...")
-                    val opSize = unresolvedOps.size
-                    for(i <- 0 until opSize) {
-                        val node = unresolvedOps.dequeue
-                        try {
-                            node.interpret(context) match {
-                                case op : Operator =>
-                                    reOpLib.add(op)
-                                    corePrint(" Added operator " + op.name)
-                                case _ =>
-                                    corePrint(" Encountered a non-Operator")
-                            }
-                        }
-                        catch {
-                            case _ =>
-                                unresolvedOps.enqueue(node)
-                        }
-                    }
-                }
-                
-                // attempt to reload bindings.
-                if(!unresolvedBinds.isEmpty) {
-                    corePrint(" Reloading bindings...")
-                    
-                    val node = unresolvedBinds.dequeue
-                    try {
-                        node.interpret(context) match {
-                            case reBinds : BindingsAtom =>
-                                context.binds = reBinds.mybinds
-                                corePrint(" Added the bindings")
-                            case _ =>
-                                corePrint(" Encountered a non-BindingsAtom")
-                        }
-                    }
-                    catch {
-                        case _ =>
-                            unresolvedBinds.enqueue(node)
-                    }
-                    
-                }
-                
-                // attempt to reload rules.
-                if(!unresolvedRules.isEmpty) {
-                    corePrint(" Reloading rules...")
-                    val ruleSize = unresolvedRules.size
-                    for(i <- 0 until ruleSize) {
-                        val node = unresolvedRules.dequeue
-                        try {
-                            node.interpret(context) match {
-                                case rule : RewriteRule =>
-                                    reRuleLib.add(rule)
-                                    corePrint(" Added a rule ")
-                                case _ =>
-                                    corePrint(" Encountered a non-RewriteRule")
-                            }
-                        }
-                        catch {
-                            case _ =>
-                                unresolvedRules.enqueue(node)
-                        }
-                    }
-                }
-                
-                iterations += 1
-            }
-            
-            // show reloading results
-            
-            if(unresolvedOps.isEmpty && unresolvedBinds.isEmpty && unresolvedRules.isEmpty) {
-                corePrint("\nSuccessfully reloaded the context!")
-            }
-            else {
-                context.operatorLibrary = origOpLib
-                context.binds = origBinds
-                context.ruleLibrary = origRuleLib
-                corePrint("\nFailed to reload the context. Restored the original context.")
-            }
-            
-            if(!unresolvedOps.isEmpty) {
-                corePrint("\nFailed to reload " + unresolvedOps.size + " operators: ")
-                while(!unresolvedOps.isEmpty) {
-                    val node = unresolvedOps.dequeue
-                    try {
-                        node.interpret(context)
-                    }
-                    catch {
-                        case err : Throwable =>
-                            corePrint(err.getMessage)
-                    }
-                }
-            }
-            
-            if(!unresolvedBinds.isEmpty) {
-                corePrint("\nFailed to reload the bindings")
-                while(!unresolvedBinds.isEmpty) {
-                    val node = unresolvedBinds.dequeue
-                    try {
-                        node.interpret(context)
-                    }
-                    catch {
-                        case err : Throwable =>
-                            corePrint(err.getMessage)
-                    }
-                }
-            }
-            
-            if(!unresolvedRules.isEmpty) {
-                corePrint("\nFailed to reload " + unresolvedRules.size + " rules: ")
-                while(!unresolvedRules.isEmpty) {
-                    val node = unresolvedRules.dequeue
-                    try {
-                        node.interpret(context)
-                    }
-                    catch {
-                        case err : Throwable =>
-                            corePrint(err.getMessage)
-                    }
-                }
-            }
-            
-            cfile.close
-            console.emitln("\nCore dump reload results printed to coreReloadResults.txt.")
-            
-            // reload the history (caution: this will change the contents of your elision history file.)
-            console.emitln("Reloading history...")
-            val hist = (coreXML \ "history").text
-            val histTokens = hist.split("\n")
+      }
+
+      // Iterate until all elements are resolved or no more elements could be
+      // resolved.
+      var lastNetQSize = unresolvedOps.size + unresolvedBinds.size + unresolvedRules.size + 1
+      var iterations = 1
+      while(!(unresolvedOps.isEmpty &&
+          unresolvedBinds.isEmpty &&
+          unresolvedRules.isEmpty) && 
+          unresolvedOps.size +
+          unresolvedBinds.size +
+          unresolvedRules.size < lastNetQSize) {
+        lastNetQSize = unresolvedOps.size +
+            unresolvedBinds.size +
+            unresolvedRules.size
+        corePrint("\nReloading elements: Iteration " + iterations + "...")
+
+        // Attempt to reload operators.
+        if (!unresolvedOps.isEmpty) {
+          corePrint(" Reloading operators...")
+          val opSize = unresolvedOps.size
+          for (i <- 0 until opSize) {
+            val node = unresolvedOps.dequeue
             try {
-                for(token <- histTokens) {
-                    val histLine = token.drop(token.indexOf(':') + 2)
-                    addHistoryLine(histLine)
-                }
-                console.emitln("Successfully reloaded history.")
+              node.interpret(context) match {
+                case op : Operator =>
+                  reOpLib.add(op)
+                  corePrint(" Added operator " + op.name)
+                
+                case _ =>
+                  corePrint(" Encountered a non-Operator")
+              }
+            } catch {
+              case _ =>
+                unresolvedOps.enqueue(node)
             }
-            catch {
-                case _ => 
-                    console.emitln("Failed to reload the history")
+          }
+        }
+
+        // Attempt to reload bindings.
+        if(!unresolvedBinds.isEmpty) {
+          corePrint(" Reloading bindings...")
+          val node = unresolvedBinds.dequeue
+          try {
+            node.interpret(context) match {
+              case reBinds : BindingsAtom =>
+                context.binds = reBinds.mybinds
+                corePrint(" Added the bindings")
+                
+              case _ =>
+                corePrint(" Encountered a non-BindingsAtom")
             }
-            
+          } catch {
+            case _ =>
+              unresolvedBinds.enqueue(node)
+          }
         }
-        catch {
-            case fnfe : FileNotFoundException =>
-                console.warn("Unable to open core dump at " + corePath)
+
+        // Attempt to reload rules.
+        if (!unresolvedRules.isEmpty) {
+          corePrint(" Reloading rules...")
+          val ruleSize = unresolvedRules.size
+          for (i <- 0 until ruleSize) {
+            val node = unresolvedRules.dequeue
+            try {
+              node.interpret(context) match {
+                case rule : RewriteRule =>
+                  reRuleLib.add(rule)
+                  corePrint(" Added a rule ")
+                  
+                case _ =>
+                  corePrint(" Encountered a non-RewriteRule")
+              }
+            } catch {
+              case _ =>
+                unresolvedRules.enqueue(node)
+            }
+          }
         }
-   }
-   
-   
-   /** Saves a context checkpoint. */
-   def saveCheckPt : Int = {
-        val date = new java.util.Date
-        
-        val contextCpy = context.cloneContext
-        
-        val checkPt = (date, contextCpy)
-        checkpoints += checkPt
-        
-        checkpoints.size - 1
-   }
-   
-   /** Loads a context checkpoint. */
-   def loadCheckPt(index : Int) : Boolean = {
-        try{
-            val checkpt = checkpoints(index)
-            context = checkpt._2
-            true
-        }
-        catch {
-            case _ => false
-        }
-   }
-   
-   /** Displays the list of saved checkpoints. */
-   def displayCheckPts : Unit = {
-        console.emitln("Saved checkpoints: ")
-        for(i <- 0 until checkpoints.size) {
-            val (date, checkpt) = checkpoints(i)
-            console.emitln(i + " saved at " + date)
-        }
-        if(checkpoints.isEmpty) console.emitln("None")
-   }
-   
+        iterations += 1
+      }
+
+      // Show reloading results.
+      if (unresolvedOps.isEmpty && unresolvedBinds.isEmpty &&
+          unresolvedRules.isEmpty) {
+        corePrint("\nSuccessfully reloaded the context!")
+      } else {
+        context.operatorLibrary = origOpLib
+        context.binds = origBinds
+        context.ruleLibrary = origRuleLib
+        corePrint("\nFailed to reload the context. Restored the original context.")
+      }
+
+      if (!unresolvedOps.isEmpty) {
+        corePrint("\nFailed to reload " + unresolvedOps.size + " operators: ")
+        while (!unresolvedOps.isEmpty) {
+          val node = unresolvedOps.dequeue
+          try {
+            node.interpret(context)
+          } catch {
+            case err : Throwable =>
+              corePrint(err.getMessage)
+          }
+        } // Show unresolved.
+      }
+
+      if (!unresolvedBinds.isEmpty) {
+        corePrint("\nFailed to reload the bindings")
+        while (!unresolvedBinds.isEmpty) {
+          val node = unresolvedBinds.dequeue
+          try {
+            node.interpret(context)
+          } catch {
+            case err : Throwable =>
+              corePrint(err.getMessage)
+          }
+        } // Show unresolved.
+      }
+
+      if (!unresolvedRules.isEmpty) {
+        corePrint("\nFailed to reload " + unresolvedRules.size + " rules: ")
+        while (!unresolvedRules.isEmpty) {
+          val node = unresolvedRules.dequeue
+          try {
+            node.interpret(context)
+          } catch {
+            case err : Throwable =>
+              corePrint(err.getMessage)
+          }
+        } // Show unresolved.
+      }
+
+      cfile.close
+      console.emitln("\nCore dump reload results printed to coreReloadResults.txt.")
+
+      // Reload the history (caution: this will change the contents of your
+      // elision history file.)
+      console.emitln("Reloading history...")
+      val hist = (coreXML \ "history").text
+      val histTokens = hist.split("\n")
+      try {
+        for(token <- histTokens) {
+          val histLine = token.drop(token.indexOf(':') + 2)
+          addHistoryLine(histLine)
+        } // Load all history lines.
+        console.emitln("Successfully reloaded history.")
+      } catch {
+        case _ => 
+          console.emitln("Failed to reload the history")
+      }
+    } catch {
+      case fnfe : FileNotFoundException =>
+        console.warn("Unable to open core dump at " + corePath)
+    }
+  }
+
+
+  /** Saves a context checkpoint. */
+  def saveCheckPt : Int = {
+    val date = new java.util.Date
+    val contextCpy = context.clone
+    val checkPt = (date, contextCpy)
+    checkpoints += checkPt
+    checkpoints.size - 1
+  }
+
+  /** Loads a context checkpoint. */
+  def loadCheckPt(index : Int) : Boolean = {
+    try{
+      val checkpt = checkpoints(index)
+      context = checkpt._2
+      true
+    } catch {
+      case _ => false
+    }
+  }
+
+  /** Displays the list of saved checkpoints. */
+  def displayCheckPts : Unit = {
+    console.emitln("Saved checkpoints: ")
+    for (i <- 0 until checkpoints.size) {
+      val (date, checkpt) = checkpoints(i)
+      console.emitln(i + " saved at " + date)
+    }
+    if (checkpoints.isEmpty) console.emitln("None")
+  }   
 }
 
 /**
@@ -870,7 +791,7 @@ object Processor {
      *          not continue.
      */
     def init(exec: Executor): Boolean = true
-    
+
     /**
      * Handle a parsed abstract syntax tree node.  The default return value
      * for this method is `Some(node)`.  If you need to do processing of the
@@ -881,7 +802,7 @@ object Processor {
      * 					*discarded*.
      */
     def handleNode(node: AST.BA): Option[AST.BA] = Some(node)
-    
+
     /**
      * Handle an atom.  The default return value for this method is
      * `Some(atom)`.  If you need to do processing of the atom, override
@@ -892,7 +813,7 @@ object Processor {
      * 					*discarded*.
      */
     def handleAtom(atom: BasicAtom): Option[BasicAtom] = Some(atom)
-    
+
     /**
      * Once all handlers have been called, and if the atom remains, it is
      * passed to this method.  The default implementation does nothing.
@@ -902,7 +823,7 @@ object Processor {
      */
     def result(atom: BasicAtom) {}
   }
-  
+
   /** 
    * A stack used to keep track of the current file we are loading 
    * operators from. We use a stack here to support recursive file reading. 
@@ -911,5 +832,4 @@ object Processor {
    */
   val fileReadStack = new collection.mutable.ArrayStack[String]
   fileReadStack.push("Console")
-
 }

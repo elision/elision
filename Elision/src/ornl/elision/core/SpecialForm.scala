@@ -33,8 +33,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ * ======================================================================*/
 package ornl.elision.core
 import ornl.elision.util.ElisionException
 
@@ -215,6 +214,13 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   }
   
   /**
+   * Determine whether the given key is present in this holder.
+   * @param key   The key to check.
+   * @return  True iff the key is present.
+   */
+  def has(key: String) = content.contains(key)
+  
+  /**
    * Extract a special form instance from this holder.  This directly creates
    * a special form; it does not interpret it based on the tag.  If the latter
    * is what you want, use the `interpret` method.
@@ -279,12 +285,25 @@ extends BasicAtom {
   def rewrite(binds: Bindings) = {
     val newtag = tag.rewrite(binds)
     val newcontent = content.rewrite(binds)
-	
     if (newtag._2 || newcontent._2) {
-      val newSF = SpecialForm(newtag._1, newcontent._1)
-      (newSF, true)
+      (SpecialForm(newtag._1, newcontent._1), true)
     } else {
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtag, flag1) = tag.replace(map)
+        val (newcontent, flag2) = content.replace(map)
+        if (flag1 || flag2) {
+          (SpecialForm(newtag, newcontent), true)
+        } else {
+          (this, false)
+        }
     }
   }
 }

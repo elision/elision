@@ -33,8 +33,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ * ======================================================================*/
 package ornl.elision.core
 
 import ornl.elision.util.other_hashify
@@ -82,16 +81,15 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
    * The root types cannot be rewritten, as they do not have children.
    */
   override def rewrite(binds: Bindings) = (this, false)
-
+  
+  override def replace(map: Map[BasicAtom, BasicAtom]) =
+    map.get(this) match {
+      case None => (this, false)
+      case Some(atom) => (atom, true)
+    }
     
   /** Compute the hash code. */
   override lazy val hashCode = toParseString.hashCode
   override lazy val otherHashCode = (value.toString).foldLeft(BigInt(0))(other_hashify)  
-
   override def equals(other: Any) = TypeUniverse eq other.asInstanceOf[AnyRef]
-}
-
-class TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
-  override lazy val hashCode = toParseString.hashCode
-  override lazy val otherHashCode = (value.toString).foldLeft(BigInt(0))(other_hashify)
 }

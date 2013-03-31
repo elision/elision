@@ -488,82 +488,6 @@ decl.{! traceparse()
   "tracing."
 }
 
-decl.{! set_parser($parsername: SYMBOL)
-  #handler="""
-    import ornl.elision.parse.Processor
-    args match {
-      case Args(SymbolLiteral(_, name)) =>
-        if (exec.isInstanceOf[Processor]) {
-          emitln("Switching to parser: " + name + ".")
-          exec.asInstanceOf[Processor].setParser(name)
-        }
-      case _ =>
-    }
-    _no_show"""
-  #description="Select the parser to use."
-  #detail="Specify the parser to use.  Choices are old, new, and combinator."
-}
-
-decl.{! _toggleparser_set($parsername: STRING)
-  #handler=
-  """
-    args match {
-      case Args(StringLiteral(_, parsername)) =>
-        exec match {
-          case tp: ornl.elision.parse.ToggleableParser =>
-            // Toggle parser.
-            if("packrat".equals(parsername)) {
-              tp.toggle = true
-              emitln("Using packrat parser.")
-            }
-            else if("parboiled".equals(parsername)) {
-              tp.toggle = false
-              emitln("Using parboiled parser.")
-            }
-            else {
-              emitln(parsername + " is not a recognized parser.")
-            }
-          case _ =>
-        }
-        _no_show
-      case _ => 
-    }
-    _no_show
-  """
-  #description="Set which parser is used"
-  #detail=
-  "Set which parser is used, parboiled or packrat."
-}
-
-decl.{! _toggleparser_flip()
-  #handler=
-  """
-    exec match {
-      case tp: ornl.elision.parse.ToggleableParser =>
-        // Toggle parser.
-        tp.toggle = !tp.toggle
-        emitln("Using " + (if (tp.toggle) "packrat" else "parboiled") +" parser.")
-      case _ =>
-    }
-    _no_show
-  """
-  #description="Toggle which parser is used"
-  #detail=
-  "Toggle which parser is used, parboiled or packrat.". 
-  "Parboiled is used by default."
-
-}
-
-decl.{ operator #name=toggleparser #cases
-  %($r:STRING) -> _toggleparser_set($$r), 
-  %() -> _toggleparser_flip.$$_
-  #description="Changes the parser being used."
-  #detail=
-  "With no argument, change to the other parser. ".
-  "If provided with packrat or parboiled, ".
-  "use the specified parser."
-}
-
 decl.{! printtypes()
   #handler=
   """
@@ -596,6 +520,25 @@ decl.{! timing($f:BOOLEAN)
   #detail=
   "Toggle showing the total elapsed \"wall clock\" time to evaluate an atom. ".
   "The result shows minutes, seconds, and milliseconds."
+}
+
+decl.{! nanotime()
+  #handler="""Literal(System.nanoTime)"""
+  #description="Get current system time as an integer."
+  #detail="Get current system time as an integer."
+}
+
+decl.{! heap()
+  #handler="""
+    val rt = Runtime.getRuntime
+    emitln("Max Memory:   "+rt.maxMemory)
+    emitln("Total Memory: "+rt.totalMemory)
+    emitln("Free Memory:  "+rt.freeMemory)
+    Literal(rt.maxMemory - rt.totalMemory + rt.freeMemory)
+  """
+  #description="Get the current heap status."
+  #detail="Show max, current total, and current free memory.  The ".
+    "maximum available free memory is the value of this operator."
 }
 
 //======================================================================
@@ -688,6 +631,33 @@ decl.{! showtypes($a)
   "printed, followed by its type, followed by the type's type, etc., ".
   "until ^TYPE is reached.  If showscala is enabled, the Scala class ".
   "is also printed."
+}
+
+decl.{! _traverse($atom, $kind: SYMBOL)
+  #handler="""
+    args match {
+      case Args(atom, kind: SymbolLiteral) =>
+        context.traverse(System.out, atom, context.Known(), kind.value)
+      case _ =>
+        error("Second argument must be a symbol literal.")
+    }
+    _no_show
+  """
+  #detail="Emit an operator and all necessary supporting operators to ".
+    "fully re-create it.  The operators are emitted in the order they must ".
+    "be declared."
+  #description="Fully write an operator's definition."
+  #evenmeta=true
+}
+
+decl.{operator #name=traverse #cases
+  %($atom, $kind: SYMBOL) -> defer(_traverse:OPREF, %($$atom, $$kind)),
+  %($atom) -> defer(_traverse:OPREF, %($$atom, elision))
+  #detail="Emit an operator and all necessary supporting operators to ".
+    "fully re-create it.  The operators are emitted in the order they must ".
+    "be declared."
+  #description="Fully write an operator's definition."
+  #evenmeta=true
 }
 
 //======================================================================

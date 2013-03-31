@@ -113,17 +113,36 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   def rewrite(binds: Bindings) = {
     var changed = false
     var newmap = Bindings()
-    for ((key, value) <- mybinds) {	          
+    for ((key, value) <- mybinds) {	
       val (newvalue, valuechanged) = value.rewrite(binds)
       changed |= valuechanged
       newmap += (key -> newvalue)
     } // Rewrite all bindings.
   	
     if (changed) {
-  		val newBA = BindingsAtom(newmap)
-  		(newBA, true) 
+  		(BindingsAtom(newmap), true) 
   	} else {
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        var flag = false
+        val newbinds = mybinds map {
+          bind =>
+            val (newbind, changed) = bind._2.replace(map)
+            flag |= changed
+            (bind._1, newbind)
+        }
+        if (flag) {
+          (BindingsAtom(newbinds), true)
+        } else {
+          (this, false)
+        }
     }
   }
     
@@ -144,14 +163,14 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   			mybinds.get(sym.name) match {
   			  case Some(oatom) => 
     				oatom
+    				
   			  case _ => 
             NONE
   			}
 		  case _ =>
 			  // Try to rewrite the argument using the bindings and whatever we get
 			  // back is the result.
-			  val newatom = atom.rewrite(mybinds)._1
-        newatom
+			  atom.rewrite(mybinds)._1
     }
   }
 }

@@ -34,6 +34,7 @@ import ornl.elision.util.PropertyManager
 import scala.collection.mutable.BitSet
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
+import ornl.elision.util.Debugger
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are
@@ -124,7 +125,7 @@ object Memo {
    * Print information about the Elision cache.
    */
   def showStats {
-    println("""
+    knownExecutor.console.panicln("""
         |Elision Cache
         |=============
         |Hits:          %10d
@@ -207,8 +208,8 @@ object Memo {
       _hits = 0
       _misses = 0
     }
-    
   }
+  
   /**
    * Test the cache for an atom.
    * 
@@ -227,7 +228,6 @@ object Memo {
   }
   
   def get_FIFO(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
-
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
@@ -270,15 +270,17 @@ object Memo {
     }
 
     // Return the cache lookup result.
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("lookup time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
     return r
   }
   
   def get_LFU(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
-
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
@@ -325,15 +327,16 @@ object Memo {
 
     // Return the cache lookup result.
     val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    Debugger("memo") {
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("lookup time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
     return r
   }
   
-  
   def get_old(atom: BasicAtom, rulesets: BitSet): Option[(BasicAtom, Boolean)] = {
-
     // Return nothing if caching is turned off.
     if (! _usingcache) return None
    
@@ -376,16 +379,15 @@ object Memo {
     }
 
     // Return the cache lookup result.
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: lookup time = " + (t1-t0) + "(ms) size=" + _cache.size);
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("lookup time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
     return r
   }
-  
-  
-  
-  
   
   /**
    * Put something in the cache.
@@ -404,9 +406,7 @@ object Memo {
       put_old(atom,rulesets,value,level)
   }
   
-  
   def put_FIFO(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
-
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
@@ -429,15 +429,16 @@ object Memo {
         _cacheFIFO.enqueue(((atom.hashCode, atom.otherHashCode), rulesets))
       }
     }
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("add time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
   }
-  
-  
+ 
   def put_LFU(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
-
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
@@ -460,15 +461,16 @@ object Memo {
         _incCacheCounter(((atom.hashCode, atom.otherHashCode), rulesets)) 
       }
     }
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("add time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
   }
   
-  
   def put_old(atom: BasicAtom, rulesets: BitSet, value: BasicAtom, level: Int) {
-
     // Do nothing if caching is turned off.
     if (! _usingcache) return
     
@@ -486,12 +488,14 @@ object Memo {
         _cache.put(((atom.hashCode, atom.otherHashCode), rulesets), (value, level))
       }
     }
-    val t1 = System.currentTimeMillis()
-    if (t1 - t0 > 2000) {
-      println("** Memo: add time = " + (t1 - t0) + "(ms)")
+    Debugger("memo") {
+      val t1 = System.currentTimeMillis()
+      if (t1 - t0 > 2000) {
+        Debugger.debugln("add time = " + (t1-t0) +
+            "(ms) size=" + _cache.size);
+      }
     }
   }
-  
   
   /** Implementation of a replacement policy for _cache. */
   def _replacementPolicyCache {
@@ -549,8 +553,6 @@ object Memo {
     }
   }
   
-  
-  
   def _replacementPolicyCacheLFU {
     if(_cache.size < _maxsize)
        return
@@ -593,10 +595,6 @@ object Memo {
     _cacheCounter.clear
   }
   
-  
-  
-  
-  
   /** Implementation of a replacement policy for _normal. */
   def _replacementPolicyNormal {
     if(_replacementPolicy.equals("LFU"))
@@ -606,7 +604,6 @@ object Memo {
     else if(_replacementPolicy.equals("FIFO"))
       _replacementPolicyNormalFIFO
   }
-  
   
   def _replacementPolicyNormalFIFO {
     if(_normal.size < _maxsize)
@@ -618,7 +615,6 @@ object Memo {
       _normal.remove(key)
     }
   }
-  
   
   def _replacementPolicyNormalLRU {
     if(_normal.size < _maxsize)
@@ -697,9 +693,6 @@ object Memo {
     // replace the counter with a new one.
     _normalCounter.clear
   }
-  
-  
-  
   
   /** safely increments the counter for a key in _cacheCounter. */
   def _incCacheCounter(key : ((Int,BigInt),BitSet)) {

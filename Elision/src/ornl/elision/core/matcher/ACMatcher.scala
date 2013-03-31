@@ -364,7 +364,7 @@ object ACMatcher {
     import scala.annotation.tailrec
     @tailrec
     final protected def findNext {
-      Debugger.debug("AC Searching... ", "matching")
+      Debugger("matching", "AC Searching... ")
 
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
@@ -381,12 +381,12 @@ object ACMatcher {
 	                          binds, op) match {
 	          case fail:Fail =>
 	            // We ignore this case.  We only fail if we exhaust all attempts.
-	            Debugger.debug(fail.toString, "matching")
+	            Debugger("matching", fail.toString)
 	            findNext
 	          case Match(binds) =>
 	            // This case we care about.  Save the bindings as the current match.
 	            _current = binds
-	            Debugger.debug("AC Found.", "matching")
+	            Debugger("matching", "AC Found.")
 	          case Many(iter) =>
 	            // We've potentially found many matches.  We save this as a local
 	            // iterator and then use it in the future.
@@ -396,7 +396,7 @@ object ACMatcher {
 	          // We have exhausted the permutations.  We have exhausted this
 	          // iterator.
 	          _exhausted = true
-	          Debugger.debug("AC Exhausted.", "matching")
+	          Debugger("matching", "AC Exhausted.")
 	        }
       }
     }

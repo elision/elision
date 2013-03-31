@@ -194,11 +194,15 @@ object Version {
    * @param args    The command line arguments.
    */
   def invoke(command: String, args: Array[String]) {
+    require(args != null && command != null)
     // Get the actual command.
     val (clazz, _, gui) = get(command)
-    Debugger.debug("Command: " + command, "invoke")
-    Debugger.debug("Class:   " + clazz.toString(), "invoke")
-    Debugger.debug("GUI:     " + gui, "invoke")
+    Debugger("invoke") {
+      Debugger.debugln("Command:  " + command)
+      Debugger.debugln("Class:    " + clazz.toString())
+      Debugger.debugln("GUI:      " + gui)
+      Debugger.debugln("Arguments:" + args.mkString(","))
+    }
     // Invoke the main method.
     clazz.getMethod("main",classOf[Array[String]]).invoke(null, args)
     // If not a gui, exit.

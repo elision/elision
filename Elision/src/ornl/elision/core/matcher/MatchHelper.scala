@@ -72,9 +72,11 @@ object MatchHelper {
           subjects = subjects.omit(sindex)
       }
     } // Omit constants from the lists.
-    Debugger.ifdebug("matching") {
-	    println("Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
-	    println("                    Subjects: " + subjects.mkParseString("", ",", ""))
+    Debugger("matching") {
+	    Debugger.debugln(
+	        "Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
+	    Debugger.debugln(
+	        "                    Subjects: " + subjects.mkParseString("", ",", ""))
     }
     (patterns, subjects, None)
   }
