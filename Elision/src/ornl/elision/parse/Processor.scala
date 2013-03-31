@@ -80,9 +80,11 @@ trait TraceableParse {
  * instance to parse atoms.  You can enable and disable tracing of the parser
  * via the `trace` field.
  * 
+ * @param settings  The settings from the command line parser.
  * @param context		The context to use; if none is provided, use an empty one.
  */
-class Processor(var context: Context = new Context)
+class Processor(val settings: Map[String, String],
+    var context: Context = new Context)
 extends Executor
 with TraceableParse
 with Timeable
@@ -312,11 +314,13 @@ with HasHistory {
           // An error is encountered, but we only skip the rest of execution at this level.
           console.error(ee.msg)
         }
+        
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
         val trace = ex.getStackTrace()
         if (!getProperty[Boolean]("stacktrace")) ex.printStackTrace()
         else console.error("in: " + trace(0))
+        
       case oom: java.lang.OutOfMemoryError =>
         System.gc()
         console.error("Memory exhausted.  Trying to recover...")
@@ -325,6 +329,7 @@ with HasHistory {
         val free = rt.freeMemory()
         val perc = free.toDouble / mem.toDouble * 100
         console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+        
       case th: Throwable =>
         console.error("(" + th.getClass + ") " + th.getMessage())
         val trace = th.getStackTrace()

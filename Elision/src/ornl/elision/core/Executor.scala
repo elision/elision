@@ -30,18 +30,42 @@
 package ornl.elision.core
 import ornl.elision.util.ElisionException
 import scala.util.Properties
-import ornl.elision.util.Console
-import ornl.elision.util.{PropertyManager, Cache, CacheException}
+import ornl.elision.util.{Console, PropertyManager, Cache, CacheException}
+
+/**
+ * A requested setting is not present.
+ * 
+ * @param msg A human-readable message describing the error.
+ */
+class MissingSettingException(msg: String) extends ElisionException(msg)
 
 /**
  * An executor is a class that can convert a string into a sequence of atoms.
  * This can be done by parsing the usual Elision representation of atoms, or
  * by some other means.
+ * 
+ * An executor also holds some other information.  Specifically it holds three
+ * similar items.
+ * 
+ *  - A __cache__ to hold temporary storage for internal algorithms.  That is,
+ *    these are for internal mutable storage and are not user-visible.
+ *  - A set of __properties__ that hold user-configurable items to control
+ *    Elision.  That is, these are user-visible and mutable.
+ *  - The collection of __settings__ that were parsed from the command line,
+ *    or left at their defaults.  These are (typically) regarded as immutable
+ *    and are user-visible.  These are held for later reference.
+ * 
+ * Note that the settings must be specified at construction time.
  */
 trait Executor extends PropertyManager with Cache {
   
   /** A parse result. */
   abstract sealed class ParseResult
+  
+  /**
+   * The settings, from the command line parser.
+   */
+  val settings: Map[String,String]
   
   /**
    * This property manager supports BigInts, Strings, and any BasicAtom.
@@ -89,12 +113,17 @@ trait Executor extends PropertyManager with Cache {
    * @return	The sequence of atoms.
    */
   def parse(text: String): ParseResult
-  
+    
   /**
-   * Handle atoms specially; print them as parse strings.
-   * 
-   * @param atom  An atom.
-   * @return  The parse string.
+   * Get the value of a setting, which must be defined.  If the setting 
    */
-  def writeProperty(atom: BasicAtom) = atom.toParseString
+  def getSetting(name: String) = settings.get(name) match {
+    case None =>
+      throw new MissingSettingException("The setting "+
+          ornl.elision.util.toQuotedString(name)+
+          " is required by Elision, but is not defined.  The current" +
+          "operation cannot continue.")
+    case Some(value) =>
+      value
+  }
 }

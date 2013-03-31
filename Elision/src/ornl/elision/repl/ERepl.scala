@@ -33,6 +33,7 @@ import ornl.elision.parse._
 import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
+import java.io.File
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -63,22 +64,47 @@ object ReplMain {
    */
   private val _switches = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _))
+      
+  // Work out where Elision's runtime store should live on the system.
+  private val _default_root = (if (CLI.iswin) {
+    // On a Windows system the settings should live under %LOCALAPPDATA%
+    // in a folder specific to the application.  While the simplest thing is
+    // to obtain the local appdata folder from the environment variable, this
+    // is certainly not perfect, and is not what is recommended by Microsoft.
+    // A better method is to use CSIDL_LOCAL_APPDATA, obtained from
+    // SHGetFolderPath.  But that would require native calls.
+    val env = System.getenv()
+    new File(if (env.containsKey("LOCALAPPDATA")) {
+      env.get("LOCALAPPDATA")
+    } else {
+      new File(
+          new File(env.get("USERPROFILE"), "Local Settings"),
+          "Application Data").getAbsolutePath()
+    }, "elision").getAbsolutePath()
+  } else {
+    // On a non-Windows platform the settings should live under the user's
+    // `$`HOME folder.
+    new File(System.getenv("HOME"), ".elision").getAbsolutePath()
+  })
 
   /**
    * Define some settings.
    */
   private val _settings = Seq(
-      Setting("elision.root", Some("ELISION_ROOT"), Some("user.home"),
-          Some(_prop("user.home")), "Specify where Elision should read " +
-          		"(and store) its history and the most recent context."),
+      Setting("elision.root", Some("ELISION_ROOT"), None,
+          Some(_default_root), "Specify the folder where Elision should " +
+          		"store its data."),
       Setting("elision.history", Some("ELISION_HISTORY"), None,
-          Some((if (CLI.iswin) "elision-history.eli" else ".elision-history.eli")),
+          Some(".elision-history.eli"),
           "Name of file where Elision will store the REPL history."),
       Setting("elision.context", Some("ELISION_CONTEXT"), None,
-          Some((if (CLI.iswin) "elision-context.eli" else ".elision-context.eli")),
+          Some("elision-context.eli"),
           "Name of file where Elision will store the most recent context."),
+      Setting("elision.cache", Some("ELISION_CACHE"), None,
+          Some(new File(_default_root, "cache").getAbsolutePath),
+          "Name of the folder where Elision will cache native handlers."),
       Setting("elision.rc", Some("ELISIONRC"), None,
-          Some((if (CLI.iswin) "elision.ini" else ".elisionrc")),
+          Some("elision.ini"),
           "Name of file to read after bootstrapping Elision."))
   
   /**
@@ -129,7 +155,7 @@ object ReplMain {
  * 
  * @param settings  Optional settings overrides.
  */
-class ERepl(settings: Map[String,String] = Map()) extends Processor {
+class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
   import ornl.elision.core._
 	import scala.tools.jline.console.history.FileHistory
 	import scala.tools.jline.console.ConsoleReader
@@ -236,12 +262,11 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor {
   //======================================================================
   
   def showatom(prefix: String, atom: BasicAtom) {
-    if (getProperty[Boolean]("showscala"))
+    if (getProperty[Boolean]("showscala")) {
       // This is explicitly requested output, show show it regardless of the
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
-    
-    
+    }
     if(getProperty[Boolean]("syntaxcolor")) {
       // color-format the atom's parseString and print it.
       val formatCols = console.width

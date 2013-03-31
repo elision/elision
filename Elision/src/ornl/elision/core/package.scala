@@ -69,6 +69,7 @@ package object core {
   implicit var knownExecutor: Executor = new Executor {
     val console = PrintConsole 
     val context = new Context()
+    val settings = Map[String,String]()
     def parse(text: String): ParseResult = ParseFailure(
         "This default executor cannot parse text; override this with a full " +
         "executor implementation to properly support parsing from within " +
