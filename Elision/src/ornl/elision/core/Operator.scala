@@ -584,6 +584,8 @@ object SymbolicOperator {
     timing = true
     def reportElapsed() = {}
   }
+  
+  private val _ncomp = new NativeCompiler
 
   /**
    * Compile Scala code to a native handler.
@@ -599,46 +601,13 @@ object SymbolicOperator {
       var handlertxt = code.get
       if (handlertxt.length > 0 && handlertxt(0) == '|')
         handlertxt = handlertxt.stripMargin('|')
-  
-      // Now make a handler object to pass into the interpreter.
-      var handler: Option[ApplyData => BasicAtom] = None
-  
-      // Compile the handler, if we are given one.
-      var runme = ""
+        
+      // Compile the handler, if we were given one.
       if (handlertxt != "") {
-        // Create a new handler holder to get the result, and bind it in the
-        // interpreter.  It is okay to rebind.
-        val passback = new HandHolder(None)
-        _timer.time(_main.beQuietDuring(_main.bind("passback", passback)))
-  
-        // Extract the handler text, and surround it with the appropriate
-        // boilerplate to create an actual handler closure.
-        runme =
-          "def handler(_data: ApplyData): BasicAtom = {\n" +
-            "import _data._\n" +
-            "import ApplyData._\n" +
-            "import console._\n" +
-            handlertxt + "\n" +
-            "}\n" +
-            "passback.handler = Some(handler _)"
-            
-        // Now interpret it.
-        val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
-  
-        // Determine what to do based on the result.
-        res match {
-          case Results.Error => throw new NativeHandlerException(
-            "Parsing failed for native handler.  Operator " +
-              toESymbol(name) + " with native handler:\n" + runme)
-          case Results.Incomplete => throw new NativeHandlerException(
-            "Incomplete Scala code for native handler.  Operator " +
-              toESymbol(name) + " with native handler:\n" + handlertxt)
-          case Results.Success =>
-            if (passback.handler.isDefined) {
-              return Some(_timer.time(passback.handler.get))
-            }
-        } // End of match.
-      } // Handler text not empty.
+        return Some(_timer.time {
+          _ncomp.compile("(undefined)", name, handlertxt)
+        })
+      }
     } // Handler has text.
     
     // If we get here then no handler code was provided, or the code was
@@ -651,7 +620,8 @@ object SymbolicOperator {
    */
   def reportTime() {
     knownExecutor.console.emit("Time Compiling Native Handlers: ")
-    knownExecutor.console.emitln(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
+    knownExecutor.console.emitln(
+        Timeable.asTimeString(_timer.getCumulativeTimeMillis))
   }
 
   /**
@@ -895,13 +865,11 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    * @return  The constructed atom.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
-
     // Temporarily disable rewrite timeouts if already timed out.
     val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
       BasicAtom.timeoutTime.value = -1L
-    }
-    else {
+    } else {
       BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
     }
 
@@ -928,7 +896,6 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         while (index < newseq.size) {
           val atom = newseq(index)
           if (absor == atom) {
-
             // Resume timing out rewrites.
             BasicAtom.timeoutTime.value = oldTimeout
 
@@ -949,6 +916,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               // is needed.  This flattens associative lists, as required.
               newseq = newseq.omit(index)
               newseq = newseq.insert(index, opargs)
+              
             case _ =>
               // Nothing to do except increment the pointer.
               index += 1

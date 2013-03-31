@@ -37,11 +37,21 @@ import scala.tools.nsc.Settings
 import ornl.elision.util.Debugger
 
 /**
+ * Trait for all handlers.
+ */
+trait HandlerClass {
+  def handler(_data: ApplyData): BasicAtom
+}
+
+/**
  * Provide for the compilation and caching of native operators.
+ * 
+ * The location of the native cache is obtained from the executor instance,
+ * which must specify the configuration option `elision.cache`.
  */
 class NativeCompiler {  
   /** Location of the native cache. */
-  private val _cache = new File(System.getenv("HOME"), ".elision_cache")
+  private val _cache = new File(knownExecutor.getSetting("elision.cache"))
   if (!_cache.exists) {
     _cache.mkdir
   }
@@ -66,18 +76,38 @@ class NativeCompiler {
   _settings.classpath.value = _classpath
   val _reporter = new ConsoleReporter(_settings)
   val _compiler = new Global(_settings, _reporter)
-
-  // /** Make an interpreter. */
-  // private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
-
-  // Make the core package available.
-  // _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
-
+  
   /**
-   * Class (using duck typing) for all handlers.
+   * Compile (or load a pre-compiled cached) handler.
+   * 
+   * @param source    Source file for this operator definition.
+   * @param operator  Name of the operator to get the handler.
+   * @param handler   The source code of the handler.
+   * @return  The handler.
    */
-  type HandlerClass = {
-    def handler(_data: ApplyData): BasicAtom
+  def compile(source: String, operator: String, handler: String) = {
+    val key = getKey(source, operator, handler)
+    getCachedHandler(key) match {
+      case None =>
+        // The handler was not found in the cache.  Make it now.
+        Debugger("opcache", "Creating cached handler for "+toESymbol(operator)+
+            " from "+toEString(source)+".")
+        makeCachedHandler(source, operator, handler) match {
+          case None =>
+            // Somehow the native handler compilation failed.  Throw an
+            // exception.
+            throw new NativeHandlerException(
+                "Unable to compile native handler for operator %s (from %s)."
+                format (toESymbol(operator), toEString(source)))
+            
+          case Some(handler) =>
+            handler
+        }
+        
+      case Some(handler) =>
+        // The handler was found in the cache.
+        handler
+    }
   }
   
   /**
@@ -85,7 +115,7 @@ class NativeCompiler {
    * @param handler The handler text.
    * @return  The method, ready for compilation.
    */
-  def makeMethod(handler: String) =
+  private def makeMethod(handler: String) =
     """|  def handler(_data: ApplyData): BasicAtom = {
        |    import _data._
        |    import ApplyData._
@@ -104,7 +134,7 @@ class NativeCompiler {
    * @param method    The method text.
    * @return  The object, ready for compilation.
    */
-  def makeObject(source: String, operator: String, key: String, method: String) =
+  private def makeObject(source: String, operator: String, key: String, method: String) =
     """|/**
        | * Native handler source.  This source file was automatically created.
        | * Operator name: %s
@@ -112,7 +142,7 @@ class NativeCompiler {
        | * Created on: %s
        | */
        |import ornl.elision.core._
-       |object %s {
+       |object %s extends HandlerClass {
        |%s
        |}
        |""".stripMargin format (operator, source,
@@ -125,7 +155,7 @@ class NativeCompiler {
    * @param handler   The handler.
    * @return  The cache key.
    */
-  def getKey(source: String, operator: String, handler: String) = {
+  private def getKey(source: String, operator: String, handler: String) = {
     val key = (source.hashCode() * 31 + handler.hashCode()).toHexString
     "NH" + operator.getBytes.map {
       "%02x".format(_)
@@ -137,27 +167,24 @@ class NativeCompiler {
    * @param key The cache key.
    * @return  The optional class implementing the native handler.
    */
-  def getCachedHandler(key: String): Option[ApplyData => BasicAtom] = {
-    val file1 = new File(_cache, key + ".class")
-    val file2 = new File(_cache, key + "$.class")
-    if (file1.exists && file2.exists) {
-      Debugger("opcache", "Reading cached file: " + file1.getAbsolutePath)
-      Debugger("opcache", "Reading cached file: " + file2.getAbsolutePath)
-      val clazz = new java.net.URLClassLoader(
-          Array(file1.toURI.toURL, file2.toURI.toURL),
-          this.getClass.getClassLoader).loadClass(key+"$")
+  private def getCachedHandler(key: String): Option[ApplyData => BasicAtom] = {
+    val classloader = new java.net.URLClassLoader(
+        Array(_cache.toURI.toURL), this.getClass.getClassLoader)
+    try {
+      val clazz = classloader.loadClass(key+"$")
       // Okay, now we have the object containing the handler.  Return the
       // handler.
       Debugger("opcache", "Found class: " + clazz)
       Debugger("opcache") {
         for (meth <- clazz.getMethods()) {
-          Debugger.debugln("  with method: " + meth)
+          Debugger("opcache", "  with method: " + meth)
         } // Print all methods.
       }
-      val handlerclass = clazz.asInstanceOf[HandlerClass]
+      val handlerclass = clazz.getField("MODULE$").get(null).asInstanceOf[HandlerClass]
       Some(handlerclass.handler _)
-    } else {
-      None
+    } catch {
+      case cnfe: ClassNotFoundException =>
+        None
     }
   }
   
@@ -168,7 +195,7 @@ class NativeCompiler {
    * @param handler   The handler.
    * @return  The compiled native handler.
    */
-  def makeCachedHandler(source: String, operator: String, handler: String) = {
+  private def makeCachedHandler(source: String, operator: String, handler: String) = {
     // Create the source file.
     val key = getKey(source, operator, handler)
     val file = new File(_cache, key + ".scala")

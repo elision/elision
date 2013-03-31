@@ -117,9 +117,14 @@ extends Fickle with Mutable {
  	 * @return	The operator, if known.
  	 */
  	def apply(name: String) = get(name) match {
- 	  case None => throw new UndefinedOperatorException(
- 	      "The operator " + toESymbol(name) + " is not known.")
- 	  case Some(op) => op
+ 	  case None =>
+ 	    val uoe = new UndefinedOperatorException("The operator " + toESymbol(name) +
+ 	        " is not known.")
+ 	    uoe.printStackTrace
+ 	    throw uoe
+ 	    
+ 	  case Some(op) =>
+ 	    op
  	}
  	
  	/**
