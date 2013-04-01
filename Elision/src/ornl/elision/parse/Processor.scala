@@ -231,7 +231,7 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-    _execute(_parser.parseAtoms(source)) 
+    _execute(_parser.parseAtoms(filename, source)) 
   }
   
   /**

@@ -50,10 +50,11 @@ extends Parser with AbstractParser {
   /**
    * Entry point to parse all atoms from the given source.
    * 
-   * @param line  The string to parse.
+   * @param name  A name for the source.  This might be a file name.
+   * @param line  The source to parse.
    * @return  The parsing result.
    */
-  def parseAtoms(source: Source): Presult = {
+  def parseAtoms(name: String, source: Source): Presult = {
     val tr =
       if (trace) TracingParseRunner(Atoms)
       else ReportingParseRunner(Atoms)
@@ -182,12 +183,14 @@ extends Parser with AbstractParser {
         
         ParsedVariable |
         
-        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> {
-          (lambda(_,_))
+        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> withContext{
+          (lvar, lbody, context) =>
+          (lambda(lvar, lbody))
         } |
         
-        "{: " ~ Atom ~ Atom ~ ":} " ~~> {
-          (special(_,_))
+        "{: " ~ Atom ~ Atom ~ ":} " ~~> withContext{
+          (left, right, context) =>
+          (special(left, right))
         } |
         
         "{! " ~ OperatorPrototype ~
@@ -201,10 +204,10 @@ extends Parser with AbstractParser {
                 atomseq(noprops, _)
               }
           )
-        ) ~ "} " ~~> {
+        ) ~ "} " ~~> withContext{
           // Add pairs to the body list for the parts that are specified by
           // the prototype.
-          (proto, proplist, binds) =>
+          (proto, proplist, binds, context) =>
             special(sym("operator"), binding(List(
                 "name"->proto._1,
                 "params"->atomseq(algprop(proplist.getOrElse(List())), proto._2),
@@ -227,13 +230,14 @@ extends Parser with AbstractParser {
                 else binding(("", atomseq(noprops, first)) :: second)
               }
             }
-        ) ~ "} " ~~> {
+        ) ~ "} " ~~> withContext{
           // Build the special form using the tag and content.
-          (tag, binds) => (special(sym(tag),binds))
+          (tag, binds, context) => (special(sym(tag),binds))
         } |
 
-        "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") ~~> {
-          (proplist, atoms) =>
+        "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") ~~>
+        withContext{
+          (proplist, atoms, context) =>
             val props = algprop(proplist)
             if (atoms.isEmpty) props else atomseq(props, atoms.get)
         } |

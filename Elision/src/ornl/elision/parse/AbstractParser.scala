@@ -43,13 +43,15 @@ abstract trait AbstractParser {
    * @param line  The string to parse.
    * @return  The parsing result.
    */
-  def parseAtoms(line: String): Presult = parseAtoms(Source.fromString(line))
+  def parseAtoms(line: String): Presult =
+    parseAtoms("(internal)", Source.fromString(line))
     
   /**
    * Entry point to parse all atoms from the given source.
    * 
-   * @param line  The string to parse.
+   * @param name  A name for the source.  This might be a file name.
+   * @param line  The source to parse.
    * @return  The parsing result.
    */
-  def parseAtoms(source: Source): Presult
+  def parseAtoms(name: String, source: Source): Presult
 }

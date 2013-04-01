@@ -65,6 +65,16 @@ import ornl.elision.core.BOOLEAN
 
 
 /**
+ * Provide information about the current parsing location.
+ * 
+ * @param line    Current line number of start of match.
+ * @param column  Current column number of start of match.
+ * @param text    Current matched text.
+ */
+case class ParseLocation(line: Int, column: Int, text: Option[String])
+
+
+/**
  * Base class for abstract syntax tree nodes.
  * 
  * @param TYPE  The type of `BasicAtom` held in this abstract syntax tree node.
