@@ -204,6 +204,14 @@ class Context extends Fickle with Mutable {
    * installed at operator creation, which is allowed by a protected method.
    */
   
+  /**
+   * Declare an atom to this context.  If the atom is the kind that is held in
+   * the context (an operator, a rule, a ruleset name, a map pair that maps a
+   * variable to an atom) then it is added to the correct registry.
+   * 
+   * @param atom    The atom to declare.
+   * @return  The atom.
+   */
   def declare(atom: BasicAtom) = atom match {
     case op: Operator =>
       operatorLibrary.add(op)
@@ -228,14 +236,32 @@ class Context extends Fickle with Mutable {
   /**
    * Write the context to the given appendable.
    * 
+   * The purpose of this is to write a compilable version of the entire context
+   * as a single object that, when executed, creates and returns a complete
+   * context object.  While this is effective for those items that are
+   * contained in the context, it does not necessarily capture those items
+   * contained in the executor.
+   * 
+   * The basic structure of the file that is created is the following.
+   * 
+   * {{{
+   * object SC21e4fe213a6c {
+   *   def generate(): Context
+   * }
+   * }}}
+   * 
+   * After loading the context, the `generate` method will create a new context
+   * object, populating the operator library, the rule library, the bindings,
+   * etc.
+   * 
    * @param app   The appendable to get the context.
    */
   def write(app: Appendable) = {
-    // Write boilerplate
+    // Write boilerplate.
   }
   
   /**
-   * Maintain the set of known operators and rulesets.  No  `te that this is
+   * Maintain the set of known operators and rulesets.  Note that this is
    * immutable
    * 
    * @param operators The set of known operators.
