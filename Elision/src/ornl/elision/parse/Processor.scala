@@ -125,16 +125,6 @@ with HasHistory {
   /** The list of context checkpoints */
   val checkpoints = new collection.mutable.ArrayBuffer[(java.util.Date, Context)]
   
-  /** The parser to use. */
-  private var _parser: AbstractParser = _makeParser
-
-  /**
-   * Create the parser.
-   * 
-   * @return The new parser.
-   */
-  private def _makeParser = new ElisionParser(_trace)
-  
   /**
    * Display the banner, version, and build information on the current
    * console using the `emitln` method of the console.  This will also
@@ -169,6 +159,14 @@ with HasHistory {
   def reportElapsed {
     console.sendln("elapsed: " + getLastTimeString + "\n")
   }
+  
+  /**
+   * Make a parser.  This uses the current setting for tracing.
+   * 
+   * @param name    The name of the source to parse.
+   * @return  The new parser.
+   */
+  private def _makeParser(name: String) = new ElisionParser(name, _trace)
   
   /**
    * Read the content of the provided file.  This method uses a
@@ -232,7 +230,7 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-    _execute(_parser.parseAtoms(filename, source)) 
+    _execute(_makeParser(filename).parseAtoms(source)) 
   }
   
   /**
@@ -251,9 +249,10 @@ with HasHistory {
    * In all cases the system attempts to continue, unless a second exception
    * occurs while handling the first.
    * 
+   * @param name    Name of the data source, to be provided to the parser.
    * @param text		The text to parse.
    */
-  def execute(text: String) {
+  def execute(name: String, text: String) {
     // If the line is a history reference, go and look it up now.
     var lline = text.trim
     if (lline.startsWith("!")) {
@@ -267,22 +266,25 @@ with HasHistory {
       lline = prior.get
       console.emitln(lline)
     }
-	
-    _execute(_parser.parseAtoms(lline))
+    _execute(_makeParser(name).parseAtoms(lline))
 	
   }
   
-  def parse(text: String) = {
-    _parser.parseAtoms(text) match {
+  def parse(name: String, text: String) = {
+    _makeParser(name).parseAtoms(text) match {
       case Failure(err) => ParseFailure(err)
       case Success(nodes) => ParseSuccess(nodes map (_.interpret(context)))
     }
   }
   
+  /**
+   * Perform actions based on what got parsed.
+   * 
+   * @param result  Result of most recent parse.
+   */
   private def _execute(result: Presult) {
     import ornl.elision.util.ElisionException
     startTimer
-    
     try {
     	result match {
   			case Failure(err) =>
@@ -319,7 +321,7 @@ with HasHistory {
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
         val trace = ex.getStackTrace()
-        if (!getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
         else console.error("in: " + trace(0))
         
       case oom: java.lang.OutOfMemoryError =>
@@ -386,11 +388,11 @@ with HasHistory {
    * @param enable	If true, trace the parser.  If false, do not.
    */
   def trace_=(enable: Boolean) {
-    // If the trace state has changed, re-create the parser.
+    // If the trace state has changed.
     if (enable != _trace) {
-      // The trace state has changed.  Re-create the parser.
+      // The trace state has changed.  We keep this logic in case there are
+      // things we need to do when the state changes.
       _trace = enable
-      _parser = _makeParser
     }
   }
   
@@ -498,7 +500,9 @@ with HasHistory {
   def loadCoredump(corePath : String) = {
     import java.io._
     import xml._
-
+    
+    // Make a parser.  Do not trace loading the core dump.
+    val parser = new ElisionParser(corePath)
     try {
       val cfile = new java.io.PrintWriter("coreReloadResults.txt")
       def corePrint(str : String) {
@@ -538,7 +542,7 @@ with HasHistory {
       corePrint("Parsing operators...")
       val unresolvedOps = new collection.mutable.Queue[AST.BA]
       val reOpLib = new OperatorLibrary(context.operatorLibrary.allowRedefinition)
-      _parser.parseAtoms(ops) match {
+      parser.parseAtoms(ops) match {
         case Failure(err) =>
           corePrint(err)
           
@@ -551,7 +555,7 @@ with HasHistory {
 
       corePrint("Parsing bindings...")
       val unresolvedBinds = new collection.mutable.Queue[AST.BA]
-      _parser.parseAtoms(binds) match {
+      parser.parseAtoms(binds) match {
         case Failure(err) =>
           corePrint(err)
           
@@ -562,7 +566,7 @@ with HasHistory {
       corePrint("Parsing rules...")
       val unresolvedRules = new collection.mutable.Queue[AST.BA]
       val reRuleLib = new RuleLibrary(context.ruleLibrary.allowUndeclared)
-      _parser.parseAtoms(rules) match {
+      parser.parseAtoms(rules) match {
         case Failure(err) =>
           corePrint(err)
           

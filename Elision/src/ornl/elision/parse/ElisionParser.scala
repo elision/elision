@@ -39,9 +39,11 @@ import ornl.elision.util.Loc
 /**
  * Implement a parser for Elision atoms.
  * 
+ * @param name    Name of the input source (typically a filename).  This should
+ *                be `"(console)"` for the console, and `""` for internal use.
  * @param trace   If true, enable tracing.  False by default.
  */
-class ElisionParser(val trace: Boolean = false)
+class ElisionParser(val name: String, trace: Boolean = false)
 extends Parser with AbstractParser {
   import AST._
   
@@ -52,7 +54,7 @@ extends Parser with AbstractParser {
    * @return The new location instance.
    */
   implicit def toLoc(context: Context[_]) = context.getPosition match {
-    case pos => Loc("(x)", pos.line, pos.column, Some(context.getMatch))
+    case pos => Loc(name, pos.line, pos.column, Some(context.getMatch))
   }
   
   //----------------------------------------------------------------------
@@ -62,18 +64,17 @@ extends Parser with AbstractParser {
   /**
    * Entry point to parse all atoms from the given source.
    * 
-   * @param name  A name for the source.  This might be a file name.
-   * @param line  The source to parse.
+   * @param source  The input source.
    * @return  The parsing result.
    */
-  def parseAtoms(name: String, source: Source): Presult = {
+  def parseAtoms(source: Source): Presult = {
     val tr =
       if (trace) TracingParseRunner(Atoms)
       else ReportingParseRunner(Atoms)
     val parsingResult = tr.run(source)
     parsingResult.result match {
       case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid MPL2 source:\n" +
+      case None => Failure("Invalid Elision source:\n" +
           ErrorUtils.printParseErrors(parsingResult))
     }
   }

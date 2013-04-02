@@ -111,10 +111,12 @@ trait Executor extends PropertyManager with Cache {
    * If operators are present in the stream, and applied, any side effects
    * will have been executed by the time this method returns.
    * 
+   * @param name    Name of the data source.  This can be a filename,
+   *                `"(console)"`, or `""` for an internal source.
    * @param text		The text to parse.
    * @return	The sequence of atoms.
    */
-  def parse(text: String): ParseResult
+  def parse(name: String, text: String): ParseResult
     
   /**
    * Get the value of a setting, which must be defined.  If the setting 
