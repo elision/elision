@@ -475,19 +475,33 @@ class RewriteRule private (
     }
     
     // First we try to match the given atom against the pattern.
+    Debugger("rulematch", "Trying rule: " + this.toParseString)
     pattern.tryMatch(subject, binds, hint) match {
-      case fail:Fail => {
+      case fail:Fail =>
+        Debugger("rulematch", "Rule does not match subject: " + fail)
         return (subject, false)
-      }
+
       case Match(newbinds) =>
         // We got a match.  Check the guards.
-        if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
-        else return (subject, false)
+        Debugger("rulematch", "Potential match (1): " + newbinds.toParseString)
+        if (checkGuards(newbinds)) {
+          Debugger("rulematch", "Rule matched with: "+newbinds)
+          return doRuleRewrite(newbinds)
+        } else {
+          Debugger("rulematch", "Guard failed.")
+          return (subject, false)
+        }
+        
       case Many(iter) =>
         // We might have many matches.  We search through them until we find
         // one that satisfies the guards, or until we run out of candidates.
         for (newbinds <- iter) {
-          if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
+          Debugger("rulematch", "Potential match (*): " + newbinds.toParseString)
+          if (checkGuards(newbinds)) {
+            Debugger("rulematch", "Rule matched with "+newbinds.toParseString)
+            return doRuleRewrite(newbinds)
+          }
+          Debugger("rulematch", "Guard failed.")
         }
         return (subject, false)
     }
