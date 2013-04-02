@@ -33,15 +33,29 @@ import org.parboiled.scala.{ANY => PANY}
 import org.parboiled.scala._
 import org.parboiled.errors.ErrorUtils
 import scala.io.Source
+import org.parboiled.Context
+import ornl.elision.util.Loc
 
 /**
  * Implement a parser for Elision atoms.
  * 
+ * @param name    Name of the input source (typically a filename).  This should
+ *                be `"(console)"` for the console, and `""` for internal use.
  * @param trace   If true, enable tracing.  False by default.
  */
-class ElisionParser(val trace: Boolean = false)
+class ElisionParser(val name: String, trace: Boolean = false)
 extends Parser with AbstractParser {
   import AST._
+  
+  /**
+   * Transform a Parboiled context into a location.
+   * 
+   * @param context The parboiled context.
+   * @return The new location instance.
+   */
+  implicit def toLoc(context: Context[_]) = context.getPosition match {
+    case pos => Loc(name, pos.line, pos.column, Some(context.getMatch))
+  }
   
   //----------------------------------------------------------------------
   // Perform parsing.
@@ -50,7 +64,7 @@ extends Parser with AbstractParser {
   /**
    * Entry point to parse all atoms from the given source.
    * 
-   * @param line  The string to parse.
+   * @param source  The input source.
    * @return  The parsing result.
    */
   def parseAtoms(source: Source): Presult = {
@@ -60,7 +74,7 @@ extends Parser with AbstractParser {
     val parsingResult = tr.run(source)
     parsingResult.result match {
       case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid MPL2 source:\n" +
+      case None => Failure("Invalid Elision source:\n" +
           ErrorUtils.printParseErrors(parsingResult))
     }
   }
@@ -182,12 +196,14 @@ extends Parser with AbstractParser {
         
         ParsedVariable |
         
-        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> {
-          (lambda(_,_))
+        "\\ " ~ ParsedVariable ~ ". " ~ FirstAtom ~~> withContext{
+          (lvar, lbody, context) =>
+          (lambda(lvar, lbody))
         } |
         
-        "{: " ~ Atom ~ Atom ~ ":} " ~~> {
-          (special(_,_))
+        "{: " ~ Atom ~ Atom ~ ":} " ~~> withContext{
+          (left, right, context) =>
+          (special(left, right, context))
         } |
         
         "{! " ~ OperatorPrototype ~
@@ -201,14 +217,14 @@ extends Parser with AbstractParser {
                 atomseq(noprops, _)
               }
           )
-        ) ~ "} " ~~> {
+        ) ~ "} " ~~> withContext{
           // Add pairs to the body list for the parts that are specified by
           // the prototype.
-          (proto, proplist, binds) =>
+          (proto, proplist, binds, context) =>
             special(sym("operator"), binding(List(
                 "name"->proto._1,
                 "params"->atomseq(algprop(proplist.getOrElse(List())), proto._2),
-                "type"->proto._3) ++ binds))
+                "type"->proto._3) ++ binds), context)
         } |
         
         "{ " ~ ESymbol ~ (
@@ -227,13 +243,14 @@ extends Parser with AbstractParser {
                 else binding(("", atomseq(noprops, first)) :: second)
               }
             }
-        ) ~ "} " ~~> {
+        ) ~ "} " ~~> withContext{
           // Build the special form using the tag and content.
-          (tag, binds) => (special(sym(tag),binds))
+          (tag, binds, context) => (special(sym(tag), binds, context))
         } |
 
-        "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") ~~> {
-          (proplist, atoms) =>
+        "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") ~~>
+        withContext{
+          (proplist, atoms, context) =>
             val props = algprop(proplist)
             if (atoms.isEmpty) props else atomseq(props, atoms.get)
         } |

@@ -216,11 +216,11 @@ object BindingsAtom {
       case MapPair(left, right) => left match {
         case SymbolLiteral(_, sym) => (sym.name -> right)
         case _ =>
-          throw new SpecialFormException(
+          throw new SpecialFormException(atom.loc,
               "Invalid binding specification: " + atom.toParseString)
       }
       case _ =>
-        throw new SpecialFormException(
+        throw new SpecialFormException(atom.loc,
             "Invalid binding specification (not a map pair): " +
             atom.toParseString)
     })

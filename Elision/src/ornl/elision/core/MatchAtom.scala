@@ -37,6 +37,8 @@
 * */
 package ornl.elision.core
 
+import ornl.elision.util.Loc
+
 /**
  * Encapsulate a simple atom to perform basic matching.
  * 
@@ -62,7 +64,7 @@ package ornl.elision.core
  */
 class MatchAtom(sfh: SpecialFormHolder,
     val pattern: BasicAtom, val guards: AtomSeq)
-extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Applicable {
   /** The type of this atom. */
   override val theType = SymbolicOperator.MAP(ANY, BINDING)
   
@@ -143,7 +145,7 @@ object MatchAtom {
       case Args(atom: BasicAtom) =>
         new MatchAtom(sfh, atom, guards)
       case x =>
-        throw new SpecialFormException(
+        throw new SpecialFormException(sfh.loc,
             "Did not find exactly one pattern: " + x.toParseString)
     }
   }
@@ -151,13 +153,14 @@ object MatchAtom {
   /**
    * Make a new match atom from the provided parts.
    * 
+   * @param loc       Location of the match atom.
    * @param pattern		The pattern to match.
    * @param guards		The guards, if any.
    */
-  def apply(pattern: BasicAtom, guards: BasicAtom*) = {
+  def apply(loc: Loc, pattern: BasicAtom, guards: BasicAtom*) = {
     val guardseq = AtomSeq(NoProps, guards.toIndexedSeq)
     val binds = Bindings() + (""->AtomSeq(NoProps, pattern)) + ("if"->guardseq)
-    val sfh = new SpecialFormHolder(tag, binds)
+    val sfh = new SpecialFormHolder(loc, tag, binds)
     new MatchAtom(sfh, pattern, guardseq)
   }
   

@@ -418,6 +418,61 @@ trait Console {
   }
   
   /**
+   * Emit a warning message, with the WARNING prefix.  This is only done
+   * if the quiet level is one or lower.  Suppressed warnings are still
+   * counted.
+   *
+   * @param loc   A location relevant to this message.
+   * @param msg   The message.
+   */
+  def warn(loc: Loc, msg: String) {
+    _warnings += 1
+    if (_quiet < 2) writeln("WARNING"+loc+": "+msg)
+  }
+  
+  /**
+   * Emit a warning message, with the WARNING prefix.  This is only done
+   * if the quiet level is one or lower.  A newline is always written after
+   * the message.  Suppressed warnings are still counted.
+   *
+   * @param loc   A location relevant to this message.
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def warnf(loc: Loc, form: String, args: Any*) {
+    if (_quiet < 2) {
+      warn(form.format(args:_*))
+    }
+  }
+  
+  /**
+   * Emit an error message, with the ERROR prefix.  This is only done if
+   * the quiet level is two or lower.  Suppressed errors are still counted.
+   * 
+   * @param loc   A location relevant to this message.
+   * @param msg   The message.
+   */
+  def error(loc: Loc, msg: String) {
+    _errors += 1
+    if (_quiet < 3) writeln("ERROR"+loc+": "+msg)
+  }
+  
+  /**
+   * Emit an error message, with the ERROR prefix.  This is only done if
+   * the quiet level is two or lower.  A newline is always written after
+   * the message.  Suppressed errors are still counted.
+   *
+   * @param loc   A location relevant to this message.
+   * @param form  The format string.
+   * @param args  The arguments required by the format string.
+   */
+  def errorf(loc: Loc, form: String, args: Any*) {
+    if (_quiet < 3) {
+      error(form.format(args:_*))
+    }
+  }
+  
+  /**
    * Send explicitly requested output.  This is only done if the quiet
    * level is three or lower.
    * 

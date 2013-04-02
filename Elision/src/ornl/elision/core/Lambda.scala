@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core
 import ornl.elision.util.ElisionException
+import ornl.elision.util.Loc
 
 /* Notes on De Bruijn indices.
  * 
@@ -78,16 +79,22 @@ import ornl.elision.util.ElisionException
  */
 
 /**
- * A lambda variable does not match the body.
+ * A lambda variable does not match the argument.
+ * 
+ * @param loc   Location of the bad lambda body.
+ * @param msg   Human-readable message.
  */
-class LambdaVariableMismatchException(msg: String)
-extends ElisionException(msg)
+class LambdaVariableMismatchException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * A lambda application results in unbounded recursion.
- */
-class LambdaUnboundedRecursionException(msg: String)
-extends ElisionException(msg)
+ * 
+ * @param loc   Location of the bad lambda argument.
+ * @param msg   Human-readable message.
+*  */
+class LambdaUnboundedRecursionException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * A lambda creates an operator that binds a single variable in a term.
@@ -221,7 +228,7 @@ extends BasicAtom with Applicable {
 	    // types, use a bind.
 	    lvar.tryMatch(atom) match {
 	      case fail:Fail =>
-	        throw new LambdaVariableMismatchException(
+	        throw new LambdaVariableMismatchException(atom.loc,
 	            "Lambda argument does not match parameter: " + fail.theReason)
 	      case Match(binds) =>
 	        // Great!  Now rewrite the body with the bindings.
@@ -232,7 +239,7 @@ extends BasicAtom with Applicable {
     } catch {
       case ex:java.lang.StackOverflowError =>
         // Trapped unbounded recursion.
-        throw new LambdaUnboundedRecursionException(
+        throw new LambdaUnboundedRecursionException(atom.loc,
             "Lambda application results in unbounded recursion: (" +
             this.toParseString + ").(" + atom.toParseString + ")")
     }

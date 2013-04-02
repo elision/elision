@@ -46,6 +46,7 @@ import ornl.elision.util.HasOtherHash
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.generators.ScalaGenerator
 import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -189,8 +190,10 @@ trait Applicable {
  *    // Common implementation of isTerm with children.
  *    lazy val isTerm = children.forall(_.isTerm)
  *    }}}
+ * 
+ * @param loc The location where this atom originated.
  */
-abstract class BasicAtom extends HasOtherHash {
+abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
   import scala.collection.mutable.{Map => MMap}
 
   /**

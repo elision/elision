@@ -43,6 +43,7 @@ import org.parboiled.errors.ParsingException
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * The core classes and definitions that make up the Elision runtime.
@@ -70,7 +71,7 @@ package object core {
     val console = PrintConsole 
     val context = new Context()
     val settings = Map[String,String]()
-    def parse(text: String): ParseResult = ParseFailure(
+    def parse(name: String, text: String): ParseResult = ParseFailure(
         "This default executor cannot parse text; override this with a full " +
         "executor implementation to properly support parsing from within " +
         "native operators.")
@@ -78,7 +79,7 @@ package object core {
   
   /**
    * Attempt to parse the given string and return an atom.  This uses the
-   * known executor instance.
+   * known executor instance and treats the source as internal.
    * 
    * @param str			The string to parse.
    * @param context	The context.
@@ -90,7 +91,7 @@ package object core {
   def parse(str: String, context: Context, trace: Boolean = false,
       toggle: Boolean = false) = {
     try {
-      knownExecutor.parse(str) match {
+      knownExecutor.parse("", str) match {
         case knownExecutor.ParseSuccess(atoms) => Some(atoms)
         case knownExecutor.ParseFailure(_) => None
       }
@@ -170,8 +171,8 @@ package object core {
    * 
    * @param text	The text of the warning.
    */
-  def warn(text: String) {
-    knownExecutor.console.warn("WARNING: " + text)
+  def warn(loc: Loc, text: String) {
+    knownExecutor.console.warn("WARNING: "+loc+" "+text)
   }
 
   /**

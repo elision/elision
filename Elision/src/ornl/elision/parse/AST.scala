@@ -62,6 +62,7 @@ import ornl.elision.core.INTEGER
 import ornl.elision.core.FLOAT
 import ornl.elision.core.NamedRootType
 import ornl.elision.core.BOOLEAN
+import ornl.elision.util.Loc
 
 
 /**
@@ -348,11 +349,12 @@ object AST {
    * 
    * @param tag     The tag AST.
    * @param content The content AST.
+   * @param loc     The location where this node arose.
    * @return  The new special form AST.
    */
-  def special(tag: BA, content: BA) = new BA {
+  def special(tag: BA, content: BA, loc: Loc) = new BA {
     def interpret(context: Context) =
-      SpecialForm(tag.interpret(context), content.interpret(context))
+      SpecialForm(loc, tag.interpret(context), content.interpret(context))
   }
   
   /**

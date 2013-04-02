@@ -200,7 +200,7 @@ object Apply {
   	      } catch {
   	        case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
-  		        throw new LambdaUnboundedRecursionException(
+  		        throw new LambdaUnboundedRecursionException(arg.loc,
   		            "Application results in unbounded recursion: (" +
   		            op.toParseString + ").(" + arg.toParseString + ")")
   	      }
@@ -332,7 +332,6 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * Get the operators in the operator arguments, plus this operator.
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
-
     // Make the result set to hold the variables.
     var r = new HashSet[BasicAtom]
 

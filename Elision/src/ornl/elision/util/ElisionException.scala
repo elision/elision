@@ -45,9 +45,12 @@ package ornl.elision.util
  * message displayed.  For this reason, please choose suitable human-readable
  * messages.
  * 
+ * @param loc The location of the definition of the relevant atom.
  * @param msg	Human-readable message.
  */
-class ElisionException(val msg: String) extends Exception(msg)
+class ElisionException(val loc: Loc, val msg: String) extends Exception(msg) {
+  override def toString = if (loc.source == "") msg else loc+" "+msg
+}
 
 /**
  * Define convenient construction / extraction for Elision exceptions.
@@ -57,7 +60,7 @@ object ElisionException {
    * Extract the message from an exception.
    * 
    * @param ee	An Elision exception.
-   * @return	The extracted message.
+   * @return	The extracted location and message.
    */
-  def unapply(ee: ElisionException) = Some(ee.msg)
+  def unapply(ee: ElisionException) = Some(ee.loc, ee.msg)
 }

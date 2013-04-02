@@ -31,13 +31,15 @@ package ornl.elision.core
 import ornl.elision.util.ElisionException
 import scala.util.Properties
 import ornl.elision.util.{Console, PropertyManager, Cache, CacheException}
+import ornl.elision.util.Loc
 
 /**
  * A requested setting is not present.
  * 
  * @param msg A human-readable message describing the error.
  */
-class MissingSettingException(msg: String) extends ElisionException(msg)
+class MissingSettingException(msg: String)
+extends ElisionException(Loc.internal, msg)
 
 /**
  * An executor is a class that can convert a string into a sequence of atoms.
@@ -109,10 +111,12 @@ trait Executor extends PropertyManager with Cache {
    * If operators are present in the stream, and applied, any side effects
    * will have been executed by the time this method returns.
    * 
+   * @param name    Name of the data source.  This can be a filename,
+   *                `"(console)"`, or `""` for an internal source.
    * @param text		The text to parse.
    * @return	The sequence of atoms.
    */
-  def parse(text: String): ParseResult
+  def parse(name: String, text: String): ParseResult
     
   /**
    * Get the value of a setting, which must be defined.  If the setting 

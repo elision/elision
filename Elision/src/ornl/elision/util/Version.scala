@@ -150,7 +150,7 @@ object Version {
    * 
    * @param msg A human-readable message.
    */
-  class MainException(msg: String) extends ElisionException(msg)
+  class MainException(msg: String) extends ElisionException(Loc.internal, msg)
   
   /**
    * Get a main class based on the command, or an unambiguous prefix.  The

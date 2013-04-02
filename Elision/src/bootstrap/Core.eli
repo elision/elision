@@ -677,9 +677,10 @@ decl.{operator #name=traverse #cases
 
 decl.{! err($msg: STRING)
   #handler="""
+    import ornl.elision.util.Loc
     args match {
       case Args(StringLiteral(_,msg)) =>
-        throw new ornl.elision.util.ElisionException(msg)
+        throw new ornl.elision.util.ElisionException(Loc.internal,msg)
       case _ =>
     }
     _no_show

@@ -125,26 +125,9 @@ extends BasicAtom {
   /**
    * The hash code is computed from the type and the value.
    */
-  override lazy val hashCode = {
-    (theType, value) match {
-      case (null, null) => throw new ArgumentListException("type and value are null.")
-      case (typ, null) => typ.hashCode * 31
-      case (null, aval) => aval.hashCode
-      case _ => theType.hashCode * 31 + value.hashCode
-    }
-  }
-  lazy val otherHashCode = {
-    (theType, value) match {
-      case (null, null) => throw new ArgumentListException("type and value are null.")
-      case (typ, null) => {
-        typ.otherHashCode
-      }
-      case (null, aval) => 8191*(value.toString).foldLeft(BigInt(0))(other_hashify)
-      case _ => {
-        theType.otherHashCode + 8191*(value.toString).foldLeft(BigInt(0))(other_hashify)
-      }
-    }
-  }
+  override lazy val hashCode = theType.hashCode * 31 + value.hashCode
+  lazy val otherHashCode = theType.otherHashCode +
+    8191*(value.toString).foldLeft(BigInt(0))(other_hashify)
   
   /**
    * Two literals are equal iff their types are equal and their values are

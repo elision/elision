@@ -38,6 +38,7 @@ package ornl.elision.core
 
 import ornl.elision.util.ElisionException
 import ornl.elision.util.other_hashify
+import ornl.elision.util.Loc
 
 /**
  * Indicate a properties specification is illegal.  This typically indicates a
@@ -45,10 +46,11 @@ import ornl.elision.util.other_hashify
  * instance, such as "5") or using properties incorrectly (such as
  * specifying idempotency but not associativity).
  * 
+ * @param loc Location of the bad property specification.
  * @param msg	Human readable message.
  */
-class IllegalPropertiesSpecification(msg: String)
-extends ElisionException(msg)
+class IllegalPropertiesSpecification(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * Encapsulate the algebraic properties ascribed to some object.
@@ -92,6 +94,7 @@ extends ElisionException(msg)
  * Instances are applicable; applied to a typed list of atoms, they "overwrite"
  * the lists properties.
  * 
+ * @param loc           Location of this specification.
  * @param associative		Optional associativity.  Default is none.
  * @param commutative		Optional commutativity.  Default is none.
  * @param idempotent		Optional idempotency.  Default is none.
@@ -99,12 +102,13 @@ extends ElisionException(msg)
  * @param identity			Optional identity.  Default is none.
  */
 class AlgProp(
+    loc: Loc,
     val associative: Option[BasicAtom] = None,
     val commutative: Option[BasicAtom] = None,
     val idempotent: Option[BasicAtom] = None,
     val absorber: Option[BasicAtom] = None,
     val identity: Option[BasicAtom] = None)
-    extends BasicAtom with Applicable {
+    extends BasicAtom(loc) with Applicable {
   
   private def _codify(atom: Option[BasicAtom]) = atom match {
     case None => None.hashCode
@@ -133,15 +137,15 @@ class AlgProp(
     case None => false
   }
   if (_isNotBool(associative))
-    throw new IllegalPropertiesSpecification(
+    throw new IllegalPropertiesSpecification(loc,
         "Associativity value must be a Boolean, but the provided value was: " +
         associative.get.toParseString)
   if (_isNotBool(commutative))
-    throw new IllegalPropertiesSpecification(
+    throw new IllegalPropertiesSpecification(loc,
         "Commutativity value must be a Boolean, but the provided value was: " +
         commutative.get.toParseString)
   if (_isNotBool(idempotent))
-    throw new IllegalPropertiesSpecification(
+    throw new IllegalPropertiesSpecification(loc,
         "Idempotency value must be a Boolean, but the provided value was: " +
         idempotent.get.toParseString)
   
@@ -149,11 +153,14 @@ class AlgProp(
   // absorbers.
   if (!isA(true)) {
     if (isI(false))
-      throw new IllegalPropertiesSpecification("Idempotency requires associativity.")
+      throw new IllegalPropertiesSpecification(loc,
+          "Idempotency requires associativity.")
     if (getB(null) != null)
-      throw new IllegalPropertiesSpecification("An absorber requires associativity.")
+      throw new IllegalPropertiesSpecification(loc,
+          "An absorber requires associativity.")
     if (getD(null) != null)
-      throw new IllegalPropertiesSpecification("An identity requires associativity.")
+      throw new IllegalPropertiesSpecification(loc,
+          "An identity requires associativity.")
   }
   
   private val _plist =
@@ -282,7 +289,7 @@ class AlgProp(
     val absor = _rewrite(absorber)
     val ident = _rewrite(identity)
     if (assoc._2 || commu._2 || idemp._2 || absor._2 || ident._2) {
-      (AlgProp(assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
+      (AlgProp(loc, assoc._1, commu._1, idemp._1, absor._1, ident._1), true)
     } else {
       (this, false)
     }
@@ -309,7 +316,7 @@ class AlgProp(
         val (newB, flagB) = _replace(absorber)
         val (newD, flagD) = _replace(identity)
         if (flagA || flagC || flagI || flagB || flagD) {
-          (AlgProp(newA, newC, newI, newB, newD), true)
+          (AlgProp(loc, newA, newC, newI, newB, newD), true)
         } else {
           (this, false)
         }
@@ -409,7 +416,7 @@ class AlgProp(
    * @return	A new algebraic properties list.
    */
   def and(other: AlgProp) = {
-    AlgProp(
+    AlgProp(loc,
       joinatoms(associative, other.associative),
       joinatoms(commutative, other.commutative),
       joinatoms(idempotent, other.idempotent),
@@ -435,7 +442,7 @@ class AlgProp(
    * @return	The new algebraic properties list.
    */
   def unary_! = {
-    AlgProp(invert(associative), invert(commutative), invert(idempotent))
+    AlgProp(loc, invert(associative), invert(commutative), invert(idempotent))
   }
   
   /**
@@ -500,6 +507,7 @@ object AlgProp {
   /**
    * Create an algebraic properties object.
    * 
+   * @param loc           Location of this properties object declaration.
 	 * @param associative		Optional associativity.  Default is none.
 	 * @param commutative		Optional commutativity.  Default is none.
 	 * @param idempotent		Optional idempotency.  Default is none.
@@ -507,7 +515,8 @@ object AlgProp {
 	 * @param identity			Optional identity.  Default is none.
 	 * @return	The new algebraic properties object.
    */
-  def apply(associative: Option[BasicAtom] = None,
+  def apply(loc: Loc,
+      associative: Option[BasicAtom] = None,
       commutative: Option[BasicAtom] = None,
       idempotent: Option[BasicAtom] = None,
       absorber: Option[BasicAtom] = None,
@@ -518,8 +527,8 @@ object AlgProp {
       case Some(ANY) => None
       case _ => opt
     }
-    new AlgProp(adjust(associative), adjust(commutative), adjust(idempotent),
-        adjust(absorber), adjust(identity))
+    new AlgProp(loc, adjust(associative), adjust(commutative),
+        adjust(idempotent), adjust(absorber), adjust(identity))
   }
   
   /**
@@ -533,27 +542,32 @@ object AlgProp {
 }
 
 /** No properties. */
-case object NoProps extends AlgProp()
+case object NoProps extends AlgProp(Loc.internal)
 
 /** The associative property. */
-case class Associative(atom: BasicAtom) extends AlgProp(associative = Some(atom))
+case class Associative(atom: BasicAtom)
+extends AlgProp(atom.loc, associative = Some(atom))
 
 /** The commutative property */
-case class Commutative(atom: BasicAtom) extends AlgProp(commutative = Some(atom))
+case class Commutative(atom: BasicAtom)
+extends AlgProp(atom.loc, commutative = Some(atom))
 
 /** The idempotent property. */
-case class Idempotent(atom: BasicAtom) extends AlgProp(idempotent = Some(atom))
+case class Idempotent(atom: BasicAtom)
+extends AlgProp(atom.loc, idempotent = Some(atom))
 
 /**
  * An absorber.
  * 
  * @param atom	The absorber atom.
  */
-case class Absorber(atom: BasicAtom) extends AlgProp(absorber = Some(atom))
+case class Absorber(atom: BasicAtom)
+extends AlgProp(atom.loc, absorber = Some(atom))
 
 /**
  * An identity.
  * 
  * @param atom	The identity atom.
  */
-case class Identity(atom: BasicAtom) extends AlgProp(identity = Some(atom))
+case class Identity(atom: BasicAtom)
+extends AlgProp(atom.loc, identity = Some(atom))
