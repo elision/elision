@@ -38,20 +38,24 @@ import scala.io.Source
 abstract trait AbstractParser {
 
   /**
+   * The name of the data source for this parser.  This may be a filename or
+   * the special name `"(console)"` for the console or `""` for internal use.
+   */
+  val name: String
+  
+  /**
    * Entry point to parse all atoms from the given string.
    * 
    * @param line  The string to parse.
    * @return  The parsing result.
    */
-  def parseAtoms(line: String): Presult =
-    parseAtoms("(internal)", Source.fromString(line))
+  def parseAtoms(line: String): Presult = parseAtoms(Source.fromString(line))
     
   /**
    * Entry point to parse all atoms from the given source.
    * 
-   * @param name  A name for the source.  This might be a file name.
    * @param line  The source to parse.
    * @return  The parsing result.
    */
-  def parseAtoms(name: String, source: Source): Presult
+  def parseAtoms(source: Source): Presult
 }

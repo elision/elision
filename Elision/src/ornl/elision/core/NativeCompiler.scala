@@ -35,6 +35,7 @@ import scala.tools.nsc.reporters.ConsoleReporter
 import scala.tools.nsc.Global
 import scala.tools.nsc.Settings
 import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * Trait for all handlers.
@@ -80,25 +81,25 @@ class NativeCompiler {
   /**
    * Compile (or load a pre-compiled cached) handler.
    * 
-   * @param source    Source file for this operator definition.
+   * @param loc       Location of the operator definition.
    * @param operator  Name of the operator to get the handler.
    * @param handler   The source code of the handler.
    * @return  The handler.
    */
-  def compile(source: String, operator: String, handler: String) = {
-    val key = getKey(source, operator, handler)
+  def compile(loc: Loc, operator: String, handler: String) = {
+    val key = getKey(loc.source, operator, handler)
     getCachedHandler(key) match {
       case None =>
         // The handler was not found in the cache.  Make it now.
         Debugger("opcache", "Creating cached handler for "+toESymbol(operator)+
-            " from "+toEString(source)+".")
-        makeCachedHandler(source, operator, handler) match {
+            " from "+loc+".")
+        makeCachedHandler(loc.source, operator, handler) match {
           case None =>
             // Somehow the native handler compilation failed.  Throw an
             // exception.
-            throw new NativeHandlerException(
-                "Unable to compile native handler for operator %s (from %s)."
-                format (toESymbol(operator), toEString(source)))
+            throw new NativeHandlerException(loc,
+                "Unable to compile native handler for operator %s%s."
+                format (toESymbol(operator), loc))
             
           case Some(handler) =>
             handler

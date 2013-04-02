@@ -38,27 +38,34 @@ package ornl.elision.core
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.immutable.List
 import ornl.elision.util.ElisionException
+import ornl.elision.util.Loc
 
 /**
  * Indicate an attempt to re-define an already-known operator.
  * 
+ * @param loc   The location of the new (replacement) operator.
  * @param msg		A human readable message.
  */
-class OperatorRedefinitionException(msg: String) extends ElisionException(msg)
+class OperatorRedefinitionException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * Indicate an attempt to improperly define an operator.
  * 
+ * @param loc   The location of the bad operator definition.
  * @param msg		A human readable message.
  */
-class OperatorDefinitionException(msg: String) extends ElisionException(msg)
+class OperatorDefinitionException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * A requested operator was not found, and could not be created.
  * 
+ * @param loc   The location of the bad operator reference.
  * @param msg		A human readable message.
  */
-class UndefinedOperatorException(msg: String) extends ElisionException(msg)
+class UndefinedOperatorException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * An operator library holds information about the known operators.  Operators
@@ -118,10 +125,8 @@ extends Fickle with Mutable {
  	 */
  	def apply(name: String) = get(name) match {
  	  case None =>
- 	    val uoe = new UndefinedOperatorException("The operator " + toESymbol(name) +
- 	        " is not known.")
- 	    uoe.printStackTrace
- 	    throw uoe
+ 	    throw new UndefinedOperatorException(Loc.internal, "The operator " +
+ 	        toESymbol(name) + " is not known.")
  	    
  	  case Some(op) =>
  	    op
@@ -151,11 +156,12 @@ extends Fickle with Mutable {
  	  val name = op.name
  	  if (_nameToOperator.contains(name))
  	    if (allowRedefinition) {
- 	      warn("Redefining operator " + op.name + ".")
- 	      warn("Prior definition: " + _nameToOperator(name).operator.toParseString)
+ 	      val oldop = _nameToOperator(name).operator
+ 	      warn(op.loc, "Redefining operator " + op.name + ".")
+ 	      warn(oldop.loc, "Prior definition: " + oldop.toParseString)
  	    } else {
  	    	// Reject this!  The operator is already defined.
- 	    	throw new OperatorRedefinitionException(
+ 	    	throw new OperatorRedefinitionException(op.loc,
  	    			"Attempt to re-define known operator " + name + ".")
  	    }
     // Accept this and store it in the map.  Return the operator reference.

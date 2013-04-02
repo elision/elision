@@ -365,7 +365,7 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
         // Get the string.
         val string = atom.toParseString
         // Parse this string.
-        parse(string) match {
+        parse("", string) match {
           case ParseFailure(msg) =>
             console.error("Round trip testing failed for atom:\n  " + string +
                 "\nParsing terminated with an error:\n  " + msg + "\n")
@@ -583,10 +583,10 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
         
         // Run the line.
         try {
-          execute(line)
+          execute("(console)", line)
         } catch {
-          case ornl.elision.util.ElisionException(msg) =>
-            console.error(msg)
+          case ornl.elision.util.ElisionException(loc, msg) =>
+            console.error(loc, msg)
           case ex: Exception =>
             console.error("(" + ex.getClass + ") " + ex.getMessage())
             if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()

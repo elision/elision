@@ -45,7 +45,7 @@ import ornl.elision.core.matcher.SequenceMatcher
 /**
  * Fast access to an untyped empty sequence.
  */
-object EmptySeq extends AtomSeq(AlgProp(), IndexedSeq())
+object EmptySeq extends AtomSeq(NoProps, IndexedSeq())
 
 /**
  * An atom sequence is just that: a sequence of atoms.
