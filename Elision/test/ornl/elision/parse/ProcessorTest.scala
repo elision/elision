@@ -50,8 +50,8 @@ class ProcessorTest extends AssertionsForJUnit {
     val test = new ERepl
     ornl.elision.core.knownExecutor = test
     test.bootstrap(0)
-    test.parse("""inc("C:\\Users\\jb9\\config\\files_inc.eli")""")
-    val a = test.parse("mult_32(acc_32($M:FMAP(DWORD,BYTE),add_32(-12,$EBP:DWORD)),add_32(2,acc_32($M:FMAP(DWORD,BYTE),add_32(-4,$EBP:DWORD))))")
+    test.parse("", """inc("C:\\Users\\jb9\\config\\files_inc.eli")""")
+    val a = test.parse("", "mult_32(acc_32($M:FMAP(DWORD,BYTE),add_32(-12,$EBP:DWORD)),add_32(2,acc_32($M:FMAP(DWORD,BYTE),add_32(-4,$EBP:DWORD))))")
     println (a.toString)
   }
 

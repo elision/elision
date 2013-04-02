@@ -177,7 +177,7 @@ object ElisionGenerator extends Generator {
   }
   
   /**
-   * Generate the Scala code required to create a literal.  Certain well-known
+   * Generate the Scala code required to create an atom.  Certain well-known
    * root types are handled directly and simply.
    * 
    * @param atom    The atom.
@@ -209,8 +209,22 @@ object ElisionGenerator extends Generator {
         
       // Process all atoms.
       case OpApply(op, args, _) =>
-        buf.append(toESymbol(op.name))
-        buf.append("(")
+        // There are two possibilities.  The first is that the operator
+        // used here is a known operator in the operator library.  If so,
+        // then we can just use the name.  The second is that the operator
+        // used here is not stored in the library, or is different from the
+        // one used in the library.  In this latter case we must include
+        // the entire operator definition.
+        val kop = knownExecutor.context.operatorLibrary.get(op.name)
+        if (kop.isDefined && kop.get == op) {
+          // This is a well-known operator.  We can simply use the name.
+          buf.append(toESymbol(op.name))
+          buf.append("(")
+        } else {
+          // This is not a well-known operator.  We must write out the
+          // definition in full.
+          apply(op.operator, buf, limit-1).append(".%(")
+        }
         // If the limit will be exceeded by the argument list, don't print
         // several elipses separated by commas, but just one for the list.
         if (limit == 1) {
