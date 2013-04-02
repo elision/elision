@@ -70,7 +70,7 @@ class NativeCompiler {
   private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
   
   // Build the settings, reporter, and compiler to use later on.
-  val _settings = new Settings(Debugger.debugln _)
+  val _settings = new Settings(knownExecutor.console.emitln _)
   _settings.deprecation.value = true
   _settings.unchecked.value = true
   _settings.outdir.value = _cache.getAbsolutePath

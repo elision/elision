@@ -320,8 +320,9 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
     
       // The match attempt is starting.  Write out information about the
       // attempted match.
-      Debugger.debugf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
-      Debugger.debugln("  pattern: " + this.toParseString + "\n  subject: " +
+      Debugger.debugf("matching",
+          "TRYING  (%x) in %s:\n", what, this.getClass.toString)
+      Debugger("matching", "  pattern: " + this.toParseString + "\n  subject: " +
           subject.toParseString + "\n  with: " + binds.toParseString)
     }
         
@@ -332,14 +333,14 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
       // Write out information about the result of the match attempt.
       outcome match {
         case fail:Fail =>
-        	Debugger.debugf("FAILURE (%x): ", what)
-          Debugger.debugln(fail)
+        	Debugger.debugf("matching", "FAILURE (%x): ", what)
+          Debugger("matching", fail)
         case Match(bnd) =>
-      		Debugger.debugf("SUCCESS (%x): ", what)
-          Debugger.debugln(bnd.toParseString)
+      		Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", bnd.toParseString)
         case many:Many =>
-        	Debugger.debugf("SUCCESS (%x): ", what)
-          Debugger.debugln("  Many Matches")
+        	Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", "  Many Matches")
       }
     }
     

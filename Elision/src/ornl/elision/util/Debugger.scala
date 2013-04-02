@@ -240,22 +240,25 @@ object Debugger {
   def debugoff(tag: String) = disableDebugModes(tag, ON)
   
   /**
-   * Simple interface for use from Java to print a message with the
-   * empty string for its tag.  This is the tag that is enabled by default.
-   * The message is always evaluated, as Java does not allow by-name
-   * parameters.  This method writes behaves in the same manner as `printf`.
+   * Simple interface for use from Java to print a message without an implicit
+   * end of line.  The message is always evaluated, as Java does not allow
+   * by-name parameters.  This method writes behaves in the same manner as
+   * `printf`.
+   * @param tag     The debugging tag.
    * @param message The message to write.
    */
-  def debugf(format: String, items: Any*) = apply("", format.format(items:_*))
+  def debugf(tag: String, format: String, items: Any*) =
+    apply(tag, format.format(items:_*))
   
   /**
-   * Simple interface for use from Java to print a message with the
-   * empty string for its tag.  This is the tag that is enabled by default.
-   * The message is always evaluated, as Java does not allow by-name
-   * parameters.  This methods behaves in the same manner as `println`.
+   * Simple interface for use from Java to print a message with an
+   * implicit end of line.  The message is always evaluated, as Java does not
+   * allow by-name parameters.  This methods behaves in the same manner as
+   * `println`.
+   * @param tag     The debugging tag.
    * @param message The message to write.
    */
-  def debugln(message: Any) = apply("", message)
+  def debugln(tag: String, message: Any) = apply("", message)
   
   /**
    * Emit a debugging tag based on the enabled modes.
