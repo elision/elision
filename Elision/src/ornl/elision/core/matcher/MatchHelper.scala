@@ -73,10 +73,10 @@ object MatchHelper {
       }
     } // Omit constants from the lists.
     Debugger("matching") {
-	    Debugger.debugln(
-	        "Removing Constants: Patterns: " + patterns.mkParseString("", ",", ""))
-	    Debugger.debugln(
-	        "                    Subjects: " + subjects.mkParseString("", ",", ""))
+	    Debugger("matching", "Removing Constants: Patterns: " +
+	        patterns.mkParseString("", ",", ""))
+	    Debugger("matching", "                    Subjects: " +
+	        subjects.mkParseString("", ",", ""))
     }
     (patterns, subjects, None)
   }

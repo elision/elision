@@ -330,8 +330,8 @@ object RewriteRule {
     }
     if (rulesets.size > 0) {
       binds += ("rulesets" ->
-          AtomSeq(Associative(true) and Commutative(true), rulesets.map {
-            str => Literal(str)
+          AtomSeq(NoProps, rulesets.map {
+            str => Literal(Symbol(str))
           }.toIndexedSeq[BasicAtom]))
     }
     name match {

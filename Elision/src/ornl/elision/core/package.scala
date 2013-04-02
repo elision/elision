@@ -96,7 +96,7 @@ package object core {
         case knownExecutor.ParseFailure(_) => None
       }
     } catch {
-      case th: ParsingException => Debugger.debugln(th.getMessage)
+      case th: ParsingException => knownExecutor.console.error(th.getMessage)
     }
   }
 
