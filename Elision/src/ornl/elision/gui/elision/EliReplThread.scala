@@ -37,8 +37,10 @@
 
 package ornl.elision.gui.elision
 
+import java.io.File
 import scala.concurrent.ops._
 import sys.process._
+import ornl.elision.cli._
 import ornl.elision.gui._
 import ornl.elision.gui.console.ReplThread
 import ornl.elision.util.Console
@@ -51,23 +53,66 @@ class EliReplThread extends ReplThread {
   /** A reference the the Console being used by our current repl. */
 	var myRepl : ornl.elision.repl.ERepl = null
   
+	// Work out where Elision's runtime store should live on the system.
+  private val _default_root = (if (CLI.iswin) {
+    // On a Windows system the settings should live under %LOCALAPPDATA%
+    // in a folder specific to the application.  While the simplest thing is
+    // to obtain the local appdata folder from the environment variable, this
+    // is certainly not perfect, and is not what is recommended by Microsoft.
+    // A better method is to use CSIDL_LOCAL_APPDATA, obtained from
+    // SHGetFolderPath.  But that would require native calls.
+    val env = System.getenv()
+    new File(if (env.containsKey("LOCALAPPDATA")) {
+      env.get("LOCALAPPDATA")
+    } else {
+      new File(
+          new File(env.get("USERPROFILE"), "Local Settings"),
+          "Application Data").getAbsolutePath()
+    }, "elision").getAbsolutePath()
+  } else {
+    // On a non-Windows platform the settings should live under the user's
+    // `$`HOME folder.
+    new File(System.getenv("HOME"), ".elision").getAbsolutePath()
+  })
+	
+	/**
+   * Define some settings.
+   */
+  private val _settings = Seq(
+      Setting("elision.root", Some("ELISION_ROOT"), None,
+          Some(_default_root), "Specify the folder where Elision should " +
+              "store its data."),
+      Setting("elision.history", Some("ELISION_HISTORY"), None,
+          Some(".elision-history.eli"),
+          "Name of file where Elision will store the REPL history."),
+      Setting("elision.context", Some("ELISION_CONTEXT"), None,
+          Some("elision-context.eli"),
+          "Name of file where Elision will store the most recent context."),
+      Setting("elision.cache", Some("ELISION_CACHE"), None,
+          Some(new File(_default_root, "cache").getAbsolutePath),
+          "Name of the folder where Elision will cache native handlers."),
+      Setting("elision.rc", Some("ELISIONRC"), None,
+          Some("elision.ini"),
+          "Name of file to read after bootstrapping Elision."))
+	
+  val state = CLI(Array.empty[String], null, _settings, false)        
+          
   /** A closure for pausing the repl. */
   def evaPause(): Boolean = {
     myRepl.console.write("--More--")
-    ReplActor.waitOnGUI()
+    ReplActor.waitForGUI("gui pager has paused.")
     true
   }
   
 	/** Starts a new thread in which the REPL will run in. */
 	override def run : Unit = {
-		ornl.elision.actors.ReplActor.guiMode = true
 		ornl.elision.actors.ReplActor.guiActor = GUIActor
 		runNewRepl
 	}
 	
 	/** Creates an instance of and begins running the new REPL */
 	def runNewRepl : Unit = {
-		myRepl = new ornl.elision.repl.ERepl
+		myRepl = new ornl.elision.repl.ERepl(state.settings)
 		ornl.elision.core.knownExecutor = myRepl
 		ReplActor.history = myRepl
 		ReplActor.console = myRepl.console

@@ -43,12 +43,14 @@ import java.io._
 
 import scala.actors.Actor
 
+import ornl.elision.gui.elision.TreeBuilderActor
+
 /** The Actor object used to receive and process communications from the REPL */
 object GUIActor extends Actor {
     
     /** A reference to the GUI's TreeBuilder. */
-    val treeBuilder = new elision.EliTreeBuilder
-    treeBuilder.start
+    val treeBuilder = new elision.EliTreeBuilderOld
+//    treeBuilder.start
     
     /** Flag for temporarily disabling the TreeBuilder. */
     var disableTreeBuilder = false
@@ -109,19 +111,16 @@ object GUIActor extends Actor {
                         waitingForReplInput = false
                     case ("guiColumns", cols : Int) =>
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)
-                    case ("Eva", cmd : String, args : Any) => 
-                        // process a TreeBuilder command received from the Elision.
-                        if(!EvaConfig.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
+                    case ("visualize", atom : ornl.elision.core.BasicAtom) =>
+                        TreeBuilderActor ! ("visualize", atom)
                     case ("OpenTree", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("OpenTree", file)
-                    case ("SaveTree", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("SaveTree", file)
-                    case ("OpenTreeJSON", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("OpenTreeJSON", file)
+                        TreeBuilderActor ! ("OpenTree", file)
+                    case ("SaveTreeXML", file : java.io.File) =>
+                        TreeBuilderActor ! ("SaveTreeXML", file)
                     case ("SaveTreeJSON", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("SaveTreeJSON", file)
+                        TreeBuilderActor ! ("SaveTreeJSON", file)
                     case "IgnoreNextTree" => 
-                        treeBuilder.tbActor ! "IgnoreNextTree"
+              //          treeBuilder.tbActor ! "IgnoreNextTree"
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
                         if(!EvaConfig.disableTree) mainGUI.visPanel.isLoading = true

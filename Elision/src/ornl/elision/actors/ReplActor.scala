@@ -38,12 +38,9 @@ package ornl.elision.actors
 
 import scala.actors.Actor
 
-/** The REPL's Actor object for communicating with the GUI */
+/** The REPL's Actor object for communicating with a GUI. */
 object ReplActor extends Actor {
 
-	/** a flag that tells the REPL whether it is receiving input from a GUI or from the console. */
-	var guiMode : Boolean = false 
-    
   /** a flag used for forcing the ReplActor to accept a message for exiting. */
   var exitFlag = false
 	
@@ -56,7 +53,7 @@ object ReplActor extends Actor {
 	/** a string for storing the most recent input from a GUI */
 	var guiInput : String = "no gui input yet"
 
-	/** a reference to the GUI's actor. */
+	/** a reference to the GUI's actor. Null if we are not connected to a GUI. */
 	var guiActor : Actor = null
 	
 	/** a flag that tells the Actor to be verbose while waiting on the GUI. */
@@ -85,8 +82,12 @@ object ReplActor extends Actor {
         case ("disableGUIComs", flag : Boolean) =>
           disableGUIComs = flag
         case (":quit", true) =>
-          if(guiMode)  guiActor ! "quit"
+          if(guiActor != null)  guiActor ! "quit"
           else exit
+        case ("toGUI", msg : Any) =>
+          if(guiActor != null && !disableGUIComs) { 
+             guiActor ! ("toGUI", msg)
+          }
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false
@@ -98,35 +99,45 @@ object ReplActor extends Actor {
           console.height_=(guiRows-1)
         case ("getHistory", direction : Int) =>
           val entry = if(direction < 1) {
-            history.getPreviousHistoryEntry
-          }
-          else {
-            history.getNextHistoryEntry
-          } 
+              history.getPreviousHistoryEntry
+            }
+            else {
+              history.getNextHistoryEntry
+            } 
           entry match {
             case Some(str : String) => guiActor ! ("reGetHistory", str)
             case _ => guiActor ! ("reGetHistory", None)
           }
         case ("addHistory", str : String) =>
           history.addHistoryLine(str)
+        case ("syntaxcolor", flag : Boolean) =>
+          guiActor ! ("replFormat", flag)
 				case msg => {}
 			}
 		}
 	}
 	
-	/** forces the calling thread to wait for the GUI to finish doing something. */
-	def waitOnGUI(doStuff : () => Unit = null, msg : String = null) : Unit = {
-		waitingForGuiInput = true
-		if(doStuff != null) doStuff()
-		while(waitingForGuiInput) {
-			if(verbose && msg != null) println("waiting on the GUI: " + msg)
-			Thread.sleep(20) // sleep until the REPL receives input from the GUI
-		}
+  
+	/** 
+	 * Pause until the GUI sends a wake up message. Optionally, display a 
+	 * message about what we're waiting on, but only if verbose is true.
+	 * @param msg  The optional message.
+	 */
+	def waitForGUI(msg : String = "") {
+	  if(verbose) {
+	    console.emitln("waiting on the GUI: " + msg)
+	  }
+	  
+	  // Sleep until the GUI wakes us up with a ("wait", false) message.
+	  waitingForGuiInput = true
+	  while(waitingForGuiInput) {
+      Thread.sleep(20) 
+    }
 	}
-    
+	
   /** Overriden ! method checks global allowMessages flag before processing a message.*/
   override def ! (msg : Any) : Unit = {
-    if(guiMode || exitFlag) super.!(msg)
+    if(guiActor != null || exitFlag) super.!(msg)
   }
 }
 
