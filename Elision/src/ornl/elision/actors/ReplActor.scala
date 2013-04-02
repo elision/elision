@@ -79,24 +79,39 @@ object ReplActor extends Actor {
 	def act() = {
 		loop {
 			react {
+			  // Toggle whether to disable communications with the GUI.
         case ("disableGUIComs", flag : Boolean) =>
           disableGUIComs = flag
+        
+        // Tell this Actor and its GUI's Actor to exit.
         case (":quit", true) =>
-          if(guiActor != null)  guiActor ! "quit"
-          else exit
+          if(guiActor != null)  
+            guiActor ! "quit"
+          else 
+            exit
+          
+        // Forward something to the GUI's actor.
         case ("toGUI", msg : Any) =>
           if(guiActor != null && !disableGUIComs) { 
-             guiActor ! ("toGUI", msg)
+             guiActor ! msg
           }
+          
+        // Receive a line of input from the GUI.
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false
+					
+			  // Toggle whether we are waiting on the GUI to perform some action.
 				case ("wait", flag : Boolean) =>
 					waitingForGuiInput = flag
+					
+				// Set the console's columns to match the GUI's columns.
         case ("guiColumns", x : Int) =>
           guiColumns = x
           console.width_=(guiColumns)
           console.height_=(guiRows-1)
+          
+        // Obtain a line from the input history and send it back to the GUI.
         case ("getHistory", direction : Int) =>
           val entry = if(direction < 1) {
               history.getPreviousHistoryEntry
@@ -108,8 +123,12 @@ object ReplActor extends Actor {
             case Some(str : String) => guiActor ! ("reGetHistory", str)
             case _ => guiActor ! ("reGetHistory", None)
           }
+          
+        // Add a line to the input history.
         case ("addHistory", str : String) =>
           history.addHistoryLine(str)
+          
+        // Inform the GUI whether it should syntax color what's being printed to stdout.
         case ("syntaxcolor", flag : Boolean) =>
           guiActor ! ("replFormat", flag)
 				case msg => {}
@@ -133,6 +152,19 @@ object ReplActor extends Actor {
 	  while(waitingForGuiInput) {
       Thread.sleep(20) 
     }
+	}
+	
+	/** 
+	 * Prompts the GUI for input. This blocks until the GUI sets the 
+	 * value for guiInput and sends a ("wait", false) message to us.
+	 * @param prompt   The prompt string. e.g.: "e> "
+	 * @return         The line of input from the GUI.
+	 */
+	def readLine(prompt : String) : String = {
+	  println()
+    print(prompt)
+    ReplActor.waitForGUI("gui input")
+    ReplActor.guiInput
 	}
 	
   /** Overriden ! method checks global allowMessages flag before processing a message.*/

@@ -278,7 +278,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     if(ReplActor.guiActor != null) {
       ReplActor ! ("syntaxcolor", true)
       ReplActor.waitForGUI("formatting on")
-    //  ReplActor ! ("guiReplFormat", true, "formatting on")
     }
     
     if(getProperty[Boolean]("syntaxcolor")) {
@@ -299,7 +298,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     if(ReplActor.guiActor != null) {
       ReplActor ! ("syntaxcolor", false)
       ReplActor.waitForGUI("formatting off")
-    //  ReplActor ! ("guiReplFormat", false, "formatting off")
     }
     
   }
@@ -558,11 +556,8 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
           Processor.fileReadStack.push("Console")
 
           segment = if (ReplActor.guiActor != null) {  
-            // Get input from the GUI.
-            println()
-            print("" + (if (console.quiet > 0) p2 else p1))
-            ReplActor.waitForGUI("gui input")
-            ReplActor.guiInput
+            // Get input from the GUI.            
+            ReplActor.readLine(if (console.quiet > 0) p2 else p1)
           } else {
             // Get input directly from the console. 
     				val line = cr.readLine(if (console.quiet > 0) p2 else p1)

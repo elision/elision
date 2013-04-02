@@ -335,6 +335,8 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
    *              If it exceeds 9 lines, "..." is appended on the line below the 9th line.
    */
   def _reduceTo9Lines(txt : String) : String = {
+    return txt
+    
     if(!reduceLines)
       return txt
       
