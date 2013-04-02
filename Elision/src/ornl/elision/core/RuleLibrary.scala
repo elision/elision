@@ -44,36 +44,46 @@ import scala.collection.immutable.HashSet
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
  * 
+ * @param loc   Location of the atom containing the bad reference, or of the
+ *              bad reference.
  * @param msg		A human readable message.
  */
-class NoSuchRulesetException(msg: String) extends ElisionException(msg)
+class NoSuchRulesetException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * Indicate an attempt to add an identity rule.
  * 
+ * @param loc   Location of the bad rule.
  * @param msg   A human-readable message.
  */
-class IdentityRuleException(msg: String) extends ElisionException(msg)
+class IdentityRuleException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * Indicate an attempt to add a rule whose pattern is bindable (i.e., a
  * simple variable).
  * 
+ * @param loc   Location of the bad rule.
  * @param msg   A human-readable message.
  */
-class BindablePatternException(msg: String) extends ElisionException(msg)
+class BindablePatternException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * Indicate an attempt to add a rule whose pattern is a literal, when such
  * are not allowed.
  * 
+ * @param loc   Location of the bad rule.
  * @param msg   A human-readable message.
  */
-class LiteralPatternException(msg: String) extends ElisionException(msg)
+class LiteralPatternException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * A ruleset reference.
@@ -443,15 +453,10 @@ extends Fickle with Mutable {
   */
   private def _rewriteChildren(atom: BasicAtom,
       rulesets: Set[String]): (BasicAtom, Boolean) = {
-
-    // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Debugger("rewrite", "Rewriting timed out: " + atom.toParseString)
       return (atom, true)
-    }
-
-    // No timeout.
-    else {
+    } else {
       atom match {
         case AtomSeq(props, atoms) =>
           var flag = false
@@ -496,7 +501,7 @@ extends Fickle with Mutable {
           val newlhs = _rewritechild(tag, rulesets)
           val newrhs = _rewritechild(content, rulesets)
           if (newlhs._2 || newrhs._2) {
-            (SpecialForm(newlhs._1, newrhs._1), true)
+            (SpecialForm(atom .loc, newlhs._1, newrhs._1), true)
           } else {
             (atom, false)
           }
@@ -782,7 +787,7 @@ extends Fickle with Mutable {
   private def getRulesetBit(name: String) =
     _rs2bit.getOrElseUpdate(name, (
       if (allowUndeclared) bump()
-      else throw new NoSuchRulesetException(
+      else throw new NoSuchRulesetException(Loc.internal,
         "The ruleset " + name + " has not been declared.")))
   
   /**
@@ -911,13 +916,15 @@ extends Fickle with Mutable {
 
     // A rule whose left-hand side is either bindable is not allowed.
     if (rule.pattern.isBindable) {
-      throw new BindablePatternException("The rule " + rule.toParseString +
+      throw new BindablePatternException(rule.loc,
+          "The rule " + rule.toParseString +
           " has a bindable pattern.  It cannot be added to the system.")
     }
     
     // Rules that rewrite literals might not be allowed.
     if (rule.pattern.isInstanceOf[Literal[_]] && !_allowLiteralRules) {
-      throw new LiteralPatternException("The rule " + rule.toParseString +
+      throw new LiteralPatternException(rule.loc,
+          "The rule " + rule.toParseString +
           " has a literal pattern.  It cannot be added to the system.")
     }
     
@@ -958,7 +965,8 @@ extends Fickle with Mutable {
   private def doAdd(rule: RewriteRule) = {
     // Make sure the rule is not (or does not appear to be) an identity.
     if (rule.pattern == rule.rewrite) {
-      throw new IdentityRuleException("The rule " + rule.toParseString +
+      throw new IdentityRuleException(rule.loc,
+          "The rule " + rule.toParseString +
           " appears to be an identity.  It cannot be added to the system.")
     }
     
@@ -1194,7 +1202,7 @@ private object Completor {
     var right = Variable(as(0).theType, "::R")
     var newpatternlist = as.atoms :+ right
     var newrewritelist = OmitSeq[BasicAtom](rewrite) :+ right
-    val newRule = RewriteRule(
+    val newRule = RewriteRule(rule.loc,
         Apply(op, AtomSeq(props, newpatternlist)),
         Apply(op, AtomSeq(props, newrewritelist)),
         rule.guards,
@@ -1215,14 +1223,14 @@ private object Completor {
     var left = Variable(as(0).theType, "::L")
     newpatternlist = left +: as.atoms
     newrewritelist = left +: OmitSeq[BasicAtom](rewrite)
-    list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+    list :+= RewriteRule(rule.loc, Apply(op, AtomSeq(props, newpatternlist)),
         Apply(op, AtomSeq(props, newrewritelist)),
         rule.guards, rule.rulesets, true)
         
     // And again add the argument on the right-hand side.
     newpatternlist = newpatternlist :+ right
     newrewritelist = newrewritelist :+ right
-    list :+= RewriteRule(Apply(op, AtomSeq(props, newpatternlist)),
+    list :+= RewriteRule(rule.loc, Apply(op, AtomSeq(props, newpatternlist)),
         Apply(op, AtomSeq(props, newrewritelist)),
         rule.guards, rule.rulesets, true)
         

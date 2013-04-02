@@ -41,7 +41,7 @@ package ornl.elision.util
  * 
  * @param msg   The human-readable message explaining the problem.
  */
-class CacheException(msg: String) extends ElisionException(msg)
+class CacheException(msg: String) extends ElisionException(Loc.internal, msg)
 
 /**
  * Provide a simple, name-indexed, general purpose cache for any value.

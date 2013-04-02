@@ -31,13 +31,15 @@ package ornl.elision.core
 import ornl.elision.util.ElisionException
 import scala.util.Properties
 import ornl.elision.util.{Console, PropertyManager, Cache, CacheException}
+import ornl.elision.util.Loc
 
 /**
  * A requested setting is not present.
  * 
  * @param msg A human-readable message describing the error.
  */
-class MissingSettingException(msg: String) extends ElisionException(msg)
+class MissingSettingException(msg: String)
+extends ElisionException(Loc.internal, msg)
 
 /**
  * An executor is a class that can convert a string into a sequence of atoms.

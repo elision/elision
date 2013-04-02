@@ -585,8 +585,8 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
         try {
           execute(line)
         } catch {
-          case ornl.elision.util.ElisionException(msg) =>
-            console.error(msg)
+          case ornl.elision.util.ElisionException(loc, msg) =>
+            console.error(loc, msg)
           case ex: Exception =>
             console.error("(" + ex.getClass + ") " + ex.getMessage())
             if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()

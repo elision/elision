@@ -62,7 +62,7 @@ import ornl.elision.core.INTEGER
 import ornl.elision.core.FLOAT
 import ornl.elision.core.NamedRootType
 import ornl.elision.core.BOOLEAN
-import ornl.elision.core.Loc
+import ornl.elision.util.Loc
 
 
 /**

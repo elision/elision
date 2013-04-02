@@ -34,7 +34,7 @@ import org.parboiled.scala._
 import org.parboiled.errors.ErrorUtils
 import scala.io.Source
 import org.parboiled.Context
-import ornl.elision.core.Loc
+import ornl.elision.util.Loc
 
 /**
  * Implement a parser for Elision atoms.

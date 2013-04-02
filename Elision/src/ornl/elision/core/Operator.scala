@@ -49,20 +49,25 @@ import scala.collection.mutable.{Set => MSet}
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
 import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * An incorrect argument list was supplied to an operator.
  *
+ * @param loc The locatin of the bad application.
  * @param msg	The human-readable message describing the problem.
  */
-class ArgumentListException(msg: String) extends ElisionException(msg)
+class ArgumentListException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * The native handler could not be parsed.
  *
+ * @param loc Location of the bad operator or native handler.
  * @param msg	The human-readable message describing the problem.
  */
-class NativeHandlerException(msg: String) extends ElisionException(msg)
+class NativeHandlerException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * A little class to use to pass data back and forth from the subordinate
@@ -412,7 +417,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
     // If nothing worked, then we need to generate an error since the operator
     // was incorrectly applied.
     if (!done)
-      throw new ArgumentListException("Applied the operator " +
+      throw new ArgumentListException(args.loc, "Applied the operator " +
         toESymbol(name) + " to an incorrect argument list: " +
         args.toParseString)
     // If the result turned out to be ANY, then just construct a simple
@@ -592,11 +597,11 @@ object SymbolicOperator {
   /**
    * Compile Scala code to a native handler.
    * 
-   * @param name          Name of the operator to get this handler.
+   * @param op            The operator to get this native handler.
    * @param handlertxt    The optional text to compile.
    * @return  The optional handler result.
    */
-  private def compileHandler(name: String,
+  private def compileHandler(op: SymbolicOperator,
       code: Option[String]): Option[ApplyData => BasicAtom] = {
     // Fetch the handler text.
     if (code.isDefined) {
@@ -607,7 +612,7 @@ object SymbolicOperator {
       // Compile the handler, if we were given one.
       if (handlertxt != "") {
         return Some(_timer.time {
-          _ncomp.compile("(undefined)", name, handlertxt)
+          _ncomp.compile(op.loc, op.name, handlertxt)
         })
       }
     } // Handler has text.
@@ -747,7 +752,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
   _check()
   
   /** The native handler, if any. */
-  val handler = SymbolicOperator.compileHandler(name, handlertxt)
+  val handler = SymbolicOperator.compileHandler(this, handlertxt)
 
   /**
    * Apply this operator to the given arguments.
@@ -782,19 +787,19 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.isA(false)) {
       // There must be exactly two parameters.
       if (params.length != 2) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as associative, but does not have exactly two " +
           "parameters, as required: " + params.toParseString)
       }
       // All parameter types must be the same.
       if (!paramTypeCheck) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as associative, but all parameters do not have the " +
           "same type, as required: " + params.toParseString)
       }
       // The fully-applied type must be the same as the parameter type.
       if (params(0).theType != typ) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as associative, but the parameter type (" +
           params(0).theType.toParseString +
           ") is not the same as the fully-applied type (" +
@@ -804,17 +809,17 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
       // The operator is not associative, so it must not have an identity,
       // absorber, or be idempotent.
       if (params.props.isI(false)) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as idempotent, but it not marked as associative, as" +
           " required.")
       }
       if (params.props.identity.isDefined) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is declared to have an identity, but it not marked as " +
           "associative, as required.")
       }
       if (params.props.absorber.isDefined) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is declared to have an absorber, but it not marked as " +
           "associative, as required.")
       }
@@ -822,13 +827,13 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.isC(false)) {
       // There must be at least two parameters.
       if (params.length < 2) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as commutative, but does not have at least two " +
           "parameters, as required: " + params.toParseString)
       }
       // All parameter types must be the same.
       if (!paramTypeCheck) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as commutative, but all parameters do not have the " +
           "same type, as required: " + params.toParseString)
       }
@@ -838,7 +843,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.identity.isDefined) {
       params(0).theType.tryMatch(params.props.identity.get.theType) match {
         case Fail(reason, index) =>
-          throw new ArgumentListException("The operator " + toESymbol(name) +
+          throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
             " has an identity whose type (" +
             params.props.identity.get.theType.toParseString +
             ") does not match the parameter type (" +
@@ -851,7 +856,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.absorber.isDefined) {
       params(0).theType.tryMatch(params.props.absorber.get.theType) match {
         case Fail(reason, index) =>
-          throw new ArgumentListException("The operator " + toESymbol(name) +
+          throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
             " has an absorber whose type (" +
             params.props.absorber.get.theType.toParseString +
             ") does not match the parameter type (" +
@@ -951,12 +956,12 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // The number of arguments must exactly match the number of
           // parameters.
           if (newseq.length > params.length) {
-            throw new ArgumentListException(
+            throw new ArgumentListException(rhs.loc,
                 "Too many arguments for non-associative operator " +
                 toESymbol(name) + ".  Expected " + params.length +
                 " but got " + newseq.length + ".")
           } else if (newseq.length < params.length) {
-            throw new ArgumentListException(
+            throw new ArgumentListException(rhs.loc,
                 "Too few arguments for non-associative operator " +
                 toESymbol(name) + ".  Expected " + params.length +
                 " but got " + newseq.length + ".")
@@ -999,7 +1004,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             param.tryMatch(atom) match {
               case Fail(reason, index) =>
                 // The argument is invalid.  Reject!
-                throw new ArgumentListException("Incorrect argument " +
+                throw new ArgumentListException(atom.loc, "Incorrect argument " +
                   "for operator " + toESymbol(name) + " at position 0: " +
                   atom.toParseString + ".  " + reason())
               case mat: Match => {
@@ -1041,7 +1046,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             // other arguments?
             if (newseq(index).theType != anArg.theType) {
               // No, bomb out.
-              throw new ArgumentListException(
+              throw new ArgumentListException(anArg.loc,
                   "Incorrect argument for operator " + toESymbol(name) +
                   " at position " + index + ": " + newseq(index).toParseString +
                   ".  All arguments must have the same type (" + 
@@ -1059,7 +1064,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // binding information needed to do type inference.
           aParam.tryMatch(anArg) match {
             case Fail(reason, index) =>
-              throw new ArgumentListException(
+              throw new ArgumentListException(anArg.loc,
                   "Incorrect argument for operator " + toESymbol(name) +
                   " at position " + index + ": " + newseq(index).toParseString +
                   ".  " + reason())
@@ -1086,7 +1091,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           val newparams = params.atoms
           SequenceMatcher.tryMatch(newparams, newseq) match {
             case Fail(reason, index) =>
-              throw new ArgumentListException(
+              throw new ArgumentListException(newseq(index).loc,
                   "Incorrect argument for operator " + toESymbol(name) +
                   " at position " + index + ": " + newseq(index).toParseString +
                   ".  " + reason())

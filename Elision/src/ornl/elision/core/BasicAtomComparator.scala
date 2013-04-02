@@ -274,7 +274,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         
       case _ =>
         // Something annoying has happened.
-        throw new ornl.elision.util.ElisionException(
+        throw new ornl.elision.util.ElisionException(left.loc,
             "ERROR: No sort order defined for: " + left.toParseString)
     }
     

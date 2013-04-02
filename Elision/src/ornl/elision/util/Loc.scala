@@ -82,10 +82,10 @@ object Loc {
   /**
    * Obtain a location object for an atom created at the console.
    */
-  def console = Loc("(console)", -1, -1, None)
+  val console = Loc("(console)", -1, -1, None)
   
   /**
    * Obtain a location object for an atom created programmatically (internally).
    */
-  def internal = Loc("", -1, -1, None)
+  val internal = Loc("", -1, -1, None)
 }
