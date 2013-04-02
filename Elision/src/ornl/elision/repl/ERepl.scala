@@ -300,6 +300,8 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
       ReplActor.waitForGUI("formatting off")
     }
     
+    ReplActor ! ("toGUI", atom)
+    
   }
   
   this.register(

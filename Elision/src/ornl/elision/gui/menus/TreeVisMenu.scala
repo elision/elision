@@ -261,7 +261,6 @@ class MaxDepthDialog extends Dialog {
         
         try {
             val fieldInt = input.toInt
-            GUIActor.treeBuilder.maxTreeDepth = fieldInt
             EvaConfig.maxTreeDepth = fieldInt
             EvaConfig.save
             // close the dialog when we finish processing input

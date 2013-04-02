@@ -48,10 +48,6 @@ import ornl.elision.gui.elision.TreeBuilderActor
 /** The Actor object used to receive and process communications from the REPL */
 object GUIActor extends Actor {
     
-    /** A reference to the GUI's TreeBuilder. */
-    val treeBuilder = new elision.EliTreeBuilderOld
-//    treeBuilder.start
-    
     /** Flag for temporarily disabling the TreeBuilder. */
     var disableTreeBuilder = false
     
@@ -126,7 +122,7 @@ object GUIActor extends Actor {
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)
                     
                     // Receive an atom from Elision to construct a TreeSprite visualization of.
-                    case ("visualize", atom : ornl.elision.core.BasicAtom) =>
+                    case (atom : ornl.elision.core.BasicAtom) =>
                         TreeBuilderActor ! ("visualize", atom)
                         
                     // Load a TreeSprite from an XML or JSON file.
@@ -158,7 +154,6 @@ object GUIActor extends Actor {
                             str += br.readLine + "\n"
                         }
                         br.close
-                        //val str = "inc(\"" + selFile.getPath + "\")\n"
                         
                         // now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
                         println("Reading REPL input from file: " + selFile.getPath)

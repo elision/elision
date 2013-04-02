@@ -52,29 +52,23 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
   /** The resulting TreeSprite. */
   var result : TreeSprite = null
   
-  /** Maximum Eva tree depth. If this is < 0, then there is assumed to be no maximum depth. */
-  var maxTreeDepth = -1
-  
   /** A count of the nodes made so far for the current TreeSprite. */
   var nodeCount = 0
   
+  
   /** The visitor passed to elision.core.AtomWalker. */
   def visitor(atom : BasicAtom, typ : Boolean) : Boolean = {
-    
-    if(atom.depth <= maxTreeDepth) {
+    if(EvaConfig.maxTreeDepth < 0 || atom.depth <= EvaConfig.maxTreeDepth) {
       // build the NodeSprite(s) for this atom.
       _createAtomNode(atom, result.root)
     }
         
-    if(nodeCount >= EvaConfig.nodeLimit) {
+    if(EvaConfig.nodeLimit < 0 || nodeCount >= EvaConfig.nodeLimit) {
       return false
     }
     
     true
   }
-  
-  
-  
   
   
   /** Helper method used to create a comment NodeSprite */
@@ -88,7 +82,7 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
   
   /** Helper method used to create an atom NodeSprite */
   private def _createAtomNode(atom : ornl.elision.core.BasicAtom, parent : NodeSprite) : NodeSprite = {
-    val node = parent.makeChild(atom.toParseString, false) // new NodeSprite(atom.toParseString, parent, false)
+    val node = parent.makeChild(atom.toParseString, false)
     nodeCount += 1
     
     // Set the node's properties String with the atom's basic properties.
@@ -128,7 +122,9 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
   override def run() {
     result = new ElisionTreeSprite
     result.makeRoot(atom.toParseString)
+    
     AtomWalker(atom, visitor, typ)
+    
     TreeBuilderActor ! ("finish", result)
   }
 }
@@ -138,12 +134,13 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
 
 
 object TreeBuilderActor extends Actor {  
+  
   def act() = {
     loop {
       receive {
         case ("visualize", atom : BasicAtom) =>
           GUIActor ! ("loading", true) 
-          val builder = new EliTreeBuilder(atom, false)
+          val builder = new EliTreeBuilder(atom, true)
           builder.start
         case ("OpenTree", file : java.io.File) =>
           openTree(file)
