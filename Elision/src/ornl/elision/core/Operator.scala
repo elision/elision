@@ -139,7 +139,7 @@ abstract class Operator(
   val description: String,
   val detail: String,
   override val evenMeta: Boolean = false)
-  extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+  extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Applicable {
   /**
    * Apply the operator to the given sequence of basic atoms as arguments.
    * 
@@ -314,6 +314,7 @@ object CaseOperator {
   /**
    * Make a case operator from the components.
    *
+   * @param loc           Location of the definition of this operator.
    * @param name					Operator name.
    * @param typ						The operator type (may be `ANY`).
    * @param cases					The cases, as a sequence of atoms.
@@ -324,14 +325,14 @@ object CaseOperator {
    * 											probably leave this with the default value of false.
    * @return	The new case operator.
    */
-  def apply(name: String, typ: BasicAtom, cases: AtomSeq,
+  def apply(loc: Loc, name: String, typ: BasicAtom, cases: AtomSeq,
     description: String, detail: String,
     evenMeta: Boolean = false): CaseOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) + ("cases" -> cases) +
       ("type" -> typ) + ("description" -> Literal(description)) +
       ("detail" -> Literal(detail))
-    val sfh = new SpecialFormHolder(Operator.tag, binds)
+    val sfh = new SpecialFormHolder(loc, Operator.tag, binds)
 
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
@@ -479,6 +480,7 @@ object TypedSymbolicOperator {
   /**
    * Make a typed symbolic operator from the provided parts.
    *
+   * @param loc           Location of the definition of this operator.
    * @param name					The operator name.
    * @param typ						The type of the fully-applied operator.
    * @param params				The operator parameters.
@@ -490,7 +492,7 @@ object TypedSymbolicOperator {
    * @param handler       Optional native handler code.  Default is `None`.
    * @return	The typed symbolic operator.
    */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq,
+  def apply(loc: Loc, name: String, typ: BasicAtom, params: AtomSeq,
     description: String, ddetail: String, evenMeta: Boolean = false,
     handler: Option[String] = None): TypedSymbolicOperator = {
     val detail = ddetail
@@ -502,7 +504,7 @@ object TypedSymbolicOperator {
       case None =>
       case Some(text) => binds += ("handler" -> Literal(text))
     }
-    val sfh = new SpecialFormHolder(Operator.tag, binds)
+    val sfh = new SpecialFormHolder(loc, Operator.tag, binds)
     return new TypedSymbolicOperator(sfh, name, typ, params,
       description, detail, evenMeta, handler)
   }
@@ -627,6 +629,7 @@ object SymbolicOperator {
   /**
    * Make a symbolic operator from the provided parts.
    *
+   * @param loc           Location of the definition of this operator.
    * @param name					The operator name.
    * @param typ						The type of the fully-applied operator.
    * @param params				The operator parameters.
@@ -638,7 +641,7 @@ object SymbolicOperator {
    * @param handler       The text for an optional native handler.
    * @return	The typed symbolic operator.
    */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq,
+  def apply(loc: Loc, name: String, typ: BasicAtom, params: AtomSeq,
     description: String, ddetail: String, evenMeta: Boolean = false,
     handler: Option[String] = None): SymbolicOperator = {
     val detail = ddetail
@@ -650,7 +653,7 @@ object SymbolicOperator {
       case None =>
       case Some(text) => binds += ("handler" -> Literal(text))
     }
-    val sfh = new SpecialFormHolder(Operator.tag, binds)
+    val sfh = new SpecialFormHolder(loc, Operator.tag, binds)
     return new SymbolicOperator(sfh, name, typ, params,
       description, detail, evenMeta, handler)
   }
@@ -671,7 +674,8 @@ object SymbolicOperator {
    * This makes the types of operators look more natural when viewed.
    */
   val MAP = OperatorRef(
-    SymbolicOperator("MAP", TypeUniverse, AtomSeq(NoProps, 'domain, 'codomain),
+    SymbolicOperator(Loc.internal, "MAP", TypeUniverse, AtomSeq(NoProps,
+        'domain, 'codomain),
       "Mapping constructor.",
       "This operator is used to construct types for operators.  It " +
       "indicates a mapping from one type (the domain) to another type " +
@@ -683,7 +687,7 @@ object SymbolicOperator {
    * associative.
    */
   val xx = OperatorRef(
-    SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y),
+    SymbolicOperator(Loc.internal, "xx", ANY, AtomSeq(Associative(true), 'x, 'y),
       "Cross product.",
       "This operator is used to construct types for operators.  It " +
       "indicates the cross product of two atoms (typically types).  " +
@@ -694,7 +698,7 @@ object SymbolicOperator {
    * root type.
    */
   val LIST = OperatorRef(
-    SymbolicOperator("LIST", TypeUniverse, AtomSeq(NoProps, 'type),
+    SymbolicOperator(Loc.internal, "LIST", TypeUniverse, AtomSeq(NoProps, 'type),
       "List type constructor.",
       "This operator is used to indicate the type of a list.  It takes a " +
       "single argument that is the type of the atoms in the list.  For " +

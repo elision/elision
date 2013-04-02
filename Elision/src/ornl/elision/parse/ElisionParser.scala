@@ -33,6 +33,8 @@ import org.parboiled.scala.{ANY => PANY}
 import org.parboiled.scala._
 import org.parboiled.errors.ErrorUtils
 import scala.io.Source
+import org.parboiled.Context
+import ornl.elision.core.Loc
 
 /**
  * Implement a parser for Elision atoms.
@@ -42,6 +44,16 @@ import scala.io.Source
 class ElisionParser(val trace: Boolean = false)
 extends Parser with AbstractParser {
   import AST._
+  
+  /**
+   * Transform a Parboiled context into a location.
+   * 
+   * @param context The parboiled context.
+   * @return The new location instance.
+   */
+  implicit def toLoc(context: Context[_]) = context.getPosition match {
+    case pos => Loc("(x)", pos.line, pos.column, Some(context.getMatch))
+  }
   
   //----------------------------------------------------------------------
   // Perform parsing.
@@ -190,7 +202,7 @@ extends Parser with AbstractParser {
         
         "{: " ~ Atom ~ Atom ~ ":} " ~~> withContext{
           (left, right, context) =>
-          (special(left, right))
+          (special(left, right, context))
         } |
         
         "{! " ~ OperatorPrototype ~
@@ -211,7 +223,7 @@ extends Parser with AbstractParser {
             special(sym("operator"), binding(List(
                 "name"->proto._1,
                 "params"->atomseq(algprop(proplist.getOrElse(List())), proto._2),
-                "type"->proto._3) ++ binds))
+                "type"->proto._3) ++ binds), context)
         } |
         
         "{ " ~ ESymbol ~ (
@@ -232,7 +244,7 @@ extends Parser with AbstractParser {
             }
         ) ~ "} " ~~> withContext{
           // Build the special form using the tag and content.
-          (tag, binds, context) => (special(sym(tag),binds))
+          (tag, binds, context) => (special(sym(tag), binds, context))
         } |
 
         "%" ~ ParsedAlgProp ~ WS ~ optional("( " ~ ParsedRawAtomSeq ~ ") ") ~~>

@@ -43,6 +43,7 @@ import org.parboiled.errors.ParsingException
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * The core classes and definitions that make up the Elision runtime.
@@ -170,8 +171,8 @@ package object core {
    * 
    * @param text	The text of the warning.
    */
-  def warn(text: String) {
-    knownExecutor.console.warn("WARNING: " + text)
+  def warn(loc: Loc, text: String) {
+    knownExecutor.console.warn("WARNING: "+loc+" "+text)
   }
 
   /**
