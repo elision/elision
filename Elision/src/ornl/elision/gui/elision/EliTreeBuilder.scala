@@ -65,19 +65,12 @@ class EliTreeBuilder(atoms : ListBuffer[(BasicAtom, String)], typ : Boolean) ext
   /** The visitor passed to elision.core.AtomWalker. */
   def visitor(atom : BasicAtom, typ : Boolean) : Boolean = { 
     // Figure out the parent of this atom using our parentStack.
-    var parent = parentStack.top
-    while(!typ && !parentStack.isEmpty && (atom.depth <= parent._3 || parent._4)) {
-      parentStack.pop
-      parent = parentStack.top
-    }
+    var parent = _getParent(atom, typ)
     
-    if(parent == null) {
-      // uh oh... How'd we pop the handler label off the stack??? :(
-    }
-    else if(EvaConfig.maxTreeDepth < 0 || atom.depth <= EvaConfig.maxTreeDepth) {
+    if(EvaConfig.maxTreeDepth < 0 || atom.depth <= EvaConfig.maxTreeDepth) {
       // build the NodeSprite(s) for this atom.
       val atomNode = _createAtomNode(atom, parent._2)
-      val tuple = (atom, atomNode, atom.depth + (if(typ) 1 else 0), typ)
+      val tuple = (atom, atomNode, atom.depth, typ)
       parentStack.push(tuple)
     }
         
@@ -86,6 +79,23 @@ class EliTreeBuilder(atoms : ListBuffer[(BasicAtom, String)], typ : Boolean) ext
     }
     
     true
+  }
+  
+  
+  def _getParent(atom : BasicAtom, typ : Boolean) : (BasicAtom, NodeSprite, Int, Boolean) = {
+    var parent = parentStack.top
+    
+    while(parent._2 != handlerRoot) {
+      if(atom.depth < parent._3 || typ) {
+        return parent
+      }
+      else {
+        parentStack.pop
+        parent = parentStack.top
+      } 
+    }
+    
+    parent
   }
   
   
@@ -146,7 +156,7 @@ class EliTreeBuilder(atoms : ListBuffer[(BasicAtom, String)], typ : Boolean) ext
       handlerRoot = result.root.makeChild(label)
       
       parentStack.clear
-      val tuple = (null, handlerRoot, -1, false)
+      val tuple = (null, handlerRoot, Int.MaxValue, false)
       parentStack.push(tuple)
       
       AtomWalker(atom, visitor, typ)
