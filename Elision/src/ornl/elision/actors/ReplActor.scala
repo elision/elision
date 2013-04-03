@@ -93,7 +93,7 @@ object ReplActor extends Actor {
         // Forward something to the GUI's actor.
         case ("toGUI", msg : Any) =>
           if(guiActor != null && !disableGUIComs) { 
-             guiActor ! msg
+             guiActor ! ("toGUI", msg)
           }
           
         // Receive a line of input from the GUI.

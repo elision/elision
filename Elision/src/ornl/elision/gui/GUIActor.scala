@@ -121,9 +121,9 @@ object GUIActor extends Actor {
                     case ("guiColumns", cols : Int) =>
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)
                     
-                    // Receive an atom from Elision to construct a TreeSprite visualization of.
-                    case (atom : ornl.elision.core.BasicAtom) =>
-                        TreeBuilderActor ! ("visualize", atom)
+                    // Receive a tree building message from Elision.
+                    case ("toGUI", msg : Any) =>
+                        TreeBuilderActor ! msg
                         
                     // Load a TreeSprite from an XML or JSON file.
                     case ("OpenTree", file : java.io.File) =>

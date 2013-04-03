@@ -299,9 +299,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
       ReplActor ! ("syntaxcolor", false)
       ReplActor.waitForGUI("formatting off")
     }
-    
-    ReplActor ! ("toGUI", atom)
-    
   }
   
   this.register(

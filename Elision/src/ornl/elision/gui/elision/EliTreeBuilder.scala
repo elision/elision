@@ -37,8 +37,9 @@
 
 package ornl.elision.gui.elision
 
-import collection.mutable.Stack
 import scala.actors.Actor
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
 
 import ornl.elision.core.AtomWalker
 import ornl.elision.core.BasicAtom
@@ -47,10 +48,13 @@ import ornl.elision.gui.elision.sprites._
 import ornl.elision.gui.trees._
 
 /** A factory used to construct TreeSprite visualizations from Elision atoms. */
-class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
+class EliTreeBuilder(atoms : ListBuffer[(BasicAtom, String)], typ : Boolean) extends Thread {
   
   /** The resulting TreeSprite. */
   var result : TreeSprite = null
+  
+  /** The current handler tree. */
+  var handlerRoot : NodeSprite = null
   
   /** A count of the nodes made so far for the current TreeSprite. */
   var nodeCount = 0
@@ -60,7 +64,7 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
   def visitor(atom : BasicAtom, typ : Boolean) : Boolean = {
     if(EvaConfig.maxTreeDepth < 0 || atom.depth <= EvaConfig.maxTreeDepth) {
       // build the NodeSprite(s) for this atom.
-      _createAtomNode(atom, result.root)
+      _createAtomNode(atom, handlerRoot)
     }
         
     if(EvaConfig.nodeLimit < 0 || nodeCount >= EvaConfig.nodeLimit) {
@@ -121,9 +125,15 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
   /** Construct the TreeSprite in the background. */
   override def run() {
     result = new ElisionTreeSprite
-    result.makeRoot(atom.toParseString)
     
-    AtomWalker(atom, visitor, typ)
+    result.makeRoot(atoms(0)._1.toParseString)
+    
+    for((atom : BasicAtom, label : String) <- atoms) {
+      handlerRoot = result.root.makeChild(label)
+      AtomWalker(atom, visitor, typ)
+    }
+    
+    
     
     TreeBuilderActor ! ("finish", result)
   }
@@ -135,22 +145,52 @@ class EliTreeBuilder(atom : BasicAtom, typ : Boolean) extends Thread {
 
 object TreeBuilderActor extends Actor {  
   
+  /** Our current batch of atom, handler label pairs. */
+  var atomBatch : ListBuffer[(BasicAtom, String)] = new ListBuffer[(BasicAtom, String)]
+  
   def act() = {
     loop {
       receive {
-        case ("visualize", atom : BasicAtom) =>
-          GUIActor ! ("loading", true) 
-          val builder = new EliTreeBuilder(atom, true)
+        
+        // Start building a batch of atoms to contstruct a TreeSprite for.
+        case "startBatch" =>
+          atomBatch = new ListBuffer[(BasicAtom, String)]
+        
+        // Add a labeled atom to our batch.
+        case (atom : BasicAtom, str : String) =>
+          val pair = (atom, str)
+          atomBatch += pair
+        
+        // Add an unlabeled atom to our batch.
+        case atom : BasicAtom =>
+          val pair = (atom, "")
+          atomBatch += pair
+        
+        // We're done building our atom batch. Create a TreeSprite of it.
+        case "endBatch" =>
+          val builder = new EliTreeBuilder(atomBatch, true)
           builder.start
+          atomBatch = null
+          
+        // Open a TreeSprite from an XML or JSON file.
         case ("OpenTree", file : java.io.File) =>
           openTree(file)
+        
+        // Save a TreeSprite as XML.
         case ("SaveTreeXML", file : java.io.File) =>
           saveTreeXML(file)
+          
+        // Save a TreeSprite as JSON.
         case ("SaveTreeJSON", file : java.io.File) =>
           saveTreeJSON(file)
+          
+        // Receive a completed TreeSprite from an EliTreeBuilder.
         case ("finish", result : TreeSprite) =>
           finishTree(result)
-        case _ =>
+          
+        // Discard any unrecognized messages.
+        case msg =>
+          System.err.println("TreeBuilderActor received unrecognized message:\n" + msg)
       }
     }
   }

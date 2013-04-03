@@ -29,6 +29,7 @@
  */
 package ornl.elision.parse
 
+import ornl.elision.actors.ReplActor
 import ornl.elision.core._
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
@@ -362,6 +363,12 @@ with HasHistory {
 
     var handlersCount = 1
     
+    // We'll only send the GUI atom data here. This may change depending how 
+    // we ultimately want the GUI to
+    // receive data about the atoms it needs to visualize.
+    ReplActor ! ("toGUI", "startBatch")
+    ReplActor ! ("toGUI", (theAtom, "Parsed Atom: "))
+    
     for (handler <- _queue) {
       handlersCount += 1
       
@@ -370,9 +377,11 @@ with HasHistory {
           return None
         case Some(alt) =>
           theAtom = alt
+          ReplActor ! ("toGUI", (theAtom, "Handler " + (handlersCount - 1) + " result: "))
       }
     } // Perform all handlers.
     
+    ReplActor ! ("toGUI", "endBatch")
     return Some(theAtom)
   }
   
