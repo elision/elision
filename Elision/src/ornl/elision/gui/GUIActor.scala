@@ -43,12 +43,10 @@ import java.io._
 
 import scala.actors.Actor
 
+import ornl.elision.gui.elision.TreeBuilderActor
+
 /** The Actor object used to receive and process communications from the REPL */
 object GUIActor extends Actor {
-    
-    /** A reference to the GUI's TreeBuilder. */
-    val treeBuilder = new elision.EliTreeBuilder
-    treeBuilder.start
     
     /** Flag for temporarily disabling the TreeBuilder. */
     var disableTreeBuilder = false
@@ -65,7 +63,8 @@ object GUIActor extends Actor {
       //    System.err.println("ReplActor: " + ornl.elision.actors.ReplActor.getState)
       //    System.err.println("Console REPL thread: " + mainGUI.consolePanel.replThread.getState)
 			react {
-        case "quit" => // forcefully exits the current REPL thread.
+			  // Forcefully, but cleanly, terminate the current REPL's thread.
+        case "quit" => 
           try {
             System.out.println("\nQuitting " + mainGUI.mode + " mode...")
             mainGUI.consolePanel.replThread.clean
@@ -73,6 +72,8 @@ object GUIActor extends Actor {
           catch {
             case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
           }
+          
+        // Switch to some other mode supported by Eva.
         case ("changeMode", mode : String) => 
           try {
             System.out.println("\nChanging to " + mode + " mode...")
@@ -84,6 +85,8 @@ object GUIActor extends Actor {
           mainGUI.changeMode(mode)
           waitingForReplInput = false
           System.out.println("Mode change was successful")
+        
+        // Process a message based on what mode Eva is currently operating in.
         case theMsg : Any => 
           reactWithMode(theMsg)
 			}
@@ -95,36 +98,50 @@ object GUIActor extends Actor {
         mainGUI.mode match {
             case "Elision" =>
                 theMsg match {
+                    // forward a message to the REPL
                     case ("Repl", args : Any) => 
-                        // forward a message to the REPL
                         ornl.elision.actors.ReplActor ! args
+                        
+                    // Send a line of input to the Elision REPL.
                     case ("ReplInput", inputString : String) =>
-                        if(inputString != "\n" && inputString != "")
-                            mainGUI.visPanel.isLoading = true
                         ornl.elision.actors.ReplActor ! inputString
+                    
+                    // Print a new prompt thingy in the console.
                     case "newPrompt" =>
                         System.out.print("\ne> ")
+                    
+                    // Receive a line of input history from the REPL's Actor.
                     case ("reGetHistory", result : Any) =>
                         console.ConsolePanel.reGetHistory = result
                         waitingForReplInput = false
+                        
+                    // Tell the REPL to set its column width to cols.
                     case ("guiColumns", cols : Int) =>
                         ornl.elision.actors.ReplActor ! ("guiColumns", cols)
-                    case ("Eva", cmd : String, args : Any) => 
-                        // process a TreeBuilder command received from the Elision.
-                        if(!EvaConfig.disableTree) treeBuilder.tbActor ! ("Eva", cmd, args)
+                    
+                    // Receive a tree building message from Elision.
+                    case ("toGUI", msg : Any) =>
+                        TreeBuilderActor ! msg
+                        
+                    // Load a TreeSprite from an XML or JSON file.
                     case ("OpenTree", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("OpenTree", file)
-                    case ("SaveTree", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("SaveTree", file)
-                    case ("OpenTreeJSON", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("OpenTreeJSON", file)
+                        TreeBuilderActor ! ("OpenTree", file)
+                        
+                    // Save the current TreeSprite as XML.
+                    case ("SaveTreeXML", file : java.io.File) =>
+                        TreeBuilderActor ! ("SaveTreeXML", file)
+                    
+                    // Save the current TreeSprite as JSON.
                     case ("SaveTreeJSON", file : java.io.File) =>
-                        treeBuilder.tbActor ! ("SaveTreeJSON", file)
+                        TreeBuilderActor ! ("SaveTreeJSON", file)
+                    
+                    // Skip visualizing the next tree. (I don't remember what this was used for. I may be deprecating it. (TODO: Cazra))
                     case "IgnoreNextTree" => 
-                        treeBuilder.tbActor ! "IgnoreNextTree"
+                        TreeBuilderActor ! "IgnoreNextTree"
+                        
+                    // Send lines of input to Elision from a file and eventually construct a TreeSprite visualization of the results.
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-                        if(!EvaConfig.disableTree) mainGUI.visPanel.isLoading = true
                         Thread.sleep(100)
                         
                         // here we accumulate the text of the file into one big string.
@@ -134,35 +151,45 @@ object GUIActor extends Actor {
                             str += br.readLine + "\n"
                         }
                         br.close
-                        //val str = "inc(\"" + selFile.getPath + "\")\n"
                         
                         // now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
                         println("Reading REPL input from file: " + selFile.getPath)
                         println()
                         
                         ornl.elision.actors.ReplActor ! str
+                        
+                    // Receive a message from the REPL whether to syntax color output it is about to produce, then 
+                    // respond to the REPL that we are ready to receive that input. 
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
-                    case ("replReduceLines", flag : Boolean) =>
-                        mainGUI.consolePanel.tos.reduceLines = flag
-                        ornl.elision.actors.ReplActor ! ("wait", false)
+                    
+                    // Toggle whether the visualization is loading.
                     case ("loading", flag : Boolean) =>
                         mainGUI.visPanel.isLoading = flag
+                        
+                    // Opens the Help dialog.
                     case "helpOpen" =>
                         mainGUI.evaMenuBar.helpItem.doClick
+                        
+                    // Control whether the quick rule-maker utility is currently being used.
                     case ("enableRuleMaker", flag : Boolean) =>
                         mainGUI.visPanel.curLevel match {
                           case etvp : elision.EliTreeVisLevel =>
                              etvp.selectingRuleLHS = flag
                           case _ =>
                         }
+                    
+                    // Reselects the currently selected NodeSprite in the visualization.
                     case "treeReselectCurrentNode" =>
                         mainGUI.visPanel.curLevel match {
                           case treeVisPanel : trees.TreeVisLevel => 
                             treeVisPanel.selectNode(treeVisPanel.treeSprite.selectedNode)
                         }
-                    case msg => System.err.println("GUIActor received invalid Elision message: " + msg) // discard anything else that comes into the mailbox.
+                    
+                    // discard anything else that comes into the mailbox.
+                    case msg => 
+                        System.err.println("GUIActor received invalid Elision message: " + msg) 
                 }
             case "Welcome" => // ignore messages.
             case _ =>
