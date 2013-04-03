@@ -224,9 +224,6 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
   
   /** flag for applying Elision formatting to output */
   var applyFormatting = false
-    
-  /** flag for enforcing a maximum number of lines of output to be printed at one time. */
-  var reduceLines = true
   
   /** The position of the last output character in textArea. */
   var _anchorPos : Int = 0
@@ -290,7 +287,7 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
             
             // Inject our new text with HTML tags for formatting.
             if(applyFormatting) 
-              newTxt = _reduceTo9Lines(ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols))
+              newTxt = ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols)
             else 
               newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
             
@@ -325,39 +322,6 @@ class EditorPaneOutputStream( var textArea : EditorPane, var maxLines : Int, val
       if(!_chompFirstLine) 
         return
     } // endwhile
-  }
-  
-  /** 
-   * Reduces a new line of HTML-formatted output so that it doesn't exceed 9 lines. 
-   * If it does, it is cut off and appended with "..." below it. 
-   * @param txt    The HTML string we are reducing to no more than 9 lines.
-   * @return      Our string reduced to no more than 9 lines when interpretted as HTML. 
-   *              If it exceeds 9 lines, "..." is appended on the line below the 9th line.
-   */
-  def _reduceTo9Lines(txt : String) : String = {
-    if(!reduceLines)
-      return txt
-      
-    var lineBreakCount = 1
-    for(myMatch <- syntax.SyntaxFormatter.htmlNewLineRegex.findAllIn(txt).matchData) {
-      if(lineBreakCount == ConsolePanel.printMaxRows) {
-        var result = txt.take(myMatch.end)
-        var fontStartCount = syntax.SyntaxFormatter.htmlFontStartRegex.findAllIn(result).size
-        val fontEndCount = syntax.SyntaxFormatter.htmlFontEndRegex.findAllIn(result).size
-        
-        fontStartCount -= fontEndCount
-        
-        while(fontStartCount > 0) {
-          result += """</font>"""
-          fontStartCount -= 1
-        }
-        result += """...<br/>"""
-        return result
-      } // endif
-      
-      lineBreakCount += 1
-    } // endfor
-    txt
   }
   
   /** 

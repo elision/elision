@@ -29,6 +29,7 @@
  */
 package ornl.elision.repl
 
+import ornl.elision.actors.ReplActor
 import ornl.elision.parse._
 import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
@@ -131,6 +132,12 @@ object ReplMain {
   def runRepl(settings: Map[String,String]) {
     val erepl = new ERepl(settings)
     ornl.elision.core.knownExecutor = erepl
+    
+    ReplActor.start
+    ReplActor.history = erepl
+    ReplActor.console = erepl.console
+    ReplActor ! ("disableGUIComs", true)
+    
     erepl.run()
     erepl.clean()
   }
@@ -267,6 +274,12 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     }
+    
+    if(ReplActor.guiActor != null) {
+      ReplActor ! ("syntaxcolor", true)
+      ReplActor.waitForGUI("formatting on")
+    }
+    
     if(getProperty[Boolean]("syntaxcolor")) {
       // color-format the atom's parseString and print it.
       val formatCols = console.width
@@ -280,6 +293,11 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
+    }
+    
+    if(ReplActor.guiActor != null) {
+      ReplActor ! ("syntaxcolor", false)
+      ReplActor.waitForGUI("formatting off")
     }
   }
   
@@ -495,6 +513,7 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     } catch {
       case _ =>     
         if (!bootstrap()) {
+          ReplActor ! (":quit", true)
           return
         }
     }
@@ -503,7 +522,12 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     stopTimer
     printf("Startup Time: " + getLastTimeString + "\n")
     SymbolicOperator.reportTime
-	
+    
+    // activates communications with the GUI if we are using it.
+    if(ReplActor.guiActor != null) {
+      ReplActor ! ("disableGUIComs", false)
+    }
+    
     // Configure the console and history.
     val cr = new ConsoleReader
     val term = cr.getTerminal
@@ -530,7 +554,11 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
           Processor.fileReadStack.clear
           Processor.fileReadStack.push("Console")
 
-          segment = {
+          segment = if (ReplActor.guiActor != null) {  
+            // Get input from the GUI.            
+            ReplActor.readLine(if (console.quiet > 0) p2 else p1)
+          } else {
+            // Get input directly from the console. 
     				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
     				// Reset the terminal size now, if we can, and if the user wants to
     				// use the pager.
@@ -575,6 +603,10 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
         
         // Watch for the end of stream or the special :quit token.
         if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+          // Tell the ReplActor to exit its thread first.
+          ReplActor.exitFlag = true
+          ReplActor ! (":quit", true)
+          
           return
         }
         

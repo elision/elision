@@ -57,7 +57,7 @@ object mainGUI extends SimpleSwingApplication {
   
   /** Eva's configuration settings */
 //  val config = new EvaConfig
-  GUIActor.treeBuilder.treeMaxDepth = EvaConfig.maxTreeDepth
+//  GUIActor.treeBuilder.maxTreeDepth = EvaConfig.maxTreeDepth
   
   /** 
    * This string controls what mode Eva is currently running in. 
@@ -79,6 +79,7 @@ object mainGUI extends SimpleSwingApplication {
   sidePanel.listenTo(visPanel)
   
   GUIActor.start
+  elision.TreeBuilderActor.start
   
   /** The menu bar */
   val evaMenuBar = new menus.EvaMenuBar
