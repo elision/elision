@@ -164,10 +164,12 @@ object TreeBuilderActor extends Actor {
         // Add an unlabeled atom to our batch.
         case atom : BasicAtom =>
           val pair = (atom, "")
+          System.err.println(atom.toParseString)
           atomBatch += pair
         
         // We're done building our atom batch. Create a TreeSprite of it.
         case "endBatch" =>
+          GUIActor ! ("loading", true)
           val builder = new EliTreeBuilder(atomBatch, true)
           builder.start
           atomBatch = null
@@ -187,6 +189,7 @@ object TreeBuilderActor extends Actor {
         // Receive a completed TreeSprite from an EliTreeBuilder.
         case ("finish", result : TreeSprite) =>
           finishTree(result)
+          GUIActor ! ("loading", false)
           
         // Discard any unrecognized messages.
         case msg =>
@@ -199,7 +202,6 @@ object TreeBuilderActor extends Actor {
   /** Loads a TreeSprite from an xml or json file. */
   def openTree(file : java.io.File) {
     if(EvaConfig.disableTree) {
-      GUIActor ! ("loading", false)
       return
     }
       
@@ -289,7 +291,6 @@ object TreeBuilderActor extends Actor {
   /** Load a completed TreeSprite into the visualization. */
   def finishTree(result : TreeSprite) {
     if(EvaConfig.disableTree) {
-      GUIActor ! ("loading", false)
       return
     }
     
@@ -301,13 +302,9 @@ object TreeBuilderActor extends Actor {
             null
     }
     
-    GUIActor ! ("loading", true)
     if(treeVisPanel != null) {
       treeVisPanel.changeTree(result)
     }
-    
-    GUIActor ! ("loading", false)
-    
   }
 }
 

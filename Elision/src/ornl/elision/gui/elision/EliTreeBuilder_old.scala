@@ -481,7 +481,7 @@ class EliTreeBuilderOldActor(val treeBuilder : EliTreeBuilderOld) extends Actor 
       receive {
                 case ("Eva", cmd : String, args : Any) => 
                     // process a EliTreeBuilder command received from the Elision.
-                    processEliTreeBuilderCommands(cmd, args)
+                 //   processEliTreeBuilderCommands(cmd, args)
                 case "IgnoreNextTree" =>
                     ignoreNextTree = true
                 case cmd => System.err.println("Bad tree builder command: " + cmd)
@@ -489,85 +489,4 @@ class EliTreeBuilderOldActor(val treeBuilder : EliTreeBuilderOld) extends Actor 
         }
     }
     
-    /** Called by act when the actor receives a valid EliTreeBuilder command. Here we actually invoke the methods of the EliTreeBuilder corresponding to the commands that the actor receives. */
-    def processEliTreeBuilderCommands(cmd :String, args : Any) : Unit = {
-        cmd match {
-            case "newTree" =>
-                args match {
-                    case label : String =>
-                        treeBuilder.newTree(label)
-                    case _ => System.err.println("EliTreeBuilder.newTree received incorrect arguments: " + args)
-                }
-            case "finishTree" => // FINISH HIM. FATALITY. KO!
-                // get a reference to the tree visualization panel
-                val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
-                    case tvp : TreeVisLevel =>
-                        tvp
-                    case _ =>
-                        null
-                }
-                
-                GUIActor ! ("loading", true)
-                if(treeVisPanel != null && !ignoreNextTree) {
-                  treeVisPanel.changeTree(treeBuilder.finishTree)
-                }
-                
-                ignoreNextTree = false
-                GUIActor ! ("loading", false)
-                
-            case "pushTable" => 
-                treeBuilder.pushTable(args)
-            case "popTable" => 
-                treeBuilder.popTable(args)
-            case "setSubroot" =>
-                args match {
-                    case id : String =>
-                        treeBuilder.setSubroot(id)
-                    case _ => System.err.println("EliTreeBuilder.setSubroot received incorrect arguments: " + args)
-                }
-            case "addToSubroot" =>
-                args match {
-                    case (id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addToSubroot(id, comment, atom)
-                    case (id : String, commentAtom : String) =>
-                        treeBuilder.addToSubroot(id, commentAtom)
-                    case (id : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addToSubroot(id, atom)
-                    case _ => System.err.println("EliTreeBuilder.addToSubroot received incorrect arguments: " + args)
-                }
-            case "addTo" =>
-                args match {
-                    case (parentID : String, id : String, comment : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addTo(parentID, id, comment, atom)
-                    case (parentID : String, id : String, commentAtom : String) =>
-                        treeBuilder.addTo(parentID, id, commentAtom)
-                    case (parentID : String, id : String, atom : ornl.elision.core.BasicAtom) =>
-                        treeBuilder.addTo(parentID, id, atom)
-                    case _ => System.err.println("EliTreeBuilder.addTo received incorrect arguments: " + args)
-                }
-            case "remLastChild" =>
-                args match {
-                    case parentID : String =>
-                        treeBuilder.remLastChild(parentID)
-                    case _ => System.err.println("EliTreeBuilder.remLastChild received incorrect arguments: " + args)
-                }
-            case "saveNodeCount" => 
-                treeBuilder.saveNodeCount
-            case "restoreNodeCount" =>
-                args match {
-                    case flag : Boolean =>
-                        treeBuilder.restoreNodeCount(flag)
-                    case _ => System.err.println("EliTreeBuilder.restoreNodeCount received incorrect arguments: " + args)
-                }
-            case "toggleIgnore" =>
-                args match {
-                    case flag : Boolean =>
-                        treeBuilder.toggleIgnore(flag)
-                    case _ => System.err.println("EliTreeBuilder.toggleIgnore received incorrect arguments: " + args)
-                }
-            case _ => System.err.println("GUIActor received bad EliTreeBuilder command: " + cmd)
-        }
-    }
 }
-
-

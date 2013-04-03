@@ -104,8 +104,6 @@ object GUIActor extends Actor {
                         
                     // Send a line of input to the Elision REPL.
                     case ("ReplInput", inputString : String) =>
-                        if(inputString != "\n" && inputString != "")
-                            mainGUI.visPanel.isLoading = true
                         ornl.elision.actors.ReplActor ! inputString
                     
                     // Print a new prompt thingy in the console.
@@ -144,7 +142,6 @@ object GUIActor extends Actor {
                     // Send lines of input to Elision from a file and eventually construct a TreeSprite visualization of the results.
                     case selFile : java.io.File => 
                         // The actor reacts to a File by passing the file's contents to the REPL to be processed as input.
-                        if(!EvaConfig.disableTree) mainGUI.visPanel.isLoading = true
                         Thread.sleep(100)
                         
                         // here we accumulate the text of the file into one big string.
@@ -165,12 +162,6 @@ object GUIActor extends Actor {
                     // respond to the REPL that we are ready to receive that input. 
                     case ("replFormat", flag : Boolean) =>
                         mainGUI.consolePanel.tos.applyFormatting = flag
-                        ornl.elision.actors.ReplActor ! ("wait", false)
-                    
-                    // This was something used by Eva to truncate output that was too large back before it implemented
-                    // a pager for its console. This should be deprecated. (TODO: Cazra)
-                    case ("replReduceLines", flag : Boolean) =>
-                        mainGUI.consolePanel.tos.reduceLines = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
                     
                     // Toggle whether the visualization is loading.
