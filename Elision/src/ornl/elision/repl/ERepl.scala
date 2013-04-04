@@ -95,7 +95,7 @@ object ReplMain {
           Some(_default_root), "Specify the folder where Elision should " +
           		"store its data."),
       Setting("elision.history", Some("ELISION_HISTORY"), None,
-          Some(".elision-history.eli"),
+          Some("elision-history.eli"),
           "Name of file where Elision will store the REPL history."),
       Setting("elision.context", Some("ELISION_CONTEXT"), None,
           Some("elision-context.eli"),
