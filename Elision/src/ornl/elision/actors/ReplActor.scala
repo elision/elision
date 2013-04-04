@@ -165,7 +165,7 @@ object ReplActor extends Actor {
 	 * @return         The line of input from the GUI.
 	 */
 	def readLine(prompt : String) : String = {
-    guiActor ! ("newPrompt", prompt)
+    this ! ("newPrompt", prompt)
     
     ReplActor.waitForGUI("gui input")
     ReplActor.guiInput

@@ -153,15 +153,12 @@ object GUIActor extends Actor {
                         br.close
                         
                         // now we send the accumulated string to the REPL's actor so that the REPL will process it as input.
-                        println("Reading REPL input from file: " + selFile.getPath)
-                        println()
-                        
+                        mainGUI.consolePanel.console.emitln("Reading REPL input from file: " + selFile.getPath)
                         ornl.elision.actors.ReplActor ! str
                         
                     // Receive a message from the REPL whether to syntax color output it is about to produce, then 
                     // respond to the REPL that we are ready to receive that input. 
                     case ("replFormat", flag : Boolean) =>
-                        // mainGUI.consolePanel.tos.applyFormatting = flag
                         mainGUI.consolePanel.console.applyFormatting = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
                     

@@ -105,7 +105,6 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
         // backspace should not got past the prompt string.
         if(e.char == '\b' && getLength < _anchorPos) {
           text = """<div style="font-family:Lucida Console;font-size:12pt">""" + _readOnlyOutput
-        //  textArea.caret.position = taos._anchorPos
           _sendCaretToStart
         }
         
@@ -166,17 +165,6 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
     }
   }
   
-  
-  
-  /** 
-   * Does the actually processing work for writing new text to the EditorPane. 
-   * This includes applying HTML tags for formatting and keeping track 
-   * of where the boundary between output and input space is. 
-   * @param _newTxt    is the string being appended to the EditorPane.
-   */
-  private def _write(_newTxt : String) : Unit = {
-    this ! _newTxt
-  }
     
     
   def act() = {
