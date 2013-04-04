@@ -96,13 +96,6 @@ class EliReplThread extends ReplThread {
           "Name of file to read after bootstrapping Elision."))
 	
   val state = CLI(Array.empty[String], null, _settings, false)        
-          
-  /** A closure for pausing the repl. */
-  def evaPause(): Boolean = {
-    myRepl.console.write("--More--")
-    ReplActor.waitForGUI("gui pager has paused.")
-    true
-  }
   
 	/** Starts a new thread in which the REPL will run in. */
 	override def run : Unit = {
@@ -114,13 +107,13 @@ class EliReplThread extends ReplThread {
 	def runNewRepl : Unit = {
 		myRepl = new ornl.elision.repl.ERepl(state.settings)
 		ornl.elision.core.knownExecutor = myRepl
+		
+		myRepl.console = mainGUI.consolePanel.console
 		ReplActor.history = myRepl
 		ReplActor.console = myRepl.console
 		ReplActor ! ("disableGUIComs", true)
 		myRepl.setProperty[Boolean]("syntaxcolor", false)
 		ReplActor.start
-    
-    myRepl.console.pause_=(evaPause)
     
 		myRepl.run()
     myRepl.clean()
