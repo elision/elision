@@ -165,15 +165,9 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = {
-
-    // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out", this, subject)
-    }
-
-    // No timeout.
-    else {
-
+    } else {
       // We only care if the hint is an operator.  We do this in two steps, since
       // the "obvious" way to do it doesn't work because of type erasure.  Boo!
       val operator = hints match {
@@ -195,26 +189,35 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         	  // Now we have to decide how to compare the two sequences.  Note that
             // if the properties matching changes, this will like have to change,
             // too, to use the matched properties.
-            if (associative)
-              if (commutative)
+            if (associative) {
+              if (commutative) {
                 ACMatcher.tryMatch(this, as, usebinds, operator)
-              else
+              } else {
                 AMatcher.tryMatch(this, as, usebinds, operator)
-              else
-                if (commutative)
-                  CMatcher.tryMatch(this, as, usebinds)
-                else
-                  SequenceMatcher.tryMatch(this, as, usebinds)
+              }
+            } else {
+              if (commutative) {
+                CMatcher.tryMatch(this, as, usebinds)
+              } else {
+                SequenceMatcher.tryMatch(this, as, usebinds)
+              }
+            }
           }
         
-        // Match properties.  This may alter the bindings.
-        props.tryMatch(as.props, binds) match {
-          case fail: Fail => Fail("Sequence properties do not match.",
-          		                    this, subject, Some(fail))
-          case Match(newbinds) => doMatchSequences(newbinds)
-          case Many(iter) => Outcome.convert(iter ~> (doMatchSequences _),
-                                             Fail("Sequence properties do not match.", this, subject))
-        }
+          // Match properties.  This may alter the bindings.
+          props.tryMatch(as.props, binds) match {
+            case fail: Fail =>
+              Fail("Sequence properties do not match.", this, subject,
+                  Some(fail))
+              
+            case Match(newbinds) =>
+              doMatchSequences(newbinds)
+              
+            case Many(iter) =>
+              Outcome.convert(iter ~> (doMatchSequences _),
+                  Fail("Sequence properties do not match.", this, subject))
+          }
+        
         case _ => Fail("An atom sequence may only match another atom sequence.",
                        this, subject)
       }

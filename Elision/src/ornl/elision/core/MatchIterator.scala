@@ -95,7 +95,6 @@ abstract class MatchIterator extends Iterator[Bindings] {
    * @return	True if there is a next match, and false if not.
    */
   final def hasNext: Boolean = {
-
     if (_exhausted) {
       // The iterator is exhausted.
       return false

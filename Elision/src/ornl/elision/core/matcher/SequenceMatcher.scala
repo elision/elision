@@ -75,10 +75,10 @@ object SequenceMatcher {
   def tryMatch(patterns: OmitSeq[BasicAtom], subjects: OmitSeq[BasicAtom],
       binds: Bindings = Bindings()): Outcome = {
     Debugger("matching") {
-      Debugger.debugln("Sequence Matcher called: ")
-      Debugger.debugln("    Patterns: " + patterns.mkParseString("",",",""))
-      Debugger.debugln("    Subjects: " + subjects.mkParseString("",",",""))
-      Debugger.debugln("    Bindings: " + binds.toParseString)
+      Debugger("matching", "Sequence Matcher called: ")
+      Debugger("matching", "    Patterns: " + patterns.mkParseString("",",",""))
+      Debugger("matching", "    Subjects: " + subjects.mkParseString("",",",""))
+      Debugger("matching", "    Bindings: " + binds.toParseString)
     }
 
     // Has rewriting timed out?
