@@ -259,7 +259,7 @@ object TreeBuilderActor extends Actor {
       
       GUIActor ! ("loading", false)
     }
-    GUIActor ! "newPrompt"
+    GUIActor ! ("newPrompt", "e> ")
   }
   
   
