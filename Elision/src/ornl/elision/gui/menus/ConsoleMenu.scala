@@ -86,7 +86,7 @@ class MaxLinesDialog extends Dialog {
     val linesInput = new TextField(10) { 
         listenTo(keys) 
         reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = "" + mainGUI.consolePanel.getMaxLines
+        text = "" + EvaConfig.replMaxLines
     }
     val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
     val cancelBtn = new Button(Action("Cancel") { close } )
@@ -116,7 +116,6 @@ class MaxLinesDialog extends Dialog {
         
         try {
             val fieldInt = input.toInt
-            mainGUI.consolePanel.setMaxLines(fieldInt)
             EvaConfig.replMaxLines = fieldInt
             EvaConfig.save
             // close the dialog when we finish processing input

@@ -89,7 +89,11 @@ object ReplActor extends Actor {
             guiActor ! "quit"
           else 
             exit
-          
+        
+        // new prompt string to be appended to the GUI's console.
+        case ("newPrompt", prompt : String) =>
+            guiActor ! ("newPrompt", prompt)
+            
         // Forward something to the GUI's actor.
         case ("toGUI", msg : Any) =>
           if(guiActor != null && !disableGUIComs) { 
@@ -161,8 +165,8 @@ object ReplActor extends Actor {
 	 * @return         The line of input from the GUI.
 	 */
 	def readLine(prompt : String) : String = {
-	  println()
-    print(prompt)
+    guiActor ! ("newPrompt", prompt)
+    
     ReplActor.waitForGUI("gui input")
     ReplActor.guiInput
 	}

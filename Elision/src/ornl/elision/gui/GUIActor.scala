@@ -107,8 +107,8 @@ object GUIActor extends Actor {
                         ornl.elision.actors.ReplActor ! inputString
                     
                     // Print a new prompt thingy in the console.
-                    case "newPrompt" =>
-                        System.out.print("\ne> ")
+                    case ("newPrompt", prompt : String) =>
+                        mainGUI.consolePanel.console ! prompt
                     
                     // Receive a line of input history from the REPL's Actor.
                     case ("reGetHistory", result : Any) =>
@@ -161,7 +161,8 @@ object GUIActor extends Actor {
                     // Receive a message from the REPL whether to syntax color output it is about to produce, then 
                     // respond to the REPL that we are ready to receive that input. 
                     case ("replFormat", flag : Boolean) =>
-                        mainGUI.consolePanel.tos.applyFormatting = flag
+                        // mainGUI.consolePanel.tos.applyFormatting = flag
+                        mainGUI.consolePanel.console.applyFormatting = flag
                         ornl.elision.actors.ReplActor ! ("wait", false)
                     
                     // Toggle whether the visualization is loading.

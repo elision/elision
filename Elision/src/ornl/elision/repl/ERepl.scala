@@ -520,7 +520,7 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     
     // Report startup time.
     stopTimer
-    printf("Startup Time: " + getLastTimeString + "\n")
+    console.emitf("Startup Time: " + getLastTimeString + "\n")
     SymbolicOperator.reportTime
     
     // activates communications with the GUI if we are using it.

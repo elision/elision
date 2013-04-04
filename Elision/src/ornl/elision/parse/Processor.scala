@@ -31,6 +31,7 @@ package ornl.elision.parse
 
 import ornl.elision.actors.ReplActor
 import ornl.elision.core._
+import ornl.elision.util.Console
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
 import ornl.elision.util.Timeable
@@ -121,7 +122,7 @@ with HasHistory {
   private var _queue = List[Processor.Handler]()
 
   /** Specify the console.  We don't know the number of lines. */
-  val console = PrintConsole
+  var console : Console = PrintConsole
   
   /** The list of context checkpoints */
   val checkpoints = new collection.mutable.ArrayBuffer[(java.util.Date, Context)]
