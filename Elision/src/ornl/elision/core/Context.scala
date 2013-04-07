@@ -259,9 +259,10 @@ class Context extends Fickle with Mutable with Cache {
    * object, populating the operator library, the rule library, the bindings,
    * and the cache.
    * 
-   * @param app   The appendable to get the context.
+   * @param app   The appendable to get the context.  By default a new string
+   *              buffer is created.
    */
-  def write(app: Appendable) = {
+  def write(app: Appendable = new StringBuffer) = {
     // Write boilerplate.
     import Version._
     val prop = System.getProperties
