@@ -73,9 +73,12 @@ extends Parser with AbstractParser {
       else ReportingParseRunner(Atoms)
     val parsingResult = tr.run(source)
     parsingResult.result match {
-      case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid Elision source:\n" +
-          ErrorUtils.printParseErrors(parsingResult))
+      case Some(nodes) =>
+        Success(nodes)
+        
+      case None =>
+        Failure("Invalid Elision source:\n" +
+            ErrorUtils.printParseErrors(parsingResult))
     }
   }
 

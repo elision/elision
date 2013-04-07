@@ -172,7 +172,7 @@ package object core {
    * @param text	The text of the warning.
    */
   def warn(loc: Loc, text: String) {
-    knownExecutor.console.warn("WARNING: "+loc+" "+text)
+    knownExecutor.console.warn(loc.toShortString+" "+text)
   }
 
   /**

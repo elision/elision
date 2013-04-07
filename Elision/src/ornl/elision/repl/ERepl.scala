@@ -34,6 +34,7 @@ import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
 import java.io.File
+import ornl.elision.core.Context
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -42,6 +43,9 @@ object ReplMain {
   
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
+  
+  /** Iff true then the prior context should be loaded. */
+  var _wantPrior = false
   
   /**
    * Print usage information.  This is a switch handler (see
@@ -58,12 +62,18 @@ object ReplMain {
     System.exit(0)
     None
   }
-
+  
   /**
    * Define the switches.
    */
   private val _switches = Seq(
-      Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _))
+      Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
+      Switch(Some("prior"), Some('p'), "Attempt to re-load the prior context.",
+        () => {
+          ProcessorControl.bootstrap = false
+          _wantPrior = true
+          None
+        }))
       
   // Work out where Elision's runtime store should live on the system.
   private val _default_root = (if (CLI.iswin) {
@@ -108,18 +118,35 @@ object ReplMain {
           "Name of file to read after bootstrapping Elision."))
   
   /**
-   * Entry point when run from the prompt.
+   * Entry point when run from the prompt.  If you just want to read the
+   * settings and not start the REPL, use `prep`.
    * 
    * @param args  The command line arguments.
    */
   def main(args: Array[String]) {
+    prep(args) match {
+      case None =>
+      case Some(sets) => runRepl(sets)
+    }
+  }
+  
+  /**
+   * Prepare by reading the arguments.  This handles the generic startup case
+   * and provides use of the "usual" switches.
+   * 
+   * @param args  Command line arguments.
+   * @return  An optional settings.  If `None`, then an error was found, and
+   *          control should stop. 
+   */
+  def prep(args: Array[String]) = {
     val state = CLI(args, _switches, _settings, false)
     // Check for an error, and display it if we find one.  We then stop.
     if (state.errstr != None) {
       // There was an actual error!
       CLI.fail(args, state.errindex, state.errstr.get)
+      None
     } else {
-      runRepl(state.settings)
+      Some(state)
     }
   }
   
@@ -128,7 +155,7 @@ object ReplMain {
    * 
    * @param settings  Settings overrides.
    */
-  def runRepl(settings: Map[String,String]) {
+  def runRepl(settings: CLI.CLIState) {
     val erepl = new ERepl(settings)
     ornl.elision.core.knownExecutor = erepl
     erepl.run()
@@ -153,14 +180,15 @@ object ReplMain {
  * method.  The REPL provides for command line editing, a persistent history,
  * and special operations.
  * 
- * @param settings  Optional settings overrides.
+ * @param state   State data from parsing the command line.
  */
-class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
+class ERepl(state: CLI.CLIState = CLI.CLIState())
+extends Processor(state.settings) {
   import ornl.elision.core._
 	import scala.tools.jline.console.history.FileHistory
 	import scala.tools.jline.console.ConsoleReader
 	import java.io.{File, FileWriter, FileReader, BufferedReader}
-  
+
   //======================================================================
   // Figure out where to read and store the history, and where to store
   // the last context.
@@ -267,20 +295,22 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     }
-    if(getProperty[Boolean]("syntaxcolor")) {
-      // color-format the atom's parseString and print it.
-      val formatCols = console.width
-      val formatRows = console.height
-      val atomParseString = ConsoleStringFormatter.format(
-          prefix + atom.toParseString, formatCols)
-      ornl.elision.util.AnsiPrintConsole.width = formatCols
-      ornl.elision.util.AnsiPrintConsole.height = formatRows
-      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
-      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-    } else {
+    // FIXME: This code is commented out because it causes a "hang" when
+    // loading a prior context.
+//    if (getProperty[Boolean]("syntaxcolor")) {
+//      // color-format the atom's parseString and print it.
+//      val formatCols = console.width
+//      val formatRows = console.height
+//      val atomParseString = ConsoleStringFormatter.format(
+//          prefix + atom.toParseString, formatCols)
+//      ornl.elision.util.AnsiPrintConsole.width = formatCols
+//      ornl.elision.util.AnsiPrintConsole.height = formatRows
+//      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
+//      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+//    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
-    }
+//    }
   }
   
   this.register(
@@ -444,23 +474,39 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     // See if we are told not to bootstrap.
     if (! ProcessorControl.bootstrap) return true
     
-    // Load all the startup definitions, etc.
+    // Save the prior quiet value so we can restore it later.
+    val priorquiet = console.quiet
     console.reset
     console.quiet = quiet
+    
+    // Bootstrap!
+    val retval = _bootstrap()
+    
+    // Done.  Restore quiet level.
+    console.quiet = priorquiet
+    return retval
+  }
+  
+  /**
+   * Perform bootstrapping.  This loads the file specified by `bootstrapFile`
+   * and then tries to load the user's `.elisionrc` file (or another file,
+   * depending on environment variables).
+   * 
+   * @return  True on success, and false when a failure is reported.
+   */
+  private def _bootstrap(): Boolean = {
+    // Load all the startup definitions, etc.
     if (!read(bootstrapFile, false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load " + bootstrapFile + ".  Cannot continue.")
       return false
     }
-    console.quiet = 0
     if (console.errors > 0) {
       console.error("Errors were detected during bootstrap.  Cannot continue.")
       return false
     }
     
     // User stuff.
-    console.reset
-    console.quiet = quiet
     console.emitln("Reading " + _rc + " if present...")
     if (read(_rc, true)) {
       if (console.errors > 0) {
@@ -469,7 +515,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
         return false
       }
     }
-    console.quiet = 0
     
     // No reported errors.
     return true
@@ -481,23 +526,36 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
 
     // Start the clock.
     startTimer
-
-    // Load all the startup definitions, etc.
-    // If LoadContext is specified on the classpath
-    // then load that context instead of bootstrapping
-    try {
-      // attempt to load LoadContext to see if it was specified
-      // on the classpath
-      type typ = { def apply(): Context }
-      val c = Class.forName("LoadContext$")
-      val LoadContext = c.getField("MODULE$").get(null).asInstanceOf[typ] 
-      context = LoadContext()
-    } catch {
-      case _ =>     
-        if (!bootstrap()) {
+    
+    // Bootstrap.  If there are errors, then quit.
+    if (! bootstrap()) {
+      return
+    }
+    
+    // May need to reload prior context.  If so, do that first.
+    val list = if (ReplMain._wantPrior) {
+      _lastcontext +: state.remain
+    } else {
+      state.remain
+    }
+    
+    // Read any files specified on the command line.  We do this after any
+    // bootstrapping so the files are read even if we tell the system not to
+    // perform bootstrapping.
+    for (filename <- list) {
+      console.emitln("Reading " + filename + "...")
+      val priorquiet = console.quiet
+      console.quiet = 1
+      val result = read(filename, true)
+      console.quiet = priorquiet
+      if (result) {
+        if (console.errors > 0) {
+          console.error("Errors were detected processing " + filename +
+              ".  Cannot continue.")
           return
         }
-    }
+      }
+    } // Read the files specified on the command line.
     
     // Report startup time.
     stopTimer

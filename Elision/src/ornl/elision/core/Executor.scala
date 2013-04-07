@@ -46,20 +46,21 @@ extends ElisionException(Loc.internal, msg)
  * This can be done by parsing the usual Elision representation of atoms, or
  * by some other means.
  * 
- * An executor also holds some other information.  Specifically it holds three
+ * An executor also holds some other information.  Specifically it holds two
  * similar items.
  * 
- *  - A __cache__ to hold temporary storage for internal algorithms.  That is,
- *    these are for internal mutable storage and are not user-visible.
  *  - A set of __properties__ that hold user-configurable items to control
  *    Elision.  That is, these are user-visible and mutable.
  *  - The collection of __settings__ that were parsed from the command line,
  *    or left at their defaults.  These are (typically) regarded as immutable
  *    and are user-visible.  These are held for later reference.
  * 
+ * There is also a cache held by the `Context` for items that should be saved
+ * when / if the context is saved.
+ * 
  * Note that the settings must be specified at construction time.
  */
-trait Executor extends PropertyManager with Cache {
+trait Executor extends PropertyManager {
   
   /** A parse result. */
   abstract sealed class ParseResult
@@ -125,7 +126,7 @@ trait Executor extends PropertyManager with Cache {
     case None =>
       throw new MissingSettingException("The setting "+
           ornl.elision.util.toQuotedString(name)+
-          " is required by Elision, but is not defined.  The current" +
+          " is required by Elision, but is not defined.  The current " +
           "operation cannot continue.")
     case Some(value) =>
       value

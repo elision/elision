@@ -376,7 +376,7 @@ with HasHistory {
     return Some(theAtom)
   }
   
-  private def _result(atom: BasicAtom) {    
+  private def _result(atom: BasicAtom) {
     for (handler <- _queue) {
       handler.result(atom)
     }

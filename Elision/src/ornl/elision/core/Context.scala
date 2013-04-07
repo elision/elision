@@ -40,10 +40,15 @@ package ornl.elision.core
 import ornl.elision.util.ElisionException
 import ornl.elision.generators.ScalaGenerator
 import ornl.elision.generators.ElisionGenerator
+import ornl.elision.util.Cache
+import ornl.elision.util.Version
 
 /**
  * A context provides access to operator libraries and rules, along with
  * the global set of bindings in force at any time.
+ * 
+ * Additionally the context maintains a cache for use during runtime.  This
+ * cache is reflected through an `Executor`, but is actually maintained here.
  *
  * '''This class is likely to change.'''
  *
@@ -57,7 +62,7 @@ import ornl.elision.generators.ElisionGenerator
  *  - Rulesets.
  *  - "Automatic" rewriting of atoms using rules.
  */
-class Context extends Fickle with Mutable {
+class Context extends Fickle with Mutable with Cache {
 
   override def clone = {
     val clone = new Context
@@ -252,12 +257,108 @@ class Context extends Fickle with Mutable {
    * 
    * After loading the context, the `generate` method will create a new context
    * object, populating the operator library, the rule library, the bindings,
-   * etc.
+   * and the cache.
    * 
    * @param app   The appendable to get the context.
    */
   def write(app: Appendable) = {
     // Write boilerplate.
+    import Version._
+    val prop = System.getProperties
+    app.append(
+        """|/**
+           | * Saved context source.  This source file was automatically created.
+           | * Elision is Copyright (c) UT-Battelle, LLC.  All rights reserved.
+           | *
+           | *  - Created on: %s
+           | *  - Elision version: %s
+           | *  - Elision build: %s
+           | *  - Scala version: %s
+           | *  - Java vendor: %s
+           | *  - Java version: %s
+           | *  - OS name: %s
+           | *  - OS version: %s
+           | *  - Architecture: %s
+           | */
+           |import ornl.elision.core._
+           |import ornl.elision.util.Loc
+           |import ornl.elision.repl._
+           |object %s {
+           |  def main(args: Array[String]) {
+           |    // Process the command line arguments.
+           |    ReplMain.prep(args) match {
+           |      case None =>
+           |      case Some(settings) =>
+           |        // Build a REPL.
+           |        val repl = new ERepl(settings)
+           |        // Install the context.
+           |        repl.context = generate()
+           |        // Install the REPL.
+           |        knownExecutor = repl
+           |        // Start the REPL.
+           |        repl.run()
+           |        // Done!
+           |        repl.clean()
+           |    }
+           |  }
+           |  def generate(): Context = {
+           |    // Make a new context.
+           |    val context = new Context()
+           |""".stripMargin format (
+               new java.util.Date,
+               major+"."+minor,
+               build,
+               util.Properties.versionString,
+               prop.get("java.vendor"),
+               prop.get("java.version"),
+               prop.get("os.name"),
+               prop.get("os.version"),
+               prop.get("os.arch"),
+               "SavedContext"
+               )
+           )
+           
+    // Now we can append the code to create the context.  To do this, we first
+    // traverse the rule list and generate all the rules, in the order they are
+    // present in the library.
+    var known = Known()
+    for (rule <- ruleLibrary.getAllRules) {
+      // Write the rule and any dependencies.  The new set of "known" stuff is
+      // returned, and we preserve it.
+      known = traverse(app, rule, known, 'scala)
+    } // Write all rules and their dependencies.
+    
+    // Now we can write any remaining unknown operators.  Just traverse the
+    // operators and trust the system to write any that are unknown.
+    for (operator <- operatorLibrary.getAllOperators) {
+      known = traverse(app, operator, known, 'scala)
+    } // Write all rules and their dependencies.
+    
+    // Any remaining rulesets can be written now.
+    for (ruleset <- ruleLibrary.getAllRulesets) {
+      known = traverse(app, RulesetRef(ruleLibrary, ruleset), known, 'scala)
+    } // Add any missed rulesets.
+    
+    // Enable those rulesets that need to be enabled.
+    import ornl.elision.util.toQuotedString
+    for (ruleset <- ruleLibrary.getActiveRulesets) {
+      app.append("context.ruleLibrary.enableRuleset(%s)\n".format(
+          toQuotedString(ruleset)))
+    } // Enable the rulesets that need to be enabled.
+    
+    // Emit the bindings.
+    for (bind <- binds) {
+      app.append("context.bind(%s, %s)\n" format (
+          toQuotedString(bind._1), bind._2.toString))
+    } // Write all bindings.
+    
+    // Emit the cache.
+    
+    // Done.  Close up the object.
+    app.append("    // The value is the context just created.\n")
+    app.append("    context\n")
+    app.append("  } // End of generate.\n")
+    app.append("} // End of object.\n")
   }
   
   /**
@@ -314,11 +415,28 @@ class Context extends Fickle with Mutable {
    */
   def traverse(app: Appendable, target: BasicAtom, known: Known,
       kind: Symbol): Known = {
+    // Skip known stuff.
     if (known(target)) return known
-    if (target.isInstanceOf[OperatorRef]) {
-      return traverse(app, target.asInstanceOf[OperatorRef].operator,
-          known, kind)
+    
+    // (1) Skip over internally defined operators (MAP, LIST, xx).  These are
+    //     SymbolicOperators, but not TypedSymbolicOperators.
+    // (2) For operator references actually traverse the operator.
+    // (3) For ruleset references we need to cause the ruleset to be defined.
+    //     This requires somewhat unusual handling.
+    target match {
+      case tso: TypedSymbolicOperator =>
+        
+      case so: SymbolicOperator =>
+        return known
+        
+      case or: OperatorRef =>
+        return traverse(app, or.operator, known, kind)
+        
+      case _ =>
     }
+
+    // Keep a version of known we can modify.  Then we will add known stuff
+    // as we write it.
     var newknown = known
     
     // Boilerplate text for both cases.
@@ -351,8 +469,9 @@ class Context extends Fickle with Mutable {
               newknown = traverse(app, op, newknown, kind)
               
           case rs: RulesetRef =>
-            if (! known(rs))
+            if (! known(rs)) {
               newknown = traverse(app, rs, newknown, kind)
+            }
               
           case rule: RewriteRule =>
             newknown = traverse(app, rule, newknown, kind)
@@ -387,7 +506,15 @@ class Context extends Fickle with Mutable {
       case 'scala =>
         ScalaGenerator(target, app)
       case _ =>
-        ElisionGenerator(target, app)
+        // Ruleset references are unusual.  We need to process them as symbols.
+        // The reason for this is that there is no corresponding atom to
+        // convert them into, like there is for operator references.  See
+        // the declare method for how this is handled.
+        val what = target match {
+          case rr: RulesetRef => Literal(Symbol(rr.name))
+          case x => x
+        }
+        ElisionGenerator(what, app)
     }
     app.append(post(kind)).append('\n')
     
@@ -411,41 +538,54 @@ class Context extends Fickle with Mutable {
    * @return	The parseable rule sets.
    */
   def toParseString = {
-    val buf = new StringBuilder
-    buf append "// START of context.\n"
-    buf append "// START of operator library.\n"
-    buf append operatorLibrary.toParseString
-    buf append "// END of operator library.\n"
-    buf append "// START of rule library.\n"
-    buf append ruleLibrary.toParseString
-    buf append "// END of rule library.\n"
-    buf append "// END of context.\n"
-    buf.toString()
+    val app = new StringBuffer
+    app append "// START of context.\n"
+    // Now we can append the code to create the context.  To do this, we first
+    // traverse the rule list and generate all the rules, in the order they are
+    // present in the library.
+    var known = Known()
+    for (rule <- ruleLibrary.getAllRules) {
+      // Write the rule and any dependencies.  The new set of "known" stuff is
+      // returned, and we preserve it.
+      known = traverse(app, rule, known, 'elision)
+    } // Write all rules and their dependencies.
+    
+    // Now we can write any remaining unknown operators.  Just traverse the
+    // operators and trust the system to write any that are unknown.
+    for (operator <- operatorLibrary.getAllOperators) {
+      known = traverse(app, operator, known, 'elision)
+    } // Write all rules and their dependencies.
+    
+    // Any remaining rulesets can be written now.
+    for (ruleset <- ruleLibrary.getAllRulesets) {
+      known = traverse(app, RulesetRef(ruleLibrary, ruleset), known, 'elision)
+    } // Add any missed rulesets.
+    
+    // Enable those rulesets that need to be enabled.
+    for (ruleset <- ruleLibrary.getActiveRulesets) {
+      app.append("{!_()#handler=\"\"\"context.ruleLibrary." +
+      		"enableRuleset(%s);_no_show\"\"\"}.%%()\n" format (toEString(ruleset)))
+    } // Enable the rulesets that need to be enabled.
+    
+    // Emit the bindings.
+    for (bind <- binds) {
+      app.append("{!_()#handler=\"\"\"context.bind(%s,%s);_no_show\"\"\"}" +
+      		".%%()\n" format (toEString(bind._1), bind._2.toString))
+    } // Write all bindings.
+    
+    // Emit the cache.
+    app append "// END of context.\n"
+    app.toString()
   }
 
   /**
-   * Generate a newline-separated list of rules that can be parsed by Scala
-   * to reconstruct the set of rules in this context.
-   *
-   * @return	The parseable rule sets.
+   * Return Scala code that can be compiled to generate this context.
+   * 
+   * @return  Compilable Scala code for this context.
    */
   override def toString = {
-    val buf = new StringBuilder
-    buf append "object LoadContext {\n"
-    buf append "  import ornl.elision.core._\n\n"
-    buf append "  val _context = new Context()\n\n"
-    buf append "  def main(args: Array[String]) {\n"
-    buf append "    Ops(_context)\n"
-    buf append "    Rules(_context)\n"
-    buf append "  }\n"
-    buf append "  def apply():Context = {\n"
-    buf append "    Ops(_context)\n"
-    buf append "    Rules(_context)\n"
-    buf append "    _context\n"
-    buf append "  }\n"
-    buf append "}\n\n"
-    buf append operatorLibrary.toString
-    buf append ruleLibrary.toString
+    val buf = new StringBuffer
+    write(buf)
     buf.toString()
   }
 }

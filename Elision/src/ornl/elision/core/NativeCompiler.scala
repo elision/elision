@@ -92,14 +92,14 @@ class NativeCompiler {
       case None =>
         // The handler was not found in the cache.  Make it now.
         Debugger("opcache", "Creating cached handler for "+toESymbol(operator)+
-            " from "+loc+".")
+            " from "+loc.toShortString+".")
         makeCachedHandler(loc.source, operator, handler) match {
           case None =>
             // Somehow the native handler compilation failed.  Throw an
             // exception.
             throw new NativeHandlerException(loc,
                 "Unable to compile native handler for operator %s%s."
-                format (toESymbol(operator), loc))
+                format (toESymbol(operator), loc.toShortString))
             
           case Some(handler) =>
             handler
@@ -143,6 +143,7 @@ class NativeCompiler {
        | * Created on: %s
        | */
        |import ornl.elision.core._
+       |import ornl.elision.util.Loc
        |object %s extends HandlerClass {
        |%s
        |}
