@@ -284,6 +284,7 @@ class Context extends Fickle with Mutable with Cache {
            |import ornl.elision.core._
            |import ornl.elision.util.Loc
            |import ornl.elision.repl._
+           |import ornl.elision.parse.ProcessorControl
            |object %s {
            |  def main(args: Array[String]) {
            |    // Process the command line arguments.
@@ -297,7 +298,8 @@ class Context extends Fickle with Mutable with Cache {
            |        // Reset the context and then populate it.
            |        repl.context = new Context()
            |        populate(repl.context)
-           |        // Start the REPL.
+           |        // Start the REPL, but don't bootstrap.
+           |        ProcessorControl.bootstrap = false
            |        repl.run()
            |        // Done!
            |        repl.clean()
