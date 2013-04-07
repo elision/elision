@@ -42,6 +42,7 @@ import ornl.elision.generators.ScalaGenerator
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.util.Cache
 import ornl.elision.util.Version
+import scala.collection.mutable.Set
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -354,7 +355,14 @@ class Context extends Fickle with Mutable with Cache {
           toQuotedString(bind._1), bind._2.toString))
     } // Write all bindings.
     
-    // Emit the cache.
+    // Emit the cache.  The cache can contain arbitrary stuff, so here we
+    // only preserve one item: the list of included files.
+    val included = fetchAs[Set[String]]("read_once.included", Set[String]())
+    app.append("    import scala.collection.mutable.Set\n")
+    app.append("    val set = scala.collection.mutable.Set(")
+    app.append(included map (toQuotedString(_)) mkString (","))
+    app.append(")\n")
+    app.append("    context.stash(\"read_once.included\", set)\n")
     
     // Done.  Close up the object.
     app.append("  } // End of populate.\n")
@@ -579,6 +587,18 @@ class Context extends Fickle with Mutable with Cache {
       		".%%()\n" format (toEString(bind._1), bind._2.toString))
     } // Write all bindings.
     
+    // Emit the cache.  The cache can contain arbitrary stuff, so here we
+    // only preserve one item: the list of included files.
+    val included = fetchAs[Set[String]]("read_once.included", Set[String]())
+    app.append("{!_()#handler=\"\"\"\n")
+    app.append("  import scala.collection.mutable.Set\n")
+    app.append("""  val set = scala.collection.mutable.Set(""")
+    app.append(included map (toEString(_)) mkString (","))
+    app.append(")\n")
+    app.append("  context.stash[Set[String]](\"read_once.included\", set)\n")
+    app.append("  _no_show\n")
+    app.append("\"\"\"}.%()\n")
+
     // Emit the cache.
     app append "// END of context.\n"
     app.toString()
