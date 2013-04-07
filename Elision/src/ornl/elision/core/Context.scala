@@ -292,19 +292,18 @@ class Context extends Fickle with Mutable with Cache {
            |      case Some(settings) =>
            |        // Build a REPL.
            |        val repl = new ERepl(settings)
-           |        // Install the context.
-           |        repl.context = generate()
            |        // Install the REPL.
            |        knownExecutor = repl
+           |        // Reset the context and then populate it.
+           |        repl.context = new Context()
+           |        populate(repl.context)
            |        // Start the REPL.
            |        repl.run()
            |        // Done!
            |        repl.clean()
            |    }
            |  }
-           |  def generate(): Context = {
-           |    // Make a new context.
-           |    val context = new Context()
+           |  def populate(context: Context) {
            |""".stripMargin format (
                new java.util.Date,
                major+"."+minor,
@@ -356,9 +355,7 @@ class Context extends Fickle with Mutable with Cache {
     // Emit the cache.
     
     // Done.  Close up the object.
-    app.append("    // The value is the context just created.\n")
-    app.append("    context\n")
-    app.append("  } // End of generate.\n")
+    app.append("  } // End of populate.\n")
     app.append("} // End of object.\n")
   }
   
@@ -422,8 +419,6 @@ class Context extends Fickle with Mutable with Cache {
     // (1) Skip over internally defined operators (MAP, LIST, xx).  These are
     //     SymbolicOperators, but not TypedSymbolicOperators.
     // (2) For operator references actually traverse the operator.
-    // (3) For ruleset references we need to cause the ruleset to be defined.
-    //     This requires somewhat unusual handling.
     target match {
       case tso: TypedSymbolicOperator =>
         
@@ -505,7 +500,15 @@ class Context extends Fickle with Mutable with Cache {
     app.append(pre(kind))
     kind match {
       case 'scala =>
-        ScalaGenerator(target, app)
+        // Ruleset references are unusual.  We need to process them as symbols.
+        // The reason for this is that there is no corresponding atom to
+        // convert them into, like there is for operator references.  See
+        // the declare method for how this is handled.
+        val what = target match {
+          case rr: RulesetRef => Literal(Symbol(rr.name))
+          case x => x
+        }
+        ScalaGenerator(what, app)
       case _ =>
         // Ruleset references are unusual.  We need to process them as symbols.
         // The reason for this is that there is no corresponding atom to

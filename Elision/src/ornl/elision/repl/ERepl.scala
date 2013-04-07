@@ -35,6 +35,7 @@ import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
 import java.io.File
 import ornl.elision.core.Context
+import ornl.elision.cli.ArgSwitch
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -46,6 +47,12 @@ object ReplMain {
   
   /** Iff true then the prior context should be loaded. */
   var _wantPrior = false
+  
+  /**
+   * If compilation is desired set this to `Some(`fn`)`, where fn is the
+   * output file name.
+   */
+  var _wantCompile: Option[String] = None
   
   /**
    * Print usage information.  This is a switch handler (see
@@ -73,7 +80,14 @@ object ReplMain {
           ProcessorControl.bootstrap = false
           _wantPrior = true
           None
-        }))
+        }),
+      ArgSwitch(Some("compile"), Some('C'),
+          "After startup, generate a compilable Scala file for the resulting " +
+          "context and exit.", "FILENAME",
+          (arg) => {
+            _wantCompile = Some(arg)
+            None
+          }))
       
   // Work out where Elision's runtime store should live on the system.
   private val _default_root = (if (CLI.iswin) {
@@ -561,6 +575,18 @@ extends Processor(state.settings) {
     stopTimer
     printf("Startup Time: " + getLastTimeString + "\n")
     SymbolicOperator.reportTime
+    
+    // If a compilable context is desired, generate it and stop. */
+    ReplMain._wantCompile match {
+      case None =>
+      case Some(fn) =>
+        console.emitln("Writing compilable context to: " + fn)
+        val file = new FileWriter(fn)
+        context.write(file)
+        file.flush()
+        file.close()
+        return
+    }
 	
     // Configure the console and history.
     val cr = new ConsoleReader
