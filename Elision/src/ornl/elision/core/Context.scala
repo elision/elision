@@ -42,6 +42,7 @@ import ornl.elision.generators.ScalaGenerator
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.util.Cache
 import ornl.elision.util.Version
+import scala.collection.mutable.Set
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -259,10 +260,11 @@ class Context extends Fickle with Mutable with Cache {
    * object, populating the operator library, the rule library, the bindings,
    * and the cache.
    * 
-   * @param app   The appendable to get the context.  By default a new string
-   *              buffer is created.
+   * @param objname The name to use for the object.
+   * @param app     The appendable to get the context.  By default a new string
+   *                buffer is created.
    */
-  def write(app: Appendable = new StringBuffer) = {
+  def write(objname: String, app: Appendable = new StringBuffer) = {
     // Write boilerplate.
     import Version._
     val prop = System.getProperties
@@ -284,6 +286,7 @@ class Context extends Fickle with Mutable with Cache {
            |import ornl.elision.core._
            |import ornl.elision.util.Loc
            |import ornl.elision.repl._
+           |import ornl.elision.parse.ProcessorControl
            |object %s {
            |  def main(args: Array[String]) {
            |    // Process the command line arguments.
@@ -292,19 +295,19 @@ class Context extends Fickle with Mutable with Cache {
            |      case Some(settings) =>
            |        // Build a REPL.
            |        val repl = new ERepl(settings)
-           |        // Install the context.
-           |        repl.context = generate()
            |        // Install the REPL.
            |        knownExecutor = repl
-           |        // Start the REPL.
+           |        // Reset the context and then populate it.
+           |        repl.context = new Context()
+           |        populate(repl.context)
+           |        // Start the REPL, but don't bootstrap.
+           |        ProcessorControl.bootstrap = false
            |        repl.run()
            |        // Done!
            |        repl.clean()
            |    }
            |  }
-           |  def generate(): Context = {
-           |    // Make a new context.
-           |    val context = new Context()
+           |  def populate(context: Context) {
            |""".stripMargin format (
                new java.util.Date,
                major+"."+minor,
@@ -315,7 +318,7 @@ class Context extends Fickle with Mutable with Cache {
                prop.get("os.name"),
                prop.get("os.version"),
                prop.get("os.arch"),
-               "SavedContext"
+               objname
                )
            )
            
@@ -353,12 +356,17 @@ class Context extends Fickle with Mutable with Cache {
           toQuotedString(bind._1), bind._2.toString))
     } // Write all bindings.
     
-    // Emit the cache.
+    // Emit the cache.  The cache can contain arbitrary stuff, so here we
+    // only preserve one item: the list of included files.
+    val included = fetchAs[Set[String]]("read_once.included", Set[String]())
+    app.append("    import scala.collection.mutable.Set\n")
+    app.append("    val set = scala.collection.mutable.Set(")
+    app.append(included map (toQuotedString(_)) mkString (","))
+    app.append(")\n")
+    app.append("    context.stash(\"read_once.included\", set)\n")
     
     // Done.  Close up the object.
-    app.append("    // The value is the context just created.\n")
-    app.append("    context\n")
-    app.append("  } // End of generate.\n")
+    app.append("  } // End of populate.\n")
     app.append("} // End of object.\n")
   }
   
@@ -407,23 +415,23 @@ class Context extends Fickle with Mutable with Cache {
    * The idea is that by processing the resulting declarations in order the
    * same atom is reconstructed.
    * 
-   * @param app       An appendable to get the output.
-   * @param target    The atom.
-   * @param known     The known items.
-   * @param kind      The format for the output.  Can be either `'elision`
-   *                  or `'scala`.
+   * @param app         An appendable to get the output.
+   * @param target      The atom.
+   * @param known       The known items.
+   * @param kind        The format for the output.  Can be either `'elision`
+   *                    or `'scala`.
+   * @param withhandler If true then emit the handler object in the stream
+   *                    to be added to the `NativeCompiler`.
    * @return  The updated known 
    */
   def traverse(app: Appendable, target: BasicAtom, known: Known,
-      kind: Symbol): Known = {
+      kind: Symbol, withhandler: Boolean = true): Known = {
     // Skip known stuff.
     if (known(target)) return known
     
     // (1) Skip over internally defined operators (MAP, LIST, xx).  These are
     //     SymbolicOperators, but not TypedSymbolicOperators.
     // (2) For operator references actually traverse the operator.
-    // (3) For ruleset references we need to cause the ruleset to be defined.
-    //     This requires somewhat unusual handling.
     target match {
       case tso: TypedSymbolicOperator =>
         
@@ -498,14 +506,38 @@ class Context extends Fickle with Mutable with Cache {
         AtomWalker(target, collector)
     }
     
-    // Write this atom.
-    if (kind == 'scala) {
-      ElisionGenerator(target, app.append("// ")).append('\n')
+    // Write this atom.  If we are writing Scala code, the handler is requested,
+    // and this is an operator with a handler, then create and write the handler
+    // object now so it gets compiled along with everything else.
+    if (kind == 'scala && withhandler) {
+      target match {
+        case tso: TypedSymbolicOperator =>
+          // See if the operator has a native handler.
+          tso.handlertxt match {
+            case Some(text) =>
+              // Found a handler.  Convert it to an object and write it in the
+              // stream.
+              NativeCompiler.writeStash(tso.loc.source, tso.name, text, app)
+              
+            case _ =>
+          }
+          
+        case _ =>
+      }
     }
     app.append(pre(kind))
     kind match {
       case 'scala =>
-        ScalaGenerator(target, app)
+        // Ruleset references are unusual.  We need to process them as symbols.
+        // The reason for this is that there is no corresponding atom to
+        // convert them into, like there is for operator references.  See
+        // the declare method for how this is handled.
+        val what = target match {
+          case rr: RulesetRef => Literal(Symbol(rr.name))
+          case x => x
+        }
+        ScalaGenerator(what, app)
+        
       case _ =>
         // Ruleset references are unusual.  We need to process them as symbols.
         // The reason for this is that there is no corresponding atom to
@@ -574,6 +606,18 @@ class Context extends Fickle with Mutable with Cache {
       		".%%()\n" format (toEString(bind._1), bind._2.toString))
     } // Write all bindings.
     
+    // Emit the cache.  The cache can contain arbitrary stuff, so here we
+    // only preserve one item: the list of included files.
+    val included = fetchAs[Set[String]]("read_once.included", Set[String]())
+    app.append("{!_()#handler=\"\"\"\n")
+    app.append("  import scala.collection.mutable.Set\n")
+    app.append("""  val set = scala.collection.mutable.Set(""")
+    app.append(included map (toEString(_)) mkString (","))
+    app.append(")\n")
+    app.append("  context.stash[Set[String]](\"read_once.included\", set)\n")
+    app.append("  _no_show\n")
+    app.append("\"\"\"}.%()\n")
+
     // Emit the cache.
     app append "// END of context.\n"
     app.toString()
@@ -586,7 +630,7 @@ class Context extends Fickle with Mutable with Cache {
    */
   override def toString = {
     val buf = new StringBuffer
-    write(buf)
+    write("SavedContext", buf)
     buf.toString()
   }
 }
