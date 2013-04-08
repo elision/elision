@@ -260,10 +260,11 @@ class Context extends Fickle with Mutable with Cache {
    * object, populating the operator library, the rule library, the bindings,
    * and the cache.
    * 
-   * @param app   The appendable to get the context.  By default a new string
-   *              buffer is created.
+   * @param objname The name to use for the object.
+   * @param app     The appendable to get the context.  By default a new string
+   *                buffer is created.
    */
-  def write(app: Appendable = new StringBuffer) = {
+  def write(objname: String, app: Appendable = new StringBuffer) = {
     // Write boilerplate.
     import Version._
     val prop = System.getProperties
@@ -317,7 +318,7 @@ class Context extends Fickle with Mutable with Cache {
                prop.get("os.name"),
                prop.get("os.version"),
                prop.get("os.arch"),
-               "SavedContext"
+               objname
                )
            )
            
@@ -414,15 +415,17 @@ class Context extends Fickle with Mutable with Cache {
    * The idea is that by processing the resulting declarations in order the
    * same atom is reconstructed.
    * 
-   * @param app       An appendable to get the output.
-   * @param target    The atom.
-   * @param known     The known items.
-   * @param kind      The format for the output.  Can be either `'elision`
-   *                  or `'scala`.
+   * @param app         An appendable to get the output.
+   * @param target      The atom.
+   * @param known       The known items.
+   * @param kind        The format for the output.  Can be either `'elision`
+   *                    or `'scala`.
+   * @param withhandler If true then emit the handler object in the stream
+   *                    to be added to the `NativeCompiler`.
    * @return  The updated known 
    */
   def traverse(app: Appendable, target: BasicAtom, known: Known,
-      kind: Symbol): Known = {
+      kind: Symbol, withhandler: Boolean = true): Known = {
     // Skip known stuff.
     if (known(target)) return known
     
@@ -503,9 +506,24 @@ class Context extends Fickle with Mutable with Cache {
         AtomWalker(target, collector)
     }
     
-    // Write this atom.
-    if (kind == 'scala) {
-      ElisionGenerator(target, app.append("// ")).append('\n')
+    // Write this atom.  If we are writing Scala code, the handler is requested,
+    // and this is an operator with a handler, then create and write the handler
+    // object now so it gets compiled along with everything else.
+    if (kind == 'scala && withhandler) {
+      target match {
+        case tso: TypedSymbolicOperator =>
+          // See if the operator has a native handler.
+          tso.handlertxt match {
+            case Some(text) =>
+              // Found a handler.  Convert it to an object and write it in the
+              // stream.
+              NativeCompiler.writeStash("", tso.name, text, app)
+              
+            case _ =>
+          }
+          
+        case _ =>
+      }
     }
     app.append(pre(kind))
     kind match {
@@ -519,6 +537,7 @@ class Context extends Fickle with Mutable with Cache {
           case x => x
         }
         ScalaGenerator(what, app)
+        
       case _ =>
         // Ruleset references are unusual.  We need to process them as symbols.
         // The reason for this is that there is no corresponding atom to
@@ -611,7 +630,7 @@ class Context extends Fickle with Mutable with Cache {
    */
   override def toString = {
     val buf = new StringBuffer
-    write(buf)
+    write("SavedContext", buf)
     buf.toString()
   }
 }

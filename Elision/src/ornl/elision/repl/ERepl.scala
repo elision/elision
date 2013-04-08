@@ -580,9 +580,12 @@ extends Processor(state.settings) {
     ReplMain._wantCompile match {
       case None =>
       case Some(fn) =>
-        console.emitln("Writing compilable context to: " + fn)
-        val file = new FileWriter(fn)
-        context.write(file)
+        val dot = fn.lastIndexOf('.')
+        val basename = (if (dot > 0) fn.substring(0,dot) else fn)
+        val filename = basename + ".scala"
+        console.emitln("Writing compilable context to: " + filename)
+        val file = new FileWriter(filename)
+        context.write(basename, file)
         file.flush()
         file.close()
         return
@@ -595,98 +598,97 @@ extends Processor(state.settings) {
     cr.setHistory(_hist)
     
     // Start main loop.
-    while(true) { {
-        // Hold the accumulated line.
-        var line = ""
+    while(true) {
+      // Hold the accumulated line.
+      var line = ""
+      
+      // Hold the next segment read from the prompt.
+      var segment = ""
         
-        // Hold the next segment read from the prompt.
-        var segment = ""
-          
-        // A line state parser to determine when the line ends.
-        val ls = new LineState
-        
-        // The number of blank lines seen.
-        var blanks = 0
-        
-        // A little function to prompt for, and read, the next segment.  The
-        // segment is accumulated into the line. 
-        def fetchline(p1: String, p2: String): Boolean = {
-          Processor.fileReadStack.clear
-          Processor.fileReadStack.push("Console")
+      // A line state parser to determine when the line ends.
+      val ls = new LineState
+      
+      // The number of blank lines seen.
+      var blanks = 0
+      
+      // A little function to prompt for, and read, the next segment.  The
+      // segment is accumulated into the line. 
+      def fetchline(p1: String, p2: String): Boolean = {
+        Processor.fileReadStack.clear
+        Processor.fileReadStack.push("Console")
 
-          segment = {
-    				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
-    				// Reset the terminal size now, if we can, and if the user wants to
-    				// use the pager.
-    				if (getProperty[Boolean]("usepager")) {
-                console.height_=(
-                    scala.tools.jline.TerminalFactory.create().getHeight()-1)
-                console.width_=(
-                    scala.tools.jline.TerminalFactory.create().getWidth())
-    				} else {
-    				  console.height_=(0)
-    				  console.width_=(0)
-    				}
-    				line
-    			} 
-      		
-        	if (segment == null) {
-        	  return true
-        	}
-        	segment = segment.trim()
-        	
-        	// Watch for blank lines that terminate the parse.
-        	if (segment == "") blanks += 1 else blanks = 0
-        	
-        	// Capture newlines.
-        	if (line != "") line += "\n"
-        	line += segment
-        	
-        	// Process the line to determine if the input is complete.
-        	ls.process(segment)
-        }
-        
-        // Read the first segment.
-        if (!fetchline("e> ", "q> ")) {
-        	// Read any additional segments.  Everything happens in the while loop,
-          // but the loop needs a body, so that's the zero.
-          while (!fetchline(" > ", " > ") && blanks < 3) 0
-  	      if (blanks >= 3) {
-  	        console.emitln("Entry terminated by three blank lines.")
-  	        line = ""
-  	      }
-        }
-        
-        // Watch for the end of stream or the special :quit token.
-        if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-          return
-        }
-        
-        // Flush the console.  Is this necessary?
-        cr.flush()
-        
-        // Run the line.
-        try {
-          execute("(console)", line)
-        } catch {
-          case ornl.elision.util.ElisionException(loc, msg) =>
-            console.error(loc, msg)
-          case ex: Exception =>
-            console.error("(" + ex.getClass + ") " + ex.getMessage())
-            if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
-          case oom: java.lang.OutOfMemoryError =>
-            System.gc()
-            console.error("Memory exhausted.  Trying to recover...")
-            val rt = Runtime.getRuntime()
-            val mem = rt.totalMemory()
-            val free = rt.freeMemory()
-            val perc = free.toDouble / mem.toDouble * 100
-            console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
-          case th: Throwable =>
-            console.error("(" + th.getClass + ") " + th.getMessage())
-            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-            coredump("Internal error.", Some(th))
-        }
+        segment = {
+  				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+  				// Reset the terminal size now, if we can, and if the user wants to
+  				// use the pager.
+  				if (getProperty[Boolean]("usepager")) {
+              console.height_=(
+                  scala.tools.jline.TerminalFactory.create().getHeight()-1)
+              console.width_=(
+                  scala.tools.jline.TerminalFactory.create().getWidth())
+  				} else {
+  				  console.height_=(0)
+  				  console.width_=(0)
+  				}
+  				line
+  			} 
+    		
+      	if (segment == null) {
+      	  return true
+      	}
+      	segment = segment.trim()
+      	
+      	// Watch for blank lines that terminate the parse.
+      	if (segment == "") blanks += 1 else blanks = 0
+      	
+      	// Capture newlines.
+      	if (line != "") line += "\n"
+      	line += segment
+      	
+      	// Process the line to determine if the input is complete.
+      	ls.process(segment)
+      }
+      
+      // Read the first segment.
+      if (!fetchline("e> ", "q> ")) {
+      	// Read any additional segments.  Everything happens in the while loop,
+        // but the loop needs a body, so that's the zero.
+        while (!fetchline(" > ", " > ") && blanks < 3) 0
+	      if (blanks >= 3) {
+	        console.emitln("Entry terminated by three blank lines.")
+	        line = ""
+	      }
+      }
+      
+      // Watch for the end of stream or the special :quit token.
+      if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+        return
+      }
+      
+      // Flush the console.  Is this necessary?
+      cr.flush()
+      
+      // Run the line.
+      try {
+        execute("(console)", line)
+      } catch {
+        case ornl.elision.util.ElisionException(loc, msg) =>
+          console.error(loc, msg)
+        case ex: Exception =>
+          console.error("(" + ex.getClass + ") " + ex.getMessage())
+          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+        case oom: java.lang.OutOfMemoryError =>
+          System.gc()
+          console.error("Memory exhausted.  Trying to recover...")
+          val rt = Runtime.getRuntime()
+          val mem = rt.totalMemory()
+          val free = rt.freeMemory()
+          val perc = free.toDouble / mem.toDouble * 100
+          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+        case th: Throwable =>
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.
   }
