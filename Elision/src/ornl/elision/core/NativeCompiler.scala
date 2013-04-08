@@ -136,9 +136,9 @@ object NativeCompiler {
        | * Operator source: %s
        | * Created on: %s
        | */
+       |import ornl.elision.core._
+       |import ornl.elision.util.Loc
        |object %s extends HandlerClass {
-       |  import ornl.elision.core._
-       |  import ornl.elision.util.Loc
        |%s
        |}
        |""".stripMargin format (operator, source,

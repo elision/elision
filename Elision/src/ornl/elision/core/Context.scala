@@ -517,7 +517,7 @@ class Context extends Fickle with Mutable with Cache {
             case Some(text) =>
               // Found a handler.  Convert it to an object and write it in the
               // stream.
-              NativeCompiler.writeStash("", tso.name, text, app)
+              NativeCompiler.writeStash(tso.loc.source, tso.name, text, app)
               
             case _ =>
           }
