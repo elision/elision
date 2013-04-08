@@ -103,14 +103,12 @@ with HasHistory {
   declareProperty("path",
       "The search path to use to locate files.", FileResolver.defaultPath)
 
-  /** Declare the Elision property for setting the max rewrite time. */
+  // Atom rewrite timeout property used in BasicAtom. We need to make sure
+  // that all executors know about this property, which is why we are declaring
+  // the property here.
   declareProperty("rewrite_timeout",
       "The maximum time to try rewriting an atom. In seconds.",
-      BasicAtom._maxRewriteTime,
-      (pm: PropertyManager) => {
-        BasicAtom._maxRewriteTime =
-          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-      })
+      BigInt(0))
       
   /** Whether to trace the parser. */
   private var _trace = false

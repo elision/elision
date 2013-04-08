@@ -507,21 +507,6 @@ object BasicAtom {
   var timeoutTime: DynamicVariable[Long] = new DynamicVariable[Long](-1L)
 
   /**
-   * The maximum time allowed (in seconds) to rewrite an atom. Set to
-   * 0 to allow unlimited time.
-   */
-  var _maxRewriteTime: BigInt = 0;
-
-  /** Declare the Elision property for setting the max rewrite time. */
-  knownExecutor.declareProperty("rewrite_timeout",
-      "The maximum time to try rewriting an atom. In seconds.",
-      _maxRewriteTime,
-      (pm: PropertyManager) => {
-        _maxRewriteTime =
-          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-      })
-
-  /**
    * Compute the wall clock time at which the current rewrite will time
    * out.
    */
@@ -531,10 +516,8 @@ object BasicAtom {
     // out a rewrite?
     //
     // NOTE: We have to explicitly go out to the current executor to
-    // get the timeout value rather than using _maxRewriteTime since
-    // the closure used in the above declaration for the
-    // rewrite_timeout property can wind up referencing a different
-    // executor than what Elision is actually using.
+    // get the timeout value to make sure we are getting the value from 
+    // the correct executor.
     val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
       // The time at which things time out is the current time plus
