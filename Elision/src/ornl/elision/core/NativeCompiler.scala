@@ -97,7 +97,7 @@ object NativeCompiler {
    * @return  The cache key.
    */
   private def getKey(source: String, operator: String, handler: String) = {
-    val key = (source.hashCode() * 31 + handler.hashCode()).toHexString
+    val key = (handler.hashCode()).toHexString
     "NH" + operator.getBytes.map {
       "%02x".format(_)
     }.mkString("") + key

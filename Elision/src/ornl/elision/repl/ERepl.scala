@@ -322,20 +322,20 @@ extends Processor(state.settings) {
       ReplActor.waitForGUI("formatting on")
     }
     
-    if(getProperty[Boolean]("syntaxcolor")) {
-      // color-format the atom's parseString and print it.
-      val formatCols = console.width
-      val formatRows = console.height
-      val atomParseString = ConsoleStringFormatter.format(
-          prefix + atom.toParseString, formatCols)
-      ornl.elision.util.AnsiPrintConsole.width = formatCols
-      ornl.elision.util.AnsiPrintConsole.height = formatRows
-      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
-      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-    } else {
+//    if(getProperty[Boolean]("syntaxcolor")) {
+//      // color-format the atom's parseString and print it.
+//      val formatCols = console.width
+//      val formatRows = console.height
+//      val atomParseString = ConsoleStringFormatter.format(
+//          prefix + atom.toParseString, formatCols)
+//      ornl.elision.util.AnsiPrintConsole.width = formatCols
+//      ornl.elision.util.AnsiPrintConsole.height = formatRows
+//      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
+//      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+//    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
-    }
+//    }
     
     if(ReplActor.guiActor != null) {
       ReplActor ! ("syntaxcolor", false)
@@ -638,87 +638,87 @@ extends Processor(state.settings) {
         Processor.fileReadStack.clear
         Processor.fileReadStack.push("Console")
 
-          segment = if (ReplActor.guiActor != null) {  
-            // Get input from the GUI.            
-            ReplActor.readLine(if (console.quiet > 0) p2 else p1)
+        segment = if (ReplActor.guiActor != null) {  
+          // Get input from the GUI.            
+          ReplActor.readLine(if (console.quiet > 0) p2 else p1)
+        } else {
+          // Get input directly from the console. 
+          val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+          // Reset the terminal size now, if we can, and if the user wants to
+          // use the pager.
+          if (getProperty[Boolean]("usepager")) {
+            console.height_=(
+                scala.tools.jline.TerminalFactory.create().getHeight()-1)
+            console.width_=(
+                scala.tools.jline.TerminalFactory.create().getWidth())
           } else {
-            // Get input directly from the console. 
-            val line = cr.readLine(if (console.quiet > 0) p2 else p1)
-            // Reset the terminal size now, if we can, and if the user wants to
-            // use the pager.
-            if (getProperty[Boolean]("usepager")) {
-              console.height_=(
-                  scala.tools.jline.TerminalFactory.create().getHeight()-1)
-              console.width_=(
-                  scala.tools.jline.TerminalFactory.create().getWidth())
-            } else {
-              console.height_=(0)
-              console.width_=(0)
-            }
-            line
-          } 
-          
-          if (segment == null) {
-            return true
+            console.height_=(0)
+            console.width_=(0)
           }
-          segment = segment.trim()
+          line
+        } 
           
-          // Watch for blank lines that terminate the parse.
-          if (segment == "") blanks += 1 else blanks = 0
+        if (segment == null) {
+          return true
+        }
+        segment = segment.trim()
           
-          // Capture newlines.
-          if (line != "") line += "\n"
-          line += segment
-          
-          // Process the line to determine if the input is complete.
-          ls.process(segment)
-        }
+        // Watch for blank lines that terminate the parse.
+        if (segment == "") blanks += 1 else blanks = 0
         
-        // Read the first segment.
-        if (!fetchline("e> ", "q> ")) {
-          // Read any additional segments.  Everything happens in the while loop,
-          // but the loop needs a body, so that's the zero.
-          while (!fetchline(" > ", " > ") && blanks < 3) 0
-          if (blanks >= 3) {
-            console.emitln("Entry terminated by three blank lines.")
-            line = ""
-          }
-        }
+        // Capture newlines.
+        if (line != "") line += "\n"
+        line += segment
         
-        // Watch for the end of stream or the special :quit token.
-        if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-          // Tell the ReplActor to exit its thread first.
-          ReplActor.exitFlag = true
-          ReplActor ! (":quit", true)
-          
-          return
-        }
+        // Process the line to determine if the input is complete.
+        ls.process(segment)
+      }
         
-        // Flush the console.  Is this necessary?
-        cr.flush()
-        
-        // Run the line.
-        try {
-          execute("(console)", line)
-        } catch {
-          case ornl.elision.util.ElisionException(loc, msg) =>
-            console.error(loc, msg)
-          case ex: Exception =>
-            console.error("(" + ex.getClass + ") " + ex.getMessage())
-            if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
-          case oom: java.lang.OutOfMemoryError =>
-            System.gc()
-            console.error("Memory exhausted.  Trying to recover...")
-            val rt = Runtime.getRuntime()
-            val mem = rt.totalMemory()
-            val free = rt.freeMemory()
-            val perc = free.toDouble / mem.toDouble * 100
-            console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
-          case th: Throwable =>
-            console.error("(" + th.getClass + ") " + th.getMessage())
-            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-            coredump("Internal error.", Some(th))
+      // Read the first segment.
+      if (!fetchline("e> ", "q> ")) {
+        // Read any additional segments.  Everything happens in the while loop,
+        // but the loop needs a body, so that's the zero.
+        while (!fetchline(" > ", " > ") && blanks < 3) 0
+        if (blanks >= 3) {
+          console.emitln("Entry terminated by three blank lines.")
+          line = ""
         }
+      }
+        
+      // Watch for the end of stream or the special :quit token.
+      if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+        // Tell the ReplActor to exit its thread first.
+        ReplActor.exitFlag = true
+        ReplActor ! (":quit", true)
+        return
+      }
+        
+      // Flush the console.  Is this necessary?
+      cr.flush()
+        
+      // Run the line.
+      try {
+        execute("(console)", line)
+      } catch {
+        case ornl.elision.util.ElisionException(loc, msg) =>
+          console.error(loc, msg)
+        case ex: Exception =>
+          console.error("(" + ex.getClass + ") " + ex.getMessage())
+          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+
+        case oom: java.lang.OutOfMemoryError =>
+          System.gc()
+          console.error("Memory exhausted.  Trying to recover...")
+          val rt = Runtime.getRuntime()
+          val mem = rt.totalMemory()
+          val free = rt.freeMemory()
+          val perc = free.toDouble / mem.toDouble * 100
+          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+
+        case th: Throwable =>
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.
   }
@@ -735,5 +735,4 @@ extends Processor(state.settings) {
       console.warn("Unable to save context.")
     }
   }
-  
 }
