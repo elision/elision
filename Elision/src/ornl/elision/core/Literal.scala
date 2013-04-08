@@ -48,8 +48,8 @@ import ornl.elision.util.other_hashify
  * Literals come in the following forms.
  *  - An '''integer''' of arbitrary precision, and one of the following radices:
  *    - Binary, indicated with a prefix of `0b`
- *    - Octal, indicated with a prefix of `0`
- *    - Decimal, indicated by starting the number with any non-zero digit.
+ *    - Octal, indicated with a prefix of `0o`
+ *    - Decimal, indicated with no special prefix.
  *    - Hexadecimal, indicated with a prefix of `0x`
  *    A negative sign (`-`) may precede the prefix.  Any number of appropriate
  *    digits may follow.  Numbers are case-insensitive, both for the prefix and
@@ -442,7 +442,7 @@ case class FloatLiteral(typ: BasicAtom, significand: BigInt, exponent: Int,
   private lazy val _prefix = radix match {
     case 16 => "0x"
     case 10 => ""
-    case 8  => "0"
+    case 8  => "0o"
     case 2  => "0b"
     case _  => require(false, "Invalid radix.")
   }
