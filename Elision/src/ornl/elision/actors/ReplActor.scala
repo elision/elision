@@ -38,12 +38,9 @@ package ornl.elision.actors
 
 import scala.actors.Actor
 
-/** The REPL's Actor object for communicating with the GUI */
+/** The REPL's Actor object for communicating with a GUI. */
 object ReplActor extends Actor {
 
-	/** a flag that tells the REPL whether it is receiving input from a GUI or from the console. */
-	var guiMode : Boolean = false 
-    
   /** a flag used for forcing the ReplActor to accept a message for exiting. */
   var exitFlag = false
 	
@@ -56,7 +53,7 @@ object ReplActor extends Actor {
 	/** a string for storing the most recent input from a GUI */
 	var guiInput : String = "no gui input yet"
 
-	/** a reference to the GUI's actor. */
+	/** a reference to the GUI's actor. Null if we are not connected to a GUI. */
 	var guiActor : Actor = null
 	
 	/** a flag that tells the Actor to be verbose while waiting on the GUI. */
@@ -82,51 +79,101 @@ object ReplActor extends Actor {
 	def act() = {
 		loop {
 			react {
+			  // Toggle whether to disable communications with the GUI.
         case ("disableGUIComs", flag : Boolean) =>
           disableGUIComs = flag
+        
+        // Tell this Actor and its GUI's Actor to exit.
         case (":quit", true) =>
-          if(guiMode)  guiActor ! "quit"
-          else exit
+          if(guiActor != null)  
+            guiActor ! "quit"
+          else 
+            exit
+        
+        // new prompt string to be appended to the GUI's console.
+        case ("newPrompt", prompt : String) =>
+            guiActor ! ("newPrompt", prompt)
+            
+        // Forward something to the GUI's actor.
+        case ("toGUI", msg : Any) =>
+          if(guiActor != null && !disableGUIComs) { 
+             guiActor ! ("toGUI", msg)
+          }
+          
+        // Receive a line of input from the GUI.
 				case str : String =>
 					guiInput = str
 					waitingForGuiInput = false
+					
+			  // Toggle whether we are waiting on the GUI to perform some action.
 				case ("wait", flag : Boolean) =>
 					waitingForGuiInput = flag
+					
+				// Set the console's columns to match the GUI's columns.
         case ("guiColumns", x : Int) =>
           guiColumns = x
           console.width_=(guiColumns)
           console.height_=(guiRows-1)
+          
+        // Obtain a line from the input history and send it back to the GUI.
         case ("getHistory", direction : Int) =>
           val entry = if(direction < 1) {
-            history.getPreviousHistoryEntry
-          }
-          else {
-            history.getNextHistoryEntry
-          } 
+              history.getPreviousHistoryEntry
+            }
+            else {
+              history.getNextHistoryEntry
+            } 
           entry match {
             case Some(str : String) => guiActor ! ("reGetHistory", str)
             case _ => guiActor ! ("reGetHistory", None)
           }
+          
+        // Add a line to the input history.
         case ("addHistory", str : String) =>
           history.addHistoryLine(str)
+          
+        // Inform the GUI whether it should syntax color what's being printed to stdout.
+        case ("syntaxcolor", flag : Boolean) =>
+          guiActor ! ("replFormat", flag)
 				case msg => {}
 			}
 		}
 	}
 	
-	/** forces the calling thread to wait for the GUI to finish doing something. */
-	def waitOnGUI(doStuff : () => Unit = null, msg : String = null) : Unit = {
-		waitingForGuiInput = true
-		if(doStuff != null) doStuff()
-		while(waitingForGuiInput) {
-			if(verbose && msg != null) println("waiting on the GUI: " + msg)
-			Thread.sleep(20) // sleep until the REPL receives input from the GUI
-		}
+  
+	/** 
+	 * Pause until the GUI sends a wake up message. Optionally, display a 
+	 * message about what we're waiting on, but only if verbose is true.
+	 * @param msg  The optional message.
+	 */
+	def waitForGUI(msg : String = "") {
+	  if(verbose) {
+	    console.emitln("waiting on the GUI: " + msg)
+	  }
+	  
+	  // Sleep until the GUI wakes us up with a ("wait", false) message.
+	  waitingForGuiInput = true
+	  while(waitingForGuiInput) {
+      Thread.sleep(20) 
+    }
 	}
+	
+	/** 
+	 * Prompts the GUI for input. This blocks until the GUI sets the 
+	 * value for guiInput and sends a ("wait", false) message to us.
+	 * @param prompt   The prompt string. e.g.: "e> "
+	 * @return         The line of input from the GUI.
+	 */
+	def readLine(prompt : String) : String = {
+    this ! ("newPrompt", prompt)
     
+    ReplActor.waitForGUI("gui input")
+    ReplActor.guiInput
+	}
+	
   /** Overriden ! method checks global allowMessages flag before processing a message.*/
   override def ! (msg : Any) : Unit = {
-    if(guiMode || exitFlag) super.!(msg)
+    if(guiActor != null || exitFlag) super.!(msg)
   }
 }
 

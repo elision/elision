@@ -29,6 +29,7 @@
  */
 package ornl.elision.repl
 
+import ornl.elision.actors.ReplActor
 import ornl.elision.parse._
 import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
@@ -117,7 +118,7 @@ object ReplMain {
   private val _settings = Seq(
       Setting("elision.root", Some("ELISION_ROOT"), None,
           Some(_default_root), "Specify the folder where Elision should " +
-          		"store its data."),
+              "store its data."),
       Setting("elision.history", Some("ELISION_HISTORY"), None,
           Some("elision-history.eli"),
           "Name of file where Elision will store the REPL history."),
@@ -172,6 +173,12 @@ object ReplMain {
   def runRepl(settings: CLI.CLIState) {
     val erepl = new ERepl(settings)
     ornl.elision.core.knownExecutor = erepl
+    
+    ReplActor.start
+    ReplActor.history = erepl
+    ReplActor.console = erepl.console
+    ReplActor ! ("disableGUIComs", true)
+    
     erepl.run()
     erepl.clean()
   }
@@ -199,9 +206,9 @@ object ReplMain {
 class ERepl(state: CLI.CLIState = CLI.CLIState())
 extends Processor(state.settings) {
   import ornl.elision.core._
-	import scala.tools.jline.console.history.FileHistory
-	import scala.tools.jline.console.ConsoleReader
-	import java.io.{File, FileWriter, FileReader, BufferedReader}
+  import scala.tools.jline.console.history.FileHistory
+  import scala.tools.jline.console.ConsoleReader
+  import java.io.{File, FileWriter, FileReader, BufferedReader}
 
   //======================================================================
   // Figure out where to read and store the history, and where to store
@@ -291,7 +298,7 @@ extends Processor(state.settings) {
   declareProperty("usepager",
       "Use the pager when output is longer than the screen.", true)
   declareProperty("syntaxcolor", "Use syntax-based coloring of atoms where " +
-  		"it is supported.", true)
+      "it is supported.", true)
   
   //======================================================================
   // Define the REPL control fields.
@@ -309,22 +316,31 @@ extends Processor(state.settings) {
       // quiet setting.
       console.sendln("Scala: " + prefix + atom.toString)
     }
-    // FIXME: This code is commented out because it causes a "hang" when
-    // loading a prior context.
-//    if (getProperty[Boolean]("syntaxcolor")) {
-//      // color-format the atom's parseString and print it.
-//      val formatCols = console.width
-//      val formatRows = console.height
-//      val atomParseString = ConsoleStringFormatter.format(
-//          prefix + atom.toParseString, formatCols)
-//      ornl.elision.util.AnsiPrintConsole.width = formatCols
-//      ornl.elision.util.AnsiPrintConsole.height = formatRows
-//      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
-//      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-//    } else {
+    
+    if(ReplActor.guiActor != null) {
+      ReplActor ! ("syntaxcolor", true)
+      ReplActor.waitForGUI("formatting on")
+    }
+    
+    if(getProperty[Boolean]("syntaxcolor")) {
+      // color-format the atom's parseString and print it.
+      val formatCols = console.width
+      val formatRows = console.height
+      val atomParseString = ConsoleStringFormatter.format(
+          prefix + atom.toParseString, formatCols)
+      ornl.elision.util.AnsiPrintConsole.width = formatCols
+      ornl.elision.util.AnsiPrintConsole.height = formatRows
+      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
+      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
-//    }
+    }
+    
+    if(ReplActor.guiActor != null) {
+      ReplActor ! ("syntaxcolor", false)
+      ReplActor.waitForGUI("formatting off")
+    }
   }
   
   this.register(
@@ -573,7 +589,7 @@ extends Processor(state.settings) {
     
     // Report startup time.
     stopTimer
-    printf("Startup Time: " + getLastTimeString + "\n")
+    console.emitf("Startup Time: " + getLastTimeString + "\n")
     SymbolicOperator.reportTime
     
     // If a compilable context is desired, generate it and stop. */
@@ -590,7 +606,12 @@ extends Processor(state.settings) {
         file.close()
         return
     }
-	
+  
+    // activates communications with the GUI if we are using it.
+    if(ReplActor.guiActor != null) {
+      ReplActor ! ("disableGUIComs", false)
+    }
+    
     // Configure the console and history.
     val cr = new ConsoleReader
     val term = cr.getTerminal
@@ -617,78 +638,87 @@ extends Processor(state.settings) {
         Processor.fileReadStack.clear
         Processor.fileReadStack.push("Console")
 
-        segment = {
-  				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
-  				// Reset the terminal size now, if we can, and if the user wants to
-  				// use the pager.
-  				if (getProperty[Boolean]("usepager")) {
+          segment = if (ReplActor.guiActor != null) {  
+            // Get input from the GUI.            
+            ReplActor.readLine(if (console.quiet > 0) p2 else p1)
+          } else {
+            // Get input directly from the console. 
+            val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+            // Reset the terminal size now, if we can, and if the user wants to
+            // use the pager.
+            if (getProperty[Boolean]("usepager")) {
               console.height_=(
                   scala.tools.jline.TerminalFactory.create().getHeight()-1)
               console.width_=(
                   scala.tools.jline.TerminalFactory.create().getWidth())
-  				} else {
-  				  console.height_=(0)
-  				  console.width_=(0)
-  				}
-  				line
-  			} 
-    		
-      	if (segment == null) {
-      	  return true
-      	}
-      	segment = segment.trim()
-      	
-      	// Watch for blank lines that terminate the parse.
-      	if (segment == "") blanks += 1 else blanks = 0
-      	
-      	// Capture newlines.
-      	if (line != "") line += "\n"
-      	line += segment
-      	
-      	// Process the line to determine if the input is complete.
-      	ls.process(segment)
-      }
-      
-      // Read the first segment.
-      if (!fetchline("e> ", "q> ")) {
-      	// Read any additional segments.  Everything happens in the while loop,
-        // but the loop needs a body, so that's the zero.
-        while (!fetchline(" > ", " > ") && blanks < 3) 0
-	      if (blanks >= 3) {
-	        console.emitln("Entry terminated by three blank lines.")
-	        line = ""
-	      }
-      }
-      
-      // Watch for the end of stream or the special :quit token.
-      if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-        return
-      }
-      
-      // Flush the console.  Is this necessary?
-      cr.flush()
-      
-      // Run the line.
-      try {
-        execute("(console)", line)
-      } catch {
-        case ornl.elision.util.ElisionException(loc, msg) =>
-          console.error(loc, msg)
-        case ex: Exception =>
-          console.error("(" + ex.getClass + ") " + ex.getMessage())
-          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
-        case oom: java.lang.OutOfMemoryError =>
-          System.gc()
-          console.error("Memory exhausted.  Trying to recover...")
-          val rt = Runtime.getRuntime()
-          val mem = rt.totalMemory()
-          val free = rt.freeMemory()
-          val perc = free.toDouble / mem.toDouble * 100
-          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
-        case th: Throwable =>
-          console.error("(" + th.getClass + ") " + th.getMessage())
-          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-          coredump("Internal error.", Some(th))
+            } else {
+              console.height_=(0)
+              console.width_=(0)
+            }
+            line
+          } 
+          
+          if (segment == null) {
+            return true
+          }
+          segment = segment.trim()
+          
+          // Watch for blank lines that terminate the parse.
+          if (segment == "") blanks += 1 else blanks = 0
+          
+          // Capture newlines.
+          if (line != "") line += "\n"
+          line += segment
+          
+          // Process the line to determine if the input is complete.
+          ls.process(segment)
+        }
+        
+        // Read the first segment.
+        if (!fetchline("e> ", "q> ")) {
+          // Read any additional segments.  Everything happens in the while loop,
+          // but the loop needs a body, so that's the zero.
+          while (!fetchline(" > ", " > ") && blanks < 3) 0
+          if (blanks >= 3) {
+            console.emitln("Entry terminated by three blank lines.")
+            line = ""
+          }
+        }
+        
+        // Watch for the end of stream or the special :quit token.
+        if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+          // Tell the ReplActor to exit its thread first.
+          ReplActor.exitFlag = true
+          ReplActor ! (":quit", true)
+          
+          return
+        }
+        
+        // Flush the console.  Is this necessary?
+        cr.flush()
+        
+        // Run the line.
+        try {
+          execute("(console)", line)
+        } catch {
+          case ornl.elision.util.ElisionException(loc, msg) =>
+            console.error(loc, msg)
+          case ex: Exception =>
+            console.error("(" + ex.getClass + ") " + ex.getMessage())
+            if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+          case oom: java.lang.OutOfMemoryError =>
+            System.gc()
+            console.error("Memory exhausted.  Trying to recover...")
+            val rt = Runtime.getRuntime()
+            val mem = rt.totalMemory()
+            val free = rt.freeMemory()
+            val perc = free.toDouble / mem.toDouble * 100
+            console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+          case th: Throwable =>
+            console.error("(" + th.getClass + ") " + th.getMessage())
+            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+            coredump("Internal error.", Some(th))
+        }
       }
     } // Forever read, eval, print.
   }

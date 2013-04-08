@@ -55,10 +55,6 @@ object mainGUI extends SimpleSwingApplication {
   /** The default title bar text. */
   val defaultTitle = "Elision Visualization Assistant"
   
-  /** Eva's configuration settings */
-//  val config = new EvaConfig
-  GUIActor.treeBuilder.treeMaxDepth = EvaConfig.maxTreeDepth
-  
   /** 
    * This string controls what mode Eva is currently running in. 
    * Currently supported modes are: 
@@ -79,6 +75,7 @@ object mainGUI extends SimpleSwingApplication {
   sidePanel.listenTo(visPanel)
   
   GUIActor.start
+  elision.TreeBuilderActor.start
   
   /** The menu bar */
   val evaMenuBar = new menus.EvaMenuBar

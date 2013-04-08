@@ -74,7 +74,7 @@ object TreeVisMenu {
         openDirectory = selFile.getParent
         EvaConfig.lastOpenPath = openDirectory
         EvaConfig.save
-        GUIActor ! ("SaveTree", selFile)
+        GUIActor ! ("SaveTreeXML", selFile)
       }
     })
         
@@ -232,7 +232,7 @@ class MaxDepthDialog extends Dialog {
     val linesInput = new TextField(10) { 
         listenTo(keys) 
         reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = "" + GUIActor.treeBuilder.treeMaxDepth
+        text = "" + EvaConfig.maxTreeDepth
     }
     val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
     val cancelBtn = new Button(Action("Cancel") { close } )
@@ -261,7 +261,6 @@ class MaxDepthDialog extends Dialog {
         
         try {
             val fieldInt = input.toInt
-            GUIActor.treeBuilder.treeMaxDepth = fieldInt
             EvaConfig.maxTreeDepth = fieldInt
             EvaConfig.save
             // close the dialog when we finish processing input
