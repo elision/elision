@@ -36,6 +36,7 @@ import ornl.elision.util.Timeable
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasHistory
 import ornl.elision.util.ElisionException
+import ornl.elision.util.Version
 
 /**
  * Manage the default parser kind to use.
@@ -113,9 +114,6 @@ with HasHistory {
   /** Whether to trace the parser. */
   private var _trace = false
 
-  /** Whether to stop execution at the root level if an error occurs. */
-  private var _crashRoot = true
-  
   /** The queue of handlers, in order. */
   private var _queue = List[Processor.Handler]()
 
@@ -267,7 +265,6 @@ with HasHistory {
       console.emitln(lline)
     }
     _execute(_makeParser(name).parseAtoms(lline))
-	
   }
   
   def parse(name: String, text: String) = {
@@ -310,13 +307,8 @@ with HasHistory {
     	}
     } catch {
       case ee: ElisionException =>
-        if(_crashRoot) {
-          // An error is encountered and execution of the root operation must stop.
-          throw new Exception(ee)
-        } else {
-          // An error is encountered, but we only skip the rest of execution at this level.
-          console.error(ee.msg)
-        }
+        // An error is encountered, but we only skip the rest of execution at this level.
+        console.error(ee.loc, ee.msg)
         
       case ex: Exception =>
         console.error("(" + ex.getClass + ") " + ex.getMessage())
@@ -397,24 +389,9 @@ with HasHistory {
   }
   
   /**
-   * Specify whether to stop root execution on errors.
-   * 
-   * @param enable	If true, stop root execution if an error occurs.  
-   *                If false, do not.
-   */
-  def crashRoot_=(enable: Boolean) {
-    _crashRoot = enable
-  }
-  
-  /**
    * Determine whether tracing is enabled.
    */
   def trace = _trace
-  
-  /**
-   * Determine if root execution stops when an error occurs.
-   */
-  def crashRoot = _crashRoot
   
   /**
    * Register a handler.  This handler will be placed at the front of the
@@ -449,6 +426,20 @@ with HasHistory {
     try {
       val cfile = new java.io.FileWriter("elision.core")
       if (cfile != null) {
+        import Version._
+        val prop = System.getProperties
+        val info =
+          <platform
+            date={(new java.util.Date).toString}
+            java.vendor={prop.get("java.vendor").toString}
+            java.version={prop.get("java.version").toString}
+            os.name={prop.get("os.name").toString}
+            os.version={prop.get("os.version").toString}
+            os.arch={prop.get("os.arch").toString}
+            version={major+"."+minor}
+            build={build}
+            scala.version={util.Properties.versionString}
+          />
         val cont = <context>{context.toParseString}</context>
         val err = th match {
           case None => <error/>
@@ -467,6 +458,7 @@ with HasHistory {
           buf.toString
         }</history>
         val all = <elision-core when={date} msg={msg}>
+          {info}
       		{err}
       		{cont}
       		{hist}
@@ -500,11 +492,30 @@ with HasHistory {
       // Extract the XML from the core dump file.
       val coreFile = new File(corePath)
       val coreXML = XML.loadFile(coreFile)
+      
+      // Display information about the machine where the core dump was
+      // created.
+      val info = coreXML \ "platform"
+      console.emitln("Creation platform:")
+      console.emitln("  Created on ...... "+info \ "@date")
+      console.emitln("  Java Vendor ..... "+info \ "@java.vendor")
+      console.emitln("  Java Version .... "+info \ "@java.version")
+      console.emitln("  OS Name ......... "+info \ "@os.name")
+      console.emitln("  OS Version ...... "+info \ "@os.version")
+      console.emitln("  OS Architecture . "+info \ "@os.arch")
+      console.emitln("  Elision Version . "+info \ "@version")
+      console.emitln("  Elision Build ... "+info \ "@build")
+      console.emitln("  Scala Version ... "+info \ "@scala.version")
+      console.emitln("")
 
       // Display the core dump's error information
       val err = coreXML \ "error"
       val errMsg = err \ "@message"
-      console.emitln("Core dump error message: " + errMsg)
+      console.emitln("Core dump error message:")
+      console.emitln("  %s" format errMsg)
+      console.emitln("")
+      
+      // Re-create the context.
       console.emitln("Reloading context...")
       val cont = (coreXML \ "context").text
       new ElisionParser(corePath).parseAtoms(cont) match {
