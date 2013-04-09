@@ -289,6 +289,13 @@ extends Parser with AbstractParser {
           }
         } |
         
+        BitString ~ optional(":" ~ FirstAtom) ~~> {
+          // Construct the bit string from the pieces.
+          (flag: Option[Boolean], bits: (Int, String), len: (Int, String),
+              otyp: Option[BA]) =>
+            bitstring(flag, bits, len, otyp)
+        } |
+        
         AnyNumber ~ optional(":" ~ FirstAtom) ~~> {
           // Construct a number from all the pieces.  The number can be either
           // an integer or a float.
@@ -497,6 +504,15 @@ extends Parser with AbstractParser {
         WS ~ ", ") ~ WS
   }.label("operator properties")
 
+  //----------------------------------------------------------------------
+  // Parse bit strings.
+  //----------------------------------------------------------------------
+
+  def BitString = rule {
+    optional("-" ~ push(true)) ~
+    AnyInteger ~ ignoreCase("l") ~ AnyInteger ~ WS
+  }.label("a bit string")
+  
   //----------------------------------------------------------------------
   // Parse numbers.
   //----------------------------------------------------------------------

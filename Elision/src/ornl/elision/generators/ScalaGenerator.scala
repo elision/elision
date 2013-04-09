@@ -112,6 +112,11 @@ object ScalaGenerator extends Generator {
         buf.append(significand.toString).append(",")
         buf.append(exponent.toString).append(",")
         buf.append(radix.toString).append(")")
+      case BitStringLiteral(typ, bits, len) =>
+        buf.append("BitStringLiteral(")
+        gen(typ, context, buf).append(",")
+        buf.append(bits.toString).append(",")
+        buf.append(len.toString).append(")")
     }
   }
   

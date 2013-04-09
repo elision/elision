@@ -63,6 +63,8 @@ import ornl.elision.core.FLOAT
 import ornl.elision.core.NamedRootType
 import ornl.elision.core.BOOLEAN
 import ornl.elision.util.Loc
+import ornl.elision.core.BITSTRING
+import ornl.elision.core.BitStringLiteral
 
 
 /**
@@ -150,6 +152,26 @@ object AST {
   def string(value: String, typ: BA = known(STRING)) = new AST[StringLiteral] {
     def interpret(context: Context) =
       StringLiteral(typ.interpret(context), value)
+  }
+  
+  /**
+   * Make an AST for a bit string.
+   * 
+   * @param flag    Optional flag indicating if the original bits is negative.
+   * @param bits    An integer to interpret as the bits.
+   * @param len     The length.
+   * @param otyp    The overriding type for the bit string.
+   * @return  The constructed literal AST node.
+   */
+  def bitstring(oflag: Option[Boolean], bits: (Int, String),
+      len: (Int, String), otyp: Option[BA]) = new AST[Literal[_]] {
+    def interpret(context: Context) = {
+      val neg = oflag.getOrElse(false)
+      val typ = otyp.getOrElse(known(BITSTRING)).interpret(context)
+      BitStringLiteral(typ,
+          if (neg) -BigInt(bits._2, bits._1) else BigInt(bits._2, bits._1),
+          Integer.parseInt(len._2, len._1))
+    }
   }
   
   /**
