@@ -168,8 +168,10 @@ extends Fickle with Mutable {
  	  if (_nameToOperator.contains(name))
  	    if (allowRedefinition) {
  	      val oldop = _nameToOperator(name).operator
- 	      warn(op.loc, "Redefining operator " + op.name + ".")
- 	      warn(oldop.loc, "Prior definition: " + oldop.toParseString)
+ 	      knownExecutor.console.warn(op.loc,
+ 	          "Redefining operator " + op.name + ".")
+ 	      knownExecutor.console.warn(oldop.loc,
+ 	          "Prior definition: " + oldop.toParseString)
  	    } else {
  	    	// Reject this!  The operator is already defined.
  	    	throw new OperatorRedefinitionException(op.loc,

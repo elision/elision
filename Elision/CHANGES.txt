@@ -1,6 +1,26 @@
 CHANGES
 =======
 
+Version 0.4 to Version 0.5
+--------------------------
+* BasicAtoms now keep track of their origin through the new Loc class.  This
+  specifies where the atom was declared.
+* There is now just a single parser, using Parboiled.
+* Loading and saving of contexts is implemented (loadcontext and savecontext
+  defined in bootstrap/Context.eli).
+* Loading of the prior working context is implemented via the -p flag to repl.
+* Creation of a compilable context (as Scala source) is possible via the -C
+  flag to repl.
+* Core dumps can be reloaded (loadcoredump defined in bootstrap/Context.eli).
+* Lambda variables now preserve their meta-ness during conversion to de Bruijn
+  indices.
+* Inline operator definitions can now persist and be used.  More care is taken
+  with operator references.  If the known operator changes the system will
+  print the stored closure instead of the operator name, which would be wrong.
+* Caching of compiled native handlers is implemented, for significant
+  improvement in startup time.
+* Lots of minor fixes and general improvements. 
+
 Version 0.3 to Version 0.4
 --------------------------
 * Significant changes in the layout of the project.  Many classes have moved

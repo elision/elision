@@ -502,6 +502,15 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+  
+  /*
+   * FIXME  Eliminate all timeout stuff from this object.
+   * 
+   * This breaks the architecture.  The BasicAtom must not depend on
+   * the Executor, as it creates a cycle, and can cause problems with
+   * object instantiation.  Besides, it is just plain wrong.  BasicAtom
+   * has no responsibilities with respect to rewriting.
+   */
 
   /** The clock time at which the current rewrite will time out.*/
   var timeoutTime: DynamicVariable[Long] = new DynamicVariable[Long](-1L)

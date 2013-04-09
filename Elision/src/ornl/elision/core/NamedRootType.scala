@@ -180,6 +180,8 @@ object SYMBOL extends NamedRootType("SYMBOL")
 object INTEGER extends NamedRootType("INTEGER")
 /** The FLOAT type. */
 object FLOAT extends NamedRootType("FLOAT")
+/** The BITSTRING type. */
+object BITSTRING extends NamedRootType("BITSTRING")
 /** The BOOLEAN type. */
 object BOOLEAN extends NamedRootType("BOOLEAN")
 /** A type for all rules. */
