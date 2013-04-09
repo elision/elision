@@ -776,6 +776,25 @@ extends Fickle with Mutable {
   enableRuleset("DEFAULT")
   
   /**
+   * Get all ruleset names.  Note that this includes the `DEFAULT` ruleset.
+   * 
+   * return An iterable list of ruleset names.
+   */
+  def getAllRulesets() = {
+    _rs2bit map { _._1 }
+  }
+  
+  /**
+   * Get the set of active ruleset names.  This may include the `DEFAULT`
+   * ruleset.
+   * 
+   * @return The set of active ruleset names.
+   */
+  def getActiveRulesets() = {
+    _activeNames
+  }
+  
+  /**
   * Get the bit for a ruleset.
   * 
   * @param name	The ruleset name.
@@ -1044,6 +1063,18 @@ extends Fickle with Mutable {
       yield rule
   }
 
+  /**
+   * Get all rules contained in the system, in the order they would be
+   * considered during rewrite.
+   * 
+   * @return  The list of rules.
+   */
+  def getAllRules() = {
+    var all = List[RewriteRule]()
+    for ((_, list) <- _kind2rules ++ _op2rules; (_, rule) <- list) all :+= rule
+    all
+  }
+
   //======================================================================
   // Strings.
   //======================================================================
@@ -1080,9 +1111,9 @@ extends Fickle with Mutable {
     buf append "object Rules {\n  import ornl.elision.core.Context\n"
 
     // add apply
-    buf append "  def apply(_context: Context):Unit = {\n"
+    buf append "  def apply(context: Context):Unit = {\n"
     for(k <- 0 until actionList.length/5000+1) {
-      buf append "    Rules"+k+"(_context)\n"
+      buf append "    Rules"+k+"(context)\n"
     }
     buf append "  }\n}\n\n"
     
@@ -1096,9 +1127,9 @@ extends Fickle with Mutable {
       end = i
       
       if(i%5000==0 && needBrace) {
-        buf append "\n  def apply(_context: Context):Unit = {\n"
+        buf append "\n  def apply(context: Context):Unit = {\n"
         for(j <- start to end)
-          buf append "    rule"+j+"(_context)\n"
+          buf append "    rule"+j+"(context)\n"
         buf append "  }\n}\n"
         needBrace = false
       }
@@ -1109,19 +1140,19 @@ extends Fickle with Mutable {
         needBrace = true
       }      
       
-      buf append "  def rule"+i+"(_context: Context):Unit = " +
+      buf append "  def rule"+i+"(context: Context):Unit = " +
       (v match {
-        case AddRule(rule) => "_context.ruleLibrary.add("+ rule +")\n"
-        case DeclareRS(ruleSet) => "_context.ruleLibrary.declareRuleset(\""+ ruleSet +"\")\n"
+        case AddRule(rule) => "context.ruleLibrary.add("+ rule +")\n"
+        case DeclareRS(ruleSet) => "context.ruleLibrary.declareRuleset(\""+ ruleSet +"\")\n"
       })
       
     }}
     if(needBrace) {
-        buf append "  def apply(_context: Context):Unit = {\n"
+        buf append "  def apply(context: Context):Unit = {\n"
         for(j <- start to end)
-          buf append "    rule"+j+"(_context)\n"
+          buf append "    rule"+j+"(context)\n"
         for (rsname <- _activeNames) {
-          buf append "    _context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
+          buf append "    context.ruleLibrary.enableRuleset(\""+ rsname +"\")\n"
         } // Enable rulesets.
         buf append "  }\n}\n"      
     }

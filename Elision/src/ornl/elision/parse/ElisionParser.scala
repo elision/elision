@@ -73,9 +73,12 @@ extends Parser with AbstractParser {
       else ReportingParseRunner(Atoms)
     val parsingResult = tr.run(source)
     parsingResult.result match {
-      case Some(nodes) => Success(nodes)
-      case None => Failure("Invalid Elision source:\n" +
-          ErrorUtils.printParseErrors(parsingResult))
+      case Some(nodes) =>
+        Success(nodes)
+        
+      case None =>
+        Failure("Invalid Elision source:\n" +
+            ErrorUtils.printParseErrors(parsingResult))
     }
   }
 
@@ -506,8 +509,8 @@ extends Parser with AbstractParser {
     optional("-" ~ push(true)) ~ (
       HNumber |
       BNumber |
-      DNumber |
-      ONumber) ~ WS
+      ONumber |
+      DNumber) ~ WS
   }.label("an integer or floating point number")
 
   /**
@@ -533,17 +536,6 @@ extends Parser with AbstractParser {
   }.label("a binary number")
 
   /**
-   * Parse a decimal number that may be either an integer or a float.
-   */
-  def DNumber = rule {
-    DInteger ~
-      optional("." ~ zeroOrMore(DDigit) ~> {
-        (10, _)
-      }) ~
-      optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
-  }.label("a decimal number")
-
-  /**
    * Parse an octal number that may be either an integer or a float.
    */
   def ONumber = rule {
@@ -553,6 +545,17 @@ extends Parser with AbstractParser {
       }) ~
       optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
   }.label("an octal number")
+
+  /**
+   * Parse a decimal number that may be either an integer or a float.
+   */
+  def DNumber = rule {
+    DInteger ~
+      optional("." ~ zeroOrMore(DDigit) ~> {
+        (10, _)
+      }) ~
+      optional((ignoreCase("e") | ignoreCase("p")) ~ Exponent)
+  }.label("a decimal number")
 
   /**
    * Parse an exponent expression.  The expression does not include the
@@ -571,8 +574,8 @@ extends Parser with AbstractParser {
   def AnyInteger = rule { (
     HInteger |
     BInteger |
-    DInteger |
-    OInteger ) ~ WS
+    OInteger |
+    DInteger ) ~ WS
   }.label("an integer")
 
   /**
@@ -596,24 +599,24 @@ extends Parser with AbstractParser {
   }.label("a binary integer")
 
   /**
-   * Parse a decimal integer.
-   * @return  An unsigned integer.
-   */
-  def DInteger = rule {
-    group(("1" - "9") ~ zeroOrMore(DDigit)) ~> {
-      (10, _)
-    }
-  }.label("a decimal integer")
-
-  /**
    * Parse an octal integer.
    * @return  An unsigned integer.
    */
   def OInteger = rule {
-    group("0" ~ zeroOrMore(ODigit)) ~> {
+    ignoreCase("0o").suppressNode ~ oneOrMore(ODigit) ~> {
       (8, _)
     }
   }.label("an octal integer")
+
+  /**
+   * Parse a decimal integer.
+   * @return  An unsigned integer.
+   */
+  def DInteger = rule {
+    group(("0" - "9") ~ zeroOrMore(DDigit)) ~> {
+      (10, _)
+    }
+  }.label("a decimal integer")
 
   /** Parse a decimal digit. */
   def DDigit = rule { "0" - "9" }.label("a decimal digit")

@@ -427,7 +427,7 @@ trait Console {
    */
   def warn(loc: Loc, msg: String) {
     _warnings += 1
-    if (_quiet < 2) writeln("WARNING"+loc+": "+msg)
+    if (_quiet < 2) writeln("WARNING"+loc.toShortString+": "+msg)
   }
   
   /**
@@ -454,7 +454,7 @@ trait Console {
    */
   def error(loc: Loc, msg: String) {
     _errors += 1
-    if (_quiet < 3) writeln("ERROR"+loc+": "+msg)
+    if (_quiet < 3) writeln("ERROR"+loc.toShortString+": "+msg)
   }
   
   /**

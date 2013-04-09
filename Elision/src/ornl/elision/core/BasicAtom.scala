@@ -320,8 +320,9 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
     
       // The match attempt is starting.  Write out information about the
       // attempted match.
-      Debugger.debugf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
-      Debugger.debugln("  pattern: " + this.toParseString + "\n  subject: " +
+      Debugger.debugf("matching",
+          "TRYING  (%x) in %s:\n", what, this.getClass.toString)
+      Debugger("matching", "  pattern: " + this.toParseString + "\n  subject: " +
           subject.toParseString + "\n  with: " + binds.toParseString)
     }
         
@@ -332,14 +333,14 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
       // Write out information about the result of the match attempt.
       outcome match {
         case fail:Fail =>
-        	Debugger.debugf("FAILURE (%x): ", what)
-          Debugger.debugln(fail)
+        	Debugger.debugf("matching", "FAILURE (%x): ", what)
+          Debugger("matching", fail)
         case Match(bnd) =>
-      		Debugger.debugf("SUCCESS (%x): ", what)
-          Debugger.debugln(bnd.toParseString)
+      		Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", bnd.toParseString)
         case many:Many =>
-        	Debugger.debugf("SUCCESS (%x): ", what)
-          Debugger.debugln("  Many Matches")
+        	Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", "  Many Matches")
       }
     }
     
@@ -358,13 +359,9 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * @return	The matching outcome.
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-
-    // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out.", this, subject)
-    }
-  
-    else if (subject == ANY && !this.isBindable)
+    } else if (subject == ANY && !this.isBindable) {
       // Any pattern is allowed to match the subject ANY.  In the matching
       // implementation for ANY, any subject is allowed to match ANY.
       // Thus ANY is a kind of wild card.  Note that no bindings are
@@ -373,29 +370,32 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
       // Of course, if this atom is bindable, we might want to bind to ANY,
       // so we exempt that case.
       Match(binds)
-    else if (depth > subject.depth)
+    } else if (depth > subject.depth) {
     	// If this pattern has greater depth than the subject, reject immediately.
       Fail("Depth of pattern greater than depth of subject.", this, subject)
-    else if (isConstant && this == subject)
+    } else if (isConstant && this == subject) {
 	    // Don't bother to try to match equal atoms that are constant.  The
 	    // constancy check is required; otherwise we might "match" $x against
 	    // $x, but not bind.  This leaves us free to bind $x to something
       // different later, invalidating the original "match".  Matching is
       // tricky.
       Match(binds)
-    else
+    } else {
       // We didn't find a fast way to match, so we need to actually perform
       // the match.  First we try to match the types.  If this succeeds, then
       // we invoke the implementation of tryMatchWithoutTypes.
       matchTypes(subject, binds, hints) match {
-	      case fail: Fail => {
-                fail
-              }
-	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
+	      case fail: Fail => 
+	        fail
+	        
+	      case mat: Match =>
+	        tryMatchWithoutTypes(subject, mat.binds, hints)
+	        
 	      case Many(submatches) =>
 	        Many(MatchIterator(tryMatchWithoutTypes(subject, _, hints),
 	          submatches))
 	    }
+    }
 
   /**
    * Try to match this atom, as a pattern, against the given subject.  Do not
@@ -507,21 +507,6 @@ object BasicAtom {
   var timeoutTime: DynamicVariable[Long] = new DynamicVariable[Long](-1L)
 
   /**
-   * The maximum time allowed (in seconds) to rewrite an atom. Set to
-   * 0 to allow unlimited time.
-   */
-  var _maxRewriteTime: BigInt = 0;
-
-  /** Declare the Elision property for setting the max rewrite time. */
-  knownExecutor.declareProperty("rewrite_timeout",
-      "The maximum time to try rewriting an atom. In seconds.",
-      _maxRewriteTime,
-      (pm: PropertyManager) => {
-        _maxRewriteTime =
-          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-      })
-
-  /**
    * Compute the wall clock time at which the current rewrite will time
    * out.
    */
@@ -531,10 +516,8 @@ object BasicAtom {
     // out a rewrite?
     //
     // NOTE: We have to explicitly go out to the current executor to
-    // get the timeout value rather than using _maxRewriteTime since
-    // the closure used in the above declaration for the
-    // rewrite_timeout property can wind up referencing a different
-    // executor than what Elision is actually using.
+    // get the timeout value to make sure we are getting the value from 
+    // the correct executor.
     val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
       // The time at which things time out is the current time plus

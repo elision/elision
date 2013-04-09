@@ -146,6 +146,10 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
             case rlit: IntegerLiteral => llit.value.compare(rlit.value)
             case _ => -1
           }
+          case llit: BooleanLiteral => right match {
+            case rlit: BooleanLiteral => llit.value.compare(rlit.value)
+            case _ => -1
+          }
           case llit: StringLiteral => right match {
             case rlit: IntegerLiteral => 1
             case rlit: StringLiteral => llit.value.compare(rlit.value)

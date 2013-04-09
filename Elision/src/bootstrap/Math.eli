@@ -54,13 +54,17 @@ decl.{! eq($x,$y): BOOLEAN is %C
 "Test whether the two atoms $x and $y are considered equal by the system."
 }
 
-decl.{operator #name=equal #type=BOOLEAN #cases
-  %C($$x{is_constant($$x)},$$y{is_constant($$y)}) -> eq($$x,$$y),
-  _ -> _
+decl.{! equal($x,$y): BOOLEAN is %C
+	#handler="""
+	  args match {
+	    case Args(x,y) if x.isConstant && y.isConstant => x == y
+	    case _ => as_is
+	  }
+	"""
   #description="Test whether two atoms are equal."
   #detail=
-  "Test whether $x and $y are equal.  The test is performed iff both are constant terms, ".
-  "and is deferred otherwise."
+  "Test whether $x and $y are equal.  The test is performed iff both are ".
+  "constant terms and is deferred otherwise."
 }
 
 //======================================================================

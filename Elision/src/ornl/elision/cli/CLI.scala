@@ -78,8 +78,11 @@ object CLI {
    * @param errstr      An error string, or `None` if no errors.
    * @param errindex    Index of the element causing the error.
    */
-  case class CLIState(remain: List[String], settings: Map[String,String],
-      errstr: Option[String], errindex: Int) {
+  case class CLIState(
+      remain: List[String] = List(),
+      settings: Map[String,String] = Map(),
+      errstr: Option[String] = None,
+      errindex: Int = 0) {
     Debugger("cli",
         """|Creating a CLI State Object:
            |  remain:    %s
