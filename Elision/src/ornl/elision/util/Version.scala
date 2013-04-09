@@ -198,10 +198,10 @@ object Version {
     // Get the actual command.
     val (clazz, _, gui) = get(command)
     Debugger("invoke") {
-      Debugger.debugln("Command:  " + command)
-      Debugger.debugln("Class:    " + clazz.toString())
-      Debugger.debugln("GUI:      " + gui)
-      Debugger.debugln("Arguments:" + args.mkString(","))
+      Debugger.debugln("invoke", "Command:  " + command)
+      Debugger.debugln("invoke", "Class:    " + clazz.toString())
+      Debugger.debugln("invoke", "GUI:      " + gui)
+      Debugger.debugln("invoke", "Arguments:" + args.mkString(","))
     }
     // Invoke the main method.
     clazz.getMethod("main",classOf[Array[String]]).invoke(null, args)

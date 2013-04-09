@@ -273,7 +273,7 @@ object Memo {
     Debugger("memo") {
       val t1 = System.currentTimeMillis()
       if (t1 - t0 > 2000) {
-        Debugger.debugln("lookup time = " + (t1-t0) +
+        Debugger.debugln("memo", "lookup time = " + (t1-t0) +
             "(ms) size=" + _cache.size);
       }
     }
@@ -329,7 +329,7 @@ object Memo {
     val t1 = System.currentTimeMillis()
     Debugger("memo") {
       if (t1 - t0 > 2000) {
-        Debugger.debugln("lookup time = " + (t1-t0) +
+        Debugger.debugln("memo", "lookup time = " + (t1-t0) +
             "(ms) size=" + _cache.size);
       }
     }
@@ -382,7 +382,7 @@ object Memo {
     Debugger("memo") {
       val t1 = System.currentTimeMillis()
       if (t1 - t0 > 2000) {
-        Debugger.debugln("lookup time = " + (t1-t0) +
+        Debugger.debugln("memo", "lookup time = " + (t1-t0) +
             "(ms) size=" + _cache.size);
       }
     }
@@ -432,7 +432,7 @@ object Memo {
     Debugger("memo") {
       val t1 = System.currentTimeMillis()
       if (t1 - t0 > 2000) {
-        Debugger.debugln("add time = " + (t1-t0) +
+        Debugger.debugln("memo", "add time = " + (t1-t0) +
             "(ms) size=" + _cache.size);
       }
     }
@@ -464,7 +464,7 @@ object Memo {
     Debugger("memo") {
       val t1 = System.currentTimeMillis()
       if (t1 - t0 > 2000) {
-        Debugger.debugln("add time = " + (t1-t0) +
+        Debugger.debugln("memo", "add time = " + (t1-t0) +
             "(ms) size=" + _cache.size);
       }
     }
@@ -491,7 +491,7 @@ object Memo {
     Debugger("memo") {
       val t1 = System.currentTimeMillis()
       if (t1 - t0 > 2000) {
-        Debugger.debugln("add time = " + (t1-t0) +
+        Debugger.debugln("memo", "add time = " + (t1-t0) +
             "(ms) size=" + _cache.size);
       }
     }

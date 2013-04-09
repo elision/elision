@@ -689,15 +689,6 @@ decl.{! err($msg: STRING)
   #detail="Report an error message $msg and terminate current processing."
 }
 
-decl.{! fail()
-  #handler=
-  """throw new VerifyError("core dump requested by user")"""
-  #description="Generate a runtime exception."
-  #detail=
-  "Generate a runtime exception (a VerifyError).  This causes a core dump and ".
-  "may be useful if you are trying to debug the system."
-}
-
 decl.{! _declprop($name: STRING, $default, $description: STRING)
    #description="Declare a property."
    #detail="Declare a property.  The property name is $name, and the ".
@@ -720,21 +711,3 @@ decl.{! _declprop($name: STRING, $default, $description: STRING)
        case _ => as_is
      }"""
 }
-
-decl.{! crashinc()
-  #handler=
-  """
-    exec match {
-      case p: ornl.elision.parse.Processor =>
-        p.crashRoot = !p.crashRoot
-        emitln("Crash at root is " + (if (p.crashRoot) "ON." else "OFF."))
-      case _ =>
-    }
-    _no_show
-  """
-  #description="Toggle whether to crash at the root upon error."
-  #detail=
-  "Enable or disable crashing execution at the root level when an error ".
-  "is encountered. This is ON by default. "
-}
-

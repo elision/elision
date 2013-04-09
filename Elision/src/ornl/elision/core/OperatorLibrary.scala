@@ -145,6 +145,17 @@ extends Fickle with Mutable {
  	}
  	
  	/**
+ 	 * Get the complete list of operators.
+ 	 * 
+ 	 * @return  The list of all operators.
+ 	 */
+ 	def getAllOperators() = {
+ 	  var all = List[Operator]()
+ 	  for ((_, op) <- _nameToOperator) all :+= op.operator
+ 	  all
+ 	}
+ 	
+ 	/**
  	 * Add an operator to this library.
  	 * 
  	 * @param op		The operator to add.

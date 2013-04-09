@@ -95,7 +95,7 @@ decl.{! inc($fn: STRING)
   
   // Go and get the included files from the cache.
   val included = 
-    exec.fetchAs[Set[String]]("read_once.included", Set[String]())
+    context.fetchAs[Set[String]]("read_once.included", Set[String]())
   args match {
     case Args(StringLiteral(_, filename)) =>
       exec match {

@@ -49,7 +49,8 @@ package ornl.elision.util
  * @param msg	Human-readable message.
  */
 class ElisionException(val loc: Loc, val msg: String) extends Exception(msg) {
-  override def toString = if (loc.source == "") msg else loc+" "+msg
+  override def toString =
+    if (loc.source == "") msg else loc.toShortString+" "+msg
 }
 
 /**

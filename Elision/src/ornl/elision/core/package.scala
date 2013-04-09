@@ -96,7 +96,7 @@ package object core {
         case knownExecutor.ParseFailure(_) => None
       }
     } catch {
-      case th: ParsingException => Debugger.debugln(th.getMessage)
+      case th: ParsingException => knownExecutor.console.error(th.getMessage)
     }
   }
 
@@ -172,7 +172,7 @@ package object core {
    * @param text	The text of the warning.
    */
   def warn(loc: Loc, text: String) {
-    knownExecutor.console.warn("WARNING: "+loc+" "+text)
+    knownExecutor.console.warn(loc.toShortString+" "+text)
   }
 
   /**
