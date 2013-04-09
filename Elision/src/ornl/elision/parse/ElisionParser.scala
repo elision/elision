@@ -510,7 +510,8 @@ extends Parser with AbstractParser {
 
   def BitString = rule {
     optional("-" ~ push(true)) ~
-    AnyInteger ~ ignoreCase("l") ~ AnyInteger ~ WS
+    (HInteger | BInteger | OInteger | DInteger) ~
+    ignoreCase("l") ~ AnyInteger ~ WS
   }.label("a bit string")
   
   //----------------------------------------------------------------------
