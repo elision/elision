@@ -5,7 +5,7 @@
  \___|_|_|___/_|\___/|_| |_|
 The Elision Term Rewriter
 
-Copyright (c) 2012 by UT-Battelle, LLC.
+Copyright (c) 2013 by UT-Battelle, LLC.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,29 +71,22 @@ http://www.strangegizmo.com/products/sg-cdb/
 
 Prerequisites
 =============
-Elision requires Scala 2.9 or later to build.  Be careful with later versions
-of Scala, as things do tend to change.  Java 6 or later is also a prerequisite,
-as is Apache Ant.
+Elision requires Scala 2.9.2 or later to build.  Be careful with later versions
+of Scala, as things do tend to change.  Java 7 or later is also a prerequisite,
+as is Apache Ant 1.8 or later.
 
-1.) Install the Java 6 (or later) SDK.  Visit http://java.oracle.com/ to
-    download the correct version for your platform.
+1.) Install the Java SDK.  Visit http://java.oracle.com/ to download the
+    correct version for your platform.
 
-2.) Install Scala 2.9.1 (or later).  Visit http://www.scala-lang.org/ to
-    download the Scala distribution.
+2.) Install Scala.  Visit http://www.scala-lang.org/ to download the Scala
+    distribution.
 
 3.) Set the environment variable SCALA_HOME to point to the root folder
     of your Scala installation (the folder that contains the bin and lib
     folders).
 
-4.) (Optional) It is recommended to get the Scala developer documentation
-    package.  After you have installed Scala, run the following command at
-    the prompt.  If you are running on Unix or Linux and have installed
-    Scala in a folder owned by root, you may need to precede the command
-    with sudo.
-      sbaz install scala-devel-docs
-
-5.) Install Apache Ant 1.8 (or later).  Visit http://ant.apache.org/ to
-    download the Ant distribution.
+4.) Install Apache.  Visit http://ant.apache.org/ to download the Ant
+    distribution.
 
 
 Building
@@ -118,41 +111,16 @@ be built.
 
 Alternately you can execute the jar file with the scala command:
   scala latest/elision.jar
+  
+A jar that contains Scala is also built.  This can be run with the command:
+  java -jar latest/elision-all.jar
 
 
 Eclipse
 =======
 The root folder contains an Eclipse project.  Before you attempt to import it
-into Eclipse, you should make sure the following are installed.
-
-*.) Install the Scala IDE.  At present the version of the Scala IDE for Scala
-    2.9 can be found at the update site:
-    For Eclipse Indigo:
-      http://download.scala-ide.org/sdk/e37/scala29/stable/site/
-    For Eclipse Juno:
-      http://download.scala-ide.org/sdk/e38/scala29/dev/site/
-    Visit http://scala-ide.org/ for the latest version, documentation, etc.
-
-That is all that is actually required.  You may optionally install the following
-plugins.
-
-*.) ShellEd is an excellent editor for working with shell scripts, but at
-    present it only works with Eclipse Juno.  You can find out more at:
-      http://sourceforge.net/apps/trac/shelled
-    The update site for ShellEd is:
-      https://downloads.sourceforge.net/project/shelled/shelled/ShellEd%202.0.2/update
-    To install ShellEd you need to add the linux tools update site, but do not
-    install anything yet.  Then install ShellEd; it will resolve its
-    dependencies and get the components that are actually required.
-
-*.) Copyright Wizard can be used to rapidly update the copyrights on all files
-    and to make sure new files have the correct copyright entry.  This
-    distribution includes a configuration file for Copyright Wizard that will
-    be automatically picked up if you install Copyright Wizard.  Find out more
-    at:
-      http://www.wdev91.com/?p=cpw
-    The update site is:
-      http://www.wdev91.com/update/
+into Eclipse install the Scala IDE.  Visit http://scala-ide.org/ for the latest
+version, documentation, etc.
 
 Once you have installed the Scala IDE plugin, do the following.
 
@@ -432,38 +400,3 @@ and is reproduced below in its entirety.
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
-
-LICENSE for sg-cdb
-==================
-sg-cdb is released under the BSD "3 clause" license.  It can be found at:
-www.strangegizmo.com/products/sg-cdb/
-and is reproduced below in its entirety.
-
-Copyright � 2000-2006, Michael Alyn Miller <malyn@strangeGizmo.com>. All
-rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-    Redistributions of source code must retain the above copyright notice
-    unmodified, this list of conditions, and the following disclaimer.
-    
-    Redistributions in binary form must reproduce the above copyright notice,
-    this list of conditions and the following disclaimer in the documentation
-    and/or other materials provided with the distribution.
-    
-    Neither the name of Michael Alyn Miller nor the names of the contributors
-    to this software may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS �AS IS� AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
