@@ -107,6 +107,13 @@ object ElisionGenerator extends Generator {
         } else {
           buf
         }
+      case BitStringLiteral(typ, bits, len) =>
+        buf.append(bits.toString).append("L").append(len.toString)
+        if (typ != BITSTRING || BasicAtom.printTypeInfo) {
+          apply(typ, buf.append(":"), limit)
+        } else {
+          buf
+        }
     }
   }
   

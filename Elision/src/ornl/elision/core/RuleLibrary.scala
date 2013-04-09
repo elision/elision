@@ -810,6 +810,16 @@ extends Fickle with Mutable {
         "The ruleset " + name + " has not been declared.")))
   
   /**
+   * Get the bit set for a collection of rulesets.
+   * 
+   * @param names   The name of the rulesets to include.
+   * @return  The bits set for those rulesets.
+   */
+  def getRulesetBits(names: Set[String]) = {
+    names.foldLeft(new BitSet())(_ += getRulesetBit(_))
+  }
+  
+  /**
   * Declare the ruleset.
   * 
   * @param name	The name of the new ruleset.

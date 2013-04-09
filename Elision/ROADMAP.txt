@@ -1,0 +1,71 @@
+ROADMAP for 0.6
+===============
+This file contains information on planned changes to Elision for the next
+version.  This information is subject to change, revision, deletion, etc., as
+project goals change.
+
+Discussion of the roadmap or of Elision in general should take place on the
+Google group: elision-dev@googlegroups.com.  Visit http://elision.github.com
+for a link to the group.
+
+Compilable Context
+------------------
+* First Priority *
+Big systems like Hyperion create huge contexts that cannot be loaded after
+compilation because methods are too large.  This means that the system must
+break these into multiple objects to enable loading.  One method may be to
+create multiple "stages," with each stage declaring a limited number of
+operators, rules, etc.
+
+Architecture
+------------
+* Second Priority *
+There are several architecture violations in the Elision code base.  In
+particular BasicAtom references Executor (which it should not) which references
+BasicAtom.  These loops in the user hierarchy should be eliminated.
+
+There are also places where concerns are mixed.  The above case is an example.
+BasicAtom stores information about rewriting timeouts, even though BasicAtom
+has no responsibility assignment for rewriting.  Bad, bad, bad.
+
+Documentation
+-------------
+* Third Priority *
+The LyX document that builds the PDF documentation is wildly out of date.  To
+help a shorter document is being created as a quick introduction to Elision.
+The goal is that this will be updated more quickly and be easier to maintain.
+The full LyX document is, of course, important... but probably won't get
+updated as often.
+
+Options
+-------
+Configuration settings, options, and the like need to be centralized.  They
+should be checked and loaded at startup, then automatically reflected in the
+runtime through the Executor or Context.  The potential value of these
+options should be limited so they can be more easily serialized.
+
+The options may also migrate to the configuration.xml file so there is a
+centralized place to find their definitions.
+
+Switches
+--------
+It is annoying that there are global switches that go before the command, and
+command switches that go after the command.  This needs to get sorted out.
+The simplest method is probably to have all switches go after the command.
+
+Profiler
+--------
+An internal profiler framework was started but has not been implemented.  It
+would enable Elision to self-profile in a manner that is consistent with the
+code abstractions - whereas a straight profiler will just tell you information
+about methods, etc.  That is, the system could tell how much time it spent
+matching, rewriting, constructing, etc.
+
+API
+---
+Some atoms don't take an explicit Loc instance, but probably should.  This will
+impact systems using Elision, but that can be mitigated by creating a public
+simplified POJO facade for Elision.  This interface needs to be very
+lightweight, so it will primarily consist of adding methods to existing objects
+and classes, exposed through Java interfaces.  See the Debugger class for how
+this might work.
