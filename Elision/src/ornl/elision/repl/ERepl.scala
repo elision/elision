@@ -35,6 +35,8 @@ import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
 import java.io.File
+import ornl.elision.core.Context
+import ornl.elision.cli.ArgSwitch
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -43,6 +45,15 @@ object ReplMain {
   
   /** Access to system properties. */
   private val _prop = new scala.sys.SystemProperties
+  
+  /** Iff true then the prior context should be loaded. */
+  var _wantPrior = false
+  
+  /**
+   * If compilation is desired set this to `Some(`fn`)`, where fn is the
+   * output file name.
+   */
+  var _wantCompile: Option[String] = None
   
   /**
    * Print usage information.  This is a switch handler (see
@@ -59,12 +70,25 @@ object ReplMain {
     System.exit(0)
     None
   }
-
+  
   /**
    * Define the switches.
    */
   private val _switches = Seq(
-      Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _))
+      Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
+      Switch(Some("prior"), Some('p'), "Attempt to re-load the prior context.",
+        () => {
+          ProcessorControl.bootstrap = false
+          _wantPrior = true
+          None
+        }),
+      ArgSwitch(Some("compile"), Some('C'),
+          "After startup, generate a compilable Scala file for the resulting " +
+          "context and exit.", "FILENAME",
+          (arg) => {
+            _wantCompile = Some(arg)
+            None
+          }))
       
   // Work out where Elision's runtime store should live on the system.
   private val _default_root = (if (CLI.iswin) {
@@ -94,9 +118,9 @@ object ReplMain {
   private val _settings = Seq(
       Setting("elision.root", Some("ELISION_ROOT"), None,
           Some(_default_root), "Specify the folder where Elision should " +
-          		"store its data."),
+              "store its data."),
       Setting("elision.history", Some("ELISION_HISTORY"), None,
-          Some(".elision-history.eli"),
+          Some("elision-history.eli"),
           "Name of file where Elision will store the REPL history."),
       Setting("elision.context", Some("ELISION_CONTEXT"), None,
           Some("elision-context.eli"),
@@ -109,18 +133,35 @@ object ReplMain {
           "Name of file to read after bootstrapping Elision."))
   
   /**
-   * Entry point when run from the prompt.
+   * Entry point when run from the prompt.  If you just want to read the
+   * settings and not start the REPL, use `prep`.
    * 
    * @param args  The command line arguments.
    */
   def main(args: Array[String]) {
+    prep(args) match {
+      case None =>
+      case Some(sets) => runRepl(sets)
+    }
+  }
+  
+  /**
+   * Prepare by reading the arguments.  This handles the generic startup case
+   * and provides use of the "usual" switches.
+   * 
+   * @param args  Command line arguments.
+   * @return  An optional settings.  If `None`, then an error was found, and
+   *          control should stop. 
+   */
+  def prep(args: Array[String]) = {
     val state = CLI(args, _switches, _settings, false)
     // Check for an error, and display it if we find one.  We then stop.
     if (state.errstr != None) {
       // There was an actual error!
       CLI.fail(args, state.errindex, state.errstr.get)
+      None
     } else {
-      runRepl(state.settings)
+      Some(state)
     }
   }
   
@@ -129,7 +170,7 @@ object ReplMain {
    * 
    * @param settings  Settings overrides.
    */
-  def runRepl(settings: Map[String,String]) {
+  def runRepl(settings: CLI.CLIState) {
     val erepl = new ERepl(settings)
     ornl.elision.core.knownExecutor = erepl
     
@@ -160,14 +201,15 @@ object ReplMain {
  * method.  The REPL provides for command line editing, a persistent history,
  * and special operations.
  * 
- * @param settings  Optional settings overrides.
+ * @param state   State data from parsing the command line.
  */
-class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
+class ERepl(state: CLI.CLIState = CLI.CLIState())
+extends Processor(state.settings) {
   import ornl.elision.core._
-	import scala.tools.jline.console.history.FileHistory
-	import scala.tools.jline.console.ConsoleReader
-	import java.io.{File, FileWriter, FileReader, BufferedReader}
-  
+  import scala.tools.jline.console.history.FileHistory
+  import scala.tools.jline.console.ConsoleReader
+  import java.io.{File, FileWriter, FileReader, BufferedReader}
+
   //======================================================================
   // Figure out where to read and store the history, and where to store
   // the last context.
@@ -256,7 +298,7 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
   declareProperty("usepager",
       "Use the pager when output is longer than the screen.", true)
   declareProperty("syntaxcolor", "Use syntax-based coloring of atoms where " +
-  		"it is supported.", true)
+      "it is supported.", true)
   
   //======================================================================
   // Define the REPL control fields.
@@ -280,20 +322,20 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
       ReplActor.waitForGUI("formatting on")
     }
     
-    if(getProperty[Boolean]("syntaxcolor")) {
-      // color-format the atom's parseString and print it.
-      val formatCols = console.width
-      val formatRows = console.height
-      val atomParseString = ConsoleStringFormatter.format(
-          prefix + atom.toParseString, formatCols)
-      ornl.elision.util.AnsiPrintConsole.width = formatCols
-      ornl.elision.util.AnsiPrintConsole.height = formatRows
-      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
-      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-    } else {
+//    if(getProperty[Boolean]("syntaxcolor")) {
+//      // color-format the atom's parseString and print it.
+//      val formatCols = console.width
+//      val formatRows = console.height
+//      val atomParseString = ConsoleStringFormatter.format(
+//          prefix + atom.toParseString, formatCols)
+//      ornl.elision.util.AnsiPrintConsole.width = formatCols
+//      ornl.elision.util.AnsiPrintConsole.height = formatRows
+//      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
+//      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+//    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
-    }
+//    }
     
     if(ReplActor.guiActor != null) {
       ReplActor ! ("syntaxcolor", false)
@@ -462,23 +504,39 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     // See if we are told not to bootstrap.
     if (! ProcessorControl.bootstrap) return true
     
-    // Load all the startup definitions, etc.
+    // Save the prior quiet value so we can restore it later.
+    val priorquiet = console.quiet
     console.reset
     console.quiet = quiet
+    
+    // Bootstrap!
+    val retval = _bootstrap()
+    
+    // Done.  Restore quiet level.
+    console.quiet = priorquiet
+    return retval
+  }
+  
+  /**
+   * Perform bootstrapping.  This loads the file specified by `bootstrapFile`
+   * and then tries to load the user's `.elisionrc` file (or another file,
+   * depending on environment variables).
+   * 
+   * @return  True on success, and false when a failure is reported.
+   */
+  private def _bootstrap(): Boolean = {
+    // Load all the startup definitions, etc.
     if (!read(bootstrapFile, false)) {
       // Failed to find bootstrap file.  Stop.
       console.error("Unable to load " + bootstrapFile + ".  Cannot continue.")
       return false
     }
-    console.quiet = 0
     if (console.errors > 0) {
       console.error("Errors were detected during bootstrap.  Cannot continue.")
       return false
     }
     
     // User stuff.
-    console.reset
-    console.quiet = quiet
     console.emitln("Reading " + _rc + " if present...")
     if (read(_rc, true)) {
       if (console.errors > 0) {
@@ -487,7 +545,6 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
         return false
       }
     }
-    console.quiet = 0
     
     // No reported errors.
     return true
@@ -499,30 +556,57 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
 
     // Start the clock.
     startTimer
-
-    // Load all the startup definitions, etc.
-    // If LoadContext is specified on the classpath
-    // then load that context instead of bootstrapping
-    try {
-      // attempt to load LoadContext to see if it was specified
-      // on the classpath
-      type typ = { def apply(): Context }
-      val c = Class.forName("LoadContext$")
-      val LoadContext = c.getField("MODULE$").get(null).asInstanceOf[typ] 
-      context = LoadContext()
-    } catch {
-      case _ =>     
-        if (!bootstrap()) {
-          ReplActor ! (":quit", true)
+    
+    // Bootstrap.  If there are errors, then quit.
+    if (! bootstrap()) {
+      return
+    }
+    
+    // May need to reload prior context.  If so, do that first.
+    val list = if (ReplMain._wantPrior) {
+      _lastcontext +: state.remain
+    } else {
+      state.remain
+    }
+    
+    // Read any files specified on the command line.  We do this after any
+    // bootstrapping so the files are read even if we tell the system not to
+    // perform bootstrapping.
+    for (filename <- list) {
+      console.emitln("Reading " + filename + "...")
+      val priorquiet = console.quiet
+      console.quiet = 1
+      val result = read(filename, true)
+      console.quiet = priorquiet
+      if (result) {
+        if (console.errors > 0) {
+          console.error("Errors were detected processing " + filename +
+              ".  Cannot continue.")
           return
         }
-    }
+      }
+    } // Read the files specified on the command line.
     
     // Report startup time.
     stopTimer
     console.emitf("Startup Time: " + getLastTimeString + "\n")
     SymbolicOperator.reportTime
     
+    // If a compilable context is desired, generate it and stop. */
+    ReplMain._wantCompile match {
+      case None =>
+      case Some(fn) =>
+        val dot = fn.lastIndexOf('.')
+        val basename = (if (dot > 0) fn.substring(0,dot) else fn)
+        val filename = basename + ".scala"
+        console.emitln("Writing compilable context to: " + filename)
+        val file = new FileWriter(filename)
+        context.write(basename, file)
+        file.flush()
+        file.close()
+        return
+    }
+  
     // activates communications with the GUI if we are using it.
     if(ReplActor.guiActor != null) {
       ReplActor ! ("disableGUIComs", false)
@@ -535,106 +619,106 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
     cr.setHistory(_hist)
     
     // Start main loop.
-    while(true) { {
-        // Hold the accumulated line.
-        var line = ""
+    while(true) {
+      // Hold the accumulated line.
+      var line = ""
+      
+      // Hold the next segment read from the prompt.
+      var segment = ""
         
-        // Hold the next segment read from the prompt.
-        var segment = ""
-          
-        // A line state parser to determine when the line ends.
-        val ls = new LineState
-        
-        // The number of blank lines seen.
-        var blanks = 0
-        
-        // A little function to prompt for, and read, the next segment.  The
-        // segment is accumulated into the line. 
-        def fetchline(p1: String, p2: String): Boolean = {
-          Processor.fileReadStack.clear
-          Processor.fileReadStack.push("Console")
+      // A line state parser to determine when the line ends.
+      val ls = new LineState
+      
+      // The number of blank lines seen.
+      var blanks = 0
+      
+      // A little function to prompt for, and read, the next segment.  The
+      // segment is accumulated into the line. 
+      def fetchline(p1: String, p2: String): Boolean = {
+        Processor.fileReadStack.clear
+        Processor.fileReadStack.push("Console")
 
-          segment = if (ReplActor.guiActor != null) {  
-            // Get input from the GUI.            
-            ReplActor.readLine(if (console.quiet > 0) p2 else p1)
+        segment = if (ReplActor.guiActor != null) {  
+          // Get input from the GUI.            
+          ReplActor.readLine(if (console.quiet > 0) p2 else p1)
+        } else {
+          // Get input directly from the console. 
+          val line = cr.readLine(if (console.quiet > 0) p2 else p1)
+          // Reset the terminal size now, if we can, and if the user wants to
+          // use the pager.
+          if (getProperty[Boolean]("usepager")) {
+            console.height_=(
+                scala.tools.jline.TerminalFactory.create().getHeight()-1)
+            console.width_=(
+                scala.tools.jline.TerminalFactory.create().getWidth())
           } else {
-            // Get input directly from the console. 
-    				val line = cr.readLine(if (console.quiet > 0) p2 else p1)
-    				// Reset the terminal size now, if we can, and if the user wants to
-    				// use the pager.
-    				if (getProperty[Boolean]("usepager")) {
-                console.height_=(
-                    scala.tools.jline.TerminalFactory.create().getHeight()-1)
-                console.width_=(
-                    scala.tools.jline.TerminalFactory.create().getWidth())
-    				} else {
-    				  console.height_=(0)
-    				  console.width_=(0)
-    				}
-    				line
-    			} 
-      		
-        	if (segment == null) {
-        	  return true
-        	}
-        	segment = segment.trim()
-        	
-        	// Watch for blank lines that terminate the parse.
-        	if (segment == "") blanks += 1 else blanks = 0
-        	
-        	// Capture newlines.
-        	if (line != "") line += "\n"
-        	line += segment
-        	
-        	// Process the line to determine if the input is complete.
-        	ls.process(segment)
-        }
-        
-        // Read the first segment.
-        if (!fetchline("e> ", "q> ")) {
-        	// Read any additional segments.  Everything happens in the while loop,
-          // but the loop needs a body, so that's the zero.
-          while (!fetchline(" > ", " > ") && blanks < 3) 0
-  	      if (blanks >= 3) {
-  	        console.emitln("Entry terminated by three blank lines.")
-  	        line = ""
-  	      }
-        }
-        
-        // Watch for the end of stream or the special :quit token.
-        if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
-          // Tell the ReplActor to exit its thread first.
-          ReplActor.exitFlag = true
-          ReplActor ! (":quit", true)
+            console.height_=(0)
+            console.width_=(0)
+          }
+          line
+        } 
           
-          return
+        if (segment == null) {
+          return true
         }
+        segment = segment.trim()
+          
+        // Watch for blank lines that terminate the parse.
+        if (segment == "") blanks += 1 else blanks = 0
         
-        // Flush the console.  Is this necessary?
-        cr.flush()
+        // Capture newlines.
+        if (line != "") line += "\n"
+        line += segment
         
-        // Run the line.
-        try {
-          execute("(console)", line)
-        } catch {
-          case ornl.elision.util.ElisionException(loc, msg) =>
-            console.error(loc, msg)
-          case ex: Exception =>
-            console.error("(" + ex.getClass + ") " + ex.getMessage())
-            if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
-          case oom: java.lang.OutOfMemoryError =>
-            System.gc()
-            console.error("Memory exhausted.  Trying to recover...")
-            val rt = Runtime.getRuntime()
-            val mem = rt.totalMemory()
-            val free = rt.freeMemory()
-            val perc = free.toDouble / mem.toDouble * 100
-            console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
-          case th: Throwable =>
-            console.error("(" + th.getClass + ") " + th.getMessage())
-            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-            coredump("Internal error.", Some(th))
+        // Process the line to determine if the input is complete.
+        ls.process(segment)
+      }
+        
+      // Read the first segment.
+      if (!fetchline("e> ", "q> ")) {
+        // Read any additional segments.  Everything happens in the while loop,
+        // but the loop needs a body, so that's the zero.
+        while (!fetchline(" > ", " > ") && blanks < 3) 0
+        if (blanks >= 3) {
+          console.emitln("Entry terminated by three blank lines.")
+          line = ""
         }
+      }
+        
+      // Watch for the end of stream or the special :quit token.
+      if (segment == null || (line.trim.equalsIgnoreCase(":quit"))) {
+        // Tell the ReplActor to exit its thread first.
+        ReplActor.exitFlag = true
+        ReplActor ! (":quit", true)
+        return
+      }
+        
+      // Flush the console.  Is this necessary?
+      cr.flush()
+        
+      // Run the line.
+      try {
+        execute("(console)", line)
+      } catch {
+        case ornl.elision.util.ElisionException(loc, msg) =>
+          console.error(loc, msg)
+        case ex: Exception =>
+          console.error("(" + ex.getClass + ") " + ex.getMessage())
+          if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
+
+        case oom: java.lang.OutOfMemoryError =>
+          System.gc()
+          console.error("Memory exhausted.  Trying to recover...")
+          val rt = Runtime.getRuntime()
+          val mem = rt.totalMemory()
+          val free = rt.freeMemory()
+          val perc = free.toDouble / mem.toDouble * 100
+          console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
+
+        case th: Throwable =>
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.
   }
@@ -651,5 +735,4 @@ class ERepl(settings: Map[String,String] = Map()) extends Processor(settings) {
       console.warn("Unable to save context.")
     }
   }
-  
 }

@@ -48,13 +48,28 @@ package ornl.elision.util
  */
 class Loc(val source: String, val line: Int, val column: Int,
     val text: Option[String]) {
-  override def toString = if (line >= 0) {
+  /**
+   * Create a short, simple string for this location object.
+   * @return A short string describing the location.
+   */
+  def toShortString = if (line >= 0) {
     "[%s:%s:%s]" format (source, line, column)
   } else if (source == "") {
     ""
   } else {
     "[%s]" format (source)
-  } 
+  }
+  
+  override def toString = source match {
+    case "" => "Loc.internal"
+    case "(console)" => "Loc.console"
+    case _ =>
+      "Loc(%s, %d, %d, %s)" format (toQuotedString(source), line, column,
+          text match {
+        case None => "None"
+        case Some(value) => "Some(%s)" format (toQuotedString(value))
+      })
+  }
 }
 
 /**

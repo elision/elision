@@ -177,7 +177,7 @@ object ElisionGenerator extends Generator {
   }
   
   /**
-   * Generate the Scala code required to create a literal.  Certain well-known
+   * Generate the Scala code required to create an atom.  Certain well-known
    * root types are handled directly and simply.
    * 
    * @param atom    The atom.
@@ -204,37 +204,22 @@ object ElisionGenerator extends Generator {
       case sf: SpecialForm => _gen(sf, buf, limit)
       
       // Process specialized operators.
-      case OperatorRef(operator) =>
-        buf.append(toESymbol(operator.name)).append(":OPREF")
-        
-      // Process all atoms.
-      case OpApply(op, args, _) =>
-        buf.append(toESymbol(op.name))
-        buf.append("(")
-        // If the limit will be exceeded by the argument list, don't print
-        // several elipses separated by commas, but just one for the list.
-        if (limit == 1) {
-          buf.append("...")
+      case or: OperatorRef =>
+        // If this is a known operator, then we can leave it as an operator
+        // reference.  If it is not (or is no longer) then we have to emit
+        // the entire operator.
+        val kop = knownExecutor.context.operatorLibrary.get(or.name)
+        if (kop.isDefined && kop.get == or) {
+          // This is a well-known operator.  We can simply use the name.
+          buf.append(toESymbol(or.name)).append(":OPREF")
         } else {
-
-          // Sort the atom sequence if it is commutative.
-          var printAtoms = args.atoms
-          if (args.props.isC(false)) {
-            printAtoms = 
-              args.atoms.sortWith( (x : BasicAtom, y : BasicAtom) =>
-                ((x.otherHashCode != y.otherHashCode) && 
-                 (x.otherHashCode < y.otherHashCode)) ||
-                ((x.otherHashCode == y.otherHashCode) && 
-                 (x.hashCode < y.hashCode)))
-          }
-          var index = 0
-          while (index < printAtoms.size) {
-            if (index > 0) buf.append(",")
-            apply(printAtoms(index), buf, limit-1)
-            index += 1
-          } // Add all atoms.
+          // This is not a well-known operator.  We must write out the
+          // definition in full.
+          apply(or.operator, buf, limit-1)
         }
-        buf.append(")")
+        
+      case Apply(or: OperatorRef, rhs) =>
+        _opapp(or, rhs, buf, limit)
         
       case Apply(lhs, rhs) =>
         buf.append("(")
@@ -311,5 +296,56 @@ object ElisionGenerator extends Generator {
         }
     }
     buf
+  }
+  
+  /**
+   * Explicitly handle an operator being applied to something else.  This
+   * watches for cases where the operator is known.
+   * 
+   * @param op      The operator reference.
+   * @param rhs     The argument.
+   * @param buf     Buffer to get output.
+   * @param limit   The current depth limit.
+   */
+  private def _opapp(op: OperatorRef, rhs: BasicAtom, buf: Appendable,
+      limit: Int): Appendable = {
+    val kop = knownExecutor.context.operatorLibrary.get(op.name)
+    if (kop.isDefined && kop.get == op) {
+      // This is a known operator.  We don't have to do anything other
+      // than mention its name.  Next we need to decide if the argument
+      // list is an atom sequence or not.  If it is, then we can write
+      // it out in a simple form.
+      rhs match {
+        case as: AtomSeq =>
+          // We can write this as a simple symbol applied to an argument
+          // list.  Do that now.
+          buf.append(toESymbol(op.name))
+          buf.append("(")
+          // If the limit will be exceeded by the argument list, don't print
+          // several elipses separated by commas, but just one for the list.
+          if (limit == 1) {
+            buf.append("...")
+          } else {
+            var index = 0
+            while (index < as.atoms.size) {
+              if (index > 0) buf.append(",")
+              apply(as.atoms(index), buf, limit-1)
+              index += 1
+            } // Add all atoms.
+          }
+          return buf.append(")")
+          
+        case _ =>
+          // The operator is known, but the argument list is not a
+          // sequence.  Write out the argument as an operator reference
+          // and then use the applicative dot.
+          buf.append("(").append(toESymbol(op.name)).append(": OPREF.")
+          return apply(rhs, buf, limit-1).append(")")
+      }
+    } else {
+      // The operator is not known.  It must be written out in long form.
+      apply(op.operator, buf.append("("), limit-1)
+      return apply(rhs, buf.append("."), limit-1).append(")")
+    }
   }
 }

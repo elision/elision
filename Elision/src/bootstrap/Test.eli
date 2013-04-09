@@ -40,7 +40,7 @@ println("Reading Test...")
 _declprop("_test_no", 0, "The current test number.")
 _declprop("_test_fails", 0, "The number of failures.")
 
-{! _test($trial, $gold): BOOLEAN
+decl.{! _test($trial, $gold): BOOLEAN
    #description="Perform a test."
    #detail="Determine if $trial is equal to $gold.  The value for $trial is ".
            "rewritten using the current rule library automatic rewrite ".
@@ -68,7 +68,7 @@ _declprop("_test_fails", 0, "The number of failures.")
      }"""
 }
 
-{! _test_init()
+decl.{! _test_init()
    #description="Set up to perform testing."
    #detail="Initialize the counters for testing, and prepare to run a series ".
            "of tests and record the results.  Use _test to perform a single ".
@@ -81,7 +81,7 @@ _declprop("_test_fails", 0, "The number of failures.")
    """
 }
 
-{! _test_status()
+decl.{! _test_status()
    #description="Conclude testing and print a summary of the results."
    #detail="Print information about the current status of testing, including ".
            "the number of failures found, and the number of tests run."

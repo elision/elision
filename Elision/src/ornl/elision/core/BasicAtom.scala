@@ -320,8 +320,9 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
     
       // The match attempt is starting.  Write out information about the
       // attempted match.
-      Debugger.debugf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
-      Debugger.debugln("  pattern: " + this.toParseString + "\n  subject: " +
+      Debugger.debugf("matching",
+          "TRYING  (%x) in %s:\n", what, this.getClass.toString)
+      Debugger("matching", "  pattern: " + this.toParseString + "\n  subject: " +
           subject.toParseString + "\n  with: " + binds.toParseString)
     }
         
@@ -332,14 +333,14 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
       // Write out information about the result of the match attempt.
       outcome match {
         case fail:Fail =>
-        	Debugger.debugf("FAILURE (%x): ", what)
-          Debugger.debugln(fail)
+        	Debugger.debugf("matching", "FAILURE (%x): ", what)
+          Debugger("matching", fail)
         case Match(bnd) =>
-      		Debugger.debugf("SUCCESS (%x): ", what)
-          Debugger.debugln(bnd.toParseString)
+      		Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", bnd.toParseString)
         case many:Many =>
-        	Debugger.debugf("SUCCESS (%x): ", what)
-          Debugger.debugln("  Many Matches")
+        	Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", "  Many Matches")
       }
     }
     
@@ -358,13 +359,9 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * @return	The matching outcome.
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-
-    // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out.", this, subject)
-    }
-  
-    else if (subject == ANY && !this.isBindable)
+    } else if (subject == ANY && !this.isBindable) {
       // Any pattern is allowed to match the subject ANY.  In the matching
       // implementation for ANY, any subject is allowed to match ANY.
       // Thus ANY is a kind of wild card.  Note that no bindings are
@@ -373,29 +370,32 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
       // Of course, if this atom is bindable, we might want to bind to ANY,
       // so we exempt that case.
       Match(binds)
-    else if (depth > subject.depth)
+    } else if (depth > subject.depth) {
     	// If this pattern has greater depth than the subject, reject immediately.
       Fail("Depth of pattern greater than depth of subject.", this, subject)
-    else if (isConstant && this == subject)
+    } else if (isConstant && this == subject) {
 	    // Don't bother to try to match equal atoms that are constant.  The
 	    // constancy check is required; otherwise we might "match" $x against
 	    // $x, but not bind.  This leaves us free to bind $x to something
       // different later, invalidating the original "match".  Matching is
       // tricky.
       Match(binds)
-    else
+    } else {
       // We didn't find a fast way to match, so we need to actually perform
       // the match.  First we try to match the types.  If this succeeds, then
       // we invoke the implementation of tryMatchWithoutTypes.
       matchTypes(subject, binds, hints) match {
-	      case fail: Fail => {
-                fail
-              }
-	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
+	      case fail: Fail => 
+	        fail
+	        
+	      case mat: Match =>
+	        tryMatchWithoutTypes(subject, mat.binds, hints)
+	        
 	      case Many(submatches) =>
 	        Many(MatchIterator(tryMatchWithoutTypes(subject, _, hints),
 	          submatches))
 	    }
+    }
 
   /**
    * Try to match this atom, as a pattern, against the given subject.  Do not

@@ -54,7 +54,7 @@ object ScalaGenerator extends Generator {
    * root types are handled directly and simply.
    * 
    * @param atom    The atom.
-   * @param context If true, a context named `_context` is available.  If false,
+   * @param context If true, a context named `context` is available.  If false,
    *                it is not, and any context must be generated in place.
    * @param buf     The buffer to get the result.
    * @return        The result.
@@ -120,7 +120,7 @@ object ScalaGenerator extends Generator {
    * well-known properties are handled directly and simply.
    * 
    * @param atom    The atom.
-   * @param context If true, a context named `_context` is available.  If false,
+   * @param context If true, a context named `context` is available.  If false,
    *                it is not, and any context must be generated in place.
    * @param buf     The buffer to get the result.
    * @return        The result.
@@ -148,6 +148,7 @@ object ScalaGenerator extends Generator {
         buf.append("NoProps")
       case AlgProp(asso, comm, idem, abso, iden) =>
         buf.append("AlgProp(")
+        buf.append(atom.loc.toString).append(",")
         _option(asso, context, buf).append(",")
         _option(comm, context, buf).append(",")
         _option(idem, context, buf).append(",")
@@ -161,7 +162,7 @@ object ScalaGenerator extends Generator {
    * special forms get specialized processing.
    * 
    * @param atom    The atom.
-   * @param context If true, a context named `_context` is available.  If false,
+   * @param context If true, a context named `context` is available.  If false,
    *                it is not, and any context must be generated in place.
    * @param buf     The buffer to get the result.
    * @return        The result.
@@ -172,6 +173,7 @@ object ScalaGenerator extends Generator {
     atom match {
       case CaseOperator(name, typ, cases, description, detail) =>
         buf.append("CaseOperator(")
+        buf.append(atom.loc.toString).append(",")
         buf.append(toEString(name)).append(",")
         gen(typ, context, buf).append(",")
         gen(cases, context, buf).append(",")
@@ -180,19 +182,22 @@ object ScalaGenerator extends Generator {
       case TypedSymbolicOperator(name, typ, params, description, detail,
           evenMeta, handlertxt) =>
         buf.append("TypedSymbolicOperator(")
+        buf.append(atom.loc.toString).append(",")
         buf.append(toEString(name)).append(",")
         gen(typ, context, buf).append(",")
         gen(params, context, buf).append(",")
         buf.append(toEString(description)).append(",")
         buf.append(toEString(detail)).append(",")
-        buf.append(if(evenMeta) "true" else "false")
+        buf.append(if(evenMeta) "true" else "false").append(",")
         handlertxt match {
-          case None =>
-          case Some(text) => buf.append(",").append(toEString(text))
+          case None => buf.append("None")
+          case Some(text) =>
+            buf.append("Some(").append(toEString(text)).append(")")
         }
         buf.append(")")
       case RewriteRule(pat, rew, gua, rs, nm, des, det, syn) =>
         buf.append("RewriteRule(")
+        buf.append(atom.loc.toString).append(",")
         gen(pat, context, buf).append(",")
         gen(rew, context, buf).append(",")
         buf.append("Seq(")
@@ -213,6 +218,7 @@ object ScalaGenerator extends Generator {
         buf.append(syn.toString).append(")")
       case SpecialForm(tag, content) =>
         buf.append("SpecialForm(")
+        buf.append(atom.loc.toString).append(",")
         gen(tag, context, buf).append(",")
         gen(content, context, buf).append(")")
     }
@@ -237,7 +243,7 @@ object ScalaGenerator extends Generator {
    * Generate the Scala code required to create an atom.
    * 
    * @param atom    The atom.
-   * @param context If true, a context named `_context` is available.  If false,
+   * @param context If true, a context named `context` is available.  If false,
    *                it is not, and any context must be generated in place.
    * @param buf     The buffer to get the result.  If not provided, one is
    *                created.
@@ -259,7 +265,7 @@ object ScalaGenerator extends Generator {
       case OperatorRef(operator) =>
         if (context) {
           // We assume a context exists, and use it.
-          buf.append("_context.operatorLibrary(")
+          buf.append("context.operatorLibrary(")
           buf.append(toEString(operator.name))
           buf.append(")")
         } else {
@@ -305,7 +311,7 @@ object ScalaGenerator extends Generator {
         
       case RulesetRef(name) =>
         buf.append("RulesetRef(")
-        buf.append("_context,")
+        buf.append("context,")
         buf.append(toEString(name))
         buf.append(")")
         
