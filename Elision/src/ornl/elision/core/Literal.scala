@@ -267,9 +267,8 @@ extends Literal[BigInt](typ) {
 case class BitStringLiteral(typ: BasicAtom, var bits: BigInt, len: Int)
 extends Literal[BigInt](typ) {
   // Figure out the minimum number of bits required to hold the base.
-  // Negative numbers require one additional bit based on how Scala
-  // computes this.
-  private val _bbl = (if (bits < 0) bits.bitLength+1 else bits.bitLength)
+  if (bits < 0) bits = BigInt(2).pow(len) + bits
+  private val _bbl = bits.bitLength
   if (len < _bbl) {
     // Truncate the base to obtain the new base.
     bits = bits & (BigInt(2).pow(len)-1)
@@ -280,6 +279,48 @@ extends Literal[BigInt](typ) {
   
   /** Value as a big int. */
   val value = bits
+  
+  /** Return the bits as an unsigned integer. */
+  val unsigned = bits.abs
+  
+  /** Interpret the bits as a signed integer. */
+  val signed = {
+    /* About Signed Integers in 2's Complement Arithmetic
+     * 
+     * You have N bits.  If the highest-order bit is zero, your number is
+     * positive.  If it is one, your number is negative.  In this latter case
+     * we have to do a bit of interpretation.
+     * 
+     * The two's complement of a number X in N bits is the result of
+     * subtracting that number from 2^N, or 2^N - X.  In two's complement
+     * arithmetic the negation of a number is its two's complement.
+     * 
+     * Consider 7 in 4 bits.  That's 0b0111L4.  Now we consider -7.  To
+     * get that we subtract from 2^4 = 16.  16 - 7 = 9, or 0b1001L4.  Another
+     * (simpler?) way to think of this is that we first take the one's
+     * complement, obtaining 0b1000L4, and then add one, to obtain 0b1001L4.
+     * 
+     * So, to interpret our number as a signed integer we first check whether
+     * it is negative by testing the highest-order bit.  If zero, we just
+     * return the unsigned result.  If one, we do a tiny bit of math.  We are
+     * given V, but we want X, the original number that was negated.
+     * 
+     *   2^N - X = V
+     *   2^N - X - V = 0
+     *   2^N - V = X
+     * 
+     * Ah ha!  Two's complement works just like a "good" complement should.
+     * We can get it by flipping the bits and adding one (negation is negation)
+     * or by subtracting from 2^N.  Here we choose the latter.
+     */
+    if (len > 0 && bits.testBit(len-1)) {
+      // Number is negative.  Complement it and return the Scala negation.
+      -(BigInt(2).pow(len) - bits)
+    } else {
+      // Number is positive.  Return its unsigned value.
+      unsigned
+    }
+  }
   
   /**
    * Alternate constructor with default `BITSTRING` type.

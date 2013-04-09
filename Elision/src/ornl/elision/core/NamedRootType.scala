@@ -158,7 +158,7 @@ object NamedRootType {
   // get constructed, and then installed.  It must be the last thing in this
   // object.
   List(STRING, SYMBOL,
-      INTEGER, FLOAT,
+      INTEGER, FLOAT, BITSTRING,
       BOOLEAN, RULETYPE,
       OPREF, STRATEGY,
       BINDING,
