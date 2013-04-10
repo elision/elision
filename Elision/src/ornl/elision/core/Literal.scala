@@ -265,7 +265,7 @@ extends Literal[BigInt](typ) {
  * @param len   The length.
  */
 case class BitStringLiteral(typ: BasicAtom, var bits: BigInt, len: Int)
-extends Literal[BigInt](typ) {
+extends Literal[(BigInt, Int)](typ) {
   // Figure out the minimum number of bits required to hold the base.
   if (bits < 0) bits = BigInt(2).pow(len) + bits
   private val _bbl = bits.bitLength
@@ -277,8 +277,8 @@ extends Literal[BigInt](typ) {
     bits = 0
   }
   
-  /** Value as a big int. */
-  val value = bits
+  /** Value as a pair of bits and length. */
+  val value = (bits, len)
   
   /** Return the bits as an unsigned integer. */
   val unsigned = bits.abs
@@ -330,7 +330,7 @@ extends Literal[BigInt](typ) {
   def rewrite(binds: Bindings) = {
     theType.rewrite(binds) match {
       case (newtype, true) =>
-        (Literal(newtype, value), true)
+        (Literal(newtype, unsigned), true)
       case _ =>
         (this, false)
     }
@@ -343,7 +343,7 @@ extends Literal[BigInt](typ) {
       case None =>
         val (newtype, flag) = theType.replace(map)
         if (flag) {
-          (IntegerLiteral(newtype, value), true)
+          (IntegerLiteral(newtype, unsigned), true)
         } else {
           (this, false)
         }

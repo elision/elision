@@ -53,15 +53,21 @@ decl.{! bits($bits: INTEGER, $len: INTEGER): BITSTRING
         }
         // Get the length as an integer.
         val len = il.value.intValue
-        // Figure out the minimum number of bits required to hold the base.
-        // Negative numbers require one additional bit based on how Scala
-        // computes this.
-        val _bbl = (if (base < 0) base.bitLength+1 else base.bitLength)
-        if (_bbl > len) {
-          // There are not enough bits to hold this value.
-          throw new ArgumentListException(il.loc, "Bit value does not fit "+
-            "within "+len+" bits.")
-        }
+        /*
+         * This code checks to make sure the base value will fit in the
+         * bit string.  It is commented out, since the library is still
+         * under construction, and we may want to re-enable this checking.
+         *
+         * // Figure out the minimum number of bits required to hold the base.
+         * // Negative numbers require one additional bit based on how Scala
+         * // computes this.
+         * val _bbl = (if (base < 0) base.bitLength+1 else base.bitLength)
+         * if (_bbl > len) {
+         *   // There are not enough bits to hold this value.
+         *   throw new ArgumentListException(il.loc, "Bit value does not fit "+
+         *     "within "+len+" bits.")
+         * }
+         */
         new BitStringLiteral(base, len)
       case _ =>
         as_is
@@ -194,4 +200,12 @@ decl.{operator #name=bit_concat #type=BISTRING #cases
   #detail="Concatenate the bit strings $x and $y.  The most significant bit ".
     "of the result will be the most significant bit of $x, and the least ".
     "significant bit of the result will be the least significant bit of $y."
+}
+
+decl.{operator #name=bits_as_pair #type=LIST(INTEGER) #cases
+  %($x{is_constant($$x)}: BITSTRING) -> %(unsigned_value($$x), bit_length($$x)),
+  %($x: BITSTRING) -> _
+  #description="Convert a bit string into a pair."
+  #detail="Convert the bit string $x into a pair %($b,$l), where $b is the ".
+    "bits of $x as an integer, and $l is the length of $x."
 }
