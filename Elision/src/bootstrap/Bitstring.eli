@@ -202,10 +202,35 @@ decl.{operator #name=bit_concat #type=BISTRING #cases
     "significant bit of the result will be the least significant bit of $y."
 }
 
-decl.{operator #name=bits_as_pair #type=LIST(INTEGER) #cases
+decl.{operator #name=bit_as_signed_pair #type=LIST(INTEGER) #cases
+  %($x{is_constant($$x)}: BITSTRING) -> %(signed_value($$x), bit_length($$x)),
+  %($x: BITSTRING) -> _
+  #description="Convert a bit string into a pair."
+  #detail="Convert the bit string $x into a pair %($b,$l), where $b is the ".
+    "bits of $x as a signed integer, and $l is the length of $x."
+}
+
+decl.{operator #name=bit_as_unsigned_pair #type=LIST(INTEGER) #cases
   %($x{is_constant($$x)}: BITSTRING) -> %(unsigned_value($$x), bit_length($$x)),
   %($x: BITSTRING) -> _
   #description="Convert a bit string into a pair."
   #detail="Convert the bit string $x into a pair %($b,$l), where $b is the ".
-    "bits of $x as an integer, and $l is the length of $x."
+    "bits of $x as an unsigned integer, and $l is the length of $x."
+}
+
+//======================================================================
+// Tests.
+//======================================================================
+
+decl.{! is_length($x: BITSTRING, $len: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(BitStringLiteral(_, _, len1), IntegerLiteral(_, len2)) =>
+        len1 == len2
+      case _ => as_is
+    }
+  """
+  #description="Determine if a bit string has a specified length."
+  #detail="Yield true iff the bit string $x has length $len, and yield ".
+    "false otherwise."
 }

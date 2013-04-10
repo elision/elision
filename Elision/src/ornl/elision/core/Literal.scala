@@ -266,8 +266,13 @@ extends Literal[BigInt](typ) {
  */
 case class BitStringLiteral(typ: BasicAtom, var bits: BigInt, len: Int)
 extends Literal[(BigInt, Int)](typ) {
+  /** If true, prefer to display this as a signed value.  If false, do not. */
+  val neghint = (bits < 0)
+
   // Figure out the minimum number of bits required to hold the base.
-  if (bits < 0) bits = BigInt(2).pow(len) + bits
+  if (neghint) {
+    bits = BigInt(2).pow(len) + bits
+  }
   private val _bbl = bits.bitLength
   if (len < _bbl) {
     // Truncate the base to obtain the new base.
