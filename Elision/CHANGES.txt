@@ -1,6 +1,13 @@
 CHANGES
 =======
 
+Version 0.5 to Present
+----------------------
+* Elision now has a bit string literal that can represent a fixed-length array
+  of bits.  There is a library bootstrap/Bitstring.eli that can process these
+  as signed / unsigned numbers in two's complement, construct and manipulate
+  them in various ways.
+
 Version 0.4 to Version 0.5
 --------------------------
 * BasicAtoms now keep track of their origin through the new Loc class.  This
