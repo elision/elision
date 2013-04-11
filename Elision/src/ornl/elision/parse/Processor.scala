@@ -430,7 +430,7 @@ with HasHistory {
    * @param msg		A human-readable message.
    * @param th		An optional throwable.
    */
-  protected def coredump(msg: String, th: Option[Throwable] = None) {
+  def coredump(msg: String, th: Option[Throwable] = None) {
     try {
       val cfile = new java.io.FileWriter("elision.core")
       if (cfile != null) {

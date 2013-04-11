@@ -158,7 +158,7 @@ object NamedRootType {
   // get constructed, and then installed.  It must be the last thing in this
   // object.
   List(STRING, SYMBOL,
-      INTEGER, FLOAT,
+      INTEGER, FLOAT, BITSTRING,
       BOOLEAN, RULETYPE,
       OPREF, STRATEGY,
       BINDING,
@@ -180,6 +180,8 @@ object SYMBOL extends NamedRootType("SYMBOL")
 object INTEGER extends NamedRootType("INTEGER")
 /** The FLOAT type. */
 object FLOAT extends NamedRootType("FLOAT")
+/** The BITSTRING type. */
+object BITSTRING extends NamedRootType("BITSTRING")
 /** The BOOLEAN type. */
 object BOOLEAN extends NamedRootType("BOOLEAN")
 /** A type for all rules. */

@@ -76,29 +76,6 @@ package object core {
         "executor implementation to properly support parsing from within " +
         "native operators.")
   }
-  
-  /**
-   * Attempt to parse the given string and return an atom.  This uses the
-   * known executor instance and treats the source as internal.
-   * 
-   * @param str			The string to parse.
-   * @param context	The context.
-   * @param trace		Whether to trace the parse.
-   * @param toggle  Choose whether to use the Parboiled parser (false) or the
-   *                Scala parser combinator parser (true).
-   * @return	The result of parsing, which may be None.
-   */
-  def parse(str: String, context: Context, trace: Boolean = false,
-      toggle: Boolean = false) = {
-    try {
-      knownExecutor.parse("", str) match {
-        case knownExecutor.ParseSuccess(atoms) => Some(atoms)
-        case knownExecutor.ParseFailure(_) => None
-      }
-    } catch {
-      case th: ParsingException => knownExecutor.console.error(th.getMessage)
-    }
-  }
 
   /**
    * Turn a string into a properly-escaped symbol.  Symbols must start with a
@@ -163,17 +140,6 @@ package object core {
    * @return	The string with special character escaped.
    */
   def toEString(str: String) = ornl.elision.util.toQuotedString(str)
-  
-  /**
-   * Issue a warning.  This should be wired to whatever error reporting
-   * mechanism you want to use.  This uses the console of the known
-   * executor, so that must be correctly set first.
-   * 
-   * @param text	The text of the warning.
-   */
-  def warn(loc: Loc, text: String) {
-    knownExecutor.console.warn(loc.toShortString+" "+text)
-  }
 
   /**
    * Whether to compute equality faster but in a riskier fashion.

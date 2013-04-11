@@ -178,8 +178,18 @@ object ReplMain {
     ReplActor.history = erepl
     ReplActor.console = erepl.console
     ReplActor ! ("disableGUIComs", true)
-    
-    erepl.run()
+    try {
+      erepl.run()
+    } catch {
+      case th: Throwable =>
+        try {
+          erepl.console.error("(" + th.getClass + ") " + th.getMessage())
+          if (erepl.getProperty[Boolean]("stacktrace")) th.printStackTrace()
+        } catch {
+          case _ =>
+        }
+        erepl.coredump("Internal error.", Some(th))
+    }
     erepl.clean()
   }
 }
@@ -702,6 +712,7 @@ extends Processor(state.settings) {
       } catch {
         case ornl.elision.util.ElisionException(loc, msg) =>
           console.error(loc, msg)
+          
         case ex: Exception =>
           console.error("(" + ex.getClass + ") " + ex.getMessage())
           if (getProperty[Boolean]("stacktrace")) ex.printStackTrace()
@@ -716,8 +727,12 @@ extends Processor(state.settings) {
           console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
 
         case th: Throwable =>
-          console.error("(" + th.getClass + ") " + th.getMessage())
-          if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          try {
+            console.error("(" + th.getClass + ") " + th.getMessage())
+            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
+          } catch {
+            case _ =>
+          }
           coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.

@@ -61,6 +61,12 @@ import ornl.elision.util.other_hashify
  *    is converted to the same radix as the exponent.  Let \(s\) denote the
  *    significand, let \(x\) denote the exponent, and let \(r\) denote the
  *    radix.  Then the ''value'' \(v\) of the number is \(v = s\times r^e\).
+ * 
+ *  - A '''bit string''' consisting of a defined, fixed-length sequence of
+ *    bits.  These are indicated by suffixing an integer with an L (case is
+ *    not significant) followed by a second integer literal that specifies the
+ *    number of bits.  For example, 0x4EL8 specifies a length 8 bit string
+ *    whose value is 01001110.
  *   
  *  - A '''string''' consisting of any sequence of characters enclosed in
  *    double quotation marks.  If a double quotation mark is to be included in
@@ -81,6 +87,7 @@ import ornl.elision.util.other_hashify
  * Literals have the following types by default.
  *  - Integers are of type `INTEGER`.
  *  - Floating point numbers are of type `FLOAT`.
+ *  - Bit string values are of type `BITSTRING`.
  *  - String values are of type `STRING`.
  *  - Symbol values are of type `SYMBOL`.
  *  - Boolean values are of type `BOOLEAN`.
@@ -95,7 +102,7 @@ import ornl.elision.util.other_hashify
  * @param typ		The Elision type of this literal.
  * @param mTYPE	The manifest for `TYPE`.
  */
-abstract class Literal[TYPE](typ: BasicAtom)(implicit mTYPE: Manifest[TYPE])
+abstract sealed class Literal[TYPE](typ: BasicAtom)(implicit mTYPE: Manifest[TYPE])
 extends BasicAtom {
   
   /** The type. */
@@ -150,6 +157,9 @@ object Literal {
   def apply(value: BigInt): IntegerLiteral = new IntegerLiteral(value)
   /** Make an integer literal from a Scala integer value. */
   def apply(value: Int): IntegerLiteral = new IntegerLiteral(value)
+  /** Make a bit string literal from two Scala integer values. */
+  def apply(bits: BigInt, len: Int): BitStringLiteral =
+    new BitStringLiteral(bits, len)
   /** Make a string literal from a Scala string value. */
   def apply(value: String): StringLiteral = new StringLiteral(value)
   /** Make a symbol literal from a Scala symbol value. */
@@ -185,6 +195,10 @@ object Literal {
    */
   def apply(typ: BasicAtom, value: Boolean): BooleanLiteral =
     BooleanLiteral(typ, value)
+  /** Boolean true literal. */
+  val TRUE = new BooleanLiteral(BOOLEAN, true)
+  /** Boolean false literal. */
+  val FALSE = new BooleanLiteral(BOOLEAN, false)  
   /**
    * Make a floating point literal, and override the default type.
    *
@@ -195,10 +209,9 @@ object Literal {
    */
   def apply(typ: BasicAtom, significand: BigInt, exponent: Int,
 	    radix: Int): FloatLiteral = FloatLiteral(typ, significand, exponent, radix)
-  /** Boolean true literal. */
-  val TRUE = new BooleanLiteral(BOOLEAN, true)
-  /** Boolean false literal. */
-  val FALSE = new BooleanLiteral(BOOLEAN, false)  
+	/** Make a bit string literal from two Scala integers and override the type. */
+	def apply(typ: BasicAtom, bits: BigInt, len: Int): BitStringLiteral =
+	  new BitStringLiteral(typ, bits, len)
 }
 
 /**
@@ -236,6 +249,106 @@ extends Literal[BigInt](typ) {
         val (newtype, flag) = theType.replace(map)
         if (flag) {
           (IntegerLiteral(newtype, value), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
+}
+
+/**
+ * Provide an bit string literal.  Bit string literals are backed by the Scala
+ * `BigInt` type, so they can contain arbitrarily large values.
+ * 
+ * @param typ   The type.
+ * @param bits  The bits.
+ * @param len   The length.
+ */
+case class BitStringLiteral(typ: BasicAtom, var bits: BigInt, len: Int)
+extends Literal[(BigInt, Int)](typ) {
+  /** If true, prefer to display this as a signed value.  If false, do not. */
+  val neghint = (bits < 0)
+
+  // Figure out the minimum number of bits required to hold the base.
+  if (neghint) {
+    bits = BigInt(2).pow(len) + bits
+  }
+  private val _bbl = bits.bitLength
+  if (len < _bbl) {
+    // Truncate the base to obtain the new base.
+    bits = bits & (BigInt(2).pow(len)-1)
+  } else if (len == 0) {
+    // Just return the well-known zero.
+    bits = 0
+  }
+  
+  /** Value as a pair of bits and length. */
+  val value = (bits, len)
+  
+  /** Return the bits as an unsigned integer. */
+  val unsigned = bits.abs
+  
+  /** Interpret the bits as a signed integer. */
+  val signed = {
+    /* About Signed Integers in 2's Complement Arithmetic
+     * 
+     * You have N bits.  If the highest-order bit is zero, your number is
+     * positive.  If it is one, your number is negative.  In this latter case
+     * we have to do a bit of interpretation.
+     * 
+     * The two's complement of a number X in N bits is the result of
+     * subtracting that number from 2^N, or 2^N - X.  In two's complement
+     * arithmetic the negation of a number is its two's complement.
+     * 
+     * Consider 7 in 4 bits.  That's 0b0111L4.  Now we consider -7.  To
+     * get that we subtract from 2^4 = 16.  16 - 7 = 9, or 0b1001L4.  Another
+     * (simpler?) way to think of this is that we first take the one's
+     * complement, obtaining 0b1000L4, and then add one, to obtain 0b1001L4.
+     * 
+     * So, to interpret our number as a signed integer we first check whether
+     * it is negative by testing the highest-order bit.  If zero, we just
+     * return the unsigned result.  If one, we do a tiny bit of math.  We are
+     * given V, but we want X, the original number that was negated.
+     * 
+     *   2^N - X = V
+     *   2^N - X - V = 0
+     *   2^N - V = X
+     * 
+     * Ah ha!  Two's complement works just like a "good" complement should.
+     * We can get it by flipping the bits and adding one (negation is negation)
+     * or by subtracting from 2^N.  Here we choose the latter.
+     */
+    if (len > 0 && bits.testBit(len-1)) {
+      // Number is negative.  Complement it and return the Scala negation.
+      -(BigInt(2).pow(len) - bits)
+    } else {
+      // Number is positive.  Return its unsigned value.
+      unsigned
+    }
+  }
+  
+  /**
+   * Alternate constructor with default `BITSTRING` type.
+   */
+  def this(bits: BigInt, len: Int) = this(BITSTRING, bits, len)
+  
+  def rewrite(binds: Bindings) = {
+    theType.rewrite(binds) match {
+      case (newtype, true) =>
+        (Literal(newtype, unsigned), true)
+      case _ =>
+        (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtype, flag) = theType.replace(map)
+        if (flag) {
+          (IntegerLiteral(newtype, unsigned), true)
         } else {
           (this, false)
         }
