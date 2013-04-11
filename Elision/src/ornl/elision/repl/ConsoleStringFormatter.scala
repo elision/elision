@@ -89,7 +89,9 @@ object ConsoleStringFormatter {
    */
   def format(src : String, width : Int = 50) : String = {
     val formatter = new SyntaxFormatter(EliRegexes)
+    System.err.println("Doing syntax formatting on String: \"" + src + "\"...")
     val sfStr = formatter.format(src, width)
+    System.err.println("Finished syntax formatting.")
     
     var result = ""
       

@@ -70,26 +70,30 @@ class SyntaxFormattedString(val src : String, val starts : ListBuffer[Int], val 
     /** Changes the current color if our current index in the text requires it. */
     def _checkForNewColor(pos : Int) : Unit = {
       // are we at a color end?
-      if(!endsCpy.isEmpty && pos == endsCpy(0) - chompedChars) {
-        curColor = colorStack.pop
+      if(!endsCpy.isEmpty) {
+        while(pos >= endsCpy(0) - chompedChars) {
+          curColor = colorStack.pop
 
-        // get next color end
-        val thisEnd = endsCpy(0)
-        endsCpy.remove(0)
+          // get next color end
+          val thisEnd = endsCpy(0)
+          endsCpy.remove(0)
+        }
       } // endif
       
       // are we at a color start?
-      if(!startsCpy.isEmpty && pos == startsCpy(0) - chompedChars) {
-        val newColor = colorsCpy(0)
-        colorStack = colorStack.push(curColor)
-        curColor = newColor
-        
-        // get next color start
-        val thisStart = startsCpy(0)
-        startsCpy.remove(0)
-        
-        // get next color
-        colorsCpy.remove(0)
+      if(!startsCpy.isEmpty) {
+        while(pos >= startsCpy(0) - chompedChars) {
+          val newColor = colorsCpy(0)
+          colorStack = colorStack.push(curColor)
+          curColor = newColor
+          
+          // get next color start
+          val thisStart = startsCpy(0)
+          startsCpy.remove(0)
+          
+          // get next color
+          colorsCpy.remove(0)
+        }
       } // endif
     }
     
