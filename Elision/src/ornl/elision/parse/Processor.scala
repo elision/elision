@@ -240,11 +240,12 @@ with HasHistory {
    *                  result was not a success.
    */
   def toBasicAtom(result: ParseResult) : List[BasicAtom] = result match {
-          case ParseSuccess(atoms) =>
-            atoms
-          case _ =>
-            println("Round trip testing failed for atom:\n")
-            List[BasicAtom]()
+    case ParseSuccess(atoms) =>
+      atoms
+      
+    case _ =>
+      println("Round trip testing failed for atom:\n")
+      List[BasicAtom]()
   }
   
   /**

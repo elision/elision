@@ -51,6 +51,11 @@ without polluting the output of the tool.  Automated systems may consume the
 output, and this will cause them to break.  So just do not do it.  See the
 ornl.elision.util.Debugger class for a perfectly reasonable alternative.
 
+(8) Request a Pull - Don't Commit
+Have a look here: https://github.com/elision/elision/wiki/Working
+Essentially fork the repository, make changes locally, and then issue a pull
+request when you are satisfied that all is well.  Please don't push to upstream.
+
 Follow these guidelines and we will all get along, your code can be folded into
 the trunk, and life can be good.  Break them and you'll have to clean them up
 and may be dropped from the committers list.  Really; this isn't hard.
