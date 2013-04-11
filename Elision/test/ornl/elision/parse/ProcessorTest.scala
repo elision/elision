@@ -36,6 +36,9 @@ import org.junit.Test
 import org.junit.Before
 import ornl.elision.repl.ERepl
 import ornl.elision.repl.ReplMain
+import ornl.elision.cli.CLI
+import scala.collection.mutable.HashMap
+import ornl.elision.cli.CLI.CLIState
 
 /**
  * @author jb9
@@ -47,10 +50,19 @@ class ProcessorTest extends AssertionsForJUnit {
    */
   @Test 
   def testParse() {
-    val test = new ERepl
+  val cli = ReplMain.prep(Array(""))
+  var settings = new HashMap[String, String]
+  settings("elision.root") = sys.env("FX_DIR") + java.io.File.separator + "config" +
+    java.io.File.separator + "elision"
+  settings("elision.history") = "history"
+  settings("elision.context") = "context"
+  settings("elision.rc") = "rc"
+  settings("elision.cache") = "cache"
+
+  val test = new ERepl(CLIState(List(), settings.toMap))
     ornl.elision.core.knownExecutor = test
     test.bootstrap(0)
-    test.parse("(UnitTest)", """inc("C:\\Users\\jb9\\config\\files_inc.eli")""")
+    test.parse("(UnitTest)", """inc("/home/fxuser/fx/system/config/files_inc.eli")""")
     val a = test.parse("(UnitTest)", "mult_32(acc_32($M:FMAP(DWORD,BYTE),add_32(-12,$EBP:DWORD)),add_32(2,acc_32($M:FMAP(DWORD,BYTE),add_32(-4,$EBP:DWORD))))")
     println (a.toString)
   }

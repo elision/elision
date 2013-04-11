@@ -232,6 +232,22 @@ with HasHistory {
   }
   
   /**
+   * Convert a result from parsing to a list of basic atoms. 
+   * This is currently used for unit testing.
+   *
+   * @param result    The result from Processor.parse.
+   * @return          A list of the atoms returned or an empty list if the 
+   *                  result was not a success.
+   */
+  def toBasicAtom(result: ParseResult) : List[BasicAtom] = result match {
+          case ParseSuccess(atoms) =>
+            atoms
+          case _ =>
+            println("Round trip testing failed for atom:\n")
+            List[BasicAtom]()
+  }
+  
+  /**
    * Execute the provided text.  The text must form a complete sequence of
    * atoms.  It may contain zero or more atoms, but each atom must be
    * complete, or a parse error may result.
