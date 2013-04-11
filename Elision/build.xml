@@ -105,6 +105,7 @@ bin, lib, and other folders.</echo>
 	<target name="init" depends="start,debug,checks">
 		<property name="build.base" 	value="."/>
 		<property name="build.src"  	value="${build.base}/src"/>
+		<property name="build.test"  	value="${build.base}/test"/>
 		<property name="build.doc"  	value="${build.base}/doc"/>
 		<property name="build.bin"  	value="${build.base}/bin"/>
 		<property name="build.lib"  	value="${build.base}/lib"/>
@@ -140,7 +141,7 @@ bin, lib, and other folders.</echo>
 	
 	
 	<!-- A simple target to build both the jars and the documentation. -->
-	<target name="all" depends="jars,docs"
+	<target name="all" depends="jars,docs, build_tests"
 		description="Build the jars and the API documentation."/>
 	
 	
@@ -151,6 +152,16 @@ bin, lib, and other folders.</echo>
 		<delete dir="${build.bin}" failonerror="false"/>
 	</target>
 	
+
+	<target name="build_tests" depends="compile">
+		<scalac
+			destdir		="${build.bin}"
+			classpathref	="build.classpath"
+			deprecation	="on"
+			unchecked	="on">
+			<src path="${build.test}"/>
+		</scalac>
+	</target>
 	
 	<!-- Clean up the entire folder, removing all directories and generated
 		 files including the date-stamped save directories. -->

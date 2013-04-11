@@ -36,6 +36,7 @@ import org.junit.Test
 import org.junit.Before
 import ornl.elision.repl.ERepl
 import ornl.elision.repl.ReplMain
+import ornl.elision.cli.CLI
 
 /**
  * @author jb9
@@ -47,7 +48,7 @@ class ProcessorTest extends AssertionsForJUnit {
    */
   @Test 
   def testParse() {
-    val test = new ERepl
+    val test = new ERepl(CLI.CLIState())
     ornl.elision.core.knownExecutor = test
     test.bootstrap(0)
     test.parse("(UnitTest)", """inc("C:\\Users\\jb9\\config\\files_inc.eli")""")
