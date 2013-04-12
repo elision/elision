@@ -191,27 +191,29 @@ class NativeCompiler {
    * @return  The handler.
    */
   def compile(loc: Loc, operator: String, handler: String) = {
-    val key = getKey(loc.source, operator, handler)
-    getCachedHandler(key) match {
-      case None =>
-        // The handler was not found in the cache.  Make it now.
-        Debugger("opcache", "Creating cached handler for "+toESymbol(operator)+
-            " from "+loc.toShortString+".")
-        makeCachedHandler(loc.source, operator, handler) match {
-          case None =>
-            // Somehow the native handler compilation failed.  Throw an
-            // exception.
-            throw new NativeHandlerException(loc,
-                "Unable to compile native handler for operator %s%s."
-                format (toESymbol(operator), loc.toShortString))
-            
-          case Some(handler) =>
-            handler
-        }
-        
-      case Some(handler) =>
-        // The handler was found in the cache.
-        handler
+    val key = getKey(loc.source, operator, handler).intern()
+    key.synchronized {
+      getCachedHandler(key) match {
+        case None =>
+          // The handler was not found in the cache.  Make it now.
+          Debugger("opcache", "Creating cached handler for "+toESymbol(operator)+
+              " from "+loc.toShortString+".")
+          makeCachedHandler(loc.source, key, operator, handler) match {
+            case None =>
+              // Somehow the native handler compilation failed.  Throw an
+              // exception.
+              throw new NativeHandlerException(loc,
+                  "Unable to compile native handler for operator %s%s."
+                  format (toESymbol(operator), loc.toShortString))
+              
+            case Some(handler) =>
+              handler
+          }
+          
+        case Some(handler) =>
+          // The handler was found in the cache.
+          handler
+      }
     }
   }
   
@@ -257,9 +259,9 @@ class NativeCompiler {
    * @param handler   The handler.
    * @return  The compiled native handler.
    */
-  private def makeCachedHandler(source: String, operator: String, handler: String) = {
+  private def makeCachedHandler(source: String, key: String, operator: String,
+      handler: String) = {
     // Create the source file.
-    val key = getKey(source, operator, handler)
     val file = new File(_cache, key + ".scala")
     // Write the object.
     Debugger("opcache", "Writing cached file: " + file.getAbsolutePath)
