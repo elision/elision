@@ -39,7 +39,9 @@ package ornl.elision.core
 
 import scala.collection.IndexedSeq
 import ornl.elision.util.OmitSeq
-import ornl.elision.core.matcher._
+import ornl.elision.core.matcher.AMatcher
+import ornl.elision.core.matcher.CMatcher
+import ornl.elision.core.matcher.ACMatcher
 import ornl.elision.core.matcher.SequenceMatcher
 
 /**

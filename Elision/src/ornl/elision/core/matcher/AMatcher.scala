@@ -36,10 +36,21 @@
 ======================================================================
 * */
 package ornl.elision.core.matcher
-import ornl.elision.core._
-import ornl.elision.util.OmitSeq
-import ornl.elision.util.Debugger._
+
+import scala.annotation.tailrec
+
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fail
+import ornl.elision.core.Many
+import ornl.elision.core.Match
+import ornl.elision.core.MatchIterator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.Outcome
 import ornl.elision.util.Debugger
+import ornl.elision.util.OmitSeq.fromIndexedSeq
 
 /**
  * Match two sequences, where the elements of the second sequence can be

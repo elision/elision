@@ -34,9 +34,22 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.core
+package ornl.elision.context
+
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.immutable.List
+import ornl.elision.core.SymbolicOperator.LIST
+import ornl.elision.core.SymbolicOperator.MAP
+import ornl.elision.core.SymbolicOperator.xx
+import ornl.elision.core.CaseOperator
+import ornl.elision.core.Fickle
+import ornl.elision.core.Mutable
+import ornl.elision.core.Operator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.SymbolicOperator
+import ornl.elision.core.giveMkParseString
+import ornl.elision.core.knownExecutor
+import ornl.elision.core.toESymbol
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
 

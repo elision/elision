@@ -29,14 +29,16 @@
  */
 package ornl.elision.repl
 
+import java.io.File
 import ornl.elision.actors.ReplActor
-import ornl.elision.parse._
+import ornl.elision.context.Context
+import ornl.elision.context.Executor
+import ornl.elision.cli.ArgSwitch
 import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
-import java.io.File
-import ornl.elision.core.Context
-import ornl.elision.cli.ArgSwitch
+import ornl.elision.parse.Processor
+import ornl.elision.parse.ProcessorControl
 
 /**
  * Implement an interface to run the REPL from the prompt.

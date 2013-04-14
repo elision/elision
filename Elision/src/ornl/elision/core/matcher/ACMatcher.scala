@@ -36,9 +36,20 @@
 ======================================================================
 * */
 package ornl.elision.core.matcher
-import ornl.elision.core._
-import ornl.elision.util.OmitSeq
-import scala.collection.immutable.Vector
+
+import scala.annotation.tailrec
+
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fail
+import ornl.elision.core.Many
+import ornl.elision.core.Match
+import ornl.elision.core.MatchIterator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.Outcome
+import ornl.elision.core.Variable
 import ornl.elision.util.Debugger
 
 /**

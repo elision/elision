@@ -30,7 +30,9 @@
 package ornl.elision.parse
 
 import ornl.elision.actors.ReplActor
-import ornl.elision.core._
+import ornl.elision.context.Context
+import ornl.elision.context.Executor
+import ornl.elision.core.BasicAtom
 import ornl.elision.util.Console
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver

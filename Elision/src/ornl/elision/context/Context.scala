@@ -35,14 +35,32 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================
 * */
-package ornl.elision.core
+package ornl.elision.context
 
-import ornl.elision.util.ElisionException
+import scala.collection.mutable.Set
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fickle
+import ornl.elision.core.Operator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.RewriteRule
+import ornl.elision.core.RulesetRef
+import ornl.elision.core.SymbolicOperator
+import ornl.elision.core.TypedSymbolicOperator
+import ornl.elision.core.AtomWalker
+import ornl.elision.core.Literal
+import ornl.elision.core.MapPair
+import ornl.elision.core.SymbolLiteral
+import ornl.elision.core.toEString
+import ornl.elision.core.Variable
 import ornl.elision.generators.ScalaGenerator
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.util.Cache
 import ornl.elision.util.Version
-import scala.collection.mutable.Set
+import ornl.elision.util.Version.build
+import ornl.elision.util.Version.major
+import ornl.elision.util.Version.minor
+import ornl.elision.util.toQuotedString
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -248,17 +266,24 @@ class Context extends Fickle with Mutable with Cache {
    * contained in the context, it does not necessarily capture those items
    * contained in the executor.
    * 
-   * The basic structure of the file that is created is the following.
+   * The basic public structure of the file that is created is the following.
    * 
    * {{{
    * object SC21e4fe213a6c {
-   *   def generate(): Context
+   *   def main(args: Array[String]) {
+   *     ...
+   *   }
+   *   def populate(context: Context) {
+   *     ...
+   *   }
    * }
    * }}}
    * 
-   * After loading the context, the `generate` method will create a new context
-   * object, populating the operator library, the rule library, the bindings,
-   * and the cache.
+   * The `main` method can be used to start the context and enter the REPL from
+   * the prompt.  The `populate` method adds the necessary information to the
+   * provided context.
+   * 
+   * FIXME: This references `ERepl`, and thus must be moved out of core!
    * 
    * @param objname The name to use for the object.
    * @param app     The appendable to get the context.  By default a new string
@@ -266,7 +291,7 @@ class Context extends Fickle with Mutable with Cache {
    */
   def write(objname: String, app: Appendable = new StringBuffer) = {
     // Write boilerplate.
-    import Version._
+    import Version.{major, minor, build}
     val prop = System.getProperties
     app.append(
         """|/**

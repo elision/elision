@@ -27,10 +27,13 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.core
+package ornl.elision.context
+
+import java.lang.Boolean
+import java.lang.Integer
+import ornl.elision.core.BasicAtom
 import ornl.elision.util.ElisionException
-import scala.util.Properties
-import ornl.elision.util.{Console, PropertyManager, Cache, CacheException}
+import ornl.elision.util.{Console, PropertyManager}
 import ornl.elision.util.Loc
 
 /**

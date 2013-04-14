@@ -36,9 +36,14 @@
 ======================================================================
 * */
 package ornl.elision.core.matcher
-import ornl.elision.core._
-import ornl.elision.util.OmitSeq
+
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Fail
+import ornl.elision.core.giveMkParseString
 import ornl.elision.util.Debugger
+import ornl.elision.util.OmitSeq
+import ornl.elision.util.OmitSeq.fromIndexedSeq
 
 /**
  * Provide some support methods for matching.
