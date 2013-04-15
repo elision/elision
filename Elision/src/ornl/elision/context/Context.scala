@@ -258,95 +258,14 @@ class Context extends Fickle with Mutable with Cache {
   }
   
   /**
-   * Write the context to the given appendable.
+   * Write the context to the given appendable, as Scala source.  This assumes
+   * that the context is available as `context`, and consists of the commands
+   * to create the context.
    * 
-   * The purpose of this is to write a compilable version of the entire context
-   * as a single object that, when executed, creates and returns a complete
-   * context object.  While this is effective for those items that are
-   * contained in the context, it does not necessarily capture those items
-   * contained in the executor.
-   * 
-   * The basic public structure of the file that is created is the following.
-   * 
-   * {{{
-   * object SC21e4fe213a6c {
-   *   def main(args: Array[String]) {
-   *     ...
-   *   }
-   *   def populate(context: Context) {
-   *     ...
-   *   }
-   * }
-   * }}}
-   * 
-   * The `main` method can be used to start the context and enter the REPL from
-   * the prompt.  The `populate` method adds the necessary information to the
-   * provided context.
-   * 
-   * FIXME: This references `ERepl`, and thus must be moved out of core!
-   * 
-   * @param objname The name to use for the object.
    * @param app     The appendable to get the context.  By default a new string
    *                buffer is created.
    */
-  def write(objname: String, app: Appendable = new StringBuffer) = {
-    // Write boilerplate.
-    import Version.{major, minor, build}
-    val prop = System.getProperties
-    app.append(
-        """|/**
-           | * Saved context source.  This source file was automatically created.
-           | * Elision is Copyright (c) UT-Battelle, LLC.  All rights reserved.
-           | *
-           | *  - Created on: %s
-           | *  - Elision version: %s
-           | *  - Elision build: %s
-           | *  - Scala version: %s
-           | *  - Java vendor: %s
-           | *  - Java version: %s
-           | *  - OS name: %s
-           | *  - OS version: %s
-           | *  - Architecture: %s
-           | */
-           |import ornl.elision.core._
-           |import ornl.elision.util.Loc
-           |import ornl.elision.repl._
-           |import ornl.elision.parse.ProcessorControl
-           |object %s {
-           |  def main(args: Array[String]) {
-           |    // Process the command line arguments.
-           |    ReplMain.prep(args) match {
-           |      case None =>
-           |      case Some(settings) =>
-           |        // Build a REPL.
-           |        val repl = new ERepl(settings)
-           |        // Install the REPL.
-           |        knownExecutor = repl
-           |        // Reset the context and then populate it.
-           |        repl.context = new Context()
-           |        populate(repl.context)
-           |        // Start the REPL, but don't bootstrap.
-           |        ProcessorControl.bootstrap = false
-           |        repl.run()
-           |        // Done!
-           |        repl.clean()
-           |    }
-           |  }
-           |  def populate(context: Context) {
-           |""".stripMargin format (
-               new java.util.Date,
-               major+"."+minor,
-               build,
-               util.Properties.versionString,
-               prop.get("java.vendor"),
-               prop.get("java.version"),
-               prop.get("os.name"),
-               prop.get("os.version"),
-               prop.get("os.arch"),
-               objname
-               )
-           )
-           
+  def write(app: Appendable = new StringBuffer) = {
     // Now we can append the code to create the context.  To do this, we first
     // traverse the rule list and generate all the rules, in the order they are
     // present in the library.
@@ -389,10 +308,6 @@ class Context extends Fickle with Mutable with Cache {
     app.append(included map (toQuotedString(_)) mkString (","))
     app.append(")\n")
     app.append("    context.stash(\"read_once.included\", set)\n")
-    
-    // Done.  Close up the object.
-    app.append("  } // End of populate.\n")
-    app.append("} // End of object.\n")
   }
   
   /**
@@ -519,16 +434,16 @@ class Context extends Fickle with Mutable with Cache {
     // Write all the atoms this atom depends on.
     target match {
       case opref: OperatorRef =>
-        AtomWalker(opref.operator, collector)
+        AtomWalker(opref.operator, collector, true)
         
       case rule: RewriteRule =>
         for (rsname <- rule.rulesets) {
-          AtomWalker(RulesetRef(this.ruleLibrary, rsname), collector)
+          AtomWalker(RulesetRef(this.ruleLibrary, rsname), collector, true)
         } // Explore all the referenced rulesets.
-        AtomWalker(target, collector)
+        AtomWalker(target, collector, true)
         
       case _ =>
-        AtomWalker(target, collector)
+        AtomWalker(target, collector, true)
     }
     
     // Write this atom.  If we are writing Scala code, the handler is requested,
@@ -769,7 +684,7 @@ class Context extends Fickle with Mutable with Cache {
    */
   override def toString = {
     val buf = new StringBuffer
-    write("SavedContext", buf)
+    write(buf)
     buf.toString()
   }
 }

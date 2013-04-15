@@ -49,6 +49,29 @@ object ContextGenerator {
    * path, then the files are placed in the "current working folder," which
    * is determined by the operating system.
    * 
+   * The purpose of this is to write a compilable version of the entire context
+   * as a single object that, when executed, creates and returns a complete
+   * context object.  While this is effective for those items that are
+   * contained in the context, it does not necessarily capture those items
+   * contained in the executor.
+   * 
+   * The basic public structure of the file that is created is the following.
+   * 
+   * {{{
+   * object SC21e4fe213a6c {
+   *   def main(args: Array[String]) {
+   *     ...
+   *   }
+   *   def populate(context: Context) {
+   *     ...
+   *   }
+   * }
+   * }}}
+   * 
+   * The `main` method can be used to start the context and enter the REPL from
+   * the prompt.  The `populate` method adds the necessary information to the
+   * provided context.
+*    * 
    * @param fn          Base file name for files to be generated.
    * @param context     The context to write.
    */
