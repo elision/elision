@@ -77,8 +77,10 @@ object ContextGenerator {
    */
   def generate(fn: String, context: Context) {
     val dot = fn.lastIndexOf('.')
-    val basename = (if (dot > 0) fn.substring(0,dot) else fn)
-    val filename = basename + ".scala"
+    val slash = fn.lastIndexOf('/') max -1
+    val filename = (if (dot > 0) fn.substring(0,dot) else fn) + ".scala"
+    val basename =
+      (if (dot > 0) fn.substring(slash+1,dot) else fn.substring(slash+1))
     val file = new FileWriter(filename)
     
     // Write boilerplate.
