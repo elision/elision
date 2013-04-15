@@ -163,7 +163,7 @@ extends Fickle with Mutable {
  	 * @return  The list of all operators.
  	 */
  	def getAllOperators() = {
- 	  _opRefList.reverse
+ 	  _opRefList.reverse.map(_.operator)
  	}
  	
  	/**
