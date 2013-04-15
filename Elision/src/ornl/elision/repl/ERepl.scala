@@ -58,6 +58,11 @@ object ReplMain {
   var _wantCompile: Option[String] = None
   
   /**
+   * If true, force a call to exit at the end of main to terminate all threads.
+   */
+  private var _forceExit = false
+  
+  /**
    * Print usage information.  This is a switch handler (see
    * [[ornl.elision.cli.Switches]]) and satisfies the contract for such a
    * method.
@@ -78,6 +83,11 @@ object ReplMain {
    */
   private val _switches = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
+      Switch(Some("exit"), Some('x'), "Force exit at end of main.",
+          () => {
+            _forceExit = true
+            None
+          }),
       Switch(Some("prior"), Some('p'), "Attempt to re-load the prior context.",
         () => {
           ProcessorControl.bootstrap = false
@@ -144,6 +154,9 @@ object ReplMain {
     prep(args) match {
       case None =>
       case Some(sets) => runRepl(sets)
+    }
+    if (_forceExit) {
+      System.exit(0)
     }
   }
   
@@ -610,6 +623,7 @@ extends Processor(state.settings) {
       case Some(fn) =>
         console.emitln("Writing compilable context as: " + fn)
         ContextGenerator.generate(fn, context)
+        console.emitln("Done.")
         return
     }
   

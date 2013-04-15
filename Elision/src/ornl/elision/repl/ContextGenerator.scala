@@ -49,13 +49,38 @@ object ContextGenerator {
    * path, then the files are placed in the "current working folder," which
    * is determined by the operating system.
    * 
+   * The purpose of this is to write a compilable version of the entire context
+   * as a single object that, when executed, creates and returns a complete
+   * context object.  While this is effective for those items that are
+   * contained in the context, it does not necessarily capture those items
+   * contained in the executor.
+   * 
+   * The basic public structure of the file that is created is the following.
+   * 
+   * {{{
+   * object SC21e4fe213a6c {
+   *   def main(args: Array[String]) {
+   *     ...
+   *   }
+   *   def populate(context: Context) {
+   *     ...
+   *   }
+   * }
+   * }}}
+   * 
+   * The `main` method can be used to start the context and enter the REPL from
+   * the prompt.  The `populate` method adds the necessary information to the
+   * provided context.
+   * 
    * @param fn          Base file name for files to be generated.
    * @param context     The context to write.
    */
   def generate(fn: String, context: Context) {
     val dot = fn.lastIndexOf('.')
-    val basename = (if (dot > 0) fn.substring(0,dot) else fn)
-    val filename = basename + ".scala"
+    val slash = fn.lastIndexOf('/') max -1
+    val filename = (if (dot > 0) fn.substring(0,dot) else fn) + ".scala"
+    val basename =
+      (if (dot > 0) fn.substring(slash+1,dot) else fn.substring(slash+1))
     val file = new FileWriter(filename)
     
     // Write boilerplate.
@@ -125,18 +150,18 @@ object ContextGenerator {
     // present in the library.
     var known = context.Known()
     var thelist = List[BasicAtom]()
-    for (rule <- context.ruleLibrary.getAllRules) {
-      // Write the rule and any dependencies.  The new set of "known" stuff is
-      // returned, and we preserve it.
-      val pair = context.collect(rule, known, thelist)
-      known = pair._1
-      thelist = pair._2
-    } // Collect all rules and their dependencies.
-    
     // Now we can collect any remaining unknown operators.  Just traverse the
     // operators and trust the system to write any that are unknown.
     for (operator <- context.operatorLibrary.getAllOperators) {
       val pair = context.collect(operator, known, thelist)
+      known = pair._1
+      thelist = pair._2
+    } // Collect all rules and their dependencies.
+    
+    for (rule <- context.ruleLibrary.getAllRules) {
+      // Write the rule and any dependencies.  The new set of "known" stuff is
+      // returned, and we preserve it.
+      val pair = context.collect(rule, known, thelist)
       known = pair._1
       thelist = pair._2
     } // Collect all rules and their dependencies.
