@@ -40,7 +40,7 @@ package ornl.elision
  * This is the utility package for Elision.
  * 
  * This package provides common services and support for other parts of the
- * Elision system.  Any part of Elision may use it, but it must not use other
+ * Elision system.  Any part of Elision may use it, but it cannot use other
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
 package object util {

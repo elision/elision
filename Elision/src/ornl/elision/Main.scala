@@ -29,14 +29,14 @@
  */
 package ornl.elision
 import scala.collection.mutable.StringBuilder
-import ornl.elision.util.Text
-import ornl.elision.cli.Switch
-import ornl.elision.cli.ArgSwitch
-import ornl.elision.util.Debugger
-import ornl.elision.util.Version
-import ornl.elision.parse.ProcessorControl
 import ornl.elision.cli.CLI
+import ornl.elision.cli.Switch
 import ornl.elision.cli.Setting
+import ornl.elision.cli.ArgSwitch
+import ornl.elision.util.Text
+import ornl.elision.util.Version
+import ornl.elision.util.Debugger
+import ornl.elision.parse.ProcessorControl
 
 /**
  * This is the entry point when running from the jar file.  This also provides

@@ -37,15 +37,18 @@
  * */
 package ornl.elision.core.matcher
 
-import ornl.elision.util.OmitSeq
 import ornl.elision.core.BasicAtom
 import ornl.elision.core.Bindings
 import ornl.elision.core.Fail
 import ornl.elision.core.Many
 import ornl.elision.core.Match
-import ornl.elision.core.Outcome
 import ornl.elision.core.MatchIterator
+import ornl.elision.core.Outcome
+import ornl.elision.core.giveMkParseString
+import ornl.elision.core.wrapBindingsAtom
 import ornl.elision.util.Debugger
+import ornl.elision.util.OmitSeq
+import ornl.elision.util.OmitSeq.fromIndexedSeq
 
 /**
  * Match two sequences of atoms.

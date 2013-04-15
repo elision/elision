@@ -477,6 +477,14 @@ extends Literal[Boolean](typ) {
 /**
  * Provide data and methods for representing values from the IEEE 754 floating
  * point standard.
+ * 
+ * This does not yet provide accessors for certain values.
+ *  - Signaling NaN is indicated with all ones in the exponent and the msb
+ *    of the fraction set to one.
+ *  - Quiet NaN is indicated with all ones in the exponent and the msb of
+ *    the fraction set to zero, when the fraction is not itself zero.
+ *  - Infinity (positive and negative, depending on the sign bit) is indicated
+ *    with the exponent set to all ones and a zero fraction.
  */
 case class IEEE754(width: Int, significand: Int) {
   require (significand < (width - 2))
