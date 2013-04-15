@@ -366,27 +366,10 @@ class Context extends Fickle with Mutable with Cache {
    */
   def traverse(app: Appendable, target: BasicAtom, known: Known,
       kind: Symbol, withhandler: Boolean = true): Known = {
-    // Skip known stuff.
-    if (known(target)) return known
-    
-    // (1) Skip over internally defined operators (MAP, LIST, xx).  These are
-    //     SymbolicOperators, but not TypedSymbolicOperators.
-    // (2) For operator references actually traverse the operator.
-    target match {
-      case tso: TypedSymbolicOperator =>
-        
-      case so: SymbolicOperator =>
-        return known
-        
-      case or: OperatorRef =>
-        return traverse(app, or.operator, known, kind)
-        
-      case _ =>
-    }
-
-    // Keep a version of known we can modify.  Then we will add known stuff
-    // as we write it.
-    var newknown = known
+    // Go and get the items, in the order they should be declared.
+    val pair = collect(target, known, List())
+    val newknown = pair._1
+    val thelist = pair._2
     
     // Boilerplate text for both cases.
     val pre = Map(
@@ -397,107 +380,54 @@ class Context extends Fickle with Mutable with Cache {
         'elision -> ")",
         'scala -> ")")
     
-    // A visitor to collect mentioned operators.  Note that the symbolic
-    // operators are hard-coded, and we never write them.
-    def collector(atom: BasicAtom, istype: Boolean) = {
-      if (atom != target) {
-        atom match {
-          case op: TypedSymbolicOperator =>
-            if (! known(op))
-              newknown = traverse(app, op, newknown, kind)
-              
-          case sop: SymbolicOperator =>
-            
-          case op: Operator =>
-            if (! known(op))
-              newknown = traverse(app, op, newknown, kind)
-              
-          case or: OperatorRef =>
-            val op = or.operator
-            if (! known(op))
-              newknown = traverse(app, op, newknown, kind)
-              
-          case rs: RulesetRef =>
-            if (! known(rs)) {
-              newknown = traverse(app, rs, newknown, kind)
+    // Write the atoms.
+    for (atom <- thelist) {
+      // Write each atom.  If we are writing Scala code, the handler is requested,
+      // and this is an operator with a handler, then create and write the handler
+      // object now so it gets compiled along with everything else.
+      if (kind == 'scala && withhandler) {
+        target match {
+          case tso: TypedSymbolicOperator =>
+            // See if the operator has a native handler.
+            tso.handlertxt match {
+              case Some(text) =>
+                // Found a handler.  Convert it to an object and write it in the
+                // stream.
+                NativeCompiler.writeStash(tso.loc.source, tso.name, text, app)
+                
+              case _ =>
             }
-              
-          case rule: RewriteRule =>
-            newknown = traverse(app, rule, newknown, kind)
-              
+            
           case _ =>
         }
       }
-      true
-    }
-    
-    // Write all the atoms this atom depends on.
-    target match {
-      case opref: OperatorRef =>
-        AtomWalker(opref.operator, collector, true)
-        
-      case rule: RewriteRule =>
-        for (rsname <- rule.rulesets) {
-          AtomWalker(RulesetRef(this.ruleLibrary, rsname), collector, true)
-        } // Explore all the referenced rulesets.
-        AtomWalker(target, collector, true)
-        
-      case _ =>
-        AtomWalker(target, collector, true)
-    }
-    
-    // Write this atom.  If we are writing Scala code, the handler is requested,
-    // and this is an operator with a handler, then create and write the handler
-    // object now so it gets compiled along with everything else.
-    if (kind == 'scala && withhandler) {
-      target match {
-        case tso: TypedSymbolicOperator =>
-          // See if the operator has a native handler.
-          tso.handlertxt match {
-            case Some(text) =>
-              // Found a handler.  Convert it to an object and write it in the
-              // stream.
-              NativeCompiler.writeStash(tso.loc.source, tso.name, text, app)
-              
-            case _ =>
+      app.append(pre(kind))
+      kind match {
+        case 'scala =>
+          // Ruleset references are unusual.  We need to process them as symbols.
+          // The reason for this is that there is no corresponding atom to
+          // convert them into, like there is for operator references.  See
+          // the declare method for how this is handled.
+          val what = target match {
+            case rr: RulesetRef => Literal(Symbol(rr.name))
+            case x => x
           }
+          ScalaGenerator(what, app)
           
         case _ =>
+          // Ruleset references are unusual.  We need to process them as symbols.
+          // The reason for this is that there is no corresponding atom to
+          // convert them into, like there is for operator references.  See
+          // the declare method for how this is handled.
+          val what = target match {
+            case rr: RulesetRef => Literal(Symbol(rr.name))
+            case x => x
+          }
+          ElisionGenerator(what, app)
       }
-    }
-    app.append(pre(kind))
-    kind match {
-      case 'scala =>
-        // Ruleset references are unusual.  We need to process them as symbols.
-        // The reason for this is that there is no corresponding atom to
-        // convert them into, like there is for operator references.  See
-        // the declare method for how this is handled.
-        val what = target match {
-          case rr: RulesetRef => Literal(Symbol(rr.name))
-          case x => x
-        }
-        ScalaGenerator(what, app)
-        
-      case _ =>
-        // Ruleset references are unusual.  We need to process them as symbols.
-        // The reason for this is that there is no corresponding atom to
-        // convert them into, like there is for operator references.  See
-        // the declare method for how this is handled.
-        val what = target match {
-          case rr: RulesetRef => Literal(Symbol(rr.name))
-          case x => x
-        }
-        ElisionGenerator(what, app)
-    }
-    app.append(post(kind)).append('\n')
-    
-    // This is now a known operator or ruleset - if that's what it is.
-    return target match {
-      case op: Operator => newknown + op
-      case opref: OperatorRef => newknown + opref.operator
-      case rs: RulesetRef => newknown + rs
-      case _ => newknown
-    }
+      app.append(post(kind)).append('\n')
+    } // Write all atoms, in order.
+    newknown
   }
   
   /**

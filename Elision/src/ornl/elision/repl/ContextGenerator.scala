@@ -148,18 +148,18 @@ object ContextGenerator {
     // present in the library.
     var known = context.Known()
     var thelist = List[BasicAtom]()
-    for (rule <- context.ruleLibrary.getAllRules) {
-      // Write the rule and any dependencies.  The new set of "known" stuff is
-      // returned, and we preserve it.
-      val pair = context.collect(rule, known, thelist)
-      known = pair._1
-      thelist = pair._2
-    } // Collect all rules and their dependencies.
-    
     // Now we can collect any remaining unknown operators.  Just traverse the
     // operators and trust the system to write any that are unknown.
     for (operator <- context.operatorLibrary.getAllOperators) {
       val pair = context.collect(operator, known, thelist)
+      known = pair._1
+      thelist = pair._2
+    } // Collect all rules and their dependencies.
+    
+    for (rule <- context.ruleLibrary.getAllRules) {
+      // Write the rule and any dependencies.  The new set of "known" stuff is
+      // returned, and we preserve it.
+      val pair = context.collect(rule, known, thelist)
       known = pair._1
       thelist = pair._2
     } // Collect all rules and their dependencies.
