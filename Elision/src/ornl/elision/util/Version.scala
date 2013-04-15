@@ -135,9 +135,7 @@ object Version {
   type CEntry = (HasMain, String, Boolean)
     
   /** The commands.  Map each command to its class and a description. */
-  private var _commands: Map[String,CEntry] =
-    Map("repl" -> ((ornl.elision.repl.ReplMain.getClass.asInstanceOf[HasMain],
-        "Start the REPL.", false)))
+  private var _commands: Map[String,CEntry] = Map()
         
   /** A type for an entry in the options catalog. */
   type OEntry = (Class[_], String, String)

@@ -30,11 +30,11 @@
 package ornl.elision.core
 
 import java.util.HashMap
-import ornl.elision.util.PropertyManager
 import scala.collection.mutable.BitSet
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import ornl.elision.util.Debugger
+import ornl.elision.util.PropertyManager
 
 /**
  * Provide an online and offline memoization system for rewriting.  There are

@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core
 
+import ornl.elision.context.Context
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc

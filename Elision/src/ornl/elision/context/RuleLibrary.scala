@@ -34,13 +34,37 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ======================================================================*/
-package ornl.elision.core
+package ornl.elision.context
 
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, BitSet, ListBuffer}
-import ornl.elision.util.ElisionException
 import scala.collection.immutable.List
 import scala.collection.immutable.HashSet
+import scala.math.BigInt.int2bigInt
+import ornl.elision.core.AlgProp
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fickle
+import ornl.elision.core.Lambda
+import ornl.elision.core.Literal
+import ornl.elision.core.Memo
+import ornl.elision.core.Match
+import ornl.elision.core.Fail
+import ornl.elision.core.Mutable
+import ornl.elision.core.NoProps
+import ornl.elision.core.Operator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.RulesetRef
+import ornl.elision.core.RSREF
+import ornl.elision.core.RewriteRule
+import ornl.elision.core.Rewriter
+import ornl.elision.core.SpecialForm
+import ornl.elision.core.SymbolicOperator
+import ornl.elision.core.Variable
+import ornl.elision.core.giveMkParseString
+import ornl.elision.util.ElisionException
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.util.Debugger
@@ -84,96 +108,6 @@ extends ElisionException(loc, msg)
  */
 class LiteralPatternException(loc: Loc, msg: String)
 extends ElisionException(loc, msg)
-
-/**
- * A ruleset reference.
- * 
- * == Purpose ==
- * A ruleset reference provides a way to refer to all rules in a particular
- * ruleset as a single atom.
- *
- * == Structure and Syntax ==
- * A ruleset reference is a strategy - that is, a rewriter.  When placed on
- * the left side of an applicative equals rules from the ruleset are tried
- * until all are exhausted and none apply, or a single rule is applied.  That
- * is, at most one rule is applied.
- * 
- * Syntactically ruleset references are symbols of type `RSREF`.
- * 
- * == Type ==
- * All ruleset references have type `RSREF`.
- * 
- * == Equality and Matching ==
- * Ruleset references are equal iff they are the same symbol, and also match
- * iff they are the same symbol.  Since all ruleset refernces have the same
- * type, they are matched by name alone.
- */
-abstract class RulesetRef extends BasicAtom with Rewriter {
-  val depth = 0
-  val deBruijnIndex = 0
-  val constantPool = None
-  val isTerm = true
-  val isConstant = true
-  val theType = RSREF
-  /** The name of the referenced ruleset. */
-  val name: String
-  
-  /**
-   * Ruleset references cannot be rewritten.
-   */
-  def rewrite(binds: Bindings) = (this, false)
-  
-  def replace(map: Map[BasicAtom, BasicAtom]) = map.get(this) match {
-    case None =>
-      (this, false)
-    
-    case Some(atom) =>
-      (atom, true)
-  }
-    
-  override def hashCode = 61*name.hashCode
-  lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
-  
-  override def equals(other: Any) =
-    (other match {
-      case rr:RulesetRef => rr.name == name
-      case _ => false
-    })
-}
-
-/**
- * Simplify creation and matching of ruleset references.
- */
-object RulesetRef {
-  /**
-  * Extract the parts of a ruleset reference.
-  * 
-  * @param rr		The reference.
-  * @return	The ruleset name.
-  */
-  def unapply(rr: RulesetRef) = Some((rr.name))
-  
-  /**
-  * Make a new reference to the named ruleset in the rule library of the given
-  * context.
-  * 
-  * @param context		The context.
-  * @param name			The ruleset name.
-  * @return	The new reference.
-  */
-  def apply(context: Context, name: String) =
-    context.ruleLibrary.makeRulesetRef(name)
-  
-  /**
-  * Make a new reference to the named ruleset in the given rule library.
-  * 
-  * @param library		The rule library.
-  * @param name			The ruleset name.
-  * @return	The new reference.
-  */
-  def apply(library: RuleLibrary, name: String) =
-    library.makeRulesetRef(name)
-}
 
 /**
  * Encapsulate a rule library.

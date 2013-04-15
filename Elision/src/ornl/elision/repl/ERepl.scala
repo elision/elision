@@ -29,14 +29,16 @@
  */
 package ornl.elision.repl
 
+import java.io.File
 import ornl.elision.actors.ReplActor
-import ornl.elision.parse._
+import ornl.elision.context.Context
+import ornl.elision.context.Executor
+import ornl.elision.cli.ArgSwitch
 import ornl.elision.cli.Setting
 import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
-import java.io.File
-import ornl.elision.core.Context
-import ornl.elision.cli.ArgSwitch
+import ornl.elision.parse.Processor
+import ornl.elision.parse.ProcessorControl
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -606,14 +608,8 @@ extends Processor(state.settings) {
     ReplMain._wantCompile match {
       case None =>
       case Some(fn) =>
-        val dot = fn.lastIndexOf('.')
-        val basename = (if (dot > 0) fn.substring(0,dot) else fn)
-        val filename = basename + ".scala"
-        console.emitln("Writing compilable context to: " + filename)
-        val file = new FileWriter(filename)
-        context.write(basename, file)
-        file.flush()
-        file.close()
+        console.emitln("Writing compilable context as: " + fn)
+        ContextGenerator.generate(fn, context)
         return
     }
   

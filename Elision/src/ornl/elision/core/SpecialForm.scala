@@ -35,6 +35,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ======================================================================*/
 package ornl.elision.core
+
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
 

@@ -41,10 +41,10 @@ import scala.collection.immutable.HashSet
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
-import ornl.elision.util.PropertyManager
-import ornl.elision.util.HasOtherHash
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.generators.ScalaGenerator
+import ornl.elision.util.PropertyManager
+import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
 
