@@ -95,7 +95,7 @@ extends ElisionException(loc, msg)
  */
 class OperatorLibrary(val allowRedefinition: Boolean = true)
 extends Fickle with Mutable {
-
+  
   /**
    * The mapping from operator name to operator.  This holds the mapping as it
    * changes.
@@ -163,9 +163,7 @@ extends Fickle with Mutable {
  	 * @return  The list of all operators.
  	 */
  	def getAllOperators() = {
- 	  var all = List[Operator]()
- 	  for ((_, op) <- _nameToOperator) all :+= op.operator
- 	  all
+ 	  _opRefList.reverse
  	}
  	
  	/**
