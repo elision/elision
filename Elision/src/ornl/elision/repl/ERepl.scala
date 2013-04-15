@@ -608,14 +608,8 @@ extends Processor(state.settings) {
     ReplMain._wantCompile match {
       case None =>
       case Some(fn) =>
-        val dot = fn.lastIndexOf('.')
-        val basename = (if (dot > 0) fn.substring(0,dot) else fn)
-        val filename = basename + ".scala"
-        console.emitln("Writing compilable context to: " + filename)
-        val file = new FileWriter(filename)
-        context.write(basename, file)
-        file.flush()
-        file.close()
+        console.emitln("Writing compilable context as: " + fn)
+        ContextGenerator.generate(fn, context)
         return
     }
   

@@ -91,7 +91,7 @@ object NativeCompiler {
     val key = getKey(source, operator, handler)
     // Write the prelude.
     app.append(makeObject(source, operator, key, makeMethod(handler)))
-    app.append("ornl.elision.core.NativeCompiler.stash(%s, %s, %s, %s)\n" format (
+    app.append("ornl.elision.context.NativeCompiler.stash(%s, %s, %s, %s)\n" format (
         toEString(source), toEString(operator), toEString(handler),
         key))
   }
@@ -143,6 +143,7 @@ object NativeCompiler {
        | * Operator source: %s
        | * Created on: %s
        | */
+       |import ornl.elision.context.{HandlerClass, Context}
        |import ornl.elision.core._
        |import ornl.elision.util.Loc
        |object %s extends HandlerClass {
