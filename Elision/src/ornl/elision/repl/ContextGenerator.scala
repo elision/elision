@@ -71,7 +71,7 @@ object ContextGenerator {
    * The `main` method can be used to start the context and enter the REPL from
    * the prompt.  The `populate` method adds the necessary information to the
    * provided context.
-*    * 
+   * 
    * @param fn          Base file name for files to be generated.
    * @param context     The context to write.
    */
