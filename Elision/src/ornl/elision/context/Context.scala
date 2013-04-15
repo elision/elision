@@ -590,16 +590,16 @@ class Context extends Fickle with Mutable with Cache {
     // Collect all the atoms this atom depends on.
     target match {
       case opref: OperatorRef =>
-        AtomWalker(opref.operator, visitor)
+        AtomWalker(opref.operator, visitor, true)
         
       case rule: RewriteRule =>
         for (rsname <- rule.rulesets) {
-          AtomWalker(RulesetRef(this.ruleLibrary, rsname), visitor)
+          AtomWalker(RulesetRef(this.ruleLibrary, rsname), visitor, true)
         } // Explore all the referenced rulesets.
-        AtomWalker(target, visitor)
+        AtomWalker(target, visitor, true)
         
       case _ =>
-        AtomWalker(target, visitor)
+        AtomWalker(target, visitor, true)
     }
     
     // Write this atom.
