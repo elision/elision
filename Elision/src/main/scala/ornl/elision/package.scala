@@ -41,37 +41,38 @@ import scala.collection.immutable.BitSet
 /** 
  * Elision is a term rewriter.
  * 
- * This is the root package of the Elision system, and it contains classes
- * and definitions shared by everything else in the system, as well as the
- * code run at start-up from the command line.
+ * This is the root package of the Elision system, and it is responsible for
+ * startup and command line processing.
  * 
  * Starting the Elision system is the job of [[ornl.elision.Main]].
  * 
+ * This package uses [[ornl.elision.cli]] and [[ornl.elision.util]], but should
+ * not use any other package.  No other package in Elision may use this package.
+ * 
  * == Packages ==
  * There are several sub-packages.
+ *  - [[ornl.elision.actors]] contains actors used for internal communication.
+ *  - [[ornl.elision.cli]] contains classes for interpreting the CLI.
  *  - [[ornl.elision.core]] is the core package that contains the primary classes.
+ *  - [[ornl.elision.generators]] provides generators to convert atoms to strings.
  *  - [[ornl.elision.gui]] contains the Elision GUI, Eva.
  *  - [[ornl.elision.parse]] contains the Elision parser(s).
+ *  - [[ornl.elision.profile]] contains the Elision profiler.
  *  - [[ornl.elision.repl]] contains the Elision REPL(s) and related classes.
- *  - [[ornl.elision.test]] contains tests to verify Elision functionality.
+ *  - [[ornl.elision.syntax]] contains the syntax highlighting system.
  *  - [[ornl.elision.util]] contains common utilities used by the Elision system.
  * 
  * Packages in Elision are organized into a use hierarchy.  In general, packages
- * may use sub-packages, but not the reverse. 
+ * may use sub-packages, but not the reverse.  Packages may use sibling packages,
+ * provided this does not result in a cycle.
  *  
  * == Punch List ==
  * This is the current punch list for Elision.  This list gets picked up by
  * [[http://eclipse.org Eclipse]].
  * 
  *  - TODO Need package.scala files for all packages.  Stacy.
- *  - TODO Visitors for BasicAtoms.  ?
- *  - TODO STOP parsing on first error.  ?
- *  - TODO Prioritize places in Elision where unit tests most needed.  Stacy
  *  - TODO Implicit corecions. Mark.
+ *  - TODO Split compilable context into stages to avoid load problems.  Stacy
  *  - TODO Infix. DEFER.
- *  - TODO Need parser context for error messages. Stacy.
- *  - TODO Need support for command-line overrides.  Stacy.
- *  - TODO Need simple output configuration.  Stacy.
- *  
  */
 package object elision

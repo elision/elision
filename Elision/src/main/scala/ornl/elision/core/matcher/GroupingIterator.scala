@@ -35,8 +35,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 package ornl.elision.core.matcher
-import ornl.elision.core._
+
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.OperatorRef
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.OmitSeq.fromIndexedSeq
 
 /**
  * Iterate over all associative groupings of items.

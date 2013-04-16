@@ -39,28 +39,47 @@ package ornl.elision.core
 import scala.compat.Platform
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
-import ornl.elision.util.ElisionException
+import scala.collection.mutable.{Set => MSet}
+import scala.collection.mutable.Stack
+import scala.collection.mutable.Queue
 import scala.tools.nsc.interpreter.Results
-import ornl.elision.util.OmitSeq
+import ornl.elision.context.NativeCompiler
+import ornl.elision.context.Executor
 import ornl.elision.core.matcher.SequenceMatcher
+import ornl.elision.generators.ScalaGenerator
+import ornl.elision.generators.ElisionGenerator
+import ornl.elision.util.ElisionException
+import ornl.elision.util.OmitSeq
+import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * An incorrect argument list was supplied to an operator.
  *
+ * @param loc The locatin of the bad application.
  * @param msg	The human-readable message describing the problem.
  */
-class ArgumentListException(msg: String) extends ElisionException(msg)
+class ArgumentListException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * The native handler could not be parsed.
  *
+ * @param loc Location of the bad operator or native handler.
  * @param msg	The human-readable message describing the problem.
  */
-class NativeHandlerException(msg: String) extends ElisionException(msg)
+class NativeHandlerException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * A little class to use to pass data back and forth from the subordinate
- * interpreter.
+ * interpreter.  Since a native handler must return an atom, this is the
+ * return value of the passed closure.
+ * 
+ * A native handler is parsed by a subordinate Scala interpreter.  This has
+ * to bind something available in *this* scope - specifically it binds up
+ * an instance of `HandHolder` and passes it back.  Initially this holds
+ * `None`, but if the handler can be parsed it returns `Some` closure.
  *
  * @param handler		The handler.
  */
@@ -68,7 +87,11 @@ class HandHolder(
   var handler: Option[ApplyData => BasicAtom])
 
 /**
- * Data block and special functions provided to a native handler.
+ * Data block and special functions provided to a native handler.  A native
+ * handler takes an instance of this class and hands back an atom.
+ * 
+ * Certain information is populated based on the current __implicit__
+ * `Executor` instance.  This is done at construction time.
  *
  * @param op			The operator.
  * @param args		The argument list.
@@ -123,7 +146,7 @@ abstract class Operator(
   val description: String,
   val detail: String,
   override val evenMeta: Boolean = false)
-  extends SpecialForm(sfh.tag, sfh.content) with Applicable {
+  extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Applicable {
   /**
    * Apply the operator to the given sequence of basic atoms as arguments.
    * 
@@ -156,9 +179,9 @@ object Operator {
    */
   def apply(sfh: SpecialFormHolder): Operator = {
     val bh = sfh.requireBindings
-    bh.check(Map("name" -> true, "cases" -> false, "params" -> false, "type" -> false,
-      "description" -> false, "detail" -> false, "evenmeta" -> false,
-      "handler" -> false))
+    bh.check(Map("name" -> true, "cases" -> false, "params" -> false,
+        "type" -> false, "description" -> false, "detail" -> false,
+        "evenmeta" -> false, "handler" -> false))
     if (bh.either("cases", "params") == "cases") {
       CaseOperator(sfh)
     } else {
@@ -210,10 +233,17 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
    * Operator references cannot be rewritten.  This is actually why they exist!
    */
   def rewrite(binds: Bindings) = (this, false)
+   
+  def replace(map: Map[BasicAtom, BasicAtom]) = map.get(this) match {
+    case None => (this, false)
+    case Some(atom) => (atom, true)
+  }
 
-  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-    if (subject == this) Match(binds)
-    else subject match {
+  def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
+      hints: Option[Any]) =
+    if (subject == this) {
+      Match(binds)
+    } else subject match {
       case OperatorRef(oop) if (oop == operator) => Match(binds)
       case oop: Operator if (oop == operator) => Match(binds)
       case _ => Fail("Operator reference does not match subject.", this, subject)
@@ -244,6 +274,7 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
  * Make and match operator references.
  */
 object OperatorRef {
+  
   /**
    * Extract the operator from the reference.
    *
@@ -251,6 +282,7 @@ object OperatorRef {
    * @return	The referenced operator.
    */
   def unapply(ref: OperatorRef) = Some(ref.operator)
+  
   /**
    * Make a reference for an operator.
    *
@@ -289,6 +321,7 @@ object CaseOperator {
   /**
    * Make a case operator from the components.
    *
+   * @param loc           Location of the definition of this operator.
    * @param name					Operator name.
    * @param typ						The operator type (may be `ANY`).
    * @param cases					The cases, as a sequence of atoms.
@@ -299,14 +332,14 @@ object CaseOperator {
    * 											probably leave this with the default value of false.
    * @return	The new case operator.
    */
-  def apply(name: String, typ: BasicAtom, cases: AtomSeq,
+  def apply(loc: Loc, name: String, typ: BasicAtom, cases: AtomSeq,
     description: String, detail: String,
     evenMeta: Boolean = false): CaseOperator = {
     val nameS = Literal(Symbol(name))
     val binds = Bindings() + ("name" -> nameS) + ("cases" -> cases) +
       ("type" -> typ) + ("description" -> Literal(description)) +
       ("detail" -> Literal(detail))
-    val sfh = new SpecialFormHolder(Operator.tag, binds)
+    val sfh = new SpecialFormHolder(loc, Operator.tag, binds)
 
     return new CaseOperator(sfh, name, typ, cases, description, detail, evenMeta)
   }
@@ -317,7 +350,6 @@ object CaseOperator {
    * @param co	The case operator.
    * @return	A triple of the name, type, and cases.
    */
-    // TODO: might need to change theType to type in unapply
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases,
       co.description, co.detail))
 }
@@ -387,7 +419,7 @@ class CaseOperator private (sfh: SpecialFormHolder,
     // If nothing worked, then we need to generate an error since the operator
     // was incorrectly applied.
     if (!done)
-      throw new ArgumentListException("Applied the operator " +
+      throw new ArgumentListException(args.loc, "Applied the operator " +
         toESymbol(name) + " to an incorrect argument list: " +
         args.toParseString)
     // If the result turned out to be ANY, then just construct a simple
@@ -414,59 +446,13 @@ class CaseOperator private (sfh: SpecialFormHolder,
  * @param args		The argument list.
  * @param binds		Bindings of parameter to argument.
  */
-class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq, val binds: Bindings)
-// ' // '
+class ApplyInfo(val op: SymbolicOperator, val args: AtomSeq,
+    val binds: Bindings)
 
 /**
  * Construction and matching of typed symbolic operators.
  */
 object TypedSymbolicOperator {
-  // Get the path separator.
-  private val _prop = new scala.sys.SystemProperties
-  private val _ps = _prop("path.separator")
-  
-  // Time the compilation of native handlers.
-  import ornl.elision.util.Timeable
-  private val _timer = new Timeable {
-    timing = true
-    def reportElapsed() = {}
-  }
-
-  // Get the current class path and convert it into a proper path expression.
-  private lazy val _urls =
-    java.lang.Thread.currentThread.getContextClassLoader match {
-      case cl: java.net.URLClassLoader => cl.getURLs.toList
-      case other => sys.error("classloader is not a URLClassLoader. " +
-                              "It is a " + other.getClass.getName)
-    }
-  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
-
-  // Build a settings with the correct classpath.
-  private val _settings = try {
-     new scala.tools.nsc.Settings(println _) {
-      override val classpath = PathSetting("-cp", "Classpath", _classpath)
-    }} catch {
-      case e: Exception => {
-        println(e.getMessage)
-	println(e)
-	throw e
-    }
-    }
-
-  /** Make an interpreter. */
-  private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
-
-  // Make the core package available.
-  _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
-  
-  /**
-   * Print out the time spent compiling native handlers.
-   */
-  def reportTime() {
-    print("Time Compiling Native Handlers: ")
-    println(Timeable.asTimeString(_timer.getCumulativeTimeMillis))
-  }
-
   /**
    * Make a typed symbolic operator from the provided special form data.
    *
@@ -487,144 +473,21 @@ object TypedSymbolicOperator {
     val detail = bh.fetchAs[StringLiteral]("detail", Some("No detail."))
     val evenMeta = bh.fetchAs[BooleanLiteral]("evenmeta", Some(false)).value
 
-    // Fetch the handler text.
-    var handlertxt = bh.fetchAs[StringLiteral]("handler", Some("")).value
-    if (handlertxt.length > 0 && handlertxt(0) == '|')
-      handlertxt = handlertxt.stripMargin('|')
-
-    // Now make a handler object to pass into the interpreter.
-    var handler: Option[ApplyData => BasicAtom] = None
-
-    // Compile the handler, if we are given one.
-    var runme = ""
-    if (handlertxt != "") {
-      // Create a new handler holder to get the result, and bind it in the
-      // interpreter.  It is okay to rebind.
-      val passback = new HandHolder(None)
-      _timer.time(_main.beQuietDuring(_main.bind("passback", passback)))
-
-      // Extract the handler text, and surround it with the appropriate
-      // boilerplate to create an actual handler closure.
-      runme =
-        "def handler(_data: ApplyData): BasicAtom = {\n" +
-          "import _data._\n" +
-          "import ApplyData._\n" +
-          "import console._\n" +
-          handlertxt + "\n" +
-          "}\n" +
-          "passback.handler = Some(handler _)"
-          
-      // Now interpret it.
-      val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
-
-      // Determine what to do based on the result.
-      res match {
-        case Results.Error => throw new NativeHandlerException(
-          "Parsing failed for native handler.  Operator " +
-            toESymbol(name) + " with native handler:\n" + runme)
-        case Results.Incomplete => throw new NativeHandlerException(
-          "Incomplete Scala code for native handler.  Operator " +
-            toESymbol(name) + " with native handler:\n" + handlertxt)
-        case Results.Success =>
-          if (passback.handler.isDefined) {
-            handler = Some(_timer.time(passback.handler.get))
-          }
-      }
+    // Fetch the handler text, if any was provided.
+    val handlertxt = bh.fetchAs[StringLiteral]("handler", Some(null)) match {
+      case null => None
+      case x: StringLiteral => Some(x.value)
     }
 
-    // Now create the operator and install the handler, which might still be
-    // None if we never got a handler.
-    val tso = new TypedSymbolicOperator(sfh, name, typ, params,
-      description, detail, evenMeta)
-    tso.handler = handler
-    
-    // Encode the handler text using base64 encoding, and then cache it in the
-    // operator object prior to returning it.  This allows outputting the
-    // handler during serialization, so we can later read the operator back in
-    // and re-create the handler.
-    tso.handlerB64 = new sun.misc.BASE64Encoder().encode(handlertxt.getBytes())
-    tso
-  }
-
-  /**
-   * Make a typed symbolic operator with native handler, this is only
-   * meant to be used for importing exported scala code. 
-   *
-   * @param sfh   The parsed special form data.
-   * @return  The typed symbolic operator.
-   */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq,
-            description: String, detail: String, evenMeta: Boolean, 
-            handlerB64: String, nativeOp: Option[ApplyData => BasicAtom]): 
-            TypedSymbolicOperator = {
-    
-    val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name" -> nameS) +
-      ("type" -> typ) + ("description" -> Literal(description)) +
-      ("params" -> params) +
-      ("detail" -> Literal(detail + Operator)) +
-      ("evenmeta" -> Literal(evenMeta))
-    val sfh = new SpecialFormHolder(Operator.tag, binds)   
-    
-    var handlertxt = new String(new sun.misc.BASE64Decoder().decodeBuffer(handlerB64))
-    
-    val tso = new TypedSymbolicOperator(sfh, name, typ, params,
-      description, detail, evenMeta)
-
-    if (handlertxt.length > 0 && handlertxt(0) == '|')
-      handlertxt = handlertxt.stripMargin('|')
-
-    // Now make a handler object to pass into the interpreter.
-    var handler: Option[ApplyData => BasicAtom] = None
-
-    // if we are passed a native operator then use it for the native handler
-    if (nativeOp.isDefined) {
-      handler = nativeOp
-    }
-    // Otherwise compile the handler if given handler code.
-    else if (handlertxt!="" && nativeOp.isEmpty) {
-      // Create a new handler holder to get the result, and bind it in the
-      // interpreter.  It is okay to rebind.
-      val passback = new HandHolder(None)
-      _timer.time(_main.beQuietDuring(_main.bind("passback", passback)))
-
-      // Extract the handler text, and surround it with the appropriate
-      // boilerplate to create an actual handler closure.
-      val runme =
-        "def handler(_data: ApplyData): BasicAtom = {\n" +
-          "import _data._\n" +
-          "import ApplyData._\n" +
-          "import console._\n" +
-          handlertxt + "\n" +
-          "}\n" +
-          "passback.handler = Some(handler _)"
-          
-      // Now interpret it.
-      val res = _timer.time(_main.beQuietDuring(_main.interpret(runme)))
-
-      // Determine what to do based on the result.
-      res match {
-        case Results.Error => throw new NativeHandlerException(
-          "Parsing failed for native handler.  Operator " +
-            toESymbol(name) + " with native handler:\n" + runme)
-        case Results.Incomplete => throw new NativeHandlerException(
-          "Incomplete Scala code for native handler.  Operator " +
-            toESymbol(name) + " with native handler:\n" + handlertxt)
-        case Results.Success =>
-          if (passback.handler.isDefined) {
-            handler = Some(_timer.time(passback.handler.get))
-          }
-      }
-    }
-    
-    tso.handler = handler
-    tso.handlerB64 = handlerB64
-    tso
+    // Now create the operator.
+    new TypedSymbolicOperator(sfh, name, typ, params,
+      description, detail, evenMeta, handlertxt)
   }
   
   /**
    * Make a typed symbolic operator from the provided parts.
    *
+   * @param loc           Location of the definition of this operator.
    * @param name					The operator name.
    * @param typ						The type of the fully-applied operator.
    * @param params				The operator parameters.
@@ -633,19 +496,24 @@ object TypedSymbolicOperator {
    * @param evenMeta			Apply this operator even when the arguments contain
    * 											meta-terms.  This is not advisable, and you should
    * 											probably leave this with the default value of false.
+   * @param handler       Optional native handler code.  Default is `None`.
    * @return	The typed symbolic operator.
    */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq,
-    description: String, ddetail: String,
-    evenMeta: Boolean = false): TypedSymbolicOperator = {
+  def apply(loc: Loc, name: String, typ: BasicAtom, params: AtomSeq,
+    description: String, ddetail: String, evenMeta: Boolean = false,
+    handler: Option[String] = None): TypedSymbolicOperator = {
     val detail = ddetail
     val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
+    var binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
       ("type" -> typ) + ("description" -> Literal(description)) +
-      ("detail" -> Literal(detail)) + ("evenmeta" -> Literal(evenMeta)) 
-    val sfh = new SpecialFormHolder(Operator.tag, binds)
+      ("detail" -> Literal(detail)) + ("evenmeta" -> Literal(evenMeta))
+    handler match {
+      case None =>
+      case Some(text) => binds += ("handler" -> Literal(text))
+    }
+    val sfh = new SpecialFormHolder(loc, Operator.tag, binds)
     return new TypedSymbolicOperator(sfh, name, typ, params,
-      description, detail, evenMeta)
+      description, detail, evenMeta, handler)
   }
 
   /**
@@ -655,7 +523,8 @@ object TypedSymbolicOperator {
    * @return	The triple of name, computed type, and parameters.
    */
   def unapply(so: TypedSymbolicOperator) =
-    Some((so.name, so.typ, so.params, so.description, so.detail, so.evenMeta, so.handlerB64))
+    Some((so.name, so.typ, so.params, so.description, so.detail,
+        so.evenMeta, so.handlertxt))
 }
 
 /**
@@ -666,21 +535,21 @@ object TypedSymbolicOperator {
  * parameters and the provided "fully applied" type.  The result has the form
  * of a mapping from a domain to a co-domain.
  *
- * @param sfh		The parsed special form data.
- * @param name			The operator name.
- * @param typ				The type of the fully-applied operator.
- * @param params		The operator parameters.
- * @param evenMeta			Apply this operator even when the arguments contain
- * 											meta-terms.  This is not advisable, and you should
- * 											probably leave this with the default value of false.
+ * @param sfh         The parsed special form data.
+ * @param name        The operator name.
+ * @param typ         The type of the fully-applied operator.
+ * @param params      The operator parameters.
+ * @param evenMeta    Apply this operator even when the arguments contain
+ *                    meta-terms.  This is not advisable, and you should
+ *                    probably leave this with the default value of false.
+ * @param handlertxt  The text for an optional native handler.
  */
 class TypedSymbolicOperator private (sfh: SpecialFormHolder,
   name: String, typ: BasicAtom, params: AtomSeq,
-  description: String, detail: String, evenMeta: Boolean)
+  description: String, detail: String, evenMeta: Boolean,
+  handlertxt: Option[String])
   extends SymbolicOperator(sfh, name, typ, params,
-    description, detail, evenMeta) {
-  
-  var handlerB64: String = ""
+      description, detail, evenMeta, handlertxt) {
   /**
    * The type of an operator is a mapping from the operator domain to the
    * operator codomain.
@@ -692,9 +561,82 @@ class TypedSymbolicOperator private (sfh: SpecialFormHolder,
  * Construction and matching of symbolic operators.
  */
 object SymbolicOperator {
+  // Get the path separator.
+  private val _prop = new scala.sys.SystemProperties
+  private val _ps = _prop("path.separator")
+
+  // Get the current class path and convert it into a proper path expression.
+  private lazy val _urls =
+    java.lang.Thread.currentThread.getContextClassLoader match {
+    case cl: java.net.URLClassLoader => cl.getURLs.toList
+    case other => sys.error("classloader is not a URLClassLoader. " +
+        "It is a " + other.getClass.getName)
+  }
+  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
+
+  // Build a settings with the correct classpath.
+  private val _settings = try {
+    new scala.tools.nsc.Settings(println _) {
+      override val classpath = PathSetting("-cp", "Classpath", _classpath)
+    }
+  }
+
+  /** Make an interpreter. */
+  private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
+
+  // Make the core package available.
+  _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
+  
+  // Time the compilation of native handlers.
+  import ornl.elision.util.Timeable
+  private val _timer = new Timeable {
+    timing = true
+    def reportElapsed() = {}
+  }
+  
+  private val _ncomp = new NativeCompiler
+
+  /**
+   * Compile Scala code to a native handler.
+   * 
+   * @param op            The operator to get this native handler.
+   * @param handlertxt    The optional text to compile.
+   * @return  The optional handler result.
+   */
+  private def compileHandler(op: SymbolicOperator,
+      code: Option[String]): Option[ApplyData => BasicAtom] = {
+    // Fetch the handler text.
+    if (code.isDefined) {
+      var handlertxt = code.get
+      if (handlertxt.length > 0 && handlertxt(0) == '|')
+        handlertxt = handlertxt.stripMargin('|')
+        
+      // Compile the handler, if we were given one.
+      if (handlertxt != "") {
+        return Some(_timer.time {
+          _ncomp.compile(op.loc, op.name, handlertxt)
+        })
+      }
+    } // Handler has text.
+    
+    // If we get here then no handler code was provided, or the code was
+    // empty.
+    return None
+  }
+
+  /**
+   * Print out the time spent compiling native handlers.
+   */
+  def reportTime() {
+    knownExecutor.console.emit("Time Compiling Native Handlers: ")
+    knownExecutor.console.emitln(
+        Timeable.asTimeString(_timer.getCumulativeTimeMillis))
+  }
+
   /**
    * Make a symbolic operator from the provided parts.
    *
+   * @param loc           Location of the definition of this operator.
    * @param name					The operator name.
    * @param typ						The type of the fully-applied operator.
    * @param params				The operator parameters.
@@ -703,19 +645,24 @@ object SymbolicOperator {
    * @param evenMeta			Apply this operator even when the arguments contain
    * 											meta-terms.  This is not advisable, and you should
    * 											probably leave this with the default value of false.
+   * @param handler       The text for an optional native handler.
    * @return	The typed symbolic operator.
    */
-  def apply(name: String, typ: BasicAtom, params: AtomSeq,
-    description: String, ddetail: String,
-    evenMeta: Boolean = false): SymbolicOperator = {
+  def apply(loc: Loc, name: String, typ: BasicAtom, params: AtomSeq,
+    description: String, ddetail: String, evenMeta: Boolean = false,
+    handler: Option[String] = None): SymbolicOperator = {
     val detail = ddetail
     val nameS = Literal(Symbol(name))
-    val binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
+    var binds = Bindings() + ("name" -> nameS) + ("params" -> params) +
       ("type" -> typ) + ("description" -> Literal(description)) +
       ("detail" -> Literal(detail)) + ("evenmeta" -> Literal(evenMeta))
-    val sfh = new SpecialFormHolder(Operator.tag, binds)
-    return new SymbolicOperator(sfh, name, typ, params, description,
-      detail, evenMeta)
+    handler match {
+      case None =>
+      case Some(text) => binds += ("handler" -> Literal(text))
+    }
+    val sfh = new SpecialFormHolder(loc, Operator.tag, binds)
+    return new SymbolicOperator(sfh, name, typ, params,
+      description, detail, evenMeta, handler)
   }
 
   /**
@@ -734,7 +681,8 @@ object SymbolicOperator {
    * This makes the types of operators look more natural when viewed.
    */
   val MAP = OperatorRef(
-    SymbolicOperator("MAP", TypeUniverse, AtomSeq(NoProps, 'domain, 'codomain),
+    SymbolicOperator(Loc.internal, "MAP", TypeUniverse, AtomSeq(NoProps,
+        'domain, 'codomain),
       "Mapping constructor.",
       "This operator is used to construct types for operators.  It " +
       "indicates a mapping from one type (the domain) to another type " +
@@ -746,7 +694,7 @@ object SymbolicOperator {
    * associative.
    */
   val xx = OperatorRef(
-    SymbolicOperator("xx", ANY, AtomSeq(Associative(true), 'x, 'y),
+    SymbolicOperator(Loc.internal, "xx", ANY, AtomSeq(Associative(true), 'x, 'y),
       "Cross product.",
       "This operator is used to construct types for operators.  It " +
       "indicates the cross product of two atoms (typically types).  " +
@@ -757,7 +705,7 @@ object SymbolicOperator {
    * root type.
    */
   val LIST = OperatorRef(
-    SymbolicOperator("LIST", TypeUniverse, AtomSeq(NoProps, 'type),
+    SymbolicOperator(Loc.internal, "LIST", TypeUniverse, AtomSeq(NoProps, 'type),
       "List type constructor.",
       "This operator is used to indicate the type of a list.  It takes a " +
       "single argument that is the type of the atoms in the list.  For " +
@@ -786,25 +734,27 @@ object SymbolicOperator {
  * for special "primitive" operators that are themselves used to specify the
  * types of operators.
  *
- * @param sfh				The parsed special form data.
- * @param name			The operator name.
- * @param typ				The type of the fully-applied operator.
- * @param params		The operator parameters.
- * @param evenMeta			Apply this operator even when the arguments contain
- * 											meta-terms.  This is not advisable, and you should
- * 											probably leave this with the default value of false.
+ * @param sfh         The parsed special form data.
+ * @param name        The operator name.
+ * @param typ         The type of the fully-applied operator.
+ * @param params		  The operator parameters.
+ * @param evenMeta    Apply this operator even when the arguments contain
+ *                    meta-terms.  This is not advisable, and you should
+ *                    probably leave this with the default value of false.
+ * @param handlertxt  The text for an optional native handler.
  */
 protected class SymbolicOperator protected (sfh: SpecialFormHolder,
   name: String, typ: BasicAtom, val params: AtomSeq,
-  description: String, detail: String, evenMeta: Boolean)
+  description: String, detail: String, evenMeta: Boolean,
+  val handlertxt: Option[String])
   extends Operator(sfh, name, typ, params, description, detail, evenMeta) {
   override val theType: BasicAtom = ANY
 
   // Check the properties.
   _check()
-
-  /** The native handler, if one is declared. */
-  protected[core] var handler: Option[ApplyData => BasicAtom] = None
+  
+  /** The native handler, if any. */
+  val handler = SymbolicOperator.compileHandler(this, handlertxt)
 
   /**
    * Apply this operator to the given arguments.
@@ -839,19 +789,19 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.isA(false)) {
       // There must be exactly two parameters.
       if (params.length != 2) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as associative, but does not have exactly two " +
           "parameters, as required: " + params.toParseString)
       }
       // All parameter types must be the same.
       if (!paramTypeCheck) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as associative, but all parameters do not have the " +
           "same type, as required: " + params.toParseString)
       }
       // The fully-applied type must be the same as the parameter type.
       if (params(0).theType != typ) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as associative, but the parameter type (" +
           params(0).theType.toParseString +
           ") is not the same as the fully-applied type (" +
@@ -861,17 +811,17 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
       // The operator is not associative, so it must not have an identity,
       // absorber, or be idempotent.
       if (params.props.isI(false)) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as idempotent, but it not marked as associative, as" +
           " required.")
       }
       if (params.props.identity.isDefined) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is declared to have an identity, but it not marked as " +
           "associative, as required.")
       }
       if (params.props.absorber.isDefined) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is declared to have an absorber, but it not marked as " +
           "associative, as required.")
       }
@@ -879,13 +829,13 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.isC(false)) {
       // There must be at least two parameters.
       if (params.length < 2) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as commutative, but does not have at least two " +
           "parameters, as required: " + params.toParseString)
       }
       // All parameter types must be the same.
       if (!paramTypeCheck) {
-        throw new ArgumentListException("The operator " + toESymbol(name) +
+        throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
           " is marked as commutative, but all parameters do not have the " +
           "same type, as required: " + params.toParseString)
       }
@@ -895,7 +845,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.identity.isDefined) {
       params(0).theType.tryMatch(params.props.identity.get.theType) match {
         case Fail(reason, index) =>
-          throw new ArgumentListException("The operator " + toESymbol(name) +
+          throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
             " has an identity whose type (" +
             params.props.identity.get.theType.toParseString +
             ") does not match the parameter type (" +
@@ -908,7 +858,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
     if (params.props.absorber.isDefined) {
       params(0).theType.tryMatch(params.props.absorber.get.theType) match {
         case Fail(reason, index) =>
-          throw new ArgumentListException("The operator " + toESymbol(name) +
+          throw new ArgumentListException(loc, "The operator " + toESymbol(name) +
             " has an absorber whose type (" +
             params.props.absorber.get.theType.toParseString +
             ") does not match the parameter type (" +
@@ -926,13 +876,11 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    * @return  The constructed atom.
    */
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
-
     // Temporarily disable rewrite timeouts if already timed out.
     val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
       BasicAtom.timeoutTime.value = -1L
-    }
-    else {
+    } else {
       BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
     }
 
@@ -959,7 +907,6 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         while (index < newseq.size) {
           val atom = newseq(index)
           if (absor == atom) {
-
             // Resume timing out rewrites.
             BasicAtom.timeoutTime.value = oldTimeout
 
@@ -978,13 +925,9 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               // Add the arguments directly to this list.  We can assume the
               // sub-list has already been processed, so no deeper checking
               // is needed.  This flattens associative lists, as required.
-              //println("ASSOC: Add args " + opargs)
-              //println("ASSOC: Old seq " + newseq)
               newseq = newseq.omit(index)
               newseq = newseq.insert(index, opargs)
-              //OmitSeq.debug = true
-              //println("ASSOC: New seq " + newseq)
-              //OmitSeq.debug = false
+              
             case _ =>
               // Nothing to do except increment the pointer.
               index += 1
@@ -1015,12 +958,12 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // The number of arguments must exactly match the number of
           // parameters.
           if (newseq.length > params.length) {
-            throw new ArgumentListException(
+            throw new ArgumentListException(rhs.loc,
                 "Too many arguments for non-associative operator " +
                 toESymbol(name) + ".  Expected " + params.length +
                 " but got " + newseq.length + ".")
           } else if (newseq.length < params.length) {
-            throw new ArgumentListException(
+            throw new ArgumentListException(rhs.loc,
                 "Too few arguments for non-associative operator " +
                 toESymbol(name) + ".  Expected " + params.length +
                 " but got " + newseq.length + ".")
@@ -1036,14 +979,10 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 
               // Resume timing out rewrites.
               BasicAtom.timeoutTime.value = oldTimeout
-              
               return r
-            }
-            else {
-
+            } else {
               // Resume timing out rewrites.
               BasicAtom.timeoutTime.value = oldTimeout
-
               return ident
             }
           }
@@ -1067,11 +1006,10 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             param.tryMatch(atom) match {
               case Fail(reason, index) =>
                 // The argument is invalid.  Reject!
-                throw new ArgumentListException("Incorrect argument " +
+                throw new ArgumentListException(atom.loc, "Incorrect argument " +
                   "for operator " + toESymbol(name) + " at position 0: " +
                   atom.toParseString + ".  " + reason())
               case mat: Match => {
-
                 // Resume timing out rewrites.
                 BasicAtom.timeoutTime.value = oldTimeout
 
@@ -1079,7 +1017,6 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
                 return atom
               }
               case many: Many => {
-
                 // Resume timing out rewrites.
                 BasicAtom.timeoutTime.value = oldTimeout
 
@@ -1090,36 +1027,8 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           }
         }
 
-        /*
-         * @@@@ PROBLEM!!!!:
-        // If the operator is associative, we pad the parameter list to get faster
-        // matching.  Otherwise we just match as-is.  In any case, when we are done
-        // we can just use the sequence matcher.
-        val newparams = if (assoc) {
-          println("** Making assoc list of size " + newseq.length)
-          var newatoms: OmitSeq[BasicAtom] = EmptySeq
-          val atom = params(0)
-          // While loops are faster than for comprehensions.
-          var index = 0
-          while (index < newseq.length) {
-            var param = Variable(atom.theType, "" + index)
-            newatoms = param +: newatoms
-            index += 1
-          } // Build new parameter list.
-          newatoms
-        } else {
-          params.atoms
-        }
-
-         * 
-         * The above creates a temporary list for every associative
-         * operator created. In the pewter example this leads to over
-         * 4 million temporary list creations.
-         */
-
         // Is the current operator associative?
         if (assoc) {
-
           // Handle type checking of an associative operator. All
           // formal parameters of an associative operator must have
           // the same type, so type checking of an associative
@@ -1135,20 +1044,16 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           val anArg = newseq(0)
           val aParam = params.atoms(0)
           while (index < newseq.length) {
-              
             // Does the current argument have the same type as the
             // other arguments?
             if (newseq(index).theType != anArg.theType) {
-
               // No, bomb out.
-              throw new ArgumentListException("Incorrect argument for operator " +
-                                              toESymbol(name) + " at position " + index + ": " +
-                                              newseq(index).toParseString + ".  " + 
-                                              "All arguments must have " +
-                                              "the same type (" + 
-                                              newseq(index).theType.toParseString +
-                                              " != " + anArg.theType.toParseString +
-                                              ").")
+              throw new ArgumentListException(anArg.loc,
+                  "Incorrect argument for operator " + toESymbol(name) +
+                  " at position " + index + ": " + newseq(index).toParseString +
+                  ".  All arguments must have the same type (" + 
+                  newseq(index).theType.toParseString + " != " +
+                  anArg.theType.toParseString + ").")
             }
           }
 
@@ -1161,16 +1066,16 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
           // binding information needed to do type inference.
           aParam.tryMatch(anArg) match {
             case Fail(reason, index) =>
-              throw new ArgumentListException("Incorrect argument for operator " +
-                                              toESymbol(name) + " at position " + index + ": " +
-                                              newseq(index).toParseString + ".  " + reason())
+              throw new ArgumentListException(anArg.loc,
+                  "Incorrect argument for operator " + toESymbol(name) +
+                  " at position " + index + ": " + newseq(index).toParseString +
+                  ".  " + reason())
             case Match(binds1) => {
               // The argument matches.
               val r = handleApply(binds1)
 
               // Resume timing out rewrites.
               BasicAtom.timeoutTime.value = oldTimeout
-              
               return r
             }
             case Many(iter) => {
@@ -1179,30 +1084,25 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 
               // Resume timing out rewrites.
               BasicAtom.timeoutTime.value = oldTimeout
-
               return r
             }
           }
-        }
-      
-        // The current operator is not associative.
-        else {
-
-          // We've run out of special cases to handle.  Now just try to match the
-          // arguments against the parameters.
+        } else {
+          // We've run out of special cases to handle.  Now just try to match
+          // the arguments against the parameters.
           val newparams = params.atoms
           SequenceMatcher.tryMatch(newparams, newseq) match {
             case Fail(reason, index) =>
-              throw new ArgumentListException("Incorrect argument for operator " +
-                                              toESymbol(name) + " at position " + index + ": " +
-                                              newseq(index).toParseString + ".  " + reason())
+              throw new ArgumentListException(newseq(index).loc,
+                  "Incorrect argument for operator " + toESymbol(name) +
+                  " at position " + index + ": " + newseq(index).toParseString +
+                  ".  " + reason())
             case Match(binds1) => {
               // The argument list matches.
               val r = handleApply(binds1)
 
               // Resume timing out rewrites.
               BasicAtom.timeoutTime.value = oldTimeout
-
               return r
             }
             case Many(iter) => {
@@ -1211,7 +1111,6 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 
               // Resume timing out rewrites.
               BasicAtom.timeoutTime.value = oldTimeout
-
               return r
             }
           }
@@ -1222,7 +1121,6 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
 
         // Resume timing out rewrites.
         BasicAtom.timeoutTime.value = oldTimeout
-
         return r
       }
     }

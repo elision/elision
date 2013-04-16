@@ -52,15 +52,8 @@ import sys.process._
  */
 object mainGUI extends SimpleSwingApplication {
   
-  /** The universal background color for the GUI's panels */
-  val bgColor = new Color(0xBBBBff)
-  
   /** The default title bar text. */
   val defaultTitle = "Elision Visualization Assistant"
-  
-  /** Eva's configuration settings */
-  val config = new EvaConfig
-  GUIActor.treeBuilder.treeMaxDepth = config.maxTreeDepth
   
   /** 
    * This string controls what mode Eva is currently running in. 
@@ -71,7 +64,7 @@ object mainGUI extends SimpleSwingApplication {
   var mode = ""
   
   /** The panel housing the onboard console */
-  val consolePanel = new ConsolePanel
+  val consolePanel = new console.ConsolePanel
   
   /** The tabbed panel housing information about the visualization properties. */
   val sidePanel = new SidePanel
@@ -79,10 +72,13 @@ object mainGUI extends SimpleSwingApplication {
   /** The panel housing Eva's current visualization. */
   var visPanel = new EvaVisPanel
   
+  sidePanel.listenTo(visPanel)
+  
   GUIActor.start
+  elision.TreeBuilderActor.start
   
   /** The menu bar */
-  val evaMenuBar = new EvaMenuBar
+  val evaMenuBar = new menus.EvaMenuBar
   
   /** The window's Frame object */
   val frame = new MainFrame {
@@ -118,8 +114,8 @@ object mainGUI extends SimpleSwingApplication {
     }
     
     // save the new current mode in our config file.
-    config.bootMode = mode
-    config.save
+    EvaConfig.bootMode = mode
+    EvaConfig.save
     
     // Change the mode for mode-dependent components.
     sidePanel.changeMode(mode)
@@ -134,7 +130,7 @@ object mainGUI extends SimpleSwingApplication {
   }
   
   // start in whatever mode was used last.
-  changeMode(config.bootMode)
+  changeMode(EvaConfig.bootMode)
 }
 
 

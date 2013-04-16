@@ -39,14 +39,15 @@ package ornl.elision.core
 
 import scala.collection.IndexedSeq
 import ornl.elision.util.OmitSeq
-import ornl.elision.core.matcher._
+import ornl.elision.core.matcher.AMatcher
+import ornl.elision.core.matcher.CMatcher
+import ornl.elision.core.matcher.ACMatcher
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.actors.ReplActor
 
 /**
  * Fast access to an untyped empty sequence.
  */
-object EmptySeq extends AtomSeq(AlgProp(), IndexedSeq())
+object EmptySeq extends AtomSeq(NoProps, IndexedSeq())
 
 /**
  * An atom sequence is just that: a sequence of atoms.
@@ -166,15 +167,9 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = {
-
-    // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out", this, subject)
-    }
-
-    // No timeout.
-    else {
-
+    } else {
       // We only care if the hint is an operator.  We do this in two steps, since
       // the "obvious" way to do it doesn't work because of type erasure.  Boo!
       val operator = hints match {
@@ -196,26 +191,35 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         	  // Now we have to decide how to compare the two sequences.  Note that
             // if the properties matching changes, this will like have to change,
             // too, to use the matched properties.
-            if (associative)
-              if (commutative)
+            if (associative) {
+              if (commutative) {
                 ACMatcher.tryMatch(this, as, usebinds, operator)
-              else
+              } else {
                 AMatcher.tryMatch(this, as, usebinds, operator)
-              else
-                if (commutative)
-                  CMatcher.tryMatch(this, as, usebinds)
-                else
-                  SequenceMatcher.tryMatch(this, as, usebinds)
+              }
+            } else {
+              if (commutative) {
+                CMatcher.tryMatch(this, as, usebinds)
+              } else {
+                SequenceMatcher.tryMatch(this, as, usebinds)
+              }
+            }
           }
         
-        // Match properties.  This may alter the bindings.
-        props.tryMatch(as.props, binds) match {
-          case fail: Fail => Fail("Sequence properties do not match.",
-          		                    this, subject, Some(fail))
-          case Match(newbinds) => doMatchSequences(newbinds)
-          case Many(iter) => Outcome.convert(iter ~> (doMatchSequences _),
-                                             Fail("Sequence properties do not match.", this, subject))
-        }
+          // Match properties.  This may alter the bindings.
+          props.tryMatch(as.props, binds) match {
+            case fail: Fail =>
+              Fail("Sequence properties do not match.", this, subject,
+                  Some(fail))
+              
+            case Match(newbinds) =>
+              doMatchSequences(newbinds)
+              
+            case Many(iter) =>
+              Outcome.convert(iter ~> (doMatchSequences _),
+                  Fail("Sequence properties do not match.", this, subject))
+          }
+        
         case _ => Fail("An atom sequence may only match another atom sequence.",
                        this, subject)
       }
@@ -223,29 +227,50 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 	}
 
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
-    ReplActor ! ("Eva", "pushTable", "AtomSeq rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "AtomSeq rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "props", "Properties: ", props))
-    ReplActor ! ("Eva", "setSubroot", "props")
-    
     // Rewrite the properties.
     val (newprop, pchanged) = props.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "atoms", "Atoms: "))
-    ReplActor ! ("Eva", "setSubroot", "atoms")
     
     // We must rewrite every child atom, and collect them into a new sequence.
-    val (newseq, schanged) = SequenceMatcher.rewrite(atoms, binds)
+    var schanged = false
+    val newseq = atoms map {
+      atom =>
+        val (newatom, changed) = atom.rewrite(binds)
+        schanged |= changed
+        newatom
+    }
     
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
-      ReplActor ! ("Eva", "setSubroot", "rwNode")
-      val newAS = new AtomSeq(newprop, newseq)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newAS))      
-      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
-      (newAS, true)
+      (new AtomSeq(newprop, newseq), true)
     } else {
-      ReplActor ! ("Eva", "popTable", "AtomSeq rewrite")
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        var flag1 = false
+        val newatoms = atoms map {
+          atom =>
+            val (newatom, changed) = atom.replace(map)
+            flag1 |= changed
+            newatom
+        }
+        // The algebraic properties must rewrite to a valid algebraic
+        // properties atom, or we must discard it since we cannot build a
+        // legal algebraic properties atom otherwise.
+        val (newprops, flag2) = props.replace(map) match {
+          case (ap: AlgProp, flag: Boolean) => (ap, flag)
+          case _ => (props, false)
+        }
+        if (flag1 || flag2) {
+          (AtomSeq(newprops, newatoms), true)
+        } else {
+          (this, false)
+        }
     }
   }
 
@@ -266,19 +291,11 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * Two sequences are equal iff their properties and atoms are equal.
    */
   override def equals(other: Any) = {
-    val t0 = System.nanoTime
-    val result = other match {
+    other match {
       case oseq: AtomSeq =>
         feq(oseq, this, (props == oseq.props) && (atoms == oseq.atoms))
-        
       case _ => false
     }
-
-    val t1 = System.nanoTime
-    if (((t1.toDouble-t0.toDouble)/1000000000) > 2.0) {
-      println("** AtomSeq: equals time = " + (t1.toDouble-t0.toDouble)/1000000000)
-    }
-    result
   }
 }
 

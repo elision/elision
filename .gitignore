@@ -8,6 +8,7 @@ Elision/.settings
 Elision/**/elision-src.jar
 Elision/**/elision.jar
 system/
+fx/
 user/
 Elision/target/
 Hyperion/

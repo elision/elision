@@ -42,30 +42,30 @@ println("Reading Experimental...")
 //======================================================================
 
 // Define an operator to emit the context as Scala code to a specified file.
-decl.
-{! exportContext($filename: STRING): NONE
-#description="Export the current context as Scala code."
-#detail="Write the current context as Scala code to the specified file."
-#handler=
-"""
-  args match {
-    case Args(StringLiteral(_, fn)) =>
-      // Open the file for writing.
-      import java.io.FileWriter
-      val fw = new FileWriter(fn)
-      // Write the context.
-      fw.append(context.toString)
-      // Done.
-      fw.flush()
-      fw.close()
-      console.emitln("Wrote context to " + fn + ".")
-    case _ =>
-  }
-  _no_show
-"""}
+decl.{! exportContext($filename: STRING): NONE
+	#description="Export the current context as Scala code."
+	#detail="Write the current context as Scala code to the specified file."
+	#handler=
+	"""
+	  args match {
+	    case Args(StringLiteral(_, fn)) =>
+	      // Open the file for writing.
+	      import java.io.FileWriter
+	      val fw = new FileWriter(fn)
+	      // Write the context.
+	      fw.append(context.toString)
+	      // Done.
+	      fw.flush()
+	      fw.close()
+	      console.emitln("Wrote context to " + fn + ".")
+	    case _ =>
+	  }
+	  _no_show
+	"""
+}
 
 // Define an operator to invoke the "fast equality" checker.
-{! feq($a,$b): BOOLEAN
+decl.{! feq($a,$b): BOOLEAN
    #handler="""
      // Run the fast equality handler on the two arguments.
      args match {
@@ -78,7 +78,7 @@ decl.
 }
 
 // Run the fast equality checker in stages, and report progress.
-{! sfeq($a,$b): BOOLEAN
+decl.{! sfeq($a,$b): BOOLEAN
    #handler="""
      args match {
        case Args(atom1, atom2) => {
@@ -130,7 +130,8 @@ decl.
    #detail="Run the 'fast equality' checker on $a and $b in stages."
 }
 
-{! inspect($atom): NONE
+decl.{! inspect($atom): NONE
+   #evenmeta=true
    #handler="""
      args match {
        case Args(atom) =>

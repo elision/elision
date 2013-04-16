@@ -41,7 +41,7 @@ println("Reading Math...")
 // General operators.
 //======================================================================
 
-decl.{! equal($x,$y): BOOLEAN is %C
+decl.{! eq($x,$y): BOOLEAN is %C
 #handler=
 """
   args match {
@@ -49,9 +49,22 @@ decl.{! equal($x,$y): BOOLEAN is %C
     case _ => _no_show
   }
 """
-#description="Report whether two atoms are equal."
+#description="Eagerly test whether two atoms are equal."
 #detail=
 "Test whether the two atoms $x and $y are considered equal by the system."
+}
+
+decl.{! equal($x,$y): BOOLEAN is %C
+	#handler="""
+	  args match {
+	    case Args(x,y) if x.isConstant && y.isConstant => x == y
+	    case _ => as_is
+	  }
+	"""
+  #description="Test whether two atoms are equal."
+  #detail=
+  "Test whether $x and $y are equal.  The test is performed iff both are ".
+  "constant terms and is deferred otherwise."
 }
 
 //======================================================================
@@ -70,7 +83,7 @@ decl.{! mod($b: INTEGER, $d: INTEGER): INTEGER
 #detail="Compute $b mod $d, returning the remainder when $b is divided by $d."
 }
 
-decl.{! neg($x: INTEGER): INTEGER
+decl.{! ineg($x: INTEGER): INTEGER
 #handler=
 """
   args match {
@@ -82,7 +95,7 @@ decl.{! neg($x: INTEGER): INTEGER
 #detail="Compute the negation of the integer $x; that is, compute 0 - $x."
 }
 
-decl.{! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
+decl.{! iadd($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
 #handler=
 """
   // Accumulate the integer literals found.
@@ -103,6 +116,33 @@ decl.{! add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
 """
 #description="Compute the integer sum of the arguments."
 #detail="Compute the sum of the integer arguments."
+}
+
+decl.{operator #name=isub #type=INTEGER #cases
+  %($x: INTEGER, $y: INTEGER) -> iadd($$x,ineg($$y)) 
+  #description="Integer subtraction."
+  #detail="Compute the difference of the integer arguments $x - $y."
+}
+
+decl.{! imul($x: INTEGER, $y: INTEGER): INTEGER is %ACD[1]B[0]
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x*y
+      case _ => as_is
+    }"""
+  #description="Integer multiplication."
+  #detail="Compute the product of two integers $x and $y."
+}
+
+decl.{! idiv($num: INTEGER, $den: INTEGER): INTEGER
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x/y
+      case _ => as_is
+    }"""
+  #description="Integer division."
+  #detail="Compute the quotient of two integers $num / $den, and discard ".
+          "any remainder."
 }
 
 //======================================================================
@@ -152,13 +192,10 @@ decl.{! or($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[true]D[false]
 }
 
 decl.{ operator #name=xor #type=BOOLEAN #cases
-  %(true) -> true,
-  %(false) -> false,
-  %(true, false) -> true,
-  %(false, true) -> true,
-  %(true, true) -> false,
-  %(false, false) -> false,
+  %($P: BOOLEAN) -> $$P,
+  %ACD[false](false, $P: BOOLEAN) -> $$P,
   %ACD[false](true, $Q: BOOLEAN) -> not($$Q),
+  %ACD[false]($P: BOOLEAN, $P: BOOLEAN) -> false,
   %ACD[false]($P: BOOLEAN, $Q: BOOLEAN) -> _
 #description="Boolean exclusive or."
 #detail="True if exactly one argument is true, and false otherwise."

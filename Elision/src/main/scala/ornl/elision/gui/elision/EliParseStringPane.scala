@@ -42,6 +42,9 @@ import scala.swing.BorderPanel.Position._
 import swing.TabbedPane
 
 import ornl.elision.gui._
+import ornl.elision.gui.console._
+import ornl.elision.gui.copypaste._
+import ornl.elision.syntax
 
 /** A scrolling pane for displaying an Elision atom's parse string with formatting and syntax coloring. */
 class EliParseStringPane extends ScrollPane {

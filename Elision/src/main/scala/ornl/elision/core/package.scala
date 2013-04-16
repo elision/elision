@@ -42,15 +42,17 @@ import scala.collection.mutable.HashSet
 import org.parboiled.errors.ParsingException
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
+import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
+import ornl.elision.context.Context
+import ornl.elision.context.Executor
 
 /**
  * The core classes and definitions that make up the Elision runtime.
  * 
+ * The purpose of this package is to define all basic atoms.
+ * 
  * == Design Goals ==
- *  - Every atom that can be programmatically created can be written using
- *    the toParseString, and the result can be parsed by AtomParser.
- *  - Every atom that can be programmatically created has a toString method
- *    that generates valid Scala code to reproduce the atom.
  *  - Avoid global data and singletons.
  *  - Simple API.
  */
@@ -68,33 +70,11 @@ package object core {
   implicit var knownExecutor: Executor = new Executor {
     val console = PrintConsole 
     val context = new Context()
-    def parse(text: String): ParseResult = ParseFailure(
+    val settings = Map[String,String]()
+    def parse(name: String, text: String): ParseResult = ParseFailure(
         "This default executor cannot parse text; override this with a full " +
         "executor implementation to properly support parsing from within " +
         "native operators.")
-  }
-  
-  /**
-   * Attempt to parse the given string and return an atom.  This uses the
-   * known executor instance.
-   * 
-   * @param str			The string to parse.
-   * @param context	The context.
-   * @param trace		Whether to trace the parse.
-   * @param toggle  Choose whether to use the Parboiled parser (false) or the
-   *                Scala parser combinator parser (true).
-   * @return	The result of parsing, which may be None.
-   */
-  def parse(str: String, context: Context, trace: Boolean = false,
-      toggle: Boolean = false) = {
-    try {
-      knownExecutor.parse(str) match {
-        case knownExecutor.ParseSuccess(atoms) => Some(atoms)
-        case knownExecutor.ParseFailure(_) => None
-      }
-    } catch {
-      case th: ParsingException => println(th.getMessage)
-    }
   }
 
   /**
@@ -160,16 +140,6 @@ package object core {
    * @return	The string with special character escaped.
    */
   def toEString(str: String) = ornl.elision.util.toQuotedString(str)
-  
-  /**
-   * Issue a warning.  This should be wired to whatever error reporting
-   * mechanism you want to use.
-   * 
-   * @param text	The text of the warning.
-   */
-  def warn(text: String) {
-    println("WARNING: " + text)
-  }
 
   /**
    * Whether to compute equality faster but in a riskier fashion.
@@ -202,7 +172,6 @@ package object core {
    * @return  True if equal, false if not.
    */
   def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean) = {
-    //val risky = knownExecutor.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
     (atom1 eq atom2) || (
         (atom1.depth == atom2.depth) &&
         (atom1.isConstant == atom2.isConstant) &&
@@ -261,20 +230,6 @@ package object core {
     def omit(index: Int) = OmitSeq(seq, index)
   }
 
-  //======================================================================
-  // Strange debugging methods.
-  //======================================================================
-  
-  def D(atom: BasicAtom) = {
-    println(atom.toParseString)
-    atom
-  }
-  
-  def D[A <: Seq[BasicAtom]](seq: A) = {
-    println(seq.mkParseString("{",",","}"))
-    seq
-  }
-  
   //======================================================================
   // WARNING: Here be IMPLICITS!
   //======================================================================

@@ -33,15 +33,13 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ * ======================================================================*/
 package ornl.elision.core
 
 import scala.compat.Platform
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
-import ornl.elision.actors.ReplActor
 
 /**
  * The common root for all application atoms.  This class represents the
@@ -80,25 +78,27 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
     })
 
   def rewrite(binds: Bindings) = {
-    ReplActor ! ("Eva", "pushTable", "Apply rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "Apply rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: "))
-    ReplActor ! ("Eva", "addTo", ("op", "op", op))
-    ReplActor ! ("Eva", "setSubroot", "op")
     val (nop, nof) = op.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: "))
-    ReplActor ! ("Eva", "addTo", ("arg", "arg", arg))
-    ReplActor ! ("Eva", "setSubroot", "arg")
     val (narg, naf) = arg.rewrite(binds)
-    ReplActor ! ("Eva", "setSubroot", "rwNode")
     if (nof || naf) {
-  		val newApply = Apply(nop, narg)
-  		ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply))
-  		ReplActor ! ("Eva", "popTable", "Apply rewrite")
-  		(newApply, true) 
+  		(Apply(nop, narg), true)
   	} else { 
-      ReplActor ! ("Eva", "popTable", "Apply rewrite")
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newop, flag1) = op.replace(map)
+        val (newarg, flag2) = arg.replace(map)
+        if (flag1 || flag2) {
+          (Apply(newop, newarg), true)
+        } else {
+          (this, false)
+        }
     }
   }
   
@@ -173,52 +173,34 @@ object Apply {
    */
   def apply(op: BasicAtom, arg: BasicAtom,
       bypass: Boolean = false): BasicAtom = {
-
-    ReplActor ! ("Eva","pushTable", "object Apply apply")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "object Apply apply: ")) 
-    ReplActor ! ("Eva", "addTo", ("rwNode", "op", "Operator: ", op)) 
-    ReplActor ! ("Eva", "addTo", ("rwNode", "arg", "Argument: ", arg)) 
-    ReplActor ! ("Eva", "setSubroot", "rwNode")    
-
     // Temporarily disable rewrite timeouts.
     val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
       BasicAtom.timeoutTime.value = -1L
-    }
-    else {
+    } else {
       BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
     }
 
     // Do not try to compute if metaterms are present.
     var retval: BasicAtom = null
     if (!op.evenMeta && !arg.isTerm) {
-      val result = SimpleApply(op, arg)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-      ReplActor ! ("Eva", "popTable", "object Apply apply")
-      retval = result
+      retval = SimpleApply(op, arg)
     } else {
       op match {
   		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
   		    // If the argument is also a string literal, then we want to simply
   		    // concatenate them.
-  		    val result = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "object Apply apply")
-          retval = result
+  		    retval = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
           
   	    case app:Applicable =>
   	      try {
   		      // The lhs is applicable; invoke its apply method.  This will
   		      // return some atom, and that atom is the overall result.
-  		      val result = app.doApply(arg, bypass)
-            ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-            ReplActor ! ("Eva", "popTable", "object Apply apply")
-            retval = result
+  		      retval = app.doApply(arg, bypass)
   	      } catch {
   	        case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
-              ReplActor ! ("Eva", "popTable", "object Apply apply")
-  		        throw new LambdaUnboundedRecursionException(
+  		        throw new LambdaUnboundedRecursionException(arg.loc,
   		            "Application results in unbounded recursion: (" +
   		            op.toParseString + ").(" + arg.toParseString + ")")
   	      }
@@ -227,21 +209,15 @@ object Apply {
   	      // The lhs is a rewriter; invoke its rewrite method.  This will return
   	      // a pair.  We need to convert the pair to a binding.
   	      val (r_atom, r_flag) = rew.doRewrite(arg)
-  	      val result = BindingsAtom(Bindings() +
+  	      retval = BindingsAtom(Bindings() +
   	          ("atom" -> r_atom) +
   	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "object Apply apply")
-          retval = result
           
   	    case _ =>
   	      // The lhs is something else.  It may be a variable or some other
   	      // expression that we have yet to evaluate.  Just build a simple
   	      // apply of the lhs and rhs.
-  	      val result = SimpleApply(op, arg)
-          ReplActor ! ("Eva", "addTo", ("rwNode", "", result))
-          ReplActor ! ("Eva", "popTable", "object Apply apply")
-          retval = result
+  	      retval = SimpleApply(op, arg)
 	    }
     }
 
@@ -282,9 +258,6 @@ case class OpApply protected[core] (override val op: OperatorRef,
   lazy val theType = op.operator.typ.rewrite(pabinds)._1
   
   override def rewrite(binds: Bindings) = {
-    ReplActor ! ("Eva", "pushTable", "OpApply rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "OpApply rewrite: "))
-	  
     // If we have no bindings, don't rewrite the operator.
     if (binds == null) {
       (this, false)
@@ -305,13 +278,9 @@ case class OpApply protected[core] (override val op: OperatorRef,
           val pair = arg.rewrite(binds)
           if (pair._2) {
             val newApply = Apply(op, pair._1)
-            ReplActor ! ("Eva", "setSubroot", "rwNode")
-            ReplActor ! ("Eva", "addTo", ("rwNode", "", newApply))
-            ReplActor ! ("Eva", "popTable", "OpApply rewrite")
             binds.rewrites(this) = (newApply, true) 
             (newApply, true) 
           } else {
-            ReplActor ! ("Eva", "popTable", "OpApply rewrite")
             binds.rewrites(this) = (this, false) 
             (this, false)
           }
@@ -363,7 +332,6 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * Get the operators in the operator arguments, plus this operator.
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
-
     // Make the result set to hold the variables.
     var r = new HashSet[BasicAtom]
 

@@ -29,6 +29,9 @@ spelling and grammar in your comments.  Do not use comments like // Fix this.
 Nobody (including you) will know what the hell that means.  Comments should be
 complete thoughts and should be useful.  On the other hand, use the defined
 markers in Eclipse (like TODO) so that the comments get pulled to the task list.
+In short, comment as though you understand English and your reader understands
+the basics of programming.  Your comments should add value, not just tell me
+what I can trivially see by looking at the code.
 
 (5) Scaladoc
 Use Scaladoc comments.  See all the other files in this repository for examples
@@ -45,7 +48,13 @@ understand it.  That will include you the next time you see it.
 Really, don't check in code with prints and printlns in it.  Just don't.  There
 are plenty of alternative ways to get output from Elision under user control
 without polluting the output of the tool.  Automated systems may consume the
-output, and this will cause them to break.  So just do not do it.
+output, and this will cause them to break.  So just do not do it.  See the
+ornl.elision.util.Debugger class for a perfectly reasonable alternative.
+
+(8) Request a Pull - Don't Commit
+Have a look here: https://github.com/elision/elision/wiki/Working
+Essentially fork the repository, make changes locally, and then issue a pull
+request when you are satisfied that all is well.  Please don't push to upstream.
 
 Follow these guidelines and we will all get along, your code can be folded into
 the trunk, and life can be good.  Break them and you'll have to clean them up

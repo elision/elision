@@ -36,8 +36,8 @@
 ======================================================================
 * */
 package ornl.elision.core
+
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.actors.ReplActor
 
 object MapPair {
   /**
@@ -89,63 +89,52 @@ with Rewriter {
       hints: Option[Any]): Outcome = subject match {
     case MapPair(oleft, oright) =>
       SequenceMatcher.tryMatch(Vector(left, right),
-                               Vector(oleft, oright), binds)
+          Vector(oleft, oright), binds)
+                               
     case _ =>
       Fail("Subject of match is not a pair.", this, subject)
   }
 	
   def rewrite(binds: Bindings): (BasicAtom, Boolean) = {
-    ReplActor ! ("Eva","pushTable", "MapPair rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair rewrite: ")) 
-    ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left))
-    ReplActor ! ("Eva", "setSubroot", "left")
     val newleft = left.rewrite(binds)
-	
-    ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right)) 
-    ReplActor ! ("Eva", "setSubroot", "right")
     val newright = right.rewrite(binds)
-	
     if (newleft._2 || newright._2) {
-  		ReplActor ! ("Eva", "setSubroot", "rwNode") 
-  		val newMP = MapPair(newleft._1, newright._2)
-  		ReplActor ! ("Eva", "addTo", ("rwNode", "", newMP)) 
-      ReplActor ! ("Eva", "popTable", "MapPair rewrite")
-      (newMP, true)
-    }
-    else {
-      ReplActor ! ("Eva", "popTable", "MapPair rewrite")
+      (MapPair(newleft._1, newright._2), true)
+    } else {
       (this, false)
     }
   }
 	
-
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+        
+      case None =>
+        val (newleft, flag1) = left.replace(map)
+        val (newright, flag2) = right.replace(map)
+        if (flag1 || flag2) {
+          (MapPair(newleft, newright), true)
+        } else {
+          (this, false)
+        }
+    }
+  }
+  
   /**
    * Apply this map pair to the given atom, yielding a potentially new atom.
    * The first match with the left-hand side is used to rewrite the right.
    */
   def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable", "MapPair doRewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapPair doRewrite: ", atom))
-		ReplActor ! ("Eva", "addTo", ("rwNode", "left", "left: ", left))
-		ReplActor ! ("Eva", "addTo", ("rwNode", "right", "right: ", right))
-		ReplActor ! ("Eva", "setSubroot", "left")
-		
 		left.tryMatch(atom, Bindings(), hint) match {
 			case file:Fail => 
-        ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
         (atom, false)
+        
 			case Match(binds) =>
-				ReplActor ! ("Eva", "setSubroot", "right") 
-				val res = right.rewrite(binds)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1))
-        ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
-				(res._1, true)
+				(right.rewrite(binds)._1, true)
+				
 			case Many(iter) =>
-				ReplActor ! ("Eva", "setSubroot", "right")
-				val res = right.rewrite(iter.next)
-				ReplActor ! ("Eva", "addTo", ("rwNode", "", "new right: ", res._1))
-        ReplActor ! ("Eva", "popTable", "MapPair doRewrite")
-				(res._1, true)
+				(right.rewrite(iter.next)._1, true)
 	  }
   }
   
