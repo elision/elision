@@ -113,6 +113,13 @@ with HasHistory {
   declareProperty("rewrite_timeout",
       "The maximum time to try rewriting an atom. In seconds.",
       BigInt(0))
+
+  // This property is used in ACMatcher.scala to decide whether to quickly (and 
+  // sometimes erroneously) terminate matching.
+  declareProperty("rewrite_aggressive_fail",
+      "Whether to aggresively fail fast while rewriting. " +
+      "If true, some rewrites may not be applied",
+      false)
       
   /** Whether to trace the parser. */
   private var _trace = false
