@@ -1,34 +1,80 @@
 digraph Elision {
-    subgraph cluster_0 {
-        node [style=filled];
-        "ornl.elision" ;
-        "cli" ;
-        label = "Application";
-        color=green
-    }
+    node [shape=rectangle]
 
+    # The Elision library subgraph.
     subgraph cluster_1 {
         node [style=filled];
+        "context";
         "core" ;
         "core.matcher" ;
+        "generators" ;
         "parse" ;
         "repl" ;
         label = "Elision";
-        color=blue
+        color=blue;
     }
 
-    "core" -> "core.matcher" ;
-    "core.matcher" -> "core" ;
+    # The Eva subgraph.
+    subgraph cluster_2 {
+        node [style=filled];
+        "actors" ;
+        "gui" ;
+        "syntax" ;
+        label = "Eva"
+        color=red;
+    }
 
+    # The application subgraph.
+    subgraph cluster_0 {
+        node [style=filled];
+        "cli" ;
+        "ornl.elision" ;
+        label = "Application";
+        color=green;
+    }
+
+    # All the sub-packages, with the root prefix omitted.
+    "actors" ;
+    "cli" ;
+    "context" ;
+    "core" ;
+    "generators" ;
+    "gui" ;
+    "parse" ;
+    "profile" ;
+    "repl" ;
+    "syntax" ;
+    "util" ;
+
+    # Package dependencies.
     "ornl.elision" -> "cli" ;
     "ornl.elision" -> "util" ;
-    "ornl.elision" -> "core" [color=red style=dashed label="REMOVE"] ;
     "cli" -> "util" ;
-    "core" -> "repl" [color=red style=dashed label="REMOVE"] ;
+    "context" -> "core" ;
+    "context" -> "generators" ;
+    "context" -> "util" ;
+    "core" -> "context" [color=red] ;
+    "core" -> "core.matcher" [color=red] ;
+    "core" -> "generators" [color=red] ;
     "core" -> "util" ;
+    "core.matcher" -> "core" ;
+    "core.matcher" -> "util" ;
+    "generators" -> "core" ;
+    "gui" -> "actors" ;
+    "gui" -> "cli" ;
+    "gui" -> "core" ;
+    "gui" -> "syntax" ;
+    "gui" -> "util" ;
+    "parse" -> "actors" ;
+    "parse" -> "context" ;
     "parse" -> "core" ;
-    "parse" -> "repl" [color=red style=dashed label="REMOVE"] ;
     "parse" -> "util" ;
+    "repl" -> "actors" ;
+    "repl" -> "context" ;
+    "repl" -> "cli" ;
     "repl" -> "core" ;
+    "repl" -> "gui" ;
     "repl" -> "parse" ;
+    "repl" -> "syntax" ;
+    "syntax" -> "gui" ;
 }

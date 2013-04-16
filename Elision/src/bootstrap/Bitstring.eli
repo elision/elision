@@ -1,0 +1,236 @@
+/*======================================================================
+ *       _ _     _
+ *   ___| (_)___(_) ___  _ __
+ *  / _ \ | / __| |/ _ \| '_ \
+ * |  __/ | \__ \ | (_) | | | |
+ *  \___|_|_|___/_|\___/|_| |_|
+ * The Elision Term Rewriter
+ * 
+ * Copyright (c) 2012 by UT-Battelle, LLC.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * Collection of administrative costs for redistribution of the source code or
+ * binary form is allowed. However, collection of a royalty or other fee in excess
+ * of good faith amount for cost recovery for such redistribution is prohibited.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER, THE DOE, OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+======================================================================*/
+
+println("Reading Bitstring...")
+
+//======================================================================
+// Constructors.
+//======================================================================
+
+// Define the bits constructor.
+decl.{! bits($bits: INTEGER, $len: INTEGER): BITSTRING
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,base), il: IntegerLiteral) =>
+        // Length must be an int.
+        if (! il.value.isValidInt) {
+          throw new ArgumentListException(il.loc, "Bit length is too large.  "+
+            "Must be less than or equal to "+Int.MaxValue+".")
+        }
+        // Get the length as an integer.
+        val len = il.value.intValue
+        /*
+         * This code checks to make sure the base value will fit in the
+         * bit string.  It is commented out, since the library is still
+         * under construction, and we may want to re-enable this checking.
+         *
+         * // Figure out the minimum number of bits required to hold the base.
+         * // Negative numbers require one additional bit based on how Scala
+         * // computes this.
+         * val _bbl = (if (base < 0) base.bitLength+1 else base.bitLength)
+         * if (_bbl > len) {
+         *   // There are not enough bits to hold this value.
+         *   throw new ArgumentListException(il.loc, "Bit value does not fit "+
+         *     "within "+len+" bits.")
+         * }
+         */
+        new BitStringLiteral(base, len)
+      case _ =>
+        as_is
+    }
+  """
+  #description="Make a bit string from an integer with the specified length."
+  #detail="Yield the bit string having length $len and value (signed or ".
+    "unsigned) $base.  An error is generated if $base does not fit in ".
+    "$len bits."
+}
+
+decl.{! bit_from_binary_string($s: STRING): BITSTRING
+  #handler="""
+    args match {
+      case Args(sl: StringLiteral) =>
+        if (sl.value == "") {
+          new BitStringLiteral(0,0)
+        } else {
+          try {
+            if (sl.value.startsWith("-")) {
+              throw new NumberFormatException(
+                "For input string: \"%s\"" format sl.value)
+            }
+            val value = BigInt(sl.value, 2)
+            new BitStringLiteral(value, sl.value.length)
+          } catch {
+            case nfe: NumberFormatException =>
+              throw new ArgumentListException(sl.loc,
+                "The string must contain only zeros and ones.")
+          }
+        }
+      case _ => as_is
+    }
+  """
+  #description="Convert a binary string to a bit string."
+  #detail="Yield the bit string corresponding to the string $s of 0's and ".
+    "1's.  An error is generated if the string contains anything other than ".
+    "0's and 1's."
+}
+
+//======================================================================
+// Operations.
+//======================================================================
+
+// Query Operations
+
+decl.{! bit_length($x: BITSTRING): INTEGER
+  #handler="""
+    args match {
+      case Args(BitStringLiteral(_, _, len)) => len
+      case _ => as_is
+    }
+  """
+  #description="Get the length of the bit string argument."
+  #detail="Get the length of the bit string argument $x."
+}
+
+decl.{! bit_as_binary_string($x: BITSTRING): STRING
+  #handler="""
+    args match {
+      case Args(BitStringLiteral(_, bits, len)) =>
+        if (len == 0) {
+          ""
+        } else {
+          val suffix = bits.toString(2)
+          val rest = len - suffix.length
+          ("0"*rest)+suffix
+        }
+      case _ => as_is
+    }
+  """
+  #description="Return the bit string as a sequence of zeros and ones."
+  #detail="Return the bit string as a sequence of zeros and ones."
+}
+
+decl.{! unsigned_value($x: BITSTRING): INTEGER
+  #handler="""
+    args match {
+      case Args(bsl: BitStringLiteral) => bsl.unsigned
+      case _ => as_is
+    }
+  """
+  #description="Value of a bit string interpreted as an unsigned integer."
+  #detail="Get the value of the bit string interpreted as an unsigned integer."
+}
+
+decl.{! signed_value($x: BITSTRING): INTEGER
+  #handler="""
+    args match {
+      case Args(bsl: BitStringLiteral) => bsl.signed
+      case _ => as_is
+    }
+  """
+  #description="Value of a bit string interpreted as an signed integer."
+  #detail="Get the value of the bit string interpreted as an signed integer."
+}
+
+decl.{! bit_is_zero($x: BITSTRING): BOOLEAN
+  #handler="""
+    args match {
+      case Args(BitStringLiteral(_, bits, _)) => bits == 0
+      case _ => as_is
+    }
+  """
+  #description="Determine if a bit string is zero."
+  #detail="Determine if a bit string is zero."
+}
+
+decl.{! bit_is_negative_signed($x: BITSTRING): BOOLEAN
+  #handler="""
+    args match {
+      case Args(bsl: BitStringLiteral) => bsl.signed < 0
+      case _ => as_is
+    }
+  """
+  #description="Determine if the bit string is negative when signed."
+  #detail="Yield true iff the bit string $x is non-empty and the most ".
+    "significant bit of $x is one."
+}
+
+//======================================================================
+// Manipulation.
+//======================================================================
+
+decl.{operator #name=bit_concat #type=BISTRING #cases
+  %($x{is_constant($$x)}: BITSTRING, $y{is_constant($$y)}: BITSTRING) ->
+    bit_from_binary_string(bit_as_binary_string($x) . bit_as_binary_string($y)),
+  %($x: BITSTRING, $y: BITSTRING) -> _
+  #description="Concatenate two bit strings."
+  #detail="Concatenate the bit strings $x and $y.  The most significant bit ".
+    "of the result will be the most significant bit of $x, and the least ".
+    "significant bit of the result will be the least significant bit of $y."
+}
+
+decl.{operator #name=bit_as_signed_pair #type=LIST(INTEGER) #cases
+  %($x{is_constant($$x)}: BITSTRING) -> %(signed_value($$x), bit_length($$x)),
+  %($x: BITSTRING) -> _
+  #description="Convert a bit string into a pair."
+  #detail="Convert the bit string $x into a pair %($b,$l), where $b is the ".
+    "bits of $x as a signed integer, and $l is the length of $x."
+}
+
+decl.{operator #name=bit_as_unsigned_pair #type=LIST(INTEGER) #cases
+  %($x{is_constant($$x)}: BITSTRING) -> %(unsigned_value($$x), bit_length($$x)),
+  %($x: BITSTRING) -> _
+  #description="Convert a bit string into a pair."
+  #detail="Convert the bit string $x into a pair %($b,$l), where $b is the ".
+    "bits of $x as an unsigned integer, and $l is the length of $x."
+}
+
+//======================================================================
+// Tests.
+//======================================================================
+
+decl.{! is_length($x: BITSTRING, $len: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(BitStringLiteral(_, _, len1), IntegerLiteral(_, len2)) =>
+        len1 == len2
+      case _ => as_is
+    }
+  """
+  #description="Determine if a bit string has a specified length."
+  #detail="Yield true iff the bit string $x has length $len, and yield ".
+    "false otherwise."
+}

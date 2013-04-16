@@ -229,6 +229,24 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
+decl.{! is_constant($x): BOOLEAN
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isConstant) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is a constant."
+  #detail=
+  "If the atom $x is a constant, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "zealous evaluation."
+}
+
 decl.{! is_bindable($x): BOOLEAN
   #handler=
   """
@@ -256,7 +274,12 @@ decl.{! _help_op($r)
   """
     def givehelp(name: String) = {
       // Give some help.
-      val width = if(ornl.elision.actors.ReplActor.guiMode) ornl.elision.actors.ReplActor.guiColumns else scala.tools.jline.TerminalFactory.create().getWidth()
+      val width = if(ornl.elision.actors.ReplActor.guiActor != null)
+        {
+          ornl.elision.actors.ReplActor.guiColumns
+        } else {
+          scala.tools.jline.TerminalFactory.create().getWidth()
+        }
       val op = context.operatorLibrary(name)
       sendln(context.operatorLibrary.help(
         new StringBuffer(), op, width).toString)
@@ -283,7 +306,11 @@ decl.{! _help_all()
     args match {
       case Args() =>
         // Give some help.
-        val width = if(ornl.elision.actors.ReplActor.guiMode) ornl.elision.actors.ReplActor.guiColumns else scala.tools.jline.TerminalFactory.create().getWidth()
+        val width = if(ornl.elision.actors.ReplActor.guiActor != null) {
+          ornl.elision.actors.ReplActor.guiColumns 
+        } else { 
+          scala.tools.jline.TerminalFactory.create().getWidth()
+        }
         val buf = new StringBuffer()
         buf.append("Elision Help\n\n")
         context.operatorLibrary.help(buf, width)
@@ -307,10 +334,12 @@ decl.{! apropos($str:STRING)
     args match {
       case Args(StringLiteral(_, apropos)) =>
         // Give some help.
-        val width = if (ornl.elision.actors.ReplActor.guiMode)
+        val width = if (ornl.elision.actors.ReplActor.guiActor != null) {
           ornl.elision.actors.ReplActor.guiColumns
-        else
+        }
+        else {
           scala.tools.jline.TerminalFactory.create().getWidth()
+        }
         val buf = new StringBuffer()
         buf.append("Elision Help\n\n")
         context.operatorLibrary.help(buf, width, apropos)
@@ -470,65 +499,6 @@ decl.{! traceparse()
   "tracing."
 }
 
-decl.{! toggleparser()
-  #handler=
-  """
-    exec match {
-      case tp: ornl.elision.parse.ToggleableParser =>
-        // Toggle parser.
-        tp.toggle = !tp.toggle
-        emitln("Using " + (if (tp.toggle) "packrat" else "parboiled") +" parser.")
-      case _ =>
-    }
-    _no_show
-  """
-  #description="Toggle which parser is used"
-  #detail=
-  "Toggle which parser is used, parboiled or packrat.". 
-  "Parboiled is used by default."
-
-}
-
-decl.{! tracematch()
-  #handler=
-  """
-    args match {
-      case Args() =>
-        // Toggle tracing.
-        BasicAtom.traceMatching = !BasicAtom.traceMatching
-        emitln("Match tracing is " +
-            (if (BasicAtom.traceMatching) "ON." else "OFF."))
-        _no_show
-      case _ => _no_show
-    }
-  """
-  #description="Toggle tracing of matching attempts."
-  #detail=
-  "Enable or disable tracing of match attempts.  This generates output from ".
-  "the matcher as it attempts to match atoms.  The matcher is called for a ".
-  "variety of reasons, so you may see some unexpected output here."
-}
-
-decl.{! tracerules()
-  #handler=
-  """
-    args match {
-      case Args() =>
-        // Toggle tracing.
-        BasicAtom.traceRules = !BasicAtom.traceRules
-        emitln("Rule application tracing is " +
-            (if (BasicAtom.traceRules) "ON." else "OFF."))
-        _no_show
-      case _ => _no_show
-    }
-  """
-  #description="Toggle tracing of rule applications"
-  #detail=
-  "Enable or disable tracing of rule applications. Information about ".
-  "each rule applied during rewriting and the result of each rewrite ".
-  "is printed."
-}
-
 decl.{! printtypes()
   #handler=
   """
@@ -561,6 +531,25 @@ decl.{! timing($f:BOOLEAN)
   #detail=
   "Toggle showing the total elapsed \"wall clock\" time to evaluate an atom. ".
   "The result shows minutes, seconds, and milliseconds."
+}
+
+decl.{! nanotime()
+  #handler="""Literal(System.nanoTime)"""
+  #description="Get current system time as an integer."
+  #detail="Get current system time as an integer."
+}
+
+decl.{! heap()
+  #handler="""
+    val rt = Runtime.getRuntime
+    emitln("Max Memory:   "+rt.maxMemory)
+    emitln("Total Memory: "+rt.totalMemory)
+    emitln("Free Memory:  "+rt.freeMemory)
+    Literal(rt.maxMemory - rt.totalMemory + rt.freeMemory)
+  """
+  #description="Get the current heap status."
+  #detail="Show max, current total, and current free memory.  The ".
+    "maximum available free memory is the value of this operator."
 }
 
 //======================================================================
@@ -614,6 +603,17 @@ decl.{! history()
   "between sessions, if possible."
 }
 
+decl.{! syntax_coloring($f)
+  #handler="""
+    exec.setProperty[Boolean]("syntaxcolor",
+      !exec.getProperty[Boolean]("syntaxcolor"))
+    _no_show
+  """
+  #description="Specify whether to use syntax coloring."
+  #detail="Enable (true) or disable (false) syntax coloring for displayed ".
+    "result atoms."
+}
+
 //======================================================================
 // Atom information.
 //======================================================================
@@ -644,15 +644,43 @@ decl.{! showtypes($a)
   "is also printed."
 }
 
+decl.{! _traverse($atom, $kind: SYMBOL)
+  #handler="""
+    args match {
+      case Args(atom, kind: SymbolLiteral) =>
+        context.traverse(System.out, atom, context.Known(), kind.value)
+      case _ =>
+        error("Second argument must be a symbol literal.")
+    }
+    _no_show
+  """
+  #detail="Emit an operator and all necessary supporting operators to ".
+    "fully re-create it.  The operators are emitted in the order they must ".
+    "be declared."
+  #description="Fully write an operator's definition."
+  #evenmeta=true
+}
+
+decl.{operator #name=traverse #cases
+  %($atom, $kind: SYMBOL) -> defer(_traverse:OPREF, %($$atom, $$kind)),
+  %($atom) -> defer(_traverse:OPREF, %($$atom, elision))
+  #detail="Emit an operator and all necessary supporting operators to ".
+    "fully re-create it.  The operators are emitted in the order they must ".
+    "be declared."
+  #description="Fully write an operator's definition."
+  #evenmeta=true
+}
+
 //======================================================================
 // Error reporting.
 //======================================================================
 
-decl.{! error($msg: STRING)
+decl.{! err($msg: STRING)
   #handler="""
+    import ornl.elision.util.Loc
     args match {
       case Args(StringLiteral(_,msg)) =>
-        throw new ornl.elision.util.ElisionException(msg)
+        throw new ornl.elision.util.ElisionException(Loc.internal,msg)
       case _ =>
     }
     _no_show
@@ -661,16 +689,7 @@ decl.{! error($msg: STRING)
   #detail="Report an error message $msg and terminate current processing."
 }
 
-decl.{! fail()
-  #handler=
-  """throw new VerifyError("core dump requested by user")"""
-  #description="Generate a runtime exception."
-  #detail=
-  "Generate a runtime exception (a VerifyError).  This causes a core dump and ".
-  "may be useful if you are trying to debug the system."
-}
-
-{! _declprop($name: STRING, $default, $description: STRING)
+decl.{! _declprop($name: STRING, $default, $description: STRING)
    #description="Declare a property."
    #detail="Declare a property.  The property name is $name, and the ".
            "$description is a human-readable description of the property's ".
@@ -692,21 +711,3 @@ decl.{! fail()
        case _ => as_is
      }"""
 }
-
-decl.{! crashinc()
-  #handler=
-  """
-    exec match {
-      case p: ornl.elision.parse.Processor =>
-        p.crashRoot = !p.crashRoot
-        emitln("Crash at root is " + (if (p.crashRoot) "ON." else "OFF."))
-      case _ =>
-    }
-    _no_show
-  """
-  #description="Toggle whether to crash at the root upon error."
-  #detail=
-  "Enable or disable crashing execution at the root level when an error ".
-  "is encountered. This is ON by default. "
-}
-

@@ -40,9 +40,11 @@ package ornl.elision
  * This package provides support for command-line interfaces in Elision.
  * 
  * For parsing of command line arguments and switches, see
- * [[ornl.elision.cli.Switches]].
+ * [[ornl.elision.cli.CLI]].  For specification of switches see
+ * [[ornl.elision.cli.AbstractSwitch]] and its sub-classes.  For
+ * specification of settings, see [[ornl.elision.cli.Setting]].
  * 
- * This package uses [[ornl.elision.util]], but should not use any other
+ * This package uses [[ornl.elision.util]], but does not use any other
  * package.  Other packages may use it, except for `ornl.elision.util`.
  */
 package object cli

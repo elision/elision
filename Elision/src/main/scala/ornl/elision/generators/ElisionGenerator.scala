@@ -29,7 +29,44 @@
  */
 package ornl.elision.generators
 
-import ornl.elision.core._
+import ornl.elision.core.ANY
+import ornl.elision.core.AlgProp
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BINDING
+import ornl.elision.core.BITSTRING
+import ornl.elision.core.BOOLEAN
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.BindingsAtom
+import ornl.elision.core.BitStringLiteral
+import ornl.elision.core.BooleanLiteral
+import ornl.elision.core.FLOAT
+import ornl.elision.core.FloatLiteral
+import ornl.elision.core.Generator
+import ornl.elision.core.INTEGER
+import ornl.elision.core.IntegerLiteral
+import ornl.elision.core.Lambda
+import ornl.elision.core.Literal
+import ornl.elision.core.MapPair
+import ornl.elision.core.NONE
+import ornl.elision.core.NamedRootType
+import ornl.elision.core.OPREF
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.RSREF
+import ornl.elision.core.RULETYPE
+import ornl.elision.core.RulesetRef
+import ornl.elision.core.STRATEGY
+import ornl.elision.core.STRING
+import ornl.elision.core.SYMBOL
+import ornl.elision.core.SpecialForm
+import ornl.elision.core.StringLiteral
+import ornl.elision.core.SymbolLiteral
+import ornl.elision.core.TypeUniverse
+import ornl.elision.core.Variable
+import ornl.elision.core.knownExecutor
+import ornl.elision.core.toEString
+import ornl.elision.core.toESymbol
+import ornl.elision.core.unwrapBindingsAtom
 
 /**
  * Generate the Elision code to create an atom.
@@ -107,6 +144,14 @@ object ElisionGenerator extends Generator {
         } else {
           buf
         }
+      case bsl: BitStringLiteral =>
+        buf.append((if (bsl.neghint) bsl.signed else bsl.unsigned).toString).
+          append("L").append(bsl.len.toString)
+        if (bsl.typ != BITSTRING || BasicAtom.printTypeInfo) {
+          apply(bsl.typ, buf.append(":"), limit)
+        } else {
+          buf
+        }
     }
   }
   
@@ -160,12 +205,24 @@ object ElisionGenerator extends Generator {
    * @return        The result.
    */
   private def _gen(atom: SpecialForm, buf: Appendable, limit: Int): Appendable = {
-    apply(atom.tag, buf.append("{:"), limit-1).append(" ")
-    apply(atom.content, buf, limit-1).append(":}")
+    if (atom.tag.isInstanceOf[SymbolLiteral] && atom.content.isInstanceOf[BindingsAtom]) {
+      // Use the expanded form for this special form.
+      val kind = atom.tag.asInstanceOf[SymbolLiteral].value.name
+      buf.append("{").append(toESymbol(kind))
+      for (pair <- atom.content.asInstanceOf[BindingsAtom]) {
+        buf.append(" #").append(toESymbol(pair._1))
+        apply(pair._2, buf.append("="), limit-1)
+      } // Write all bindings.
+      buf.append("}")
+    } else {
+      // Use the pair form.
+      apply(atom.tag, buf.append("{:"), limit-1).append(" ")
+      apply(atom.content, buf, limit-1).append(":}")
+    }
   }
   
   /**
-   * Generate the Scala code required to create a literal.  Certain well-known
+   * Generate the Scala code required to create an atom.  Certain well-known
    * root types are handled directly and simply.
    * 
    * @param atom    The atom.
@@ -192,37 +249,22 @@ object ElisionGenerator extends Generator {
       case sf: SpecialForm => _gen(sf, buf, limit)
       
       // Process specialized operators.
-      case OperatorRef(operator) =>
-        buf.append(toESymbol(operator.name)).append(":OPREF")
-        
-      // Process all atoms.
-      case OpApply(op, args, _) =>
-        buf.append(toESymbol(op.name))
-        buf.append("(")
-        // If the limit will be exceeded by the argument list, don't print
-        // several elipses separated by commas, but just one for the list.
-        if (limit == 1) {
-          buf.append("...")
+      case or: OperatorRef =>
+        // If this is a known operator, then we can leave it as an operator
+        // reference.  If it is not (or is no longer) then we have to emit
+        // the entire operator.
+        val kop = knownExecutor.context.operatorLibrary.get(or.name)
+        if (kop.isDefined && kop.get == or) {
+          // This is a well-known operator.  We can simply use the name.
+          buf.append(toESymbol(or.name)).append(":OPREF")
         } else {
-
-          // Sort the atom sequence if it is commutative.
-          var printAtoms = args.atoms
-          if (args.props.isC(false)) {
-            printAtoms = 
-              args.atoms.sortWith( (x : BasicAtom, y : BasicAtom) =>
-                ((x.otherHashCode != y.otherHashCode) && 
-                 (x.otherHashCode < y.otherHashCode)) ||
-                ((x.otherHashCode == y.otherHashCode) && 
-                 (x.hashCode < y.hashCode)))
-          }
-          var index = 0
-          while (index < printAtoms.size) {
-            if (index > 0) buf.append(",")
-            apply(printAtoms(index), buf, limit-1)
-            index += 1
-          } // Add all atoms.
+          // This is not a well-known operator.  We must write out the
+          // definition in full.
+          apply(or.operator, buf, limit-1)
         }
-        buf.append(")")
+        
+      case Apply(or: OperatorRef, rhs) =>
+        _opapp(or, rhs, buf, limit)
         
       case Apply(lhs, rhs) =>
         buf.append("(")
@@ -242,16 +284,10 @@ object ElisionGenerator extends Generator {
         if (limit == 1) {
           buf.append("...")
         } else {
-
-          // Sort the atom sequence if it is commutative.
-          var printAtoms = atoms
-          if (props.isC(false)) {
-            printAtoms = atoms.sortWith(_.otherHashCode < _.otherHashCode)
-          }
           var index = 0
-          while (index < printAtoms.size) {
+          while (index < atoms.size) {
             if (index > 0) buf.append(",")
-            apply(printAtoms(index), buf, limit-1)
+            apply(atoms(index), buf, limit-1)
             index += 1
           } // Add all atoms.
         }
@@ -290,7 +326,9 @@ object ElisionGenerator extends Generator {
         buf.append(toESymbol(name)).append(":RSREF")
         
       case vari: Variable =>
-        buf.append(vari.prefix).append(toESymbol(vari.name))
+        buf.append(vari.prefix)
+        buf.append(if (vari.byName) toEString(vari.name)
+            else toESymbol(vari.name))
         if (vari.guard != Literal.TRUE) {
           apply(vari.guard, buf.append("{"), limit-1).append("}")
         }
@@ -303,5 +341,56 @@ object ElisionGenerator extends Generator {
         }
     }
     buf
+  }
+  
+  /**
+   * Explicitly handle an operator being applied to something else.  This
+   * watches for cases where the operator is known.
+   * 
+   * @param op      The operator reference.
+   * @param rhs     The argument.
+   * @param buf     Buffer to get output.
+   * @param limit   The current depth limit.
+   */
+  private def _opapp(op: OperatorRef, rhs: BasicAtom, buf: Appendable,
+      limit: Int): Appendable = {
+    val kop = knownExecutor.context.operatorLibrary.get(op.name)
+    if (kop.isDefined && kop.get == op) {
+      // This is a known operator.  We don't have to do anything other
+      // than mention its name.  Next we need to decide if the argument
+      // list is an atom sequence or not.  If it is, then we can write
+      // it out in a simple form.
+      rhs match {
+        case as: AtomSeq =>
+          // We can write this as a simple symbol applied to an argument
+          // list.  Do that now.
+          buf.append(toESymbol(op.name))
+          buf.append("(")
+          // If the limit will be exceeded by the argument list, don't print
+          // several elipses separated by commas, but just one for the list.
+          if (limit == 1) {
+            buf.append("...")
+          } else {
+            var index = 0
+            while (index < as.atoms.size) {
+              if (index > 0) buf.append(",")
+              apply(as.atoms(index), buf, limit-1)
+              index += 1
+            } // Add all atoms.
+          }
+          return buf.append(")")
+          
+        case _ =>
+          // The operator is known, but the argument list is not a
+          // sequence.  Write out the argument as an operator reference
+          // and then use the applicative dot.
+          buf.append("(").append(toESymbol(op.name)).append(": OPREF.")
+          return apply(rhs, buf, limit-1).append(")")
+      }
+    } else {
+      // The operator is not known.  It must be written out in long form.
+      apply(op.operator, buf.append("("), limit-1)
+      return apply(rhs, buf.append("."), limit-1).append(")")
+    }
   }
 }

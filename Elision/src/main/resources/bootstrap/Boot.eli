@@ -68,49 +68,24 @@
 
 // Declare the decl operator that allows us to use the notation decl.thing.
 _decl({operator
-#name=decl
-#evenmeta=true
-#description="Declare a rule or operator in the current context."
-#detail=
-"Given a rewrite rule, add the rewrite rule to the rule library in the ".
-"current context.  Given an operator, add the operator to the operator ".
-"library in the current context."
-#cases
-  %($item) -> _decl($$item),
-  $item -> _decl($$item)
-})
-
-// Preserve the old def operator, in case someone is still using it.
-decl.{! def($op)
-#handler=
-"""
-  console.warn("The def operator is deprecated.  Please use decl instead.")
-  args match {
-    case Args(op: Operator) =>
-      // Add the operator to the library.
-      context.operatorLibrary.add(op)
-      console.emitln("Defined operator " + toESymbol(op.name) + ".")
-      ApplyData._no_show
-    case Args(op) =>
-      console.error("Atom is not a named operator: " + op.toParseString)
-      ApplyData._no_show
-    case _ =>
-      ApplyData._no_show
-  }
-"""
-#evenmeta=true
-#description="Add the named operator to the context."
-#detail=
-"This will add the operator op to the current context.  This makes ".
-"the operator available by name, or through an OPREF."
-}
+    #name=decl
+    #evenmeta=true
+    #description="Declare a rule or operator in the current context."
+    #detail=
+    "Given a rewrite rule, add the rewrite rule to the rule library in the ".
+    "current context.  Given an operator, add the operator to the operator ".
+    "library in the current context."
+    #cases
+      %($item) -> _decl($$item),
+      $item -> _decl($$item)
+    }
+)
 
 // The next operator we need is inc so we can read the rest of the
 // bootstrap definitions.  Define inc next.  It expects to get access
-// to a set of known, already read files, and we use the executors cache
+// to a set of known, already read files, and we use the executor's cache
 // for this.
-decl.
-{! inc($fn: STRING)
+decl.{! inc($fn: STRING)
 #handler=
 """
   // We use a mutable set in the executor cache to store the names of all
@@ -120,7 +95,7 @@ decl.
   
   // Go and get the included files from the cache.
   val included = 
-    exec.fetchAs[Set[String]]("read_once.included", Set[String]())
+    context.fetchAs[Set[String]]("read_once.included", Set[String]())
   args match {
     case Args(StringLiteral(_, filename)) =>
       exec match {
@@ -148,8 +123,7 @@ decl.
 }
 
 // Do all your base belong to us?
-decl.
-{! _bomb()
+decl.{! _bomb()
 #handler=
 """
   console.sendln("Somebody set up us the bomb!")
@@ -162,8 +136,7 @@ decl.
 }
 
 // Create an operator that emits the atom as a side effect.
-decl.
-{! print($a: STRING)
+decl.{! print($a: STRING)
 #handler=
 """
   args match {
@@ -177,8 +150,7 @@ decl.
 "Print the provided string literal to the console."
 }
 
-decl.
-{! println($a: STRING)
+decl.{! println($a: STRING)
 #handler=
 """
   args match {

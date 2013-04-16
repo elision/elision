@@ -36,9 +36,21 @@
 ======================================================================
 * */
 package ornl.elision.core.matcher
-import ornl.elision.core._
-import ornl.elision.util.OmitSeq
-import ornl.elision.util.Debugger._
+
+import scala.annotation.tailrec
+
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fail
+import ornl.elision.core.Many
+import ornl.elision.core.Match
+import ornl.elision.core.MatchIterator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.Outcome
+import ornl.elision.util.Debugger
+import ornl.elision.util.OmitSeq.fromIndexedSeq
 
 /**
  * Match two sequences, where the elements of the second sequence can be
@@ -199,7 +211,7 @@ object AMatcher {
      */
     @scala.annotation.tailrec
     final protected def findNext {
-      if (BasicAtom.traceMatching) print("A Searching... ")
+      Debugger("matching", "A Searching... ")
 
       // Has rewriting timed out?
       if (BasicAtom.rewriteTimedOut) {
@@ -216,13 +228,13 @@ object AMatcher {
           SequenceMatcher.tryMatch(patterns.atoms, _groups.next, binds) match {
             case fail:Fail =>
               // We ignore this case.  We only fail if we exhaust all attempts.
-              if (BasicAtom.traceMatching) println(fail)
+              Debugger("matching", fail.toString)
               findNext
             case Match(binds1) =>
               // This case we care about.  Save the bindings as the current match.
               _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
-                                               binds1.subjects.getOrElse(subjects))
-              if (BasicAtom.traceMatching) println("A Found.")
+                  binds1.subjects.getOrElse(subjects))
+              Debugger("matching", "A Found.")
             case Many(iter) =>
               // We've potentially found many matches.  We save this as a local
               // iterator and then use it in the future.
@@ -233,7 +245,7 @@ object AMatcher {
           // We have exhausted the permutations.  We have exhausted this
           // iterator.
           _exhausted = true
-          if (BasicAtom.traceMatching) println("A Exhausted.")
+          Debugger("matching", "A Exhausted.")
         }
       }
     } // findNext method

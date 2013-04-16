@@ -40,6 +40,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.matching._
 
 import ornl.elision.gui._
+import ornl.elision.syntax
 
 
 /** Provides regexes and some other useful data for performing Elision syntax highlighting in Eva. */
@@ -73,7 +74,7 @@ object EliRegexes extends syntax.SyntaxRegexes {
     
   val boolConstants = new Regex("""(true|false|Nothing)""",
     "all")
-  val keywords = new Regex("""(operator|is|case|->|@|=)""",
+  val keywords = new Regex("""(operator|is|cases|case|->|@|=)""",
     "all")
   val algProps = new Regex("""(associative|commutative|idempotent|identity|absorber|not)""",
     "all")

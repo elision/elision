@@ -135,9 +135,7 @@ object Version {
   type CEntry = (HasMain, String, Boolean)
     
   /** The commands.  Map each command to its class and a description. */
-  private var _commands: Map[String,CEntry] =
-    Map("repl" -> ((ornl.elision.repl.ReplMain.getClass.asInstanceOf[HasMain],
-        "Start the REPL.", false)))
+  private var _commands: Map[String,CEntry] = Map()
         
   /** A type for an entry in the options catalog. */
   type OEntry = (Class[_], String, String)
@@ -150,7 +148,7 @@ object Version {
    * 
    * @param msg A human-readable message.
    */
-  class MainException(msg: String) extends ElisionException(msg)
+  class MainException(msg: String) extends ElisionException(Loc.internal, msg)
   
   /**
    * Get a main class based on the command, or an unambiguous prefix.  The
@@ -194,11 +192,15 @@ object Version {
    * @param args    The command line arguments.
    */
   def invoke(command: String, args: Array[String]) {
+    require(args != null && command != null)
     // Get the actual command.
     val (clazz, _, gui) = get(command)
-    Debugger.debug("Command: " + command, "invoke")
-    Debugger.debug("Class:   " + clazz.toString(), "invoke")
-    Debugger.debug("GUI:     " + gui, "invoke")
+    Debugger("invoke") {
+      Debugger.debugln("invoke", "Command:  " + command)
+      Debugger.debugln("invoke", "Class:    " + clazz.toString())
+      Debugger.debugln("invoke", "GUI:      " + gui)
+      Debugger.debugln("invoke", "Arguments:" + args.mkString(","))
+    }
     // Invoke the main method.
     clazz.getMethod("main",classOf[Array[String]]).invoke(null, args)
     // If not a gui, exit.
