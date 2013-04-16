@@ -27,7 +27,7 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.parse
+package ornl.elision.test.parse
 
 import org.scalatest.junit.AssertionsForJUnit
 import scala.collection.mutable.ListBuffer
