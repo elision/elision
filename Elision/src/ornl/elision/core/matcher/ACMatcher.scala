@@ -164,7 +164,8 @@ object ACMatcher {
     // with the iterator for "everything else."
     var um = new UnbindableMatcher(patterns, subjects, binds)
     
-    // This is not so simple.  We need to perform the match.
+    // This is not so simple.  We need to perform the match.  Build the
+    // iterator.
     val iter = um ~ (bindings => {
       // Have we timed out since the unbindable match iterator was
       // created?
@@ -186,7 +187,6 @@ object ACMatcher {
         // Are we trying to aggresively fail ACMatching at the risk of not matching something
         // that could match?
         if (knownExecutor.getProperty("rewrite_aggressive_fail")) {
-
           // If there is exactly one pattern then match it immediately. Note that there could
           // be other matches left in the unbindable matcher, which we are now skipping.
           if (pats.atoms.length == 1) {
@@ -241,13 +241,10 @@ object ACMatcher {
             // something?
             patItem match {
               case patVar : Variable => {
-                
                 // The pattern item is a variable. This is what we
                 // expect.
                 newBinds.get(patVar.name) match {
-                  
                   case None => {
-                    
                     // Nothing is bound to this pattern variable, so we have
                     // nothing to check. Since nothing is bound to this
                     // pattern variable it must remain in the pattern
@@ -256,13 +253,11 @@ object ACMatcher {
                   }
                   
                   case Some(atom) => {
-                    
                     // The pattern variable is already bound to
                     // something. That something MUST appear in the subject
                     // list.
                     var gotIt = false
                     for (subVal <- subs) {
-                      
                       // Have we found the bound value?
                       if (!gotIt) {
                         if (subVal == atom) {
@@ -287,7 +282,6 @@ object ACMatcher {
                     // Did we find something in the subject list equal to
                     // the already bound pattern variable?
                     if (!gotIt) {
-                      
                       // No, we did not. There is no way this can match.
                       failFast = true
                     }
@@ -304,19 +298,17 @@ object ACMatcher {
                 newPats = newPats :+ patItem
               }
             }
-          }
+          } // Loop over patterns.
           
           // If we get here all of the previously bound pattern
           // variables that still appear in the pattern have at least 1
           // thing they match in the subject. Do the actual matching.
           if (!failFast) {
-            
             // We might have already discarded some patterns/subjects
             // based on the bindings from the unbindable matcher. Make
             // new pattern/subject sequences here.
             var newSubs = scala.collection.immutable.Vector.empty[BasicAtom]
             for (sub <- subs) {
-              
               // Are we discarding this substitution (it has already
               // been matched)?
               if (!discardSubs.contains(sub)) {
@@ -324,13 +316,12 @@ object ACMatcher {
                 // The subject is not being discarded. Keep it.
                 newSubs = newSubs :+ sub
               }
-            }
+            } // Loop over subjects.
+            
             val pats1 = AtomSeq(plist.props, newPats)
             val subs1 = AtomSeq(slist.props, newSubs)
-            val tmp_match = new ACMatchIterator(pats1, subs1, newBinds, op)
-            tmp_match
+            new ACMatchIterator(pats1, subs1, newBinds, op)
           } else {
-            
             // This set of bindings can never match. Return an empty iterator.
             new MatchIterator {
               _current = null
@@ -343,7 +334,7 @@ object ACMatcher {
           }
         }
       }
-    })
+    }) // Building the iterator iter.
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
