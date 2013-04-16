@@ -78,11 +78,6 @@ object Main extends App {
   // Define the special global switches that can come before the command.
   private val _globals = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
-      Switch(Some("noboot"), Some('N'), "Suppress bootstrapping.",
-          () => {
-            ProcessorControl.bootstrap = false
-            None
-          }),
       ArgSwitch(Some("debug"), Some('d'), "Enable a debugging tag.", "TAG",
           (tag: String) => {
             Debugger.enableDebugModes(tag, Debugger.Mode.ON)
