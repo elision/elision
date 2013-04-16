@@ -185,7 +185,7 @@ object ACMatcher {
 
         // Are we trying to aggresively fail ACMatching at the risk of not matching something
         // that could match?
-        if (knownExecutor.getProperty[Boolean]("rewrite_aggressive_fail").asInstanceOf[Boolean]) {
+        if (knownExecutor.getProperty("rewrite_aggressive_fail")) {
 
           // If there is exactly one pattern then match it immediately. Note that there could
           // be other matches left in the unbindable matcher, which we are now skipping.
