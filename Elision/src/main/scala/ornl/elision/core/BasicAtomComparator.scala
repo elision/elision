@@ -47,16 +47,17 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
   private def getOrdinal(atom: BasicAtom) = atom match {
     case x: Literal[_] => 0
     case x: AlgProp => 1
-    case x: Variable => 2
-    case x: Apply => 3
-    case x: AtomSeq => 4
-    case x: BindingsAtom => 5
-    case x: Lambda => 6
-    case x: MapPair => 7
-    case x: MatchAtom => 8
-    case x: SpecialForm => 9
-    case x: RulesetRef => 10
-    case x: OperatorRef => 11
+    case x: MetaVariable => 2
+    case x: Variable => 3
+    case x: Apply => 4
+    case x: AtomSeq => 5
+    case x: BindingsAtom => 6
+    case x: Lambda => 7
+    case x: MapPair => 8
+    case x: MatchAtom => 9
+    case x: SpecialForm => 10
+    case x: RulesetRef => 11
+    case x: OperatorRef => 12
     case _ => -1
   }
   
@@ -146,6 +147,19 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
             case rlit: IntegerLiteral => llit.value.compare(rlit.value)
             case _ => -1
           }
+          case llit: BitStringLiteral => right match {
+            case rlit: BitStringLiteral =>
+              val (l1, l2) = llit.value
+              val (r1, r2) = rlit.value
+              sgn = l1 compare r1
+              if (sgn != 0) return sgn
+              sgn = l2 compare r2
+              return l2 compare r2
+          }
+          case llit: BooleanLiteral => right match {
+            case rlit: BooleanLiteral => llit.value.compare(rlit.value)
+            case _ => -1
+          }
           case llit: StringLiteral => right match {
             case rlit: IntegerLiteral => 1
             case rlit: StringLiteral => llit.value.compare(rlit.value)
@@ -188,10 +202,14 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         return compare(lap.identity, rap.identity)
         
       case 2 =>
+        // Compare metavariables.  We just order them by name and ignore all else.
+        return left.asInstanceOf[MetaVariable].name compare right.asInstanceOf[MetaVariable].name
+        
+      case 3 =>
         // Compare variables.  We just order them by name and ignore all else.
         return left.asInstanceOf[Variable].name compare right.asInstanceOf[Variable].name
         
-      case 3 =>
+      case 4 =>
         // Compare two applies.  Compare the operators and then the arguments.
         val lap = left.asInstanceOf[Apply]
         val rap = right.asInstanceOf[Apply]
@@ -199,7 +217,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         if (sgn != 0) return sgn
         return compare(lap.arg, rap.arg)
         
-      case 4 =>
+      case 5 =>
         // Compare two atom sequences.  We order by algebraic properties, then
         // by length, and finally by order of the items.
         val las = left.asInstanceOf[AtomSeq]
@@ -218,7 +236,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         } // Compare all elements of the sequences.
         return 0
         
-      case 5 =>
+      case 6 =>
         // Compare two bindings atoms.  Ordering bindings atoms is tricky.
         // First try ordering them my number of bindings.
         val lbinds = left.asInstanceOf[BindingsAtom].mybinds
@@ -235,13 +253,13 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         } // Compare all elements.
         return 0
         
-      case 6 =>
+      case 7 =>
         // Compare two lambdas.  We order them by body only, since the
         // DeBruijn indices replace the parameters.
         return compare(left.asInstanceOf[Lambda].body,
             right.asInstanceOf[Lambda].body)
             
-      case 7 =>
+      case 8 =>
         // Compare two map pairs.  We just compare the elements.
         val lmp = left.asInstanceOf[MapPair]
         val rmp = right.asInstanceOf[MapPair]
@@ -249,12 +267,12 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         if (sgn != 0) return sgn
         return compare(lmp.right, rmp.right)
         
-      case 8 =>
+      case 9 =>
         // Compare two match atoms.
         return compare(left.asInstanceOf[MatchAtom].pattern,
             right.asInstanceOf[MatchAtom].pattern)
             
-      case 9 =>
+      case 10 =>
         // Compare two special forms.
         val lsf = left.asInstanceOf[SpecialForm]
         val rsf = right.asInstanceOf[SpecialForm]
@@ -262,19 +280,19 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         if (sgn != 0) return sgn
         return compare(lsf.content, rsf.content)
         
-      case 10 =>
+      case 11 =>
         // Comparing two ruleset references.  They sort by name.
         return left.asInstanceOf[RulesetRef].name.compare(
             right.asInstanceOf[RulesetRef].name)
         
-      case 11 =>
+      case 12 =>
         // Comparing two operator references.  They sort by name.
         return left.asInstanceOf[OperatorRef].name.compare(
             right.asInstanceOf[OperatorRef].name)
         
       case _ =>
         // Something annoying has happened.
-        throw new ornl.elision.util.ElisionException(
+        throw new ornl.elision.util.ElisionException(left.loc,
             "ERROR: No sort order defined for: " + left.toParseString)
     }
     

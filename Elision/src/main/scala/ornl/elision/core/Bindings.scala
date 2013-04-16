@@ -79,11 +79,10 @@ extends HashMap[String, BasicAtom] with Mutable {
   override def -(key: String): Bindings = new Bindings(self - key)
 
   // @@@ JUST FOR DEBUGGING!!!
-  var rewrites: MutableHashMap[BasicAtom, (BasicAtom, Boolean)] = new 
-  MutableHashMap[BasicAtom, (BasicAtom, Boolean)]() with
-  SynchronizedMap[BasicAtom, (BasicAtom, Boolean)];
+  var rewrites: MutableHashMap[BasicAtom, (BasicAtom, Boolean)] =
+    new MutableHashMap[BasicAtom, (BasicAtom, Boolean)]()
+    with SynchronizedMap[BasicAtom, (BasicAtom, Boolean)];
 
-  
   /** This is a cache used during associative / commutative matching. */
   private var _patcache: OmitSeq[BasicAtom] = null
   
@@ -94,7 +93,7 @@ extends HashMap[String, BasicAtom] with Mutable {
   def this() = this(HashMap[String,BasicAtom]())
   
   /** Creates a copy of this Bindings. */
-  def cloneBinds : Bindings = {
+  override def clone = {
     this.synchronized {
       new Bindings(this.self)
     }

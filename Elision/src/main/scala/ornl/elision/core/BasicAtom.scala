@@ -41,10 +41,12 @@ import scala.collection.immutable.HashSet
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
-import ornl.elision.util.PropertyManager
-import ornl.elision.util.HasOtherHash
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.generators.ScalaGenerator
+import ornl.elision.util.PropertyManager
+import ornl.elision.util.HasOtherHash
+import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -188,8 +190,10 @@ trait Applicable {
  *    // Common implementation of isTerm with children.
  *    lazy val isTerm = children.forall(_.isTerm)
  *    }}}
+ * 
+ * @param loc The location where this atom originated.
  */
-abstract class BasicAtom extends HasOtherHash {
+abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
   import scala.collection.mutable.{Map => MMap}
 
   /**
@@ -271,7 +275,11 @@ abstract class BasicAtom extends HasOtherHash {
   /**
    * Get all the variables referenced in an atom. Override this if the
    * atom can actually contain variables.
-   *
+   * 
+   * The set uses hash codes to distinguish elements, and variables and
+   * metavariables have distinct hash codes, so `$``x` and `$``$``x` will
+   * both be included - if present - in the result.
+   * 
    * @return A set of the variables referenced in the atom, if it has
    * any. 
    */
@@ -303,106 +311,37 @@ abstract class BasicAtom extends HasOtherHash {
    */
   def tryMatch(subject: BasicAtom, binds: Bindings = Bindings(),
       hints: Option[Any] = None) = {
-    // Determine whether tracing of the match is requested.
-    if (BasicAtom.traceMatching) {
-      if (BasicAtom.traceVerbose(this))
-        traceVerbose(subject, binds, hints)
-      else if (BasicAtom.traceTerse(this))
-        traceTerse(subject, binds, hints)
-      else doMatch(subject, binds, hints)    
+    var what = 0L
+    Debugger("matching") {
+      // We compute a hash code for this match.  This is used in the output to
+      // associate lines referring to the match, since matches can be nested and
+      // (potentially) interleaved.
+      what = this.hashCode * 31 + subject.hashCode
+    
+      // The match attempt is starting.  Write out information about the
+      // attempted match.
+      Debugger.debugf("matching",
+          "TRYING  (%x) in %s:\n", what, this.getClass.toString)
+      Debugger("matching", "  pattern: " + this.toParseString + "\n  subject: " +
+          subject.toParseString + "\n  with: " + binds.toParseString)
     }
-    else doMatch(subject, binds, hints)    
-  }
-  
-  /**
-   * Attempt to match this atom, as a pattern, against the subject atom,
-   * observing the bindings, if any.  The type is checked prior to trying
-   * any matching.
-   * 
-   * Tracing information is printed as matching is performed.
-   * 
-   * @param subject	The subject atom to match.
-   * @param binds		Any bindings that must be observed.
-   * @param hints		Optional hints.
-   * @return	The matching outcome.
-   */
-  private def traceVerbose(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) = {
-    // We compute a hash code for this match.  This is used in the output to
-    // associate lines referring to the match, since matches can be nested and
-    // (potentially) interleaved.
-    val what = this.hashCode * 31 + subject.hashCode
-    
-    // If terse matching is requested, write the short messages.
-    
-    // The match attempt is starting.  Write out information about the
-    // attempted match.
-    printf("TRYING  (%x) in %s:\n", what, this.getClass.toString)
-    println("  pattern: " + this.toParseString + "\n  subject: " +
-        subject.toParseString + "\n  with: " + binds.toParseString)
         
     // Perform the match.
     val outcome = doMatch(subject, binds, hints)
     
-    // Write out information about the result of the match attempt.
-    outcome match {
-      case fail:Fail =>
-      	printf("FAILURE (%x): ", what)
-        println(fail)
-      case Match(bnd) =>
-    		printf("SUCCESS (%x): ", what)
-        println(bnd.toParseString)
-      case many:Many =>
-      	printf("SUCCESS (%x): ", what)
-        println("  Many Matches")
-    }
-    
-    // The value is the outcome of the match.
-    outcome
-  }
-  
-  /**
-   * Attempt to match this atom, as a pattern, against the subject atom,
-   * observing the bindings, if any.  The type is checked prior to trying
-   * any matching.
-   * 
-   * Tracing information is printed as matching is performed.
-   * 
-   * @param subject The subject atom to match.
-   * @param binds   Any bindings that must be observed.
-   * @param hints   Optional hints.
-   * @return  The matching outcome.
-   */
-  private def traceTerse(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) = {
-    // We compute a hash code for this match.  This is used in the output to
-    // associate lines referring to the match, since matches can be nested and
-    // (potentially) interleaved.
-    val what = this.hashCode * 31 + subject.hashCode
-    
-    // If terse matching is requested, write the short messages.
-    
-    // The match attempt is starting.  Write out information about the
-    // attempted match.
-    printf("TRYING  (%x) in %s: ", what, this.getClass.getName())
-    print(this.toParseString + " ~> " +
-        subject.toParseString + " " + binds.toParseString)
-    if (hints != None) {
-      print(" HINT:"+hints)
-    }
-    println()
-        
-    // Perform the match.
-    val outcome = doMatch(subject, binds, hints)
-    
-    // Write out information about the result of the match attempt.
-    outcome match {
-      case fail:Fail =>
-        printf("FAILURE (%x)\n", what)
-      case Match(bnd) =>
-        printf("SUCCESS (%x)\n", what)
-      case many:Many =>
-        printf("SUCCESS (%x) many\n", what)
+    Debugger("matching") {
+      // Write out information about the result of the match attempt.
+      outcome match {
+        case fail:Fail =>
+        	Debugger.debugf("matching", "FAILURE (%x): ", what)
+          Debugger("matching", fail)
+        case Match(bnd) =>
+      		Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", bnd.toParseString)
+        case many:Many =>
+        	Debugger.debugf("matching", "SUCCESS (%x): ", what)
+          Debugger("matching", "  Many Matches")
+      }
     }
     
     // The value is the outcome of the match.
@@ -420,13 +359,9 @@ abstract class BasicAtom extends HasOtherHash {
    * @return	The matching outcome.
    */
   private def doMatch(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
-
-    // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out.", this, subject)
-    }
-  
-    else if (subject == ANY && !this.isBindable)
+    } else if (subject == ANY && !this.isBindable) {
       // Any pattern is allowed to match the subject ANY.  In the matching
       // implementation for ANY, any subject is allowed to match ANY.
       // Thus ANY is a kind of wild card.  Note that no bindings are
@@ -435,29 +370,32 @@ abstract class BasicAtom extends HasOtherHash {
       // Of course, if this atom is bindable, we might want to bind to ANY,
       // so we exempt that case.
       Match(binds)
-    else if (depth > subject.depth)
+    } else if (depth > subject.depth) {
     	// If this pattern has greater depth than the subject, reject immediately.
       Fail("Depth of pattern greater than depth of subject.", this, subject)
-    else if (isConstant && this == subject)
+    } else if (isConstant && this == subject) {
 	    // Don't bother to try to match equal atoms that are constant.  The
 	    // constancy check is required; otherwise we might "match" $x against
 	    // $x, but not bind.  This leaves us free to bind $x to something
       // different later, invalidating the original "match".  Matching is
       // tricky.
       Match(binds)
-    else
+    } else {
       // We didn't find a fast way to match, so we need to actually perform
       // the match.  First we try to match the types.  If this succeeds, then
       // we invoke the implementation of tryMatchWithoutTypes.
       matchTypes(subject, binds, hints) match {
-	      case fail: Fail => {
-                fail
-              }
-	      case mat: Match => tryMatchWithoutTypes(subject, mat.binds, hints)
+	      case fail: Fail => 
+	        fail
+	        
+	      case mat: Match =>
+	        tryMatchWithoutTypes(subject, mat.binds, hints)
+	        
 	      case Many(submatches) =>
 	        Many(MatchIterator(tryMatchWithoutTypes(subject, _, hints),
 	          submatches))
 	    }
+    }
 
   /**
    * Try to match this atom, as a pattern, against the given subject.  Do not
@@ -481,6 +419,19 @@ abstract class BasicAtom extends HasOtherHash {
    * 					changed.
    */
   def rewrite(binds: Bindings): (BasicAtom, Boolean)
+  
+  /**
+   * Systematically replace one basic atom with another basic atom.
+   * 
+   * Note that you can use this to search for a subterm.  The idea is to map
+   * the subterm to itself (so no real "change" is made) and then look at the
+   * flag on return.
+   * 
+   * @param map   A mapping from old atom to replacement atom.
+   * @return  The result of the replacement (a potentially new atom), and a
+   *          flag indicating whether or not any replacement was performed.
+   */
+  def replace(map: Map[BasicAtom, BasicAtom]): (BasicAtom, Boolean)
 
   /**
    * Generate a parseable string from this atom.  The returned string should
@@ -551,24 +502,18 @@ abstract class BasicAtom extends HasOtherHash {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+  
+  /*
+   * FIXME  Eliminate all timeout stuff from this object.
+   * 
+   * This breaks the architecture.  The BasicAtom must not depend on
+   * the Executor, as it creates a cycle, and can cause problems with
+   * object instantiation.  Besides, it is just plain wrong.  BasicAtom
+   * has no responsibilities with respect to rewriting.
+   */
 
   /** The clock time at which the current rewrite will time out.*/
   var timeoutTime: DynamicVariable[Long] = new DynamicVariable[Long](-1L)
-
-  /**
-   * The maximum time allowed (in seconds) to rewrite an atom. Set to
-   * 0 to allow unlimited time.
-   */
-  var _maxRewriteTime: BigInt = 0;
-
-  /** Declare the Elision property for setting the max rewrite time. */
-  knownExecutor.declareProperty("rewrite_timeout",
-      "The maximum time to try rewriting an atom. In seconds.",
-      _maxRewriteTime,
-      (pm: PropertyManager) => {
-        _maxRewriteTime =
-          pm.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-      })
 
   /**
    * Compute the wall clock time at which the current rewrite will time
@@ -580,68 +525,45 @@ object BasicAtom {
     // out a rewrite?
     //
     // NOTE: We have to explicitly go out to the current executor to
-    // get the timeout value rather than using _maxRewriteTime since
-    // the closure used in the above declaration for the
-    // rewrite_timeout property can wind up referencing a different
-    // executor than what Elision is actually using.
+    // get the timeout value to make sure we are getting the value from 
+    // the correct executor.
     val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-    //println("** rewrite_timeout == " + rewrite_timeout)
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
-
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
-      //println("** 1. computeTimeout == " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
-    }
-    
-    // Are we already timing out a rewrite?
-    else if (timeoutTime.value > -1) {
-
+    } else if (timeoutTime.value > -1) {
       // Return the previously computed timeout value.
-      //println("** 2. computeTimeout == " + timeoutTime.value)
       timeoutTime.value
-    }
-
-    // No timeouts.
-    else {
-      //println("** 2. computeTimeout == " + -1L)
+    } else {
       -1L
     }
   }
 
   /**
    * Check to see if we are timing out rewrites.
+   * @return  True if rewrite timeout is enabled (positive) or disabled
+   *          (non-positive).
    */
   def timingOut = {
-    val rewrite_timeout = knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt]
-    (rewrite_timeout > 0)
+    knownExecutor.getProperty[BigInt]("rewrite_timeout").asInstanceOf[BigInt] > 0
   }
 
   /**
    * Check to see if the current rewrite has timed out.
+   * @return  True iff the current rewrite should time out.
    */
   def rewriteTimedOut = {
-
-    //println("** Checking timeout. " +
-    //        Platform.currentTime + ">=" + timeoutTime.value +
-    //        " == " + (Platform.currentTime >= timeoutTime.value))
     if (timingOut && (timeoutTime.value > 0)) {
       (Platform.currentTime >= timeoutTime.value)
-    }
-    else {
+    } else {
       false
     }
   }
 
-  /** Enable (if true) or disable (if false) match tracing. */
-  var traceMatching = false
-  
   /** Whether or not to provide type information in toParseString(). */
   var printTypeInfo = false
 
-  /** Whether or not to print out information about rule applications. */
-  var traceRules = false
-  
   /**
    * Every basic atom may have a "spouse" that is a different object.
    * This field specifies a closure to create the spouse object.  The
@@ -650,32 +572,4 @@ object BasicAtom {
    */
   var buildSpouse: (BasicAtom) => T forSome {type T <: AnyRef} =
     ((obj: BasicAtom) => obj)
-
-  /**
-   * Specify verbose tracing for certain objects during matching.
-   * 
-   * This is a closure that selects the objects to trace.  The closure must
-   * take an object (it will be the `this` object at runtime) and return a
-   * Boolean indicating whether matching should be traced for that object.
-   * This will only occur, of course, if `traceMatching` is set to true.  By
-   * default this value is set to `(obj: Any) => false)`, which traces
-   * nothing.
-   * 
-   * Note that full tracing takes precedence over terse tracing.
-   */
-  var traceVerbose: (Any) => Boolean = ((obj: Any) => true)
-  
-  /**
-   * Specify terse tracing for certain objects during matching.
-   * 
-   * This is a closure that selects the objects to trace.  The closure must
-   * take an object (it will be the `this` object at runtime) and return a
-   * Boolean indicating whether matching should be traced for that object.
-   * This will only occur, of course, if `traceMatching` is set to true.  By
-   * default this value is set to `(obj: Any) => true)`, which traces
-   * everything.
-   * 
-   * Note that full tracing takes precedence over terse tracing.
-   */
-  var traceTerse: (Any) => Boolean = ((obj: Any) => false)
 }

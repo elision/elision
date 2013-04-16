@@ -42,10 +42,10 @@ import ornl.elision.gui.trees._
 
 class ElisionTreeSprite extends TreeSprite(0,0) {
   /** Elision syntax formatter. */
-  override val formatter = new ornl.elision.gui.syntax.SyntaxFormatter(ornl.elision.gui.elision.EliRegexes, true, true)
+  override val formatter = new ornl.elision.syntax.SyntaxFormatter(ornl.elision.gui.elision.EliRegexes, true, true)
 	
   /** If false, syntax coloring is disabled for the entire tree. */
-  syntaxColoring = !ornl.elision.gui.mainGUI.config.disableNodeSyntaxColoring
+  syntaxColoring = !ornl.elision.gui.EvaConfig.disableNodeSyntaxColoring
 }
 
 
@@ -54,14 +54,14 @@ class ElisionTreeSprite extends TreeSprite(0,0) {
  */
 object ElisionWelcomeTree extends ElisionTreeSprite {
   makeRoot("root")
-    root.makeChild("Welcome to the ") // addChild("Welcome to the ",realroot)
-    root.makeChild("Elision Visualization Assistant (Eva)!") // addChild("Elision Visualization Assistant (Eva)!",realroot)
-      root(1).makeChild("To create a rewrite tree visualization,") // addChild("To create a rewrite tree visualization,", root2)
-      root(1).makeChild("simply do one of the following: ") // addChild("simply do one of the following: ",root2)
-        root(1)(1).makeChild("Enter input into the ") // addChild("Enter input into the ", node2)
-        root(1)(1).makeChild("onboard Elision REPL, below.") // addChild("onboard Elision REPL, below.", node2)
-        root(1)(1).makeChild("OR") // addChild("OR",node2)
-        root(1)(1).makeChild("Use File -> Open to open a file ") // addChild("Use File -> Open to open a file ",node2)
-        root(1)(1).makeChild("containing Elision input.") // addChild("containing Elision input.", node2)
+    root.makeChild("Welcome to the ") 
+    root.makeChild("Elision Visualization Assistant (Eva)!") 
+      root(1).makeChild("To create a rewrite tree visualization,") 
+      root(1).makeChild("simply do one of the following: ")
+        root(1)(1).makeChild("Enter input into the ") 
+        root(1)(1).makeChild("onboard Elision REPL, below.") 
+        root(1)(1).makeChild("OR") 
+        root(1)(1).makeChild("Use File -> Open to open a file ") 
+        root(1)(1).makeChild("containing Elision input.") 
 }
 

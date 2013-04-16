@@ -37,8 +37,10 @@
 * */
 package ornl.elision.core
 
+import ornl.elision.context.Context
 import ornl.elision.util.OmitSeq
-import ornl.elision.actors.ReplActor
+import ornl.elision.util.Debugger
+import ornl.elision.util.Loc
 
 /**
  * The ruleset strategy.
@@ -56,7 +58,7 @@ import ornl.elision.actors.ReplActor
  */
 class RulesetStrategy private (sfh: SpecialFormHolder,
     val context: Context, val names: AtomSeq)
-extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
+extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
   /** True if all ruleset names are concrete. */
   private var _conc = true
   /** The ruleset names that are concrete. */
@@ -75,24 +77,15 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     if (!_conc) {
       return (SimpleApply(this, atom), false)
     } else {
-      ReplActor ! ("Eva","pushTable","RulesetStrategy doRewrite")
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", 
-          "RulesetStrategy doRewrite: ")) 
-      ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom)) 
-      ReplActor ! ("Eva", "setSubroot", "atom") 
-      
       // Get the rules.
       val rules = context.ruleLibrary.getRules(atom, _namelist)
       // Now try every rule until one applies.
       for (rule <- rules) {
         val (newatom, applied) = rule.doRewrite(atom, hint)
         if (applied) {
-          ReplActor ! ("Eva", "addTo", ("atom", "", newatom))
-          ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
           return (newatom, applied)
         }
       } // Try all rules.
-      ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
       return (atom, false)
     }
   }
@@ -121,35 +114,37 @@ object RulesetStrategy {
   /**
    * Make a ruleset strategy from the components.
    * 
+   * @param loc     Location of the strategy.
    * @param context	The context providing the rules.
    * @param names		The ruleset names; order is not significant.
    * @return	The strategy object.
    */
-  def apply(context: Context, names: AtomSeq): RulesetStrategy = {
+  def apply(loc: Loc, context: Context, names: AtomSeq): RulesetStrategy = {
     val binds = Bindings() + (""->names)
-    val sfh = new SpecialFormHolder(tag, binds)
+    val sfh = new SpecialFormHolder(loc, tag, binds)
     new RulesetStrategy(sfh, context, names)
   }
   
   /**
    * Make a ruleset strategy from the components.
    * 
+   * @param loc     Location of the strategy.
    * @param context	The context providing the rules.
    * @param names		The ruleset names; order is not significant.
    * @return	The strategy object.
    */
-  def apply(context: Context, names: String*): RulesetStrategy = {
+  def apply(loc: Loc, context: Context, names: String*): RulesetStrategy = {
     val nameseq =
       AtomSeq(NoProps, names.map(str => Literal(Symbol(str))).toIndexedSeq)
     val binds = Bindings() + (""->nameseq)
-    val sfh = new SpecialFormHolder(tag, binds)
+    val sfh = new SpecialFormHolder(loc, tag, binds)
     new RulesetStrategy(sfh, context, nameseq)
   }
 }
 
 class MapStrategy(sfh: SpecialFormHolder, val lhs: BasicAtom,
     val include: AtomSeq, val exclude: AtomSeq)
-extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
+extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
   override val theType = STRATEGY
   
   // Make the include and exclude lists into sets.
@@ -159,59 +154,32 @@ extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
     asInstanceOf[IndexedSeq[SymbolLiteral]].
     map(_.value.name).
     toSet
+    
   private lazy val _exSet =
     exclude.
     filter(_.isInstanceOf[SymbolLiteral]).
     asInstanceOf[IndexedSeq[SymbolLiteral]].
     map(_.value.name).
     toSet
-	/*
-	def doRewrite(atom: BasicAtom, hint: Option[Any]) = atom match {
-	  // We only process two kinds of atoms here: atom lists and operator
-	  // applications.  Figure out what we have.
-	  case AtomSeq(props, atoms) =>
-	    // All we can do is apply the lhs to each atom in the list.
-	    (AtomSeq(props, atoms.map(Apply(lhs,_))), true)
-	  case Apply(op, seq: AtomSeq) => op match {
-	    case so: SymbolicOperator => _apply(so, seq)
-	    case _ => (Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_)))), true)
-	  }
-	  case _ =>
-	    // Do nothing in this case.
-	    (atom, false)
-	}
-	*/
   
 	def doRewrite(atom: BasicAtom, hint: Option[Any]) = {
-		ReplActor ! ("Eva","pushTable","MapStrategy doRewrite")
-		ReplActor ! ("Eva", "addToSubroot", ("rwNode", "MapStrategy doRewrite: "))
-		ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom))
-		ReplActor ! ("Eva", "setSubroot", "atom") 
-	
 		atom match {
 		  // We only process two kinds of atoms here: atom lists and operator
 		  // applications.  Figure out what we have.
 		  case AtomSeq(props, atoms) =>
   			// All we can do is apply the lhs to each atom in the list.
-  			val newAS = AtomSeq(props, atoms.map(Apply(lhs,_)))
-  			ReplActor ! ("Eva", "addTo", ("atom", "", newAS))
-        ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
-        (newAS, true)
+  			(AtomSeq(props, atoms.map(Apply(lhs,_))), true)
+  			
 		  case Apply(op, seq: AtomSeq) => op match {
     			case so: SymbolicOperator => 
-    				val newApply = _apply(so, seq)
-    				ReplActor ! ("Eva", "addTo", ("atom", "", newApply._1))
-            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
-    				newApply
+    				_apply(so, seq)
+    				
     			case _ => 
-    				val newApply = Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_))))
-    				ReplActor ! ("Eva", "addTo", ("atom", "", newApply))
-            ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
-    				(newApply, true)
-  		  }
+    				(Apply(op, AtomSeq(seq.props, seq.atoms.map(Apply(lhs,_)))), true)
+  		}
+		  
 		  case _ =>
 			  // Do nothing in this case.
-        ReplActor ! ("Eva", "popTable", "MapStrategy doRewrite")
         (atom, false)
 		}
 	}
@@ -266,22 +234,23 @@ object MapStrategy {
     val include = bh.fetchAs[AtomSeq]("include", Some(EmptySeq))
     val exclude = bh.fetchAs[AtomSeq]("exclude", Some(EmptySeq))
     if (lhs.length < 1) {
-      throw new SpecialFormException("Map requires exactly one item " +
+      throw new SpecialFormException(sfh.loc, "Map requires exactly one item " +
       		"(specified first) to apply to each matching child.  None " +
       		"was given.  Be sure it is given before any #include or #exclude.")
     }
     if (lhs.length > 1) {
-      throw new SpecialFormException("Map requires exactly one item " +
+      throw new SpecialFormException(sfh.loc, "Map requires exactly one item " +
       		"(specified first) to apply to each matching child.  Too many " +
       		"were given.  Did you forget a delimiter or an #include or #exclude?")
     }
     return new MapStrategy(sfh, lhs(0), include, exclude)
   }
   
-  def apply(lhs: BasicAtom, include: AtomSeq, exclude: AtomSeq): MapStrategy = {
+  def apply(loc: Loc, lhs: BasicAtom, include: AtomSeq,
+      exclude: AtomSeq): MapStrategy = {
     val binds = Bindings() + (""->AtomSeq(NoProps, lhs)) +
     		("include"->include) + ("exclude"->exclude)
-    val sfh = new SpecialFormHolder(tag, binds)
+    val sfh = new SpecialFormHolder(loc, tag, binds)
     return new MapStrategy(sfh, lhs, include, exclude)
   }
   
@@ -297,45 +266,86 @@ object RewriteRule {
   /**
    * Create a rewrite rule.  The rule is not synthetic.
    * 
+   * @param loc         Location of the rewrite rule definition.
 	 * @param pattern			The pattern to match.
 	 * @param rewrite			The rewrite to apply on match.
 	 * @param guards			Guards that must be true to accept a match.
 	 * @param rulesets		The rulesets that contain this rule.
    */
-  def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
-      rulesets: Set[String]) = {
-    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets)
-    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, false)
+  def apply(loc: Loc, pattern: BasicAtom, rewrite: BasicAtom,
+      guards: Seq[BasicAtom], rulesets: Set[String]) = {
+    val sfh = _makeSpecialFormHolder(loc, pattern, rewrite, guards, rulesets,
+        None, "", "")
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, None)
   }
   
   /**
    * Create a rewrite rule.
    * 
+   * @param loc         Location of the rewrite rule definition.
 	 * @param pattern			The pattern to match.
 	 * @param rewrite			The rewrite to apply on match.
 	 * @param guards			Guards that must be true to accept a match.
 	 * @param rulesets		The rulesets that contain this rule.
 	 * @param synthetic		If true, this is a synthetic rule.
    */
-  def apply(pattern: BasicAtom, rewrite: BasicAtom, guards: Seq[BasicAtom],
-      rulesets: Set[String], synthetic: Boolean) = {
-    val sfh = _makeSpecialFormHolder(pattern, rewrite, guards, rulesets)
-    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, synthetic)
+  def apply(loc: Loc, pattern: BasicAtom, rewrite: BasicAtom,
+      guards: Seq[BasicAtom], rulesets: Set[String], synthetic: Boolean) = {
+    val sfh = _makeSpecialFormHolder(loc, pattern, rewrite, guards, rulesets,
+        None, "", "")
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, None, "", "",
+        synthetic)
   }
   
-  private def _makeSpecialFormHolder(pattern: BasicAtom, rewrite: BasicAtom,
-      guards: Seq[BasicAtom], rulesets: Set[String]) = {
+  /**
+   * Create a rewrite rule.
+   * 
+   * @param loc         Location of the rule definition.
+   * @param pattern     The pattern to match.
+   * @param rewrite     The rewrite to apply on match.
+   * @param guards      Guards that must be true to accept a match.
+   * @param rulesets    The rulesets that contain this rule.
+   * @param name        Optional rule name.
+   * @param description Optional rule description.
+   * @param detail      Optional detailed rule description.
+   * @param synthetic   If true, this is a synthetic rule.
+   */
+  def apply(loc: Loc, pattern: BasicAtom, rewrite: BasicAtom,
+      guards: Seq[BasicAtom], rulesets: Set[String], name: Option[String],
+      description: String, detail: String, synthetic: Boolean) = {
+    val sfh = _makeSpecialFormHolder(loc, pattern, rewrite, guards, rulesets,
+        name, description, detail)
+    new RewriteRule(sfh, pattern, rewrite, guards, rulesets, name, description,
+        detail, synthetic)
+  }
+  
+  private def _makeSpecialFormHolder(loc: Loc, pattern: BasicAtom,
+      rewrite: BasicAtom, guards: Seq[BasicAtom], rulesets: Set[String],
+      name: Option[String], description: String, detail: String) = {
     // Make the map pair.
     val mappair = MapPair(pattern, rewrite)
     // Make the binding.
-    val binds:Bindings = Bindings() +
-    	(""->mappair) +
-    	("if"->AtomSeq(Associative(true) and Commutative(true), guards.toIndexedSeq)) +
-    	("rulesets"->
-    		AtomSeq(Associative(true) and Commutative(true), rulesets.map {
-    			str => Literal(Symbol(str))
-    		}.toIndexedSeq))
-    new SpecialFormHolder(tag, BindingsAtom(binds))
+    var binds:Bindings = Bindings() + (""->AtomSeq(NoProps, mappair))
+    if (guards.length > 0) {
+      binds += ("if" -> AtomSeq(NoProps, guards.toIndexedSeq[BasicAtom]))
+    }
+    if (rulesets.size > 0) {
+      binds += ("rulesets" ->
+          AtomSeq(NoProps, rulesets.map {
+            str => Literal(Symbol(str))
+          }.toIndexedSeq[BasicAtom]))
+    }
+    name match {
+      case None =>
+      case Some(value) => binds += ("name" -> Literal(Symbol(value)))
+    }
+    if (description != "") {
+      binds += ("description" -> Literal(description))
+    }
+    if (detail != "") {
+      binds += ("detail" -> Literal(detail))
+    }
+    new SpecialFormHolder(loc, tag, BindingsAtom(binds))
   }
 
   /**
@@ -346,40 +356,52 @@ object RewriteRule {
    *          synthetic.
    */
   def unapply(rule: RewriteRule) = Some((rule.pattern, rule.rewrite,
-      rule.guards, rule.rulesets, rule.synthetic))
+      rule.guards, rule.rulesets, rule.name, rule.description, rule.detail,
+      rule.synthetic))
       
   def apply(sfh: SpecialFormHolder): RewriteRule = {
     // A rewrite rule must be given with a binding.
     val bh = sfh.requireBindings
     // Check the content.
-    bh.check(Map(""->true, "if"->false, "ruleset"->false, "rulesets"->false))
+    bh.check(Map(""->true, "if"->false, "ruleset"->false, "rulesets"->false,
+        "name"->false, "description"->false, "detail"->false))
     // Get the map pair.
     val mappair = bh.fetchAs[AtomSeq]("")
     if (mappair.length < 1)
-      throw new SpecialFormException(
+      throw new SpecialFormException(sfh.loc,
           "Rewrite rule does not contain a map pair.")
     if (mappair.length > 1)
-      throw new SpecialFormException(
+      throw new SpecialFormException(sfh.loc,
           "Too many items at the top level of a rewrite rule; did you forget a marker?")
     val pair = mappair(0) match {
       case mp:MapPair => mp
       case x =>
-        throw new SpecialFormException(
+        throw new SpecialFormException(sfh.loc,
             "Top-level item in rewrite rule is not a map pair: " + x.toParseString)
     }
     // Get the guards.
     val guards = bh.fetchAs[AtomSeq]("if", Some(EmptySeq))
-    // Get the rulesets.
-    val rulesets = bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq)) map {
+    // Get the rulesets.  We combine two different possibilities here.
+    val rseq = bh.fetchAs[AtomSeq]("ruleset", Some(EmptySeq)) ++
+      bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq))
+    val rulesets = rseq map {
       rs => rs match {
         case SymbolLiteral(_, name) => name.name
         case _ =>
-          throw new SpecialFormException(
+          throw new SpecialFormException(rs.loc,
               "Ruleset specification is not a symbol: " + rs.toParseString)
       }
     }
+    // Get the (optional) name.
+    val name = (if (bh.has("name"))
+      Some(bh.fetchAs[SymbolLiteral]("name").value.name) else None)
+    // Get the description and detail.
+    val description = bh.fetchAs[StringLiteral]("description",
+        Some(Literal(""))).value
+    val detail = bh.fetchAs[StringLiteral]("detail", Some(Literal(""))).value
     // Build the rule.
-    new RewriteRule(sfh, pair.left, pair.right, guards.atoms, rulesets.toSet)
+    new RewriteRule(sfh, pair.left, pair.right, guards.atoms, rulesets.toSet,
+        name, description, detail)
   }
 }
 
@@ -397,14 +419,22 @@ object RewriteRule {
  * @param rewrite			The rewrite to apply on match.
  * @param guards			Guards that must be true to accept a match.
  * @param rulesets		The rulesets that contain this rule.
+ * @param name        Optional rule name.
+ * @param description Optional rule description.
+ * @param detail      Optional detailed rule description.
  * @param synthetic		If true, this is a synthetic rule.
  */
 class RewriteRule private (
     sfh: SpecialFormHolder,
-    val pattern: BasicAtom, val rewrite: BasicAtom,
-    val guards: Seq[BasicAtom], val rulesets: Set[String],
+    val pattern: BasicAtom,
+    val rewrite: BasicAtom,
+    val guards: Seq[BasicAtom],
+    val rulesets: Set[String],
+    val name: Option[String] = None,
+    val description: String = "",
+    val detail: String = "",
     val synthetic: Boolean = false)
-    extends SpecialForm(sfh.tag, sfh.content) with Rewriter {
+    extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
   override val theType = STRATEGY
   
   /**
@@ -429,12 +459,9 @@ class RewriteRule private (
       hint: Option[Any] = None): (BasicAtom, Boolean) = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
-      //println("** Checking guards with bindings '" + candidate + "'")
       for (guard <- guards) {
         val (newguard, _) = guard.rewrite(candidate)
         val (newguard1, _) = knownExecutor.context.ruleLibrary.rewrite(newguard)
-        //println("** guard '" + guard.toParseString + "' " +
-        //        " == '" + newguard1.toParseString + "'")
         if (!newguard1.isTrue) return false
       }
       true
@@ -443,28 +470,39 @@ class RewriteRule private (
     // Local function to perform the rewrite if the rule fires.  We return
     // true in the pair no matter what, since the rule fired.
     def doRuleRewrite(candidate: Bindings) = {
-      if (BasicAtom.traceRules) {
-        println("Applied rule '" + this.toParseString + "' to '" + candidate.toParseString + "'")
-      }
+      Debugger("rewrite", "Applied rule: " + this.toParseString +
+          " to: " + candidate.toParseString + "")
       (rewrite.rewrite(candidate)._1, true)
     }
     
     // First we try to match the given atom against the pattern.
-    //println("Trying to apply rule '" + this.toParseString + "'...")
+    Debugger("rulematch", "Trying rule: " + this.toParseString)
     pattern.tryMatch(subject, binds, hint) match {
-      case fail:Fail => {
-        //println("Application of rule '" + this.toParseString + "' failed.")
+      case fail:Fail =>
+        Debugger("rulematch", "Rule does not match subject: " + fail)
         return (subject, false)
-      }
+
       case Match(newbinds) =>
         // We got a match.  Check the guards.
-        if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
-        else return (subject, false)
+        Debugger("rulematch", "Potential match (1): " + newbinds.toParseString)
+        if (checkGuards(newbinds)) {
+          Debugger("rulematch", "Rule matched with: "+newbinds)
+          return doRuleRewrite(newbinds)
+        } else {
+          Debugger("rulematch", "Guard failed.")
+          return (subject, false)
+        }
+        
       case Many(iter) =>
         // We might have many matches.  We search through them until we find
         // one that satisfies the guards, or until we run out of candidates.
         for (newbinds <- iter) {
-          if (checkGuards(newbinds)) return doRuleRewrite(newbinds)
+          Debugger("rulematch", "Potential match (*): " + newbinds.toParseString)
+          if (checkGuards(newbinds)) {
+            Debugger("rulematch", "Rule matched with "+newbinds.toParseString)
+            return doRuleRewrite(newbinds)
+          }
+          Debugger("rulematch", "Guard failed.")
         }
         return (subject, false)
     }
@@ -510,47 +548,13 @@ class RewriteRule private (
   def doRewrite(atom: BasicAtom, hint: Option[Any]) =
     doRewrite(atom, Bindings(), hint)
   
-  /*
   def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
-    // Try to apply the rewrite rule.  Whatever we get back is the result.
-    //println("Rewriting with rule.")
-    _tryRewrite(atom, binds, hint)
-  }
-  */
-
-  def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
-
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       (atom, true)
-    }
-    else {
+    } else {
       // Try to apply the rewrite rule.  Whatever we get back is the result.
-     
-      // first, check to see if a rule rewrite will even happen before actually applying the rewrite.
-      // Tell the GUI to ignore tree construction messages while doing this.
-      //  ReplActor ! ("Eva", "toggleIgnore", true)
-      //  ReplActor ! ("Eva", "toggleIgnore", false)
-     
-      // proceed with applying the rewrite rule.
-      ReplActor ! ("Eva","pushTable","RewriteRule doRewrite")
-      ReplActor ! ("Eva", "saveNodeCount", "RewriteRule doRewrite")
-      ReplActor ! ("Eva", "addToSubroot", ("rwNode", "RewriteRule doRewrite: "))
-      ReplActor ! ("Eva", "addTo", ("rwNode", "atom", atom))
-      ReplActor ! ("Eva", "setSubroot", "atom")
-      val rwResult = _tryRewrite(atom, binds, hint)
-     
-      // if the rewrite rule was not fruitful, discard its subtree and restore the GUI's node count.
-      if(rwResult._2) {
-        ReplActor ! ("Eva", "addTo", ("atom", "", rwResult._1))
-      }
-      else {
-        ReplActor ! ("Eva", "remLastChild", "subroot")
-      }
-      
-      ReplActor ! ("Eva", "restoreNodeCount", !rwResult._2)
-      ReplActor ! ("Eva", "popTable", "RewriteRule doRewrite")
-      rwResult
+      _tryRewrite(atom, binds, hint)
     }
   }
 }

@@ -368,7 +368,7 @@ http://elision.github.com/
 \end_inset
 
 .
- This page contains a frequently updated version, along with documentation
+ This web page contains a frequently updated version, along with documentation
  links and a link to Elision's source.
 \end_layout
 
@@ -15432,59 +15432,35 @@ Rewrite Rules and Guards
 \begin_layout Standard
 A rewrite rule generalizes the notion of a map pair a bit by introducing
  additional structures.
- Suppose we have the equation 
-\begin_inset Formula $x=x$
+ In its simplest form a rule is 
+\emph on
+just
+\emph default
+ a map pair.
+ Consider the atom 
+\begin_inset Formula $p\wedge\left(\neg p\vee q\right)$
+\end_inset
+
+, where 
+\begin_inset Formula $p$
+\end_inset
+
+ and 
+\begin_inset Formula $q$
+\end_inset
+
+ are Booleans.
+ Any atom of this form is equivalent to just 
+\begin_inset Formula $q$
 \end_inset
 
 .
- We know this is true, no matter what we substitute for 
-\begin_inset Formula $x$
-\end_inset
-
-.
- Let's define an 
+ We can express this as a map pair: 
 \family typewriter
-eq
-\family default
- operator that determines if its two arguments are equal.
-\begin_inset Foot
-status collapsed
-
-\begin_layout Plain Layout
-There is alread such an operator defined in 
-\family typewriter
-bootstrap/Math.eli
-\family default
-, called 
-\family typewriter
-equal
+and($p, or(not($p), $q)) -> $q
 \family default
 .
-\end_layout
-
-\end_inset
-
- We might try to write it like this.
-\end_layout
-
-\begin_layout LyX-Code
-decl.{operator #name=eq #type=BOOLEAN #cases
-\end_layout
-
-\begin_layout LyX-Code
-  %($x,$x) -> true,
-\end_layout
-
-\begin_layout LyX-Code
-  %($x,$y) -> _
-\end_layout
-
-\begin_layout LyX-Code
-}
-\end_layout
-
-\begin_layout Standard
-We can apply this to another atom and, if the atom matches, obtain false.
+ We can then apply this to more complex atoms to simplify them.
 \end_layout
 
 \begin_layout Standard
@@ -15499,11 +15475,399 @@ e> inc("bootstrap/Math.eli")
 
 \begin_layout Plain Layout
 
+e> (and($p,or(not($p),$q)) -> $q) .
+ and(or($x, not(or($y,$z))), or($y,$z))
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl1 = { binds flag -> true atom -> $x }
+\end_layout
+
+\end_inset
+
+Conversion of this into a rule simply re-packages this into a special form:
+ 
+\family typewriter
+{rule 
+\family default
+\emph on
+map-pair
+\family typewriter
+\emph default
+}
+\family default
+.
+ This can be applied in the same fashion.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> {rule and($p,or(not($p),$q)) -> $q} .
+ and(or($x, not(or($y,$z))), or($y,$z))
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl2 = { binds flag -> true atom -> $x }
 \end_layout
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The Elision system provides an 
+\family typewriter
+eq
+\family default
+ operator.
+ This operator simply computes whether its two arguments are the same.
+ There are some challenges to using this.
+ Consider the following.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> eq($x,$y)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl3 = false
+\end_layout
+
+\begin_layout Plain Layout
+
+e> eq($x,$x)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl4 = true
+\end_layout
+
+\begin_layout Plain Layout
+
+e> eq($x,7)
+\end_layout
+
+\begin_layout Plain Layout
+
+$_repl5 = false
+\end_layout
+
+\end_inset
+
+The above demonstrates that 
+\family typewriter
+eq
+\family default
+ is evaluated 
+\emph on
+eagerly
+\emph default
+.
+ Certainly when we have 
+\family typewriter
+eq($x,$x)
+\family default
+ we want to reduce to 
+\family typewriter
+true
+\family default
+, but when we have 
+\family typewriter
+eq($x,$y)
+\family default
+ we might like to suspend evaluation until we know more.
+\end_layout
+
+\begin_layout Standard
+Let's define an 
+\family typewriter
+equal
+\family default
+ operator that behaves like this.
+ We can try the following.
+\end_layout
+
+\begin_layout LyX-Code
+decl.{operator #name=equal #cases
+\end_layout
+
+\begin_layout LyX-Code
+  %($x,$x) -> true,
+\end_layout
+
+\begin_layout LyX-Code
+  _ -> _
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+This works correctly for 
+\family typewriter
+equal(7,7)
+\family default
+, but does 
+\emph on
+not
+\emph default
+ work as we would like for 
+\family typewriter
+equal(7,8)
+\family default
+.
+ To address this second case we'd really like to 
+\emph on
+replace
+\emph default
+ 
+\family typewriter
+equal(7,8)
+\family default
+ with 
+\family typewriter
+eq(7,8)
+\family default
+.
+ Elision provides an operator 
+\family typewriter
+is_constant(
+\family default
+\emph on
+atom
+\family typewriter
+\emph default
+)
+\family default
+ that evaluates to 
+\family typewriter
+true
+\family default
+ if 
+\emph on
+atom
+\emph default
+ is a constant - i.e., it contains no variables - and 
+\family typewriter
+false
+\family default
+ otherwise.
+ This suggests a solution to our problem.
+ We would like to write 
+\family typewriter
+equal($x,$y) -> eq($$x,$$y)
+\family default
+, but 
+\emph on
+only
+\emph default
+ if 
+\family typewriter
+$x
+\family default
+ and 
+\family typewriter
+$y
+\family default
+ are constants.
+ We can write this as follows using variable guards.
+\end_layout
+
+\begin_layout LyX-Code
+{rule equal($x{is_constant($$x)},$y{is_constant($$y)})
+\end_layout
+
+\begin_layout LyX-Code
+  -> eq($$x,$$y)}
+\end_layout
+
+\begin_layout Standard
+Now we have something that behaves much better.
+ We have 
+\family typewriter
+equal(8,8)
+\family default
+ and 
+\family typewriter
+equal(and($x,$y),and($x,$y))
+\family default
+ both rewritten to 
+\family typewriter
+true
+\family default
+ (by the definition), 
+\family typewriter
+equal(7,8)
+\family default
+ is rewritten to 
+\family typewriter
+false
+\family default
+ by the above rule, and 
+\family typewriter
+equal(and($x,$y),and($x,$z))
+\family default
+ is left as-is, since neither the definition nor the rule applies.
+\end_layout
+
+\begin_layout Standard
+The rule above is still equivalent to a map pair, but it is hard to see
+ precisely what is happening because the guards on the variables obscure
+ the pattern.
+ We can pull these out and write them as general guards for the rule.
+ We do this as follows.
+\end_layout
+
+\begin_layout LyX-Code
+{rule equal($x,$y) -> eq($$x,$$y)
+\end_layout
+
+\begin_layout LyX-Code
+  #if is_constant($$x), is_constant($$y)}
+\end_layout
+
+\begin_layout Standard
+This rule has something new in it: the 
+\family typewriter
+#if
+\family default
+ followed by the list of atoms.
+ These work similarly to variable guards.
+ Once bindings are proposed for 
+\family typewriter
+$x
+\family default
+ and 
+\family typewriter
+$y
+\family default
+, the guards are each rewritten with the candidate bindings and, if they
+ all evaluate to 
+\family typewriter
+true
+\family default
+, the rule is allowed.
+ Any number of guards may be given, including zero, and rule guards may
+ refer to any variable present in the pattern.
+\end_layout
+
+\begin_layout Section
+Rulesets
+\end_layout
+
+\begin_layout Standard
+A significant advantage of rules is that they can be declared much as operators
+ are, and then can be automatically applied to atoms.
+ This is managed by declaring rules to be in one or more 
+\emph on
+rulesets
+\emph default
+.
+ This is done by specifying 
+\family typewriter
+#ruleset
+\family default
+ or 
+\family typewriter
+#rulesets
+\family default
+ (synonyms) followed by a sequence of labels, each of which specifies a
+ ruleset.
+ By convention ruleset names are upper-case.
+\end_layout
+
+\begin_layout Standard
+Prior to use a ruleset must be specified.
+ The operator 
+\family typewriter
+declare(RS)
+\family default
+ declares the ruleset 
+\family typewriter
+RS
+\family default
+.
+ The following declares a ruleset and adds a rule to the ruleset.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+e> declare(MATH)
+\end_layout
+
+\begin_layout Plain Layout
+
+Declared ruleset MATH:SYMBOL.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> decl.{rule and($p,or(not($p),$q)) -> $q #ruleset MATH}
+\end_layout
+
+\begin_layout Plain Layout
+
+Declared rule.
+\end_layout
+
+\begin_layout Plain Layout
+
+e> decl.{rule equal($x,$y) -> eq($$x,$$y)
+\end_layout
+
+\begin_layout Plain Layout
+
+     #if is_constant($$x), is_constant($$y) #ruleset MATH}
+\end_layout
+
+\begin_layout Plain Layout
+
+Declared rule.
+\end_layout
+
+\end_inset
+
+In order for the system to apply the rules in a ruleset, the ruleset must
+ be enabled.
+ To operator 
+\family typewriter
+enable(RS)
+\family default
+ enables the ruleset 
+\family typewriter
+RS
+\family default
+, while the operator 
+\family typewriter
+disable(RS)
+\family default
+ disables the ruleset 
+\family typewriter
+RS
+\family default
+.
 \end_layout
 
 \begin_layout Standard
@@ -15527,11 +15891,12 @@ Consider the equation
 .
  If the original equation was true, then so is the rewritten one.
  We might like Elision to automatically transform the first equation into
- the second one.
-\end_layout
-
-\begin_layout Section
-Rulesets
+ the second one, collecting literals on one side of the equality.
+ We can 
+\emph on
+attempt
+\emph default
+ to express this as a rule.
 \end_layout
 
 \begin_layout Section

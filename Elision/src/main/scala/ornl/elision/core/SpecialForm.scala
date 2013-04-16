@@ -33,18 +33,20 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+ * ======================================================================*/
 package ornl.elision.core
+
 import ornl.elision.util.ElisionException
-import ornl.elision.actors.ReplActor
+import ornl.elision.util.Loc
 
 /**
  * Construction of a special form failed for the specified reason.
  * 
+ * @param loc Location of the bad special form.
  * @param msg	A human-readable message.
  */
-class SpecialFormException(msg: String) extends ElisionException(msg)
+class SpecialFormException(loc: Loc, msg: String)
+extends ElisionException(loc, msg)
 
 /**
  * Hold the data from parsing (or constructing) a special form.  This
@@ -53,10 +55,11 @@ class SpecialFormException(msg: String) extends ElisionException(msg)
  * 
  * These should only be built by the parser.
  * 
+ * @param loc     The location of this special form's definition.
  * @param tag			The tag.
  * @param content	The content.
  */
-class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
+class SpecialFormHolder(val loc: Loc, val tag: BasicAtom, val content: BasicAtom) {
   /**
    * Require that the content be a binding.  If the content is not, then
    * an exception is thrown (`SpecialFormException`).
@@ -64,9 +67,9 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
    * @return	A `BindingsHolder` instance.
    */
   def requireBindings = content match {
-    case ba:BindingsAtom => new BindingsHolder(tag, ba)
+    case ba:BindingsAtom => new BindingsHolder(loc, tag, ba)
     case _ =>
-      throw new SpecialFormException(
+      throw new SpecialFormException(loc,
           "Form " + tag.toParseString +
           " expected bindings as content, but instead found: " +
           content.toParseString + ".")
@@ -79,23 +82,24 @@ class SpecialFormHolder(val tag: BasicAtom, val content: BasicAtom) {
    * 
    * @return	The special form instance.
    */
-  def toSpecialForm() = new SpecialForm(tag, content)
+  def toSpecialForm() = new SpecialForm(loc, tag, content)
   
   /**
    * Interpret this based on the tag, and return the resulting special form.
    * 
    * @return	The correct atom based on the tag.
    */
-  def interpret = SpecialForm(tag, content)
+  def interpret = SpecialForm(loc, tag, content)
 }
 
 /**
  * Hold data from a special form where the content is a bindings atom.
  * 
+ * @param loc       The location where this special form arose.
  * @param tag				The tag.
  * @param content		The content (a bindings atom).
  */
-class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
+class BindingsHolder(loc: Loc, val tag: BasicAtom, val content: BindingsAtom) {
   /**
    * Require that the bindings atom specify all the listed keys.  If any
    * are missing, a `SpecialFormException` is thrown.  Other keys not in
@@ -106,7 +110,7 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   def require(keys: String*) {
   	keys foreach { key =>
     	if (!content.contains(key))
-    		throw new SpecialFormException(
+    		throw new SpecialFormException(loc,
     				"Form " + tag.toParseString +
     				" requires key " + toESymbol(key) + " but it was not given.")
   	}
@@ -122,7 +126,7 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   def allow(keys: String*) {
     val badkeys = content.keySet -- keys
     if (!badkeys.isEmpty) {
-      throw new SpecialFormException(
+      throw new SpecialFormException(loc,
           "Form " + tag.toParseString +
           " does not allow key(s) " +
           badkeys.map(toESymbol(_)).mkString("", ", ", "") + ".")
@@ -142,14 +146,14 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
     val has1 = content.contains(key1)
     val has2 = content.contains(key2)
     if (has1 && has2) {
-      throw new SpecialFormException(
+      throw new SpecialFormException(loc,
           "Form " + tag.toParseString +
           " requires either key " + toESymbol(key1) +
           " or " + toESymbol(key2) +
           " (not both), but both were given.")
     }
     if (!has1 && !has2) {
-      throw new SpecialFormException(
+      throw new SpecialFormException(loc,
           "Form " + tag.toParseString +
           " requires either key " + toESymbol(key1) +
           " or " + toESymbol(key2) +
@@ -199,13 +203,13 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
       case None => default match {
         case Some(value) => value
         case None =>
-	        throw new SpecialFormException(
+	        throw new SpecialFormException(loc,
 	            "Form " + tag.toParseString +
 	            " requires key " + toESymbol(key) + " but it was not given.")
       }
       case Some(item) =>
         if (mTYPE >:> Manifest.classType(key.getClass))
-          throw new SpecialFormException(
+          throw new SpecialFormException(loc,
               "The value for key " + toESymbol(key) + " of form " +
               tag.toParseString + " is of the wrong type: " +
               item.toParseString + ". Expected " + mTYPE.toString +
@@ -216,20 +220,27 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
   }
   
   /**
+   * Determine whether the given key is present in this holder.
+   * @param key   The key to check.
+   * @return  True iff the key is present.
+   */
+  def has(key: String) = content.contains(key)
+  
+  /**
    * Extract a special form instance from this holder.  This directly creates
    * a special form; it does not interpret it based on the tag.  If the latter
    * is what you want, use the `interpret` method.
    * 
    * @return	The special form instance.
    */
-  def toSpecialForm() = new SpecialForm(tag, content)
+  def toSpecialForm() = new SpecialForm(loc, tag, content)
   
   /**
    * Interpret this based on the tag, and return the resulting special form.
    * 
    * @return	The correct atom based on the tag.
    */
-  def interpret = SpecialForm(tag, content)
+  def interpret = SpecialForm(loc, tag, content)
 }
 
 /**
@@ -241,11 +252,12 @@ class BindingsHolder(val tag: BasicAtom, val content: BindingsAtom) {
  * 
  * A special form is a pair of atoms.
  * 
+ * @param loc     The location where this special form arose.
  * @param tag			The tag identifying this particular form.
  * @param content	The content of the atom.
  */
-class SpecialForm(val tag: BasicAtom, val content: BasicAtom)
-extends BasicAtom {
+class SpecialForm(loc: Loc, val tag: BasicAtom, val content: BasicAtom)
+extends BasicAtom(loc) {
 
   lazy val depth = (tag.depth max content.depth) + 1
   lazy val deBruijnIndex = tag.deBruijnIndex max content.deBruijnIndex
@@ -278,29 +290,27 @@ extends BasicAtom {
   }
 	
   def rewrite(binds: Bindings) = {
-    ReplActor ! ("Eva","pushTable","SpecialForm rewrite")
-    ReplActor ! ("Eva", "addToSubroot", ("rwNode", "SpecialForm rewrite: "))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "tag", "Tag: ", tag))
-    ReplActor ! ("Eva", "addTo", ("rwNode", "content", "Content: ", content))
-    
-    ReplActor ! ("Eva", "setSubroot", "tag")
     val newtag = tag.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("tag", "", newtag._1))
-    
-    ReplActor ! ("Eva", "setSubroot", "content") 
     val newcontent = content.rewrite(binds)
-    ReplActor ! ("Eva", "addTo", ("content", "", newcontent._1)) 
-	
     if (newtag._2 || newcontent._2) {
-      ReplActor ! ("Eva", "setSubroot", "rwNode") 
-      val newSF = SpecialForm(newtag._1, newcontent._1)
-      ReplActor ! ("Eva", "addTo", ("rwNode", "", newSF))
-      
-      ReplActor ! ("Eva", "popTable", "SpecialForm rewrite")
-      (newSF, true)
+      (SpecialForm(loc, newtag._1, newcontent._1), true)
     } else {
-      ReplActor ! ("Eva", "popTable", "SpecialForm rewrite")
       (this, false)
+    }
+  }
+  
+  def replace(map: Map[BasicAtom, BasicAtom]) = {
+    map.get(this) match {
+      case Some(atom) =>
+        (atom, true)
+      case None =>
+        val (newtag, flag1) = tag.replace(map)
+        val (newcontent, flag2) = content.replace(map)
+        if (flag1 || flag2) {
+          (SpecialForm(loc, newtag, newcontent), true)
+        } else {
+          (this, false)
+        }
     }
   }
 }
@@ -315,12 +325,13 @@ object SpecialForm {
   /**
    * Make the appropriate object from the special form data.
    * 
+   * @param loc       The location where this special form arose.
    * @param tag				The form tag.
    * @param content		The content.
    * @return	The constructed special form.
    */
-  def apply(tag: BasicAtom, content: BasicAtom) = {
-    val sfh = new SpecialFormHolder(tag, content)
+  def apply(loc: Loc, tag: BasicAtom, content: BasicAtom) = {
+    val sfh = new SpecialFormHolder(loc, tag, content)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {
 	      case 'map => MapStrategy(sfh)

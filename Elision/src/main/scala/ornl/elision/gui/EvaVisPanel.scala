@@ -87,7 +87,7 @@ class EvaVisPanel extends GamePanel {
     /** Each "Level" represents one of Eva's modes. */
     override def makeLevelInstance(levelName : String) : Level = {
         if(levelName == "EliTreeVis")
-            new elision.EliTreeVisPanel(this)
+            new elision.EliTreeVisLevel(this)
         else // default takes the user to the Welcome screen.
             new welcome.WelcomePanel(this)
     }
