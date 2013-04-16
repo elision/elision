@@ -83,6 +83,11 @@ object ReplMain {
    */
   private val _switches = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
+      Switch(Some("noboot"), Some('N'), "Suppress bootstrapping.",
+          () => {
+            ProcessorControl.bootstrap = false
+            None
+          }),
       Switch(Some("exit"), Some('x'), "Force exit at end of main.",
           () => {
             _forceExit = true
