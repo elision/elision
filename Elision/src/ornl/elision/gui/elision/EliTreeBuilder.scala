@@ -234,7 +234,7 @@ object TreeBuilderActor extends Actor {
       return
     }
       
-    System.out.println("\nLoading tree from: " + file.getPath + "\n")
+    mainGUI.consolePanel.console.emitln("\nLoading tree from: " + file.getPath + "\n")
      
     // get a reference to the tree visualization panel
     val treeVisPanel : TreeVisLevel = mainGUI.visPanel.curLevel match {
@@ -283,9 +283,9 @@ object TreeBuilderActor extends Actor {
         GUIActor ! ("loading", false)
         
         if(success) 
-            System.out.println("\nSaved the current tree to: " + filePath + "\n")
+            mainGUI.consolePanel.console.emitln("\nSaved the current tree to: " + filePath + "\n")
         else 
-            System.out.println("Failed to save the current tree.\n")
+            mainGUI.consolePanel.console.emitln("Failed to save the current tree.\n")
     }
     GUIActor ! "newPrompt"
   }
@@ -308,8 +308,8 @@ object TreeBuilderActor extends Actor {
         GUIActor ! ("loading", true)
         val success = TreeFileIO.saveToFileJSON(treeVisPanel.treeSprite, filePath)
         GUIActor ! ("loading", false)
-        if(success) System.out.println("\nSaved the current tree to: " + filePath + "\n")
-        else System.out.println("Failed to save the current tree.\n")
+        if(success) mainGUI.consolePanel.console.emitln("\nSaved the current tree to: " + filePath + "\n")
+        else mainGUI.consolePanel.console.emitln("Failed to save the current tree.\n")
     }
     GUIActor ! "newPrompt"
   }
