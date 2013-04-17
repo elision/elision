@@ -27,15 +27,22 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.core
+package ornl.elision.context
 
 import java.io.File
 import java.io.FileWriter
+import scala.Array.canBuildFrom
 import scala.tools.nsc.reporters.ConsoleReporter
 import scala.tools.nsc.Global
 import scala.tools.nsc.Settings
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.ApplyData
+import ornl.elision.core.knownExecutor
+import ornl.elision.core.toEString
+import ornl.elision.core.toESymbol
+import ornl.elision.core.NativeHandlerException
 
 /**
  * Trait for all handlers.
@@ -84,7 +91,7 @@ object NativeCompiler {
     val key = getKey(source, operator, handler)
     // Write the prelude.
     app.append(makeObject(source, operator, key, makeMethod(handler)))
-    app.append("ornl.elision.core.NativeCompiler.stash(%s, %s, %s, %s)\n" format (
+    app.append("ornl.elision.context.NativeCompiler.stash(%s, %s, %s, %s)\n" format (
         toEString(source), toEString(operator), toEString(handler),
         key))
   }
@@ -136,6 +143,7 @@ object NativeCompiler {
        | * Operator source: %s
        | * Created on: %s
        | */
+       |import ornl.elision.context.{HandlerClass, Context}
        |import ornl.elision.core._
        |import ornl.elision.util.Loc
        |object %s extends HandlerClass {
@@ -153,7 +161,7 @@ object NativeCompiler {
  * which must specify the configuration option `elision.cache`.
  */
 class NativeCompiler {
-  import NativeCompiler._
+  import NativeCompiler.{getKey, makeObject, makeMethod}
   
   /** Location of the native cache. */
   private val _cache = new File(knownExecutor.getSetting("elision.cache"))

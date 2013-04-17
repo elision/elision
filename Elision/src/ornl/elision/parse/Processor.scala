@@ -30,7 +30,9 @@
 package ornl.elision.parse
 
 import ornl.elision.actors.ReplActor
-import ornl.elision.core._
+import ornl.elision.context.Context
+import ornl.elision.context.Executor
+import ornl.elision.core.BasicAtom
 import ornl.elision.util.Console
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.FileResolver
@@ -39,6 +41,7 @@ import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasHistory
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Version
+import ornl.elision.util.Loc
 
 /**
  * Manage the default parser kind to use.
@@ -110,6 +113,13 @@ with HasHistory {
   declareProperty("rewrite_timeout",
       "The maximum time to try rewriting an atom. In seconds.",
       BigInt(0))
+
+  // This property is used in ACMatcher.scala to decide whether to quickly (and 
+  // sometimes erroneously) terminate matching.
+  declareProperty("rewrite_aggressive_fail",
+      "Whether to aggresively fail fast while rewriting. " +
+      "If true, some rewrites may not be applied",
+      false)
       
   /** Whether to trace the parser. */
   private var _trace = false
@@ -228,7 +238,7 @@ with HasHistory {
    * 					An error occurred trying to read.
    */
   def read(source: scala.io.Source, filename: String = "(console)") {
-    _execute(_makeParser(filename).parseAtoms(source)) 
+    _execute(_makeParser(filename).parseAtoms(source), true) 
   }
   
   /**
@@ -294,9 +304,12 @@ with HasHistory {
   /**
    * Perform actions based on what got parsed.
    * 
-   * @param result  Result of most recent parse.
+   * @param result      Result of most recent parse.
+   * @param stoponerror If true, immediately stop when an error is found.
+   *                    This is accomplished by throwing an exception to
+   *                    be caught at a higher level.
    */
-  private def _execute(result: Presult) {
+  private def _execute(result: Presult, stoponerror: Boolean = false) {
     import ornl.elision.util.ElisionException
     startTimer
     try {
@@ -307,6 +320,7 @@ with HasHistory {
   			case Success(nodes) =>
   			  // We assume that there is at least one handler; otherwise not much
   			  // will happen.  Process each node.
+  			  console.reset
   			  for (node <- nodes) {
   			    _handleNode(node) match {
   			      case None =>
@@ -319,6 +333,10 @@ with HasHistory {
   			            // Hand off the node.
   			            _result(newatom)
   			        }
+  			    }
+  			    // Watch for errors.  If we are stopping on errors, stop.
+  			    if (stoponerror && console.errors > 0) {
+  			      throw new ElisionException(Loc.internal, "Stopping due to errors.")
   			    }
   			  } // Process all the nodes.
     	}

@@ -36,8 +36,15 @@
 ======================================================================
 * */
 package ornl.elision.core.matcher
-import ornl.elision.core._
+
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fail
+import ornl.elision.core.Many
+import ornl.elision.core.Match
+import ornl.elision.core.MatchIterator
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.OmitSeq.fromIndexedSeq
 
 /**
  * Match unbindable atoms in a sequence of patterns to the unbindable atoms

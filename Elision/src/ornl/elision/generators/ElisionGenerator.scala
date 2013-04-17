@@ -29,7 +29,44 @@
  */
 package ornl.elision.generators
 
-import ornl.elision.core._
+import ornl.elision.core.ANY
+import ornl.elision.core.AlgProp
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BINDING
+import ornl.elision.core.BITSTRING
+import ornl.elision.core.BOOLEAN
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.BindingsAtom
+import ornl.elision.core.BitStringLiteral
+import ornl.elision.core.BooleanLiteral
+import ornl.elision.core.FLOAT
+import ornl.elision.core.FloatLiteral
+import ornl.elision.core.Generator
+import ornl.elision.core.INTEGER
+import ornl.elision.core.IntegerLiteral
+import ornl.elision.core.Lambda
+import ornl.elision.core.Literal
+import ornl.elision.core.MapPair
+import ornl.elision.core.NONE
+import ornl.elision.core.NamedRootType
+import ornl.elision.core.OPREF
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.RSREF
+import ornl.elision.core.RULETYPE
+import ornl.elision.core.RulesetRef
+import ornl.elision.core.STRATEGY
+import ornl.elision.core.STRING
+import ornl.elision.core.SYMBOL
+import ornl.elision.core.SpecialForm
+import ornl.elision.core.StringLiteral
+import ornl.elision.core.SymbolLiteral
+import ornl.elision.core.TypeUniverse
+import ornl.elision.core.Variable
+import ornl.elision.core.knownExecutor
+import ornl.elision.core.toEString
+import ornl.elision.core.toESymbol
+import ornl.elision.core.unwrapBindingsAtom
 
 /**
  * Generate the Elision code to create an atom.

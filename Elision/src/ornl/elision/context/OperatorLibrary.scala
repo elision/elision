@@ -34,9 +34,22 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.core
+package ornl.elision.context
+
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.immutable.List
+import ornl.elision.core.SymbolicOperator.LIST
+import ornl.elision.core.SymbolicOperator.MAP
+import ornl.elision.core.SymbolicOperator.xx
+import ornl.elision.core.CaseOperator
+import ornl.elision.core.Fickle
+import ornl.elision.core.Mutable
+import ornl.elision.core.Operator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.SymbolicOperator
+import ornl.elision.core.giveMkParseString
+import ornl.elision.core.knownExecutor
+import ornl.elision.core.toESymbol
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
 
@@ -82,7 +95,7 @@ extends ElisionException(loc, msg)
  */
 class OperatorLibrary(val allowRedefinition: Boolean = true)
 extends Fickle with Mutable {
-
+  
   /**
    * The mapping from operator name to operator.  This holds the mapping as it
    * changes.
@@ -150,9 +163,7 @@ extends Fickle with Mutable {
  	 * @return  The list of all operators.
  	 */
  	def getAllOperators() = {
- 	  var all = List[Operator]()
- 	  for ((_, op) <- _nameToOperator) all :+= op.operator
- 	  all
+ 	  _opRefList.reverse.map(_.operator)
  	}
  	
  	/**

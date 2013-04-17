@@ -44,15 +44,15 @@ import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.context.Context
+import ornl.elision.context.Executor
 
 /**
  * The core classes and definitions that make up the Elision runtime.
  * 
+ * The purpose of this package is to define all basic atoms.
+ * 
  * == Design Goals ==
- *  - Every atom that can be programmatically created can be written using
- *    the toParseString, and the result can be parsed by AtomParser.
- *  - Every atom that can be programmatically created has a toString method
- *    that generates valid Scala code to reproduce the atom.
  *  - Avoid global data and singletons.
  *  - Simple API.
  */

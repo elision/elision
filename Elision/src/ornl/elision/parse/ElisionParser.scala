@@ -29,10 +29,18 @@
  */
 package ornl.elision.parse
 
-import org.parboiled.scala.{ANY => PANY}
-import org.parboiled.scala._
-import org.parboiled.errors.ErrorUtils
 import scala.io.Source
+import org.parboiled.scala.{ANY => PANY}
+import org.parboiled.scala.Parser
+import org.parboiled.scala.Rule0
+import org.parboiled.scala.Rule1
+import org.parboiled.scala.ReportingParseRunner
+import org.parboiled.scala.EOI
+import org.parboiled.scala.SuppressNode
+import org.parboiled.scala.TracingParseRunner
+import org.parboiled.scala.&
+import org.parboiled.scala.group
+import org.parboiled.errors.ErrorUtils
 import org.parboiled.Context
 import ornl.elision.util.Loc
 

@@ -29,8 +29,8 @@
  */
 package ornl.elision.parse
 
+import ornl.elision.context.Context
 import ornl.elision.core.BasicAtom
-import ornl.elision.core.Context
 import ornl.elision.core.MapPair
 import ornl.elision.core.AlgProp
 import ornl.elision.core.Absorber
@@ -62,9 +62,9 @@ import ornl.elision.core.INTEGER
 import ornl.elision.core.FLOAT
 import ornl.elision.core.NamedRootType
 import ornl.elision.core.BOOLEAN
-import ornl.elision.util.Loc
 import ornl.elision.core.BITSTRING
 import ornl.elision.core.BitStringLiteral
+import ornl.elision.util.Loc
 
 
 /**

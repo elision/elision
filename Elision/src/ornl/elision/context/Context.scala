@@ -35,14 +35,32 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================
 * */
-package ornl.elision.core
+package ornl.elision.context
 
-import ornl.elision.util.ElisionException
+import scala.collection.mutable.Set
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fickle
+import ornl.elision.core.Operator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.RewriteRule
+import ornl.elision.core.RulesetRef
+import ornl.elision.core.SymbolicOperator
+import ornl.elision.core.TypedSymbolicOperator
+import ornl.elision.core.AtomWalker
+import ornl.elision.core.Literal
+import ornl.elision.core.MapPair
+import ornl.elision.core.SymbolLiteral
+import ornl.elision.core.toEString
+import ornl.elision.core.Variable
 import ornl.elision.generators.ScalaGenerator
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.util.Cache
 import ornl.elision.util.Version
-import scala.collection.mutable.Set
+import ornl.elision.util.Version.build
+import ornl.elision.util.Version.major
+import ornl.elision.util.Version.minor
+import ornl.elision.util.toQuotedString
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -240,88 +258,14 @@ class Context extends Fickle with Mutable with Cache {
   }
   
   /**
-   * Write the context to the given appendable.
+   * Write the context to the given appendable, as Scala source.  This assumes
+   * that the context is available as `context`, and consists of the commands
+   * to create the context.
    * 
-   * The purpose of this is to write a compilable version of the entire context
-   * as a single object that, when executed, creates and returns a complete
-   * context object.  While this is effective for those items that are
-   * contained in the context, it does not necessarily capture those items
-   * contained in the executor.
-   * 
-   * The basic structure of the file that is created is the following.
-   * 
-   * {{{
-   * object SC21e4fe213a6c {
-   *   def generate(): Context
-   * }
-   * }}}
-   * 
-   * After loading the context, the `generate` method will create a new context
-   * object, populating the operator library, the rule library, the bindings,
-   * and the cache.
-   * 
-   * @param objname The name to use for the object.
    * @param app     The appendable to get the context.  By default a new string
    *                buffer is created.
    */
-  def write(objname: String, app: Appendable = new StringBuffer) = {
-    // Write boilerplate.
-    import Version._
-    val prop = System.getProperties
-    app.append(
-        """|/**
-           | * Saved context source.  This source file was automatically created.
-           | * Elision is Copyright (c) UT-Battelle, LLC.  All rights reserved.
-           | *
-           | *  - Created on: %s
-           | *  - Elision version: %s
-           | *  - Elision build: %s
-           | *  - Scala version: %s
-           | *  - Java vendor: %s
-           | *  - Java version: %s
-           | *  - OS name: %s
-           | *  - OS version: %s
-           | *  - Architecture: %s
-           | */
-           |import ornl.elision.core._
-           |import ornl.elision.util.Loc
-           |import ornl.elision.repl._
-           |import ornl.elision.parse.ProcessorControl
-           |object %s {
-           |  def main(args: Array[String]) {
-           |    // Process the command line arguments.
-           |    ReplMain.prep(args) match {
-           |      case None =>
-           |      case Some(settings) =>
-           |        // Build a REPL.
-           |        val repl = new ERepl(settings)
-           |        // Install the REPL.
-           |        knownExecutor = repl
-           |        // Reset the context and then populate it.
-           |        repl.context = new Context()
-           |        populate(repl.context)
-           |        // Start the REPL, but don't bootstrap.
-           |        ProcessorControl.bootstrap = false
-           |        repl.run()
-           |        // Done!
-           |        repl.clean()
-           |    }
-           |  }
-           |  def populate(context: Context) {
-           |""".stripMargin format (
-               new java.util.Date,
-               major+"."+minor,
-               build,
-               util.Properties.versionString,
-               prop.get("java.vendor"),
-               prop.get("java.version"),
-               prop.get("os.name"),
-               prop.get("os.version"),
-               prop.get("os.arch"),
-               objname
-               )
-           )
-           
+  def write(app: Appendable = new StringBuffer) = {
     // Now we can append the code to create the context.  To do this, we first
     // traverse the rule list and generate all the rules, in the order they are
     // present in the library.
@@ -364,10 +308,6 @@ class Context extends Fickle with Mutable with Cache {
     app.append(included map (toQuotedString(_)) mkString (","))
     app.append(")\n")
     app.append("    context.stash(\"read_once.included\", set)\n")
-    
-    // Done.  Close up the object.
-    app.append("  } // End of populate.\n")
-    app.append("} // End of object.\n")
   }
   
   /**
@@ -426,27 +366,10 @@ class Context extends Fickle with Mutable with Cache {
    */
   def traverse(app: Appendable, target: BasicAtom, known: Known,
       kind: Symbol, withhandler: Boolean = true): Known = {
-    // Skip known stuff.
-    if (known(target)) return known
-    
-    // (1) Skip over internally defined operators (MAP, LIST, xx).  These are
-    //     SymbolicOperators, but not TypedSymbolicOperators.
-    // (2) For operator references actually traverse the operator.
-    target match {
-      case tso: TypedSymbolicOperator =>
-        
-      case so: SymbolicOperator =>
-        return known
-        
-      case or: OperatorRef =>
-        return traverse(app, or.operator, known, kind)
-        
-      case _ =>
-    }
-
-    // Keep a version of known we can modify.  Then we will add known stuff
-    // as we write it.
-    var newknown = known
+    // Go and get the items, in the order they should be declared.
+    val pair = collect(target, known, List())
+    val newknown = pair._1
+    val thelist = pair._2
     
     // Boilerplate text for both cases.
     val pre = Map(
@@ -457,33 +380,136 @@ class Context extends Fickle with Mutable with Cache {
         'elision -> ")",
         'scala -> ")")
     
-    // A visitor to collect mentioned operators.  Note that the symbolic
-    // operators are hard-coded, and we never write them.
-    def collector(atom: BasicAtom, istype: Boolean) = {
+    // Write the atoms.
+    for (atom <- thelist) {
+      // Write each atom.  If we are writing Scala code, the handler is requested,
+      // and this is an operator with a handler, then create and write the handler
+      // object now so it gets compiled along with everything else.
+      if (kind == 'scala && withhandler) {
+        target match {
+          case tso: TypedSymbolicOperator =>
+            // See if the operator has a native handler.
+            tso.handlertxt match {
+              case Some(text) =>
+                // Found a handler.  Convert it to an object and write it in the
+                // stream.
+                NativeCompiler.writeStash(tso.loc.source, tso.name, text, app)
+                
+              case _ =>
+            }
+            
+          case _ =>
+        }
+      }
+      app.append(pre(kind))
+      kind match {
+        case 'scala =>
+          // Ruleset references are unusual.  We need to process them as symbols.
+          // The reason for this is that there is no corresponding atom to
+          // convert them into, like there is for operator references.  See
+          // the declare method for how this is handled.
+          val what = target match {
+            case rr: RulesetRef => Literal(Symbol(rr.name))
+            case x => x
+          }
+          ScalaGenerator(what, app)
+          
+        case _ =>
+          // Ruleset references are unusual.  We need to process them as symbols.
+          // The reason for this is that there is no corresponding atom to
+          // convert them into, like there is for operator references.  See
+          // the declare method for how this is handled.
+          val what = target match {
+            case rr: RulesetRef => Literal(Symbol(rr.name))
+            case x => x
+          }
+          ElisionGenerator(what, app)
+      }
+      app.append(post(kind)).append('\n')
+    } // Write all atoms, in order.
+    newknown
+  }
+  
+  /**
+   * Construct a list of all an atom's dependencies, including the atom itself.
+   * The dependencies considered are operators, rulesets, etc.  The list is
+   * returned in the order the atoms should be declared.
+   * 
+   * The idea is that by processing the resulting declarations in order the
+   * same atom is reconstructed.  Internally-defined operators are instances
+   * of [[ornl.elision.core.SymbolicOperator]], and these are skipped.
+   * 
+   * @param target      The atom.
+   * @param known       The known items.
+   * @param initial     Initial content of the list - possibly including a
+   *                    prior execution.
+   * @return  The updated list (based on initial) and known. 
+   */
+  def collect(target: BasicAtom, known: Known,
+      initial: List[BasicAtom]): (Known, List[BasicAtom]) = {
+    // Skip known stuff.
+    if (known(target)) return (known, initial)
+    
+    // (1) Skip over internally defined operators (MAP, LIST, xx).  These are
+    //     SymbolicOperators, but not TypedSymbolicOperators.
+    // (2) For operator references actually traverse the operator.
+    target match {
+      case tso: TypedSymbolicOperator =>
+        
+      case so: SymbolicOperator =>
+        return (known, initial)
+        
+      case or: OperatorRef =>
+        return collect(or.operator, known, initial)
+        
+      case _ =>
+    }
+
+    // Keep a version of known we can modify.  Then we will add known stuff
+    // as we write it.
+    var newknown = known
+    var newlist = initial
+    
+    // A visitor to collect mentioned stuff.  Note that the symbolic
+    // operators are hard-coded, and we never collect them.
+    def visitor(atom: BasicAtom, istype: Boolean) = {
       if (atom != target) {
         atom match {
           case op: TypedSymbolicOperator =>
-            if (! known(op))
-              newknown = traverse(app, op, newknown, kind)
+            if (! known(op)) {
+              val pair = collect(op, newknown, newlist)
+              newknown = pair._1
+              newlist = pair._2
+            }
               
           case sop: SymbolicOperator =>
             
           case op: Operator =>
-            if (! known(op))
-              newknown = traverse(app, op, newknown, kind)
+            if (! known(op)) {
+              val pair = collect(op, newknown, newlist)
+              newknown = pair._1
+              newlist = pair._2
+            }
               
           case or: OperatorRef =>
             val op = or.operator
-            if (! known(op))
-              newknown = traverse(app, op, newknown, kind)
+            if (! known(op)) {
+              val pair = collect(op, newknown, newlist)
+              newknown = pair._1
+              newlist = pair._2
+            }
               
           case rs: RulesetRef =>
             if (! known(rs)) {
-              newknown = traverse(app, rs, newknown, kind)
+              val pair = collect(rs, newknown, newlist)
+              newknown = pair._1
+              newlist = pair._2
             }
               
           case rule: RewriteRule =>
-            newknown = traverse(app, rule, newknown, kind)
+              val pair = collect(rule, newknown, newlist)
+              newknown = pair._1
+              newlist = pair._2
               
           case _ =>
         }
@@ -491,73 +517,31 @@ class Context extends Fickle with Mutable with Cache {
       true
     }
     
-    // Write all the atoms this atom depends on.
+    // Collect all the atoms this atom depends on.
     target match {
       case opref: OperatorRef =>
-        AtomWalker(opref.operator, collector)
+        AtomWalker(opref.operator, visitor, true)
         
       case rule: RewriteRule =>
         for (rsname <- rule.rulesets) {
-          AtomWalker(RulesetRef(this.ruleLibrary, rsname), collector)
+          AtomWalker(RulesetRef(this.ruleLibrary, rsname), visitor, true)
         } // Explore all the referenced rulesets.
-        AtomWalker(target, collector)
+        AtomWalker(target, visitor, true)
         
       case _ =>
-        AtomWalker(target, collector)
+        AtomWalker(target, visitor, true)
     }
     
-    // Write this atom.  If we are writing Scala code, the handler is requested,
-    // and this is an operator with a handler, then create and write the handler
-    // object now so it gets compiled along with everything else.
-    if (kind == 'scala && withhandler) {
-      target match {
-        case tso: TypedSymbolicOperator =>
-          // See if the operator has a native handler.
-          tso.handlertxt match {
-            case Some(text) =>
-              // Found a handler.  Convert it to an object and write it in the
-              // stream.
-              NativeCompiler.writeStash(tso.loc.source, tso.name, text, app)
-              
-            case _ =>
-          }
-          
-        case _ =>
-      }
-    }
-    app.append(pre(kind))
-    kind match {
-      case 'scala =>
-        // Ruleset references are unusual.  We need to process them as symbols.
-        // The reason for this is that there is no corresponding atom to
-        // convert them into, like there is for operator references.  See
-        // the declare method for how this is handled.
-        val what = target match {
-          case rr: RulesetRef => Literal(Symbol(rr.name))
-          case x => x
-        }
-        ScalaGenerator(what, app)
-        
-      case _ =>
-        // Ruleset references are unusual.  We need to process them as symbols.
-        // The reason for this is that there is no corresponding atom to
-        // convert them into, like there is for operator references.  See
-        // the declare method for how this is handled.
-        val what = target match {
-          case rr: RulesetRef => Literal(Symbol(rr.name))
-          case x => x
-        }
-        ElisionGenerator(what, app)
-    }
-    app.append(post(kind)).append('\n')
+    // Write this atom.
+    newlist :+= target
     
     // This is now a known operator or ruleset - if that's what it is.
-    return target match {
+    return (target match {
       case op: Operator => newknown + op
       case opref: OperatorRef => newknown + opref.operator
       case rs: RulesetRef => newknown + rs
       case _ => newknown
-    }
+    }, newlist)
   }
 
   //======================================================================
@@ -630,7 +614,7 @@ class Context extends Fickle with Mutable with Cache {
    */
   override def toString = {
     val buf = new StringBuffer
-    write("SavedContext", buf)
+    write(buf)
     buf.toString()
   }
 }

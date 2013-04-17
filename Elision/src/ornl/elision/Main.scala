@@ -29,14 +29,14 @@
  */
 package ornl.elision
 import scala.collection.mutable.StringBuilder
-import ornl.elision.util.Text
-import ornl.elision.cli.Switch
-import ornl.elision.cli.ArgSwitch
-import ornl.elision.util.Debugger
-import ornl.elision.util.Version
-import ornl.elision.parse.ProcessorControl
 import ornl.elision.cli.CLI
+import ornl.elision.cli.Switch
 import ornl.elision.cli.Setting
+import ornl.elision.cli.ArgSwitch
+import ornl.elision.util.Text
+import ornl.elision.util.Version
+import ornl.elision.util.Debugger
+import ornl.elision.parse.ProcessorControl
 
 /**
  * This is the entry point when running from the jar file.  This also provides
@@ -78,11 +78,6 @@ object Main extends App {
   // Define the special global switches that can come before the command.
   private val _globals = Seq(
       Switch(Some("help"), Some('h'), "Provide basic usage information.", _usage _),
-      Switch(Some("noboot"), Some('N'), "Suppress bootstrapping.",
-          () => {
-            ProcessorControl.bootstrap = false
-            None
-          }),
       ArgSwitch(Some("debug"), Some('d'), "Enable a debugging tag.", "TAG",
           (tag: String) => {
             Debugger.enableDebugModes(tag, Debugger.Mode.ON)

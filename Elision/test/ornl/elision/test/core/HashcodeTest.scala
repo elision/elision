@@ -27,19 +27,18 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.core;
+package ornl.elision.test.core;
 
-import org.scalatest.junit.AssertionsForJUnit
-import scala.collection.mutable.ListBuffer
-import org.junit.Assert._
-import org.junit.Test
-import org.junit.Before
 import scala.collection.mutable.BitSet
-import ornl.elision.repl.ERepl
-import java.net.{ Socket, ServerSocket }
-import java.util.concurrent.{ Executors, ExecutorService }
-import java.util.Date
-import java.util.concurrent.TimeUnit
+
+import org.junit.Test
+import org.scalatest.junit.AssertionsForJUnit
+
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Lambda
+import ornl.elision.core.Variable
+import ornl.elision.core.strToLiteral
+
 /**
  * @author jb9
  *

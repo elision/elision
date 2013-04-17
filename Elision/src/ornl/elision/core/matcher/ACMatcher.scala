@@ -36,9 +36,21 @@
 ======================================================================
 * */
 package ornl.elision.core.matcher
-import ornl.elision.core._
-import ornl.elision.util.OmitSeq
-import scala.collection.immutable.Vector
+
+import scala.annotation.tailrec
+
+import ornl.elision.core.knownExecutor
+import ornl.elision.core.Apply
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.BasicAtom
+import ornl.elision.core.Bindings
+import ornl.elision.core.Fail
+import ornl.elision.core.Many
+import ornl.elision.core.Match
+import ornl.elision.core.MatchIterator
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.Outcome
+import ornl.elision.core.Variable
 import ornl.elision.util.Debugger
 
 /**
@@ -171,16 +183,22 @@ object ACMatcher {
         val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
         val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
 
-//        // If there is exactly one pattern then match it immediately.
-//        if (pats.atoms.length == 1) {
-//          return pats.atoms(0).tryMatch(op match {
-//            case Some(opref) =>
-//              Apply(opref, subs)
-//            case None =>
-//              subs
-//          }, (bindings ++ binds))
-//        }
-        
+        // Are we trying to aggresively fail ACMatching at the risk of not matching something
+        // that could match?
+        if (knownExecutor.getProperty[Boolean]("rewrite_aggressive_fail").asInstanceOf[Boolean]) {
+
+          // If there is exactly one pattern then match it immediately. Note that there could
+          // be other matches left in the unbindable matcher, which we are now skipping.
+          if (pats.atoms.length == 1) {
+            return pats.atoms(0).tryMatch(op match {
+              case Some(opref) =>
+                Apply(opref, subs)
+              case None =>
+                subs
+            }, (bindings ++ binds))
+          }
+        }
+
         // If there are no patterns, and all subjects have been
         // matched, there is nothing to do.  If there are no patterns,
         // and all subjects have NOT been matched, there is no match.
@@ -309,7 +327,8 @@ object ACMatcher {
             }
             val pats1 = AtomSeq(plist.props, newPats)
             val subs1 = AtomSeq(slist.props, newSubs)
-            new ACMatchIterator(pats1, subs1, newBinds, op)
+            val tmp_match = new ACMatchIterator(pats1, subs1, newBinds, op)
+            tmp_match
           } else {
             
             // This set of bindings can never match. Return an empty iterator.

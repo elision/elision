@@ -39,15 +39,17 @@ package ornl.elision.core
 import scala.compat.Platform
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
-import ornl.elision.util.ElisionException
-import scala.tools.nsc.interpreter.Results
-import ornl.elision.util.OmitSeq
-import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.generators.ScalaGenerator
-import ornl.elision.generators.ElisionGenerator
 import scala.collection.mutable.{Set => MSet}
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
+import scala.tools.nsc.interpreter.Results
+import ornl.elision.context.NativeCompiler
+import ornl.elision.context.Executor
+import ornl.elision.core.matcher.SequenceMatcher
+import ornl.elision.generators.ScalaGenerator
+import ornl.elision.generators.ElisionGenerator
+import ornl.elision.util.ElisionException
+import ornl.elision.util.OmitSeq
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
 
