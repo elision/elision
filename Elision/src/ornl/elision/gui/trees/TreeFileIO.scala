@@ -140,7 +140,7 @@ object TreeFileIO {
       }
       catch {
           case ex : Throwable => 
-              System.out.println("" + ex)
+              System.err.println("" + ex)
               null
       }
   }
@@ -295,7 +295,7 @@ object TreeFileIO {
       }
       catch {
           case ex : Throwable => 
-              System.out.println("" + ex)
+              System.err.println("" + ex)
               null
       }
   }

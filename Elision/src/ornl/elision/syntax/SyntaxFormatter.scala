@@ -160,6 +160,11 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
           colors += color
         }
         
+        // Always chomp at least 1 character.
+        if(bestEnd <= 0) {
+          bestEnd = 1;
+        }
+        
         ends += chompedChars + bestEnd
         
         // consume the text we processed for applying the regex.
@@ -180,6 +185,10 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
    * @return          txt with linewrapping and indentation applied.
    */
   def _lineWrap(txt : String, maxCols : Int) : String = { 
+    if(maxCols <= 0) {
+      return txt
+    }
+    
     // consumed text data
     var edibleTxt = txt
     var result = ""
