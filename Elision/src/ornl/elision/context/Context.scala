@@ -61,6 +61,7 @@ import ornl.elision.util.Version.build
 import ornl.elision.util.Version.major
 import ornl.elision.util.Version.minor
 import ornl.elision.util.toQuotedString
+import ornl.elision.core.Dialect
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -412,7 +413,7 @@ class Context extends Fickle with Mutable with Cache {
             case rr: RulesetRef => Literal(Symbol(rr.name))
             case x => x
           }
-          ScalaGenerator(what, app)
+          Dialect.serialize('scala, app, what)
           
         case _ =>
           // Ruleset references are unusual.  We need to process them as symbols.
@@ -423,7 +424,7 @@ class Context extends Fickle with Mutable with Cache {
             case rr: RulesetRef => Literal(Symbol(rr.name))
             case x => x
           }
-          ElisionGenerator(what, app)
+          Dialect.serialize('elision, app, what)
       }
       app.append(post(kind)).append('\n')
     } // Write all atoms, in order.
