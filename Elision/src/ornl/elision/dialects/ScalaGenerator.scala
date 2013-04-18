@@ -34,7 +34,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.generators
+package ornl.elision.dialects
 
 import ornl.elision.core.ANY
 import ornl.elision.core.Absorber
@@ -52,7 +52,6 @@ import ornl.elision.core.CaseOperator
 import ornl.elision.core.Commutative
 import ornl.elision.core.FLOAT
 import ornl.elision.core.FloatLiteral
-import ornl.elision.core.Generator
 import ornl.elision.core.INTEGER
 import ornl.elision.core.Idempotent
 import ornl.elision.core.Identity
@@ -90,7 +89,7 @@ import ornl.elision.core.toEString
  * The result is assumed to be in an environment where
  * `import ornl.elision.core._` has been executed.
  */
-object ScalaGenerator extends Generator {
+object ScalaGenerator {
   
   /**
    * Generate the Scala code required to create a literal.  Certain well-known

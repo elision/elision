@@ -41,8 +41,6 @@ import scala.collection.immutable.HashSet
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
-import ornl.elision.generators.ElisionGenerator
-import ornl.elision.generators.ScalaGenerator
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
@@ -440,7 +438,8 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * 
    * @return	The string.
    */
-  def toParseString = ElisionGenerator.apply(this).toString
+  def toParseString =
+    Dialect.serialize('elision, new StringBuffer(), this).toString
   
   /**
    * Generate a parseable string from this atom.  The string is immediately
@@ -453,7 +452,7 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * @return  The appendable.
    */
   def toParseString(app: Appendable, limit: Int = -1) =
-    ElisionGenerator.apply(this, app, limit)
+    Dialect.serialize('scala, new StringBuffer(), this, limit)
     
   /**
    * Generate a parseable string from this atom.
@@ -464,14 +463,16 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * @return  The string.
    */
   def toParseString(limit: Int) =
-    Generator("elision", this, new StringBuffer, limit).toString
+    Dialect.serialize('elision, new StringBuffer(), this, limit).toString
   
   /**
    * Make a string that can be used to re-generate this atom.
    * 
    * @return  The string.
    */
-  override def toString = Generator("scala", this).toString
+  override def toString =
+    Dialect.serialize('scala, new StringBuffer(), this).toString
+
   
   /**
    * Recursively match the types.  This is unbounded recursion; it is expected

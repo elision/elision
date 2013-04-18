@@ -27,7 +27,7 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package ornl.elision.generators
+package ornl.elision.dialects
 
 import ornl.elision.core.ANY
 import ornl.elision.core.AlgProp
@@ -42,7 +42,6 @@ import ornl.elision.core.BitStringLiteral
 import ornl.elision.core.BooleanLiteral
 import ornl.elision.core.FLOAT
 import ornl.elision.core.FloatLiteral
-import ornl.elision.core.Generator
 import ornl.elision.core.INTEGER
 import ornl.elision.core.IntegerLiteral
 import ornl.elision.core.Lambda
@@ -77,7 +76,7 @@ import ornl.elision.core.unwrapBindingsAtom
  * The result is assumed to be in an environment where necessary precursor
  * context contents have been declared.
  */
-object ElisionGenerator extends Generator {
+object ElisionGenerator {
 
   /**
    * Generate the Elision-parseable string for a literal.

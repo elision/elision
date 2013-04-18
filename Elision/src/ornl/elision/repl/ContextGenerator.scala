@@ -36,7 +36,7 @@ import ornl.elision.core.RulesetRef
 import ornl.elision.core.TypedSymbolicOperator
 import ornl.elision.context.NativeCompiler
 import ornl.elision.core.Literal
-import ornl.elision.generators.ScalaGenerator
+import ornl.elision.dialects.ScalaGenerator
 
 /**
  * Generate compilable Scala source files for a context.

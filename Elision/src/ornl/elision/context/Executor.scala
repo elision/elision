@@ -35,6 +35,8 @@ import ornl.elision.core.BasicAtom
 import ornl.elision.util.ElisionException
 import ornl.elision.util.{Console, PropertyManager}
 import ornl.elision.util.Loc
+import ornl.elision.core.Dialect
+import scala.io.Source
 
 /**
  * A requested setting is not present.
@@ -65,9 +67,6 @@ extends ElisionException(Loc.internal, msg)
  */
 trait Executor extends PropertyManager {
   
-  /** A parse result. */
-  abstract sealed class ParseResult
-  
   /**
    * The settings, from the command line parser.
    */
@@ -83,20 +82,6 @@ trait Executor extends PropertyManager {
       classOf[BigInt],
       classOf[String],
       classOf[BasicAtom])
-  
-  /**
-   * The parse was successful.
-   * 
-   * @param nodes	The atoms parsed.
-   */
-  case class ParseSuccess(nodes: List[BasicAtom]) extends ParseResult
-  
-  /**
-   * The parse failed.
-   * 
-   * @param err	The reason for the parsing failure.
-   */
-  case class ParseFailure(err: String) extends ParseResult
   
   /**
    * Get a console native handlers can use.
@@ -120,7 +105,8 @@ trait Executor extends PropertyManager {
    * @param text		The text to parse.
    * @return	The sequence of atoms.
    */
-  def parse(name: String, text: String): ParseResult
+  def parse(name: String, text: String) =
+    Dialect.parse('elision, name, Source.fromString(text))
     
   /**
    * Get the value of a setting, which must be defined.  If the setting 

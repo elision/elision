@@ -30,18 +30,47 @@
 package ornl.elision.parse
 
 import scala.io.Source
+
+import org.parboiled.Context
+import org.parboiled.errors.ErrorUtils
+import org.parboiled.scala.{& => &}
 import org.parboiled.scala.{ANY => PANY}
+import org.parboiled.scala.EOI
 import org.parboiled.scala.Parser
+import org.parboiled.scala.ParsingResult.unwrap
+import org.parboiled.scala.ReportingParseRunner
 import org.parboiled.scala.Rule0
 import org.parboiled.scala.Rule1
-import org.parboiled.scala.ReportingParseRunner
-import org.parboiled.scala.EOI
 import org.parboiled.scala.SuppressNode
 import org.parboiled.scala.TracingParseRunner
-import org.parboiled.scala.&
 import org.parboiled.scala.group
-import org.parboiled.errors.ErrorUtils
-import org.parboiled.Context
+import org.parboiled.scala.source2Input
+
+import AST.BA
+import AST.absorber
+import AST.algprop
+import AST.any
+import AST.apply
+import AST.associative
+import AST.atomseq
+import AST.binding
+import AST.bitstring
+import AST.commutative
+import AST.idempotent
+import AST.identity
+import AST.known
+import AST.lambda
+import AST.mappair
+import AST.noprops
+import AST.number
+import AST.opref
+import AST.rsref
+import AST.special
+import AST.string
+import AST.sym
+import AST.typeuniverse
+import AST.variable
+import ornl.elision.core.boolToLiteral
 import ornl.elision.util.Loc
 
 /**

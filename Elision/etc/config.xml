@@ -52,12 +52,17 @@
 	<!-- Main classes information.  The list of entry points is found here.
 	     The first entry is the default to run if no command is specified.
 	     Each entry must be a main class. -->
-        <main name="repl" class="ornl.elision.repl.ReplMain" gui="false"
-                description="Start the command line REPL."/>
-        <main name="eva" class="ornl.elision.gui.mainGUI" gui="true"
-                description="Start the Elision Visualization Assistant (EVA)."/>
-        <main name="help" class="ornl.elision.Help" gui="false"
-                description="List commands supported by this version of Elision."/>
-        <main name="about" class="ornl.elision.About" gui="false"
-                description="About Elision."/>
+    <main name="repl" class="ornl.elision.repl.ReplMain" gui="false"
+            description="Start the command line REPL."/>
+    <main name="eva" class="ornl.elision.gui.mainGUI" gui="true"
+            description="Start the Elision Visualization Assistant (EVA)."/>
+    <main name="help" class="ornl.elision.Help" gui="false"
+            description="List commands supported by this version of Elision."/>
+    <main name="about" class="ornl.elision.About" gui="false"
+            description="About Elision."/>
+    <!-- Dialect information.  The list of dialects understood by the Elision
+         system is given here.  Each dialect must be provided by a class that
+         extends ornl.elision.core.Dialect. -->
+    <dialect name="elision" class="ornl.elision.dialects.ElisionDialect"/>
+    <dialect name="scala" class="ornl.elision.dialects.ScalaDialect"/>
 </configuration>

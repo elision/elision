@@ -46,8 +46,6 @@ import scala.tools.nsc.interpreter.Results
 import ornl.elision.context.NativeCompiler
 import ornl.elision.context.Executor
 import ornl.elision.core.matcher.SequenceMatcher
-import ornl.elision.generators.ScalaGenerator
-import ornl.elision.generators.ElisionGenerator
 import ornl.elision.util.ElisionException
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Debugger

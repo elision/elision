@@ -71,7 +71,9 @@ package object core {
     val console = PrintConsole 
     val context = new Context()
     val settings = Map[String,String]()
-    def parse(name: String, text: String): ParseResult = ParseFailure(
+    override def parse(name: String, text: String): Dialect.Result =
+      Dialect.Failure(
+        Loc.internal,
         "This default executor cannot parse text; override this with a full " +
         "executor implementation to properly support parsing from within " +
         "native operators.")

@@ -53,8 +53,8 @@ import ornl.elision.core.MapPair
 import ornl.elision.core.SymbolLiteral
 import ornl.elision.core.toEString
 import ornl.elision.core.Variable
-import ornl.elision.generators.ScalaGenerator
-import ornl.elision.generators.ElisionGenerator
+import ornl.elision.dialects.ScalaGenerator
+import ornl.elision.dialects.ElisionGenerator
 import ornl.elision.util.Cache
 import ornl.elision.util.Version
 import ornl.elision.util.Version.build

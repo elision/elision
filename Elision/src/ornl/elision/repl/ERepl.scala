@@ -39,6 +39,7 @@ import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
 import ornl.elision.parse.Processor
 import ornl.elision.parse.ProcessorControl
+import ornl.elision.util.Loc
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -456,10 +457,10 @@ extends Processor(state.settings) {
         val string = atom.toParseString
         // Parse this string.
         parse("", string) match {
-          case ParseFailure(msg) =>
+          case Dialect.Failure(Loc.internal, msg) =>
             console.error("Round trip testing failed for atom:\n  " + string +
                 "\nParsing terminated with an error:\n  " + msg + "\n")
-          case ParseSuccess(atoms) =>
+          case Dialect.Success(atoms) =>
             if (atoms.length < 1) {
               console.error("Round trip testing failed for atom:\n  " + string +
                   "\nParsing returned no atoms.")
