@@ -353,20 +353,20 @@ extends Processor(state.settings) {
       ReplActor.waitForGUI("formatting on")
     }
     
-//    if(getProperty[Boolean]("syntaxcolor")) {
-//      // color-format the atom's parseString and print it.
-//      val formatCols = console.width
-//      val formatRows = console.height
-//      val atomParseString = ConsoleStringFormatter.format(
-//          prefix + atom.toParseString, formatCols)
-//      ornl.elision.util.AnsiPrintConsole.width = formatCols
-//      ornl.elision.util.AnsiPrintConsole.height = formatRows
-//      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
-//      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-//    } else {
+    if(getProperty[Boolean]("syntaxcolor")) {
+      // color-format the atom's parseString and print it.
+      val formatCols = console.width
+      val formatRows = console.height
+      val atomParseString = ConsoleStringFormatter.format(
+          prefix + atom.toParseString, formatCols)
+      ornl.elision.util.AnsiPrintConsole.width = formatCols
+      ornl.elision.util.AnsiPrintConsole.height = formatRows
+      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
+      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
-//    }
+    }
     
     if(ReplActor.guiActor != null) {
       ReplActor ! ("syntaxcolor", false)

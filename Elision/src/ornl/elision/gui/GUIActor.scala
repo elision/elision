@@ -66,25 +66,25 @@ object GUIActor extends Actor {
 			  // Forcefully, but cleanly, terminate the current REPL's thread.
         case "quit" => 
           try {
-            System.out.println("\nQuitting " + mainGUI.mode + " mode...")
+            mainGUI.consolePanel.console.emitln("\nQuitting " + mainGUI.mode + " mode...")
             mainGUI.consolePanel.replThread.clean
           }
           catch {
-            case _ => System.out.println("quit ERROR: Unable to exit the REPL's current thread.")
+            case _ => mainGUI.consolePanel.console.emitln("quit ERROR: Unable to exit the REPL's current thread.")
           }
           
         // Switch to some other mode supported by Eva.
         case ("changeMode", mode : String) => 
           try {
-            System.out.println("\nChanging to " + mode + " mode...")
+            mainGUI.consolePanel.console.emitln("\nChanging to " + mode + " mode...")
             if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.clean
           }
           catch {
-            case _ => System.out.println("changeMode ERROR: Unable to exit the REPL's current thread.")
+            case _ => mainGUI.consolePanel.console.emitln("changeMode ERROR: Unable to exit the REPL's current thread.")
           }
           mainGUI.changeMode(mode)
           waitingForReplInput = false
-          System.out.println("Mode change was successful")
+          mainGUI.consolePanel.console.emitln("Mode change was successful")
         
         // Process a message based on what mode Eva is currently operating in.
         case theMsg : Any => 

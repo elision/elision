@@ -106,7 +106,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         replThread.start
       case "Welcome" => // ignore messages.
       case _ =>
-        System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
+        mainGUI.consolePanel.console.emitln("ConsolePanel error: Eva is not in a recognized mode.")
     }
   }
   
