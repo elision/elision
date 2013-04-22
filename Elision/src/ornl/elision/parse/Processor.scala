@@ -458,7 +458,7 @@ with HasHistory {
             os.arch={prop.get("os.arch").toString}
             version={major+"."+minor}
             build={build}
-            scala.version={util.Properties.versionString}
+            scala.version={scala.util.Properties.versionString}
           />
         val cont = <context>{context.toParseString}</context>
         val err = th match {
