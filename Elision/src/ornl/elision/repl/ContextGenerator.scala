@@ -131,7 +131,7 @@ object ContextGenerator {
                new java.util.Date,
                major+"."+minor,
                build,
-               util.Properties.versionString,
+               scala.util.Properties.versionString,
                prop.get("java.vendor"),
                prop.get("java.version"),
                prop.get("os.name"),

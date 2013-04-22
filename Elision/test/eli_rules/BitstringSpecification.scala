@@ -42,6 +42,7 @@ import ornl.elision.cli.CLI.CLIState
 import ornl.elision.parse.Processor._
 import ornl.elision.core.BasicAtom
 import util.ProcessorUtil
+import ornl.elision.core.Dialect
 
 /**
  * @author James Black
@@ -60,10 +61,12 @@ class BitStringSpecification extends Specification with ProcessorUtil {
     "atom rewritten for 8 bit number" in {
       val atoms = repl.parse("test1", teststr)
       atoms match {
-        case repl.ParseSuccess(atoms) =>
+        case Dialect.Success(atoms) =>
           println(atoms.toString)
-        case repl.ParseFailure(atoms) =>
-          println(atoms.head)
+        case Dialect.Failure(loc, msg) =>
+          // Not sure what should happen here, as no atoms are returned.
+          //   loc  This will hold the location of the parse failure.
+          //   msg  This will hold the failure message.
       }
     }
     val teststr2 = "bits(-5, 8)"
