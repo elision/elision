@@ -38,6 +38,7 @@ import scala.collection.mutable.HashMap
 import ornl.elision.cli.CLI.CLIState
 import ornl.elision.parse.Processor._
 import ornl.elision.core.BasicAtom
+import ornl.elision.core.Dialect
 /**
  * @author fxuser
  *
@@ -66,8 +67,8 @@ trait ProcessorUtil {
    * @return          A list of the atoms returned or an empty list if the
    *                  result was not a success.
    */
-  def toBasicAtom(result: repl.ParseResult)(success: BasicAtom => Unit)(failure: String => Unit) = result match {
-    case repl.ParseSuccess(atoms) =>
+  def toBasicAtom(result: Dialect.Result)(success: BasicAtom => Unit)(failure: String => Unit) = result match {
+    case Dialect.Success(atoms) =>
       val lib = repl.context.ruleLibrary
       val firstnode = atoms.head
       val ra = lib.rewrite(firstnode)._1
