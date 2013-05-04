@@ -100,12 +100,12 @@ object EvaClipboard extends ClipboardOwner {
             contents.getTransferData(DataFlavor.stringFlavor) match {
                 case str : String => 
                     str
-                case _ =>
+                case _: Throwable =>
                     ""
             }
         }
         catch {
-            case _ => // Pokemon exception: gotta catch 'em all!
+            case _: Throwable => // Pokemon exception: gotta catch 'em all!
                 ""
         }
     }

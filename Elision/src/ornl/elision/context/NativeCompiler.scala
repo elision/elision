@@ -66,9 +66,10 @@ object NativeCompiler {
    * @param operator  The operator name.
    * @param handler   The handler.
    * @param obj       The object to stash.
+   * @return	The key for the object stored.
    */
   def stash(source: String, operator: String, handler: String,
-      obj: HandlerClass) {
+      obj: HandlerClass) = {
     // Compute the key and store the object.
     val key = getKey(source, operator, handler)
     _override += (key -> obj)

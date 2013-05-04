@@ -512,7 +512,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
       new Rectangle2D.Double(scrPt1.getX, scrPt1.getY, scrW, scrH)
     }
     catch {
-      case _ =>
+      case _: Throwable =>
         null
     }
   }

@@ -327,13 +327,13 @@ object RewriteRule {
     // Make the binding.
     var binds:Bindings = Bindings() + (""->AtomSeq(NoProps, mappair))
     if (guards.length > 0) {
-      binds += ("if" -> AtomSeq(NoProps, guards.toIndexedSeq[BasicAtom]))
+      binds += ("if" -> AtomSeq(NoProps, guards.toIndexedSeq))
     }
     if (rulesets.size > 0) {
       binds += ("rulesets" ->
           AtomSeq(NoProps, rulesets.map {
             str => Literal(Symbol(str))
-          }.toIndexedSeq[BasicAtom]))
+          }.toIndexedSeq))
     }
     name match {
       case None =>

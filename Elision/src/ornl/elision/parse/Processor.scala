@@ -592,7 +592,7 @@ with HasHistory {
       context = checkpt._2
       true
     } catch {
-      case _ => false
+      case _: Throwable => false
     }
   }
 

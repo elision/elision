@@ -209,7 +209,7 @@ class DepthDialog extends Dialog {
                 GUIActor ! "treeReselectCurrentNode"  
             }
         } catch {
-            case _ =>
+            case _: Throwable =>
         }
         
         // close the dialog when we finish processing input
@@ -266,7 +266,7 @@ class MaxDepthDialog extends Dialog {
             // close the dialog when we finish processing input
             close
         } catch {
-            case _ =>
+            case _: Throwable =>
         }
     }
     
@@ -316,7 +316,7 @@ class NodeLimitDialog extends Dialog {
             // close the dialog when we finish processing input
             close
         } catch {
-            case _ =>
+            case _: Throwable =>
         }
     }
     
