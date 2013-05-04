@@ -112,7 +112,7 @@ Homepage: <a href='""" + ornl.elision.util.Version.web + """'>""" + ornl.elision
                         if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
                             try {
                                 Desktop.getDesktop.browse(new java.net.URI(ornl.elision.util.Version.web))
-                            } catch { case _ => }
+                            } catch { case _: Throwable => }
                         }
                     }
                 }

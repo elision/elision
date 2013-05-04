@@ -140,7 +140,7 @@ class RulePredDialog(val lhs : String) extends Dialog {
             // close the dialog when we finish processing input
             close
         } catch {
-            case _ =>
+            case _: Throwable =>
         }
     }
     

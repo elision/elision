@@ -207,7 +207,7 @@ object ReplMain {
           erepl.console.error("(" + th.getClass + ") " + th.getMessage())
           if (erepl.getProperty[Boolean]("stacktrace")) th.printStackTrace()
         } catch {
-          case _ =>
+          case _: Throwable =>
         }
         erepl.coredump("Internal error.", Some(th))
     }
@@ -291,7 +291,7 @@ extends Processor(state.settings) {
             case x:Any => Some(x.toString)
         }
     } catch {
-        case _ => None
+        case _: Throwable => None
     }
   }
   
@@ -305,7 +305,7 @@ extends Processor(state.settings) {
             case x:Any => Some(x.toString)
         }
     } catch {
-        case _ => None
+        case _: Throwable => None
     }
   }
   
@@ -317,7 +317,7 @@ extends Processor(state.settings) {
             case x:Any => Some(x.toString)
         }
     } catch {
-        case _ => None
+        case _: Throwable => None
     }
   }
   
@@ -457,9 +457,10 @@ extends Processor(state.settings) {
         val string = atom.toParseString
         // Parse this string.
         parse("", string) match {
-          case Dialect.Failure(Loc.internal, msg) =>
+          case Dialect.Failure(_, msg) =>
             console.error("Round trip testing failed for atom:\n  " + string +
                 "\nParsing terminated with an error:\n  " + msg + "\n")
+                
           case Dialect.Success(atoms) =>
             if (atoms.length < 1) {
               console.error("Round trip testing failed for atom:\n  " + string +
@@ -704,7 +705,7 @@ extends Processor(state.settings) {
       if (!fetchline("e> ", "q> ")) {
         // Read any additional segments.  Everything happens in the while loop,
         // but the loop needs a body, so that's the zero.
-        while (!fetchline(" > ", " > ") && blanks < 3) 0
+        while (!fetchline(" > ", " > ") && blanks < 3) {}
         if (blanks >= 3) {
           console.emitln("Entry terminated by three blank lines.")
           line = ""
@@ -747,7 +748,7 @@ extends Processor(state.settings) {
             console.error("(" + th.getClass + ") " + th.getMessage())
             if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
           } catch {
-            case _ =>
+            case _: Throwable =>
           }
           coredump("Internal error.", Some(th))
       }

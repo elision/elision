@@ -80,11 +80,11 @@ object EvaConfig extends Serializable {
                     disableNodeSyntaxColoring = (config \ "disableNodeSyntaxColoring").text.toBoolean
                     nodeLimit = (config \ "nodeLimit").text.toInt
                     bootMode = (config \ "bootMode").text
-                } catch { case _ => System.err.println("One or more configurations didn't load from EvaConfig, \nprobably because you just updated to a newer version of Eva with new shiny features.")}
+                } catch { case _: Throwable => System.err.println("One or more configurations didn't load from EvaConfig, \nprobably because you just updated to a newer version of Eva with new shiny features.")}
 			case _ => restoreDefaults
 		}
 	} catch {
-		case _ =>
+		case _: Throwable =>
 			restoreDefaults
 	}
 	

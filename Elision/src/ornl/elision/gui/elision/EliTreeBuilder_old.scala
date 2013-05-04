@@ -177,7 +177,7 @@ class EliTreeBuilderOld extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => 
+        case _: Throwable => 
           System.err.println("EliTreeBuilder.setSubroot error: key \"" + id + "\" does not exist in current scope table.")
           
           keepgoing = attemptStackRecovery
@@ -259,7 +259,7 @@ class EliTreeBuilderOld extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => 
+        case _: Throwable => 
           System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
           
           keepgoing = attemptStackRecovery
@@ -289,7 +289,7 @@ class EliTreeBuilderOld extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => 
+        case _: Throwable => 
           System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
           
           keepgoing = attemptStackRecovery
@@ -318,7 +318,7 @@ class EliTreeBuilderOld extends Thread {
         keepgoing = false
       } 
       catch {
-        case _ => 
+        case _: Throwable => 
           System.err.println("EliTreeBuilder.addTo error: key \"" + parentID + "\" does not exist in current scope table.")
           
           keepgoing = attemptStackRecovery
@@ -343,7 +343,7 @@ class EliTreeBuilderOld extends Thread {
           keepgoing = false
         } 
         catch {
-          case _ => 
+          case _: Throwable => 
             System.err.println("EliTreeBuilder.remLastChild error: key \"" + parentID + "\" does not exist in current scope table.")
             
             keepgoing = attemptStackRecovery
