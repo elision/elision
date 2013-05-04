@@ -131,7 +131,7 @@ class EvaVisPanel extends GamePanel {
                 true
             }
             catch {
-                case _ => System.err.println("Drag and drop not successful.")
+                case _: Throwable => System.err.println("Drag and drop not successful.")
                 false
             }
         }

@@ -61,7 +61,7 @@ object TreeFileIO {
               (myXML \ ttrait).text
           }
           catch {
-              case _ => ""
+              case _: Throwable => ""
           }
       }
       
@@ -391,7 +391,7 @@ object TreeFileIO {
           true
       }
       catch {
-          case _ => false
+          case _: Throwable => false
       }
   }
   
@@ -461,7 +461,7 @@ object TreeFileIO {
           true
       }
       catch {
-          case _ => false
+          case _: Throwable => false
       }
   }
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="Elision/src"/>
+	<classpathentry kind="src" path="Elision/test"/>
+	<classpathentry kind="lib" path="Elision/lib/hamcrest-core.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/jline.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/junit4.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/sage2D.jar"/>
+	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="Elision/lib/parboiled-scala_2.10-1.1.5.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/scalatest_2.10-1.9.1.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/specs2_2.10-1.14.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/specs2-scalaz-core_2.10-7.0.0.jar"/>
+	<classpathentry kind="lib" path="Elision/lib/parboiled-core-1.1.5.jar"/>
+	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

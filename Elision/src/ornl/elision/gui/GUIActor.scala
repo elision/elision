@@ -70,7 +70,7 @@ object GUIActor extends Actor {
             mainGUI.consolePanel.replThread.clean
           }
           catch {
-            case _ => mainGUI.consolePanel.console.emitln("quit ERROR: Unable to exit the REPL's current thread.")
+            case _: Throwable => mainGUI.consolePanel.console.emitln("quit ERROR: Unable to exit the REPL's current thread.")
           }
           
         // Switch to some other mode supported by Eva.
@@ -80,7 +80,7 @@ object GUIActor extends Actor {
             if(mainGUI.consolePanel.replThread != null) mainGUI.consolePanel.replThread.clean
           }
           catch {
-            case _ => mainGUI.consolePanel.console.emitln("changeMode ERROR: Unable to exit the REPL's current thread.")
+            case _: Throwable => mainGUI.consolePanel.console.emitln("changeMode ERROR: Unable to exit the REPL's current thread.")
           }
           mainGUI.changeMode(mode)
           waitingForReplInput = false

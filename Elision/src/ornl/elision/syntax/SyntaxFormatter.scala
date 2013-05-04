@@ -321,7 +321,7 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
       }
     } 
     catch {
-      case _ =>
+      case _: Throwable =>
         // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
         System.err.println("Error during syntax formatting :\n" + text) 
     } 

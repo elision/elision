@@ -227,7 +227,7 @@ class TreeVisThread(val treeVis : TreeVisLevel, val gt : GameTimer) extends Thre
     var isReady = false
     var exitFlag = false
     
-    override def run : Unit = {
+    override def run {
         
       while(!exitFlag) {
         // block until the TreeVisPanel says it should render the next frame.
@@ -243,7 +243,7 @@ class TreeVisThread(val treeVis : TreeVisLevel, val gt : GameTimer) extends Thre
           treeVis.renderedImage = render
         }
         catch {
-          case _ =>
+          case _: Throwable =>
         }
         finally {
           // update the frame rate counter
@@ -254,7 +254,6 @@ class TreeVisThread(val treeVis : TreeVisLevel, val gt : GameTimer) extends Thre
           isReady = false
         }
       } // endwhile
-      null
     }
   
   /** Prepares an image containing the current frame rendering for the tree visualization.*/
