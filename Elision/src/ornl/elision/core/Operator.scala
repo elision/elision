@@ -590,8 +590,7 @@ object SymbolicOperator {
   private val _timer = new Timeable {
     timing = true
     def reportElapsed() = {}
-  }
-  
+  }  
   private val _ncomp = new NativeCompiler
 
   /**

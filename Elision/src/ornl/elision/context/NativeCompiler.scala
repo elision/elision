@@ -43,6 +43,7 @@ import ornl.elision.core.knownExecutor
 import ornl.elision.core.toEString
 import ornl.elision.core.toESymbol
 import ornl.elision.core.NativeHandlerException
+import java.net.URLClassLoader
 
 /**
  * Trait for all handlers.
@@ -169,18 +170,26 @@ class NativeCompiler {
   if (!_cache.exists) {
     _cache.mkdir
   }
+  
+  // Try to get a URL class loader.  If we cannot, give up!
+  private val _cl = {
+    var here = java.lang.Thread.currentThread.getContextClassLoader
+    while (! here.isInstanceOf[URLClassLoader]) {
+      here = here.getParent()
+      if (here == null) {
+        throw new NativeHandlerException(Loc.internal, "Unable to locate " +
+        		"correct class loader and obtain class path.  Cannot continue.")
+      }
+    } // Find a URL class loader.
+    here.asInstanceOf[URLClassLoader]
+  }
 
   // Get the path separator and then use it to build the classpath as a string.
   // We need it to construct the settings.
   private val _prop = new scala.sys.SystemProperties
   private val _ps = _prop("path.separator")
-  private lazy val _urls =
-    java.lang.Thread.currentThread.getContextClassLoader match {
-    case cl: java.net.URLClassLoader => cl.getURLs.toList
-    case other => sys.error("classloader is not a URLClassLoader. " +
-        "It is a " + other.getClass.getName)
-  }
-  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
+  private val _urls = _cl.getURLs.toList
+  private val _classpath = (_urls.map(_.getPath)).mkString(_ps)
   
   // Build the settings, reporter, and compiler to use later on.
   private val _settings = new Settings(knownExecutor.console.emitln _)
