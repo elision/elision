@@ -112,20 +112,6 @@ decl.{! listprops()
 }
 
 //======================================================================
-// If.
-//======================================================================
-
-decl.{operator #name=if #cases
-  %(true, $then @lazy, $else @lazy) -> $$then,
-  %(false, $then @lazy, $else @lazy) -> $$else,
-  %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
-  #description="Simple if-then(-else)."
-  #detail=
-  "If the first argument is true, return the second.  If the first argument ".
-  "is false, return the third."
-}
-
-//======================================================================
 // Meta.
 //======================================================================
 
@@ -229,7 +215,7 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
-decl.{! is_constant($x): BOOLEAN
+decl.{! is_constant($x @meta): BOOLEAN
   #handler=
   """
     args match {
@@ -247,7 +233,7 @@ decl.{! is_constant($x): BOOLEAN
   "zealous evaluation."
 }
 
-decl.{! is_bindable($x): BOOLEAN
+decl.{! is_bindable($x @meta): BOOLEAN
   #handler=
   """
     args match {
