@@ -215,6 +215,24 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
+decl.{! is_literal($x @meta): BOOLEAN
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isInstanceOf[Literal[_]]) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is a literal."
+  #detail=
+  "If the atom $x is a literal, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "overzealous evaluation."
+}
+
 decl.{! is_constant($x @meta): BOOLEAN
   #handler=
   """
@@ -230,7 +248,7 @@ decl.{! is_constant($x @meta): BOOLEAN
   "If the atom $x is a constant, return true.  Otherwise, return false.  This ".
   "is primarily useful for guards.  You will probably need to protect ".
   "variables by making them into metavariables ($$ instead of $) to prevent ".
-  "zealous evaluation."
+  "overzealous evaluation."
 }
 
 decl.{! is_bindable($x @meta): BOOLEAN
