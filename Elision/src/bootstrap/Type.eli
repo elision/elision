@@ -41,7 +41,15 @@ println("Reading Type...")
 // Type extraction.
 //======================================================================
 
-decl.{ operator #name=typeof #cases %($x:$T) -> $T
+decl.{ operator #name=type_of #cases %($x:$T @non_strict) -> $T
+  #description="Extract and show the type of the argument."
+  #detail=
+  "Given a single argument, extract the type $T of that argument $x and return ".
+  "the extracted type."
+}
+
+// Preserve the old typeof operator, until we can eliminate all uses of it.
+decl.{ operator #name=typeof #cases %($x:$T @non_strict) -> $T
   #description="Extract and show the type of the argument."
   #detail=
   "Given a single argument, extract the type $T of that argument $x and return ".
