@@ -112,20 +112,6 @@ decl.{! listprops()
 }
 
 //======================================================================
-// If.
-//======================================================================
-
-decl.{operator #name=if #cases
-  %(true, $then @lazy, $else @lazy) -> $$then,
-  %(false, $then @lazy, $else @lazy) -> $$else,
-  %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
-  #description="Simple if-then(-else)."
-  #detail=
-  "If the first argument is true, return the second.  If the first argument ".
-  "is false, return the third."
-}
-
-//======================================================================
 // Meta.
 //======================================================================
 
@@ -229,7 +215,25 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
-decl.{! is_constant($x): BOOLEAN
+decl.{! is_literal($x @meta): BOOLEAN
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isInstanceOf[Literal[_]]) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is a literal."
+  #detail=
+  "If the atom $x is a literal, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "overzealous evaluation."
+}
+
+decl.{! is_constant($x @meta): BOOLEAN
   #handler=
   """
     args match {
@@ -244,10 +248,10 @@ decl.{! is_constant($x): BOOLEAN
   "If the atom $x is a constant, return true.  Otherwise, return false.  This ".
   "is primarily useful for guards.  You will probably need to protect ".
   "variables by making them into metavariables ($$ instead of $) to prevent ".
-  "zealous evaluation."
+  "overzealous evaluation."
 }
 
-decl.{! is_bindable($x): BOOLEAN
+decl.{! is_bindable($x @meta): BOOLEAN
   #handler=
   """
     args match {
