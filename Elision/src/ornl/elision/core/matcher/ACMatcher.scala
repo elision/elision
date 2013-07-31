@@ -125,18 +125,6 @@ object ACMatcher {
   }
 
 
-
-//             find_the_right_subject(np,prpp,slist) match {
-//               case None =>
-//                 case Some(Apply(OperatorRef(Operator(np,tp,AtomSeq(oprps,oargs))),
-// 				AtomSeq(prps,args))) => 
-// 				  SequenceMatch.get_mandatory_bindings argp args
-
-// tryMatch all arguments 'a,' collecting bindings
-//                   println("apply property match "+p.toParseString)
-
-
-
   /**
    * Attempt to match two lists.  The second list can be re-ordered and
    * re-grouped arbitrarily.
@@ -245,6 +233,7 @@ object ACMatcher {
 
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
+
     var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
     if (fail.isDefined) return fail.get
 
