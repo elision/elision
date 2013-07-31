@@ -50,6 +50,10 @@ import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
 
+import ornl.elision.core.AtomSeq
+import ornl.elision.core.Literal
+import ornl.elision.core.Variable
+
 /**
  * Match two sequences of atoms.
  * 
@@ -66,6 +70,52 @@ import ornl.elision.util.OmitSeq.fromIndexedSeq
  * last.  Matches are returned iff the entire sequence matches.
  */
 object SequenceMatcher {
+
+  // if bindings conflict, then returns None; otherwise, it adds e to
+  // the bindings in binds, and returns Some(binds++e)
+  def add_bind (binds:Option[Bindings],
+		e:(String,BasicAtom)) : Option[Bindings] = {
+    (e,binds) match {
+      case ((n,a), Some(b)) =>
+        try {
+          if (b(n) == a) { binds } else { None }
+        } catch {
+          case _ : Throwable => Some(b+(e))
+        }
+      case (_,None) => None
+    }
+  }
+
+  def add_binds (binds:Bindings, newbinds:Bindings) : Option[Bindings] = {
+    (newbinds.toList).foldLeft[Option[Bindings]](Some(binds))(add_bind)
+  }
+
+  def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
+			     ibinds: Bindings) : Option[Bindings] = {
+//    println("called SequenceMatcher.get_mandatory_bindings")
+    val binds = Bindings.EmptyBinds
+
+    if (plist.isEmpty && slist.isEmpty) {
+//      println("empty lists")
+      return Some(ibinds)
+    } else {
+//      println("looking at head")
+      plist.head match {
+	case Variable(typ,nam,gua,lab,byn) => 
+//	  println("found a variable")
+	  add_bind(Some(ibinds),(nam,slist.head)) match {
+	    case None =>
+	      return None
+	    case Some(b) =>
+//	      println("returning mandatory bindings")
+	      return get_mandatory_bindings(
+		AtomSeq(plist.props,plist.tail),
+		AtomSeq(slist.props,slist.tail),b)
+	  }
+	case _ => return Some(ibinds)
+      }
+    }
+  }
 
   /**
    * Match two sequences of atoms, in order.

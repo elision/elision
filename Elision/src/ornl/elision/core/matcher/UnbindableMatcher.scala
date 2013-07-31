@@ -126,6 +126,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
    */
   
   def findNext {
+//    println("unbindable matcher findNext")
     // If we had either a current match or a local iterator, then the matching
     // infrastructure would use it up before calling this method.  Since we
     // have arrived here, we do not have either.
@@ -154,7 +155,8 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
       _exhausted = true
       return
     }
-    
+//    println(patterns(_patindex).toParseString)
+//    println(subjects(subindex).toParseString)
     // Try to match the subject and the pattern.
     val iterator = patterns(_patindex).tryMatch(subjects(subindex), binds) match {
       case fail:Fail =>
@@ -172,6 +174,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
         // a new iterator for the next pattern.
         iter
     }
+//    println("foo")
     
     // If we arrive here, we were able to match the subject and pattern, and
     // we have an iterator over the matches.  Now we must combine this with
@@ -188,6 +191,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
           _local = null
           _exhausted = true
           def findNext = {
+//	    println("unbindable empty findNext")
             _exhausted = true
           }
         }

@@ -48,16 +48,94 @@ import ornl.elision.core.Fail
 import ornl.elision.core.Many
 import ornl.elision.core.Match
 import ornl.elision.core.MatchIterator
-import ornl.elision.core.OperatorRef
 import ornl.elision.core.Outcome
-import ornl.elision.core.Variable
 import ornl.elision.util.Debugger
+
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.Operator
+import ornl.elision.core.Variable
+import ornl.elision.core.Literal
+import ornl.elision.util.OmitSeq
+
+abstract class res
+case class uninitialized() extends res
+case class found(z:AtomSeq) extends res
+case class toomany() extends res
+
 
 /**
  * Match two sequences whose elements can be re-ordered or re-grouped.  That is,
  * the lists are associative and commutative.
  */
 object ACMatcher {
+
+  // assume plist and slist are both from an AC context
+  def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
+			     ibinds: Bindings) : Option[Bindings] = {
+//    println("called ACMatcher.get_mandatory_bindings")
+
+    var binds : Bindings = ibinds
+
+    for (p <- plist) {
+      p match {
+//   	case v : Variable => 
+//	  println("ignoring variable "+ v.toParseString)
+	
+        // presumably p==p2; do we have any guarantee?
+        case Apply(OperatorRef(Operator(np,tp,AtomSeq(oprpp,oargp))),
+                   AtomSeq(prpp,argp)) => 
+	  if (!prpp.isA(false) && !prpp.isC(false)) {
+//	    println(np+" is non-A, non-C")
+
+	    var s:res = uninitialized()
+
+	    for (si <- slist) {
+	      si match {
+		case Apply(OperatorRef(Operator(ns,ts,AtomSeq(oprps,oargs))),
+			   AtomSeq(prps,args)) => 
+		  if (!prps.isA(false) && !prps.isC(false)) {
+//		    println(ns+ " subject non-A, non-C")
+		    s = s match {
+		      case uninitialized() => found(AtomSeq(prps,args))
+		      case found(_) => toomany()
+		      case toomany() => toomany()
+		    }
+		  }
+	      }
+	    }
+
+	    s match {
+	      case uninitialized() => // println("no possible match")
+	      return None
+	      case found(a) => 
+//		println(AtomSeq(prpp,argp).toParseString)
+//	        println(a.toParseString)
+	        SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp,argp),
+						       a,binds) match {
+		  case None => return None
+		  case Some(b) => binds = b
+		}
+	      case toomany() => binds = binds
+	    }
+	  }
+	  case _ => binds = binds // do nothing
+   	 }
+      }
+    Some(binds)
+  }
+
+
+
+//             find_the_right_subject(np,prpp,slist) match {
+//               case None =>
+//                 case Some(Apply(OperatorRef(Operator(np,tp,AtomSeq(oprps,oargs))),
+// 				AtomSeq(prps,args))) => 
+// 				  SequenceMatch.get_mandatory_bindings argp args
+
+// tryMatch all arguments 'a,' collecting bindings
+//                   println("apply property match "+p.toParseString)
+
+
 
   /**
    * Attempt to match two lists.  The second list can be re-ordered and
@@ -69,16 +147,26 @@ object ACMatcher {
    * @param op		An optional operator to apply to sublists.
    * @return	The match outcome.
    */
-  def tryMatch(plist: AtomSeq, slist: AtomSeq, binds: Bindings,
+  def tryMatch(plist: AtomSeq, slist: AtomSeq, ibinds: Bindings,
                op: Option[OperatorRef]): Outcome = {
     if (BasicAtom.rewriteTimedOut) {
       return Fail("Timed out", plist, slist)
     }
+    var binds = ibinds
+    get_mandatory_bindings(plist,slist,binds) match {
+      case None => Fail((() => "Mandatory-bindings induced fail"), 0)
+      case Some(b) => binds = b
+    }
+
+//    println("->trymatch")
+//    println(plist.mkParseString("",",",""))
+//    println(slist.mkParseString("",",",""))
 
     // Check the length.
     if (plist.length > slist.length)
       return Fail("More patterns than subjects, so no match is possible.",
           plist, slist)
+//    println("(1)")
 
     // If there are patterns, but not subjects, no match is possible.  If
     // there are subjects, but not patterns, no match is possible.
@@ -94,6 +182,7 @@ object ACMatcher {
     if (plist.length == slist.length) {
       return CMatcher.tryMatch(plist, slist, binds)
     }
+//    println("(2)")
       
     // If there is exactly one pattern then match it immediately.
     if (plist.length == 1) {
@@ -106,6 +195,7 @@ object ACMatcher {
           slist
       }, binds)
     }
+//    println("(3)")
 
     // Conduct a test to see if matching is even possible.  Try to match
     // every pattern against some subject.  Note that this does not work
@@ -137,32 +227,34 @@ object ACMatcher {
     
     // First see if there is at least 1 subject child that matches
     // each item in the pattern.
-    var _pindex = 0
-    while (_pindex < plist.length) {
-      var _sindex = 0
-      var _matched = false
-      while ((!_matched) && (_sindex < slist.length)) {
-        plist(_pindex).tryMatch(slist(_sindex), binds) match {
-          case fail:Fail =>
-          case m1:Match => _matched = true
-          case m2:Many => _matched = true
-        }
-        _sindex += 1
-      } // Search for a matching subject.
-      if (!_matched) return Fail("Matching precheck failed.", plist, slist)
-      _pindex += 1
-    } // Test for a match for each pattern.
+    // var _pindex = 0
+    // while (_pindex < plist.length) {
+    //   var _sindex = 0
+    //   var _matched = false
+    //   while ((!_matched) && (_sindex < slist.length)) {
+    //     plist(_pindex).tryMatch(slist(_sindex), binds) match {
+    //       case fail:Fail =>
+    //       case m1:Match => _matched = true
+    //       case m2:Many => _matched = true
+    //     }
+    //     _sindex += 1
+    //   } // Search for a matching subject.
+    //   if (!_matched) return Fail("Matching precheck failed.", plist, slist)
+    //   _pindex += 1
+    // } // Test for a match for each pattern.
 
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
     var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
     if (fail.isDefined) return fail.get
+
     
     // Step two is to match and eliminate any unbindable atoms.  These are
     // atoms that are not variables, and so their matching is much more
     // restrictive.  We obtain an iterator over these, and then combine it
     // with the iterator for "everything else."
     var um = new UnbindableMatcher(patterns, subjects, binds)
+//    println("(4)")
     
     // This is not so simple.  We need to perform the match.  Build the
     // iterator.
@@ -176,6 +268,7 @@ object ACMatcher {
           _local = null
           _exhausted = true
           def findNext = {
+//	    println("empty findNext")
             _exhausted = true
           }
         }
@@ -183,6 +276,10 @@ object ACMatcher {
         // Get the patterns and subjects that remain.
         val pats = AtomSeq(plist.props, bindings.patterns.getOrElse(patterns))
         val subs = AtomSeq(slist.props, bindings.subjects.getOrElse(subjects))
+
+//        println("->anon iter")
+//	println(pats.mkParseString("",",",""))
+//	println(subs.mkParseString("",",",""))
 
         // Are we trying to aggresively fail ACMatching at the risk of not matching something
         // that could match?
@@ -211,6 +308,7 @@ object ACMatcher {
             _local = null
             _exhausted = true
             def findNext = {
+//	      println("another empty findNext")
               _exhausted = true
             }
           }
@@ -328,6 +426,7 @@ object ACMatcher {
               _local = null
               _exhausted = true
               def findNext = {
+//	          println("another empty findNext (2)")
                 _exhausted = true
               }
             }
@@ -335,6 +434,8 @@ object ACMatcher {
         }
       }
     }) // Building the iterator iter.
+
+//    println("(5)")
     if (iter.hasNext) return Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
@@ -360,7 +461,8 @@ object ACMatcher {
      */
     import scala.annotation.tailrec
     @tailrec
-    final protected def findNext {
+    final protected def findNext {	
+//      println(">")
       Debugger("matching", "AC Searching... ")
 
       // Has rewriting timed out?
