@@ -94,10 +94,30 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
    * Next index to start looking for a subject to match.
    */
   private var _nextsubindex = 0
+
+
+  def get_shallowest_unbindable(patterns :OmitSeq[BasicAtom]) : Int = {
+    var cur_index = patterns.indexWhere(!_.isBindable, 0)
+    var min_index = cur_index
+    var min_depth = -1
+
+    while (cur_index >= 0) {
+      val cur_depth = patterns(cur_index).depth
+      if (min_depth == -1 || cur_depth < min_depth) {
+	min_index = cur_index
+	min_depth = cur_depth
+      }
+
+      cur_index = patterns.indexWhere(!_.isBindable,cur_index+1)
+    }
+
+    return min_index
+  }
   
   // Locate the first unbindable pattern and save its index.  This is the only
   // pattern we try to match in this instance.
-  private val _patindex = patterns.indexWhere(!_.isBindable)
+  private val _patindex = get_shallowest_unbindable(patterns)
+
   if (_patindex < 0) {
     // There were no patterns.  Return the binding we got as the only "match."
     // This will be returned, and then findNext will be invoked which will mark

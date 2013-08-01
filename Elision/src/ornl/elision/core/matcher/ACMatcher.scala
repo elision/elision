@@ -69,12 +69,28 @@ case class toomany() extends res
  */
 object ACMatcher {
 
-  // Assume plist and slist are both from an AC context this gets
-  // called multiple times at different levels, duplicating its
-  // search, possibly many times for large predicates.  I think there
-  // are cases where calling this at a deeper level of nesting allows
-  // the search to get access to more simple bindings, but more
-  // thought needs to be given to this.
+  // The objective of get_mandatory_bindings (and the
+  // mutually-recursive version in SequenceMatcher) is to do a quick
+  // traversal of our term, identifying bindings that are manditory
+  // under all possible matches. These bindings are used to reduce the
+  // search space when we do backtracking and explore other possible
+  // matches for non-mandatory items in the expression. Backtracking
+  // and searching will be necessary to explore the various bipartite
+  // graphs arising from various AC terms in the expression being
+  // matched. This gets run before the rest of the match, each time
+  // tryMatch gets called.
+
+  // I believe that get_mandatory_bindings serves a similar function
+  // to build_hierarchy and simplify in Eker's
+  // "Associative-Commutative Matching Via Bipartite Graph Matching"
+  // paper.
+
+  // Assume plist and slist are both from an AC context.
+  // get_mandatory_bindings gets called multiple times at different
+  // levels, duplicating parts of its search, possibly many times for
+  // large predicates. I think there are cases where calling this at a
+  // deeper level of nesting allows the search to get access to more
+  // simple bindings, but more thought needs to be given to this.
   def get_mandatory_bindings(ps: AtomSeq, ss: AtomSeq,
 			     ibinds: Bindings) : Option[Bindings] = {
     println("called ACMatcher.get_mandatory_bindings")
@@ -189,13 +205,13 @@ object ACMatcher {
       return Fail("Timed out", plist, slist)
     }
     var binds = ibinds
-    // get_mandatory_bindings(plist,slist,binds) match {
-    //   case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
-    //   case Some(b) => 
-    // 	println("binding results: ")
-    //     println(b.toParseString)
-    //     binds = b
-    // }
+    get_mandatory_bindings(plist,slist,binds) match {
+      case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
+      case Some(b) => 
+	println("binding results: ")
+      println(b.toParseString)
+      binds = b
+    }
 
     // println("->trymatch")
     // println(plist.mkParseString("",",",""))
