@@ -69,7 +69,12 @@ case class toomany() extends res
  */
 object ACMatcher {
 
-  // assume plist and slist are both from an AC context
+  // Assume plist and slist are both from an AC context this gets
+  // called multiple times at different levels, duplicating its
+  // search, possibly many times for large predicates.  I think there
+  // are cases where calling this at a deeper level of nesting allows
+  // the search to get access to more simple bindings, but more
+  // thought needs to be given to this.
   def get_mandatory_bindings(ps: AtomSeq, ss: AtomSeq,
 			     ibinds: Bindings) : Option[Bindings] = {
     println("called ACMatcher.get_mandatory_bindings")
@@ -184,17 +189,17 @@ object ACMatcher {
       return Fail("Timed out", plist, slist)
     }
     var binds = ibinds
-    get_mandatory_bindings(plist,slist,binds) match {
-      case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
-      case Some(b) => 
-	println("binding results: ")
-        println(b.toParseString)
-        binds = b
-    }
+    // get_mandatory_bindings(plist,slist,binds) match {
+    //   case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
+    //   case Some(b) => 
+    // 	println("binding results: ")
+    //     println(b.toParseString)
+    //     binds = b
+    // }
 
-    println("->trymatch")
-    println(plist.mkParseString("",",",""))
-    println(slist.mkParseString("",",",""))
+    // println("->trymatch")
+    // println(plist.mkParseString("",",",""))
+    // println(slist.mkParseString("",",",""))
 
     // Check the length.
     if (plist.length > slist.length)
