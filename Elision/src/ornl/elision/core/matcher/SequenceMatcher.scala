@@ -92,22 +92,24 @@ object SequenceMatcher {
 
   def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
 			     ibinds: Bindings) : Option[Bindings] = {
-//    println("called SequenceMatcher.get_mandatory_bindings")
+    println("called SequenceMatcher.get_mandatory_bindings")
     val binds = Bindings.EmptyBinds
 
+    // add error checking: what if both lists are not the same length
     if (plist.isEmpty && slist.isEmpty) {
-//      println("empty lists")
+      println("empty lists")
       return Some(ibinds)
     } else {
-//      println("looking at head")
+      println("looking at head")
       plist.head match {
 	case Variable(typ,nam,gua,lab,byn) => 
-//	  println("found a variable")
+	  println("found a variable")
+	  println(nam + " function " + slist.head.toParseString)
 	  add_bind(Some(ibinds),(nam,slist.head)) match {
 	    case None =>
 	      return None
 	    case Some(b) =>
-//	      println("returning mandatory bindings")
+	      println("returning mandatory bindings")
 	      return get_mandatory_bindings(
 		AtomSeq(plist.props,plist.tail),
 		AtomSeq(slist.props,slist.tail),b)

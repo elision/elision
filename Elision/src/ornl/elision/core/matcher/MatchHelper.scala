@@ -45,6 +45,8 @@ import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
 
+import ornl.elision.core.Variable
+
 /**
  * Provide some support methods for matching.
  */
@@ -84,5 +86,25 @@ object MatchHelper {
 	        subjects.mkParseString("", ",", ""))
     }
     (patterns, subjects, None)
+  }
+
+
+  def stripVariables(plist:OmitSeq[BasicAtom]):
+                 (OmitSeq[BasicAtom],OmitSeq[BasicAtom]) ={
+    var (pl, vl) = (plist, plist)
+    if (plist.length <= 0) {
+      return (pl,vl)
+    }
+
+    var _pindex = plist.length - 1
+    while (_pindex >= 0) {
+      plist(_pindex) match {
+	case _ : Variable => pl = pl.omit(_pindex)
+	case _ => vl = vl.omit(_pindex)
+      }
+      _pindex = _pindex-1
+    }
+
+    (pl, vl)
   }
 }

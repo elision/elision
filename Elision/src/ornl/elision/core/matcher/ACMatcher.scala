@@ -70,57 +70,100 @@ case class toomany() extends res
 object ACMatcher {
 
   // assume plist and slist are both from an AC context
-  def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
+  def get_mandatory_bindings(ps: AtomSeq, ss: AtomSeq,
 			     ibinds: Bindings) : Option[Bindings] = {
-//    println("called ACMatcher.get_mandatory_bindings")
-
+    println("called ACMatcher.get_mandatory_bindings")
+    println(ps.toParseString)
     var binds : Bindings = ibinds
+    var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss)
+    if (fail.isDefined) {
+      println("failed match")
+      return None
+    }
+    // error handling for fail? todo
+    var (plist, vlist) = MatchHelper.stripVariables(plistv)
 
-    for (p <- plist) {
+//    println("plist.length " + plist.length)
+    var _pindex = 0
+    while (_pindex < plist.length) {
+      var p = plist(_pindex)
+
+      println("examining " +p.toParseString)
       p match {
-//   	case v : Variable => 
-//	  println("ignoring variable "+ v.toParseString)
-	
         // presumably p==p2; do we have any guarantee?
         case Apply(OperatorRef(Operator(np,tp,AtomSeq(oprpp,oargp))),
                    AtomSeq(prpp,argp)) => 
-	  if (!prpp.isA(false) && !prpp.isC(false)) {
-//	    println(np+" is non-A, non-C")
 
 	    var s:res = uninitialized()
 
-	    for (si <- slist) {
-	      si match {
-		case Apply(OperatorRef(Operator(ns,ts,AtomSeq(oprps,oargs))),
-			   AtomSeq(prps,args)) => 
-		  if (!prps.isA(false) && !prps.isC(false)) {
-//		    println(ns+ " subject non-A, non-C")
+	var _sindex = 0
+	var _somitme = 0
+	while (_sindex < slist.length) {
+	  var si = slist(_sindex)
+	  println("examining subject " + si.toParseString)
+	  
+	  si match {
+	    case Apply(OperatorRef(Operator(ns,ts,AtomSeq(oprps,oargs))),
+		       AtomSeq(prps,args)) => 
+		  if (np==ns) {
+		    println("found identically named operators")
 		    s = s match {
-		      case uninitialized() => found(AtomSeq(prps,args))
+		      case uninitialized() => 
+			_somitme = _sindex
+			found(AtomSeq(prps,args))
 		      case found(_) => toomany()
 		      case toomany() => toomany()
 		    }
 		  }
-	      }
+	  }
+	  _sindex = _sindex + 1
+	}
+	
+	s match {
+	  case uninitialized() => // println("no possible match")
+	    return None
+	  case found(a) => 
+	    println("found mandatory terms, descending")
+	  println(AtomSeq(prpp,argp).toParseString)
+	  println(a.toParseString)
+	  slist = slist.omit(_somitme)
+	  if (!prpp.isA(false) && !prpp.isC(false)) {
+	    SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp,argp),
+						   a,binds) match {
+	      case None => return None
+	      case Some(b) => binds = b
 	    }
-
-	    s match {
-	      case uninitialized() => // println("no possible match")
-	      return None
-	      case found(a) => 
-//		println(AtomSeq(prpp,argp).toParseString)
-//	        println(a.toParseString)
-	        SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp,argp),
-						       a,binds) match {
-		  case None => return None
-		  case Some(b) => binds = b
-		}
-	      case toomany() => binds = binds
+	  } else {
+	    ACMatcher.get_mandatory_bindings(AtomSeq(prpp,argp),
+					     a,binds) match {
+	      case None => return None
+	      case Some(b) => binds = b
 	    }
 	  }
-	  case _ => binds = binds // do nothing
-   	 }
+	  
+	  case toomany() => binds = binds
+	}
+	case _ => binds = binds // do nothing
       }
+      plist = plist.omit(_pindex) // _pindex = _pindex + 1
+    }
+
+    if ((vlist.length == 1) && (slist.length == 1)) {
+      vlist(0) match {
+	case Variable(typ,nam,gua,lab,byn) => 
+	  SequenceMatcher.add_bind(Some(binds),(nam,slist(0))) match {
+	    case Some(b) =>
+	      println("clever binding")
+	      binds = b
+	    case None => 
+	      println("unclever binding")
+	      println(binds.toParseString)
+	      println(nam + " " + slist(0).toParseString)
+	      return None
+	  }
+      }
+    }
+    println("returning to prev level" + binds.toParseString)
     Some(binds)
   }
 
@@ -142,13 +185,16 @@ object ACMatcher {
     }
     var binds = ibinds
     get_mandatory_bindings(plist,slist,binds) match {
-      case None => Fail((() => "Mandatory-bindings induced fail"), 0)
-      case Some(b) => binds = b
+      case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
+      case Some(b) => 
+	println("binding results: ")
+        println(b.toParseString)
+        binds = b
     }
 
-//    println("->trymatch")
-//    println(plist.mkParseString("",",",""))
-//    println(slist.mkParseString("",",",""))
+    println("->trymatch")
+    println(plist.mkParseString("",",",""))
+    println(slist.mkParseString("",",",""))
 
     // Check the length.
     if (plist.length > slist.length)
