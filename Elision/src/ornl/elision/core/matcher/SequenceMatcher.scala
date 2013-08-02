@@ -71,8 +71,12 @@ import ornl.elision.core.Variable
  */
 object SequenceMatcher {
 
-  // if bindings conflict, then returns None; otherwise, it adds e to
-  // the bindings in binds, and returns Some(binds++e)
+  // add_bind adds a binding to a set of bindings, ensuring that it
+  // does not conflict (i.e. that the name is not bound to a different
+  // value) If bindings conflict, then returns None; otherwise, it
+  // adds e to the bindings in binds, and returns Some(binds++e). If
+  // the binding is already there, then it leaves it alone and returns
+  // the original.
   def add_bind (binds:Option[Bindings],
 		e:(String,BasicAtom)) : Option[Bindings] = {
     (e,binds) match {
@@ -86,10 +90,20 @@ object SequenceMatcher {
     }
   }
 
+  // Adds one set of bindings to another, ensuring that nothing in the
+  // second set of bindings conflicts with anything in the first, and
+  // that none of the bindings in the second set conflict with each
+  // other
   def add_binds (binds:Bindings, newbinds:Bindings) : Option[Bindings] = {
     (newbinds.toList).foldLeft[Option[Bindings]](Some(binds))(add_bind)
   }
 
+  // see comments on get_mandatory_bindings in ACMatcher. The
+  // SequenceMatcher version of get_mandatory_bindings is not
+  // complete! It should have another case in the match statement that
+  // handles Apply data structures in the plist.head match {...}, and
+  // it should be invoked from SequenceMatcher.tryMatch for
+  // completeness.
   def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
 			     ibinds: Bindings) : Option[Bindings] = {
     println("called SequenceMatcher.get_mandatory_bindings")
