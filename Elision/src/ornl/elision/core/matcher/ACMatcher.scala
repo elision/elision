@@ -200,6 +200,7 @@ object ACMatcher {
     // println("->trymatch")
     // println(plist.mkParseString("",",",""))
     // println(slist.mkParseString("",",",""))
+    // println(ibinds.toParseString)
 
     // Check the length.
     if (plist.length > slist.length)
