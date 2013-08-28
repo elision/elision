@@ -51,8 +51,8 @@ object ConsoleStringFormatter {
    * Converts a color used by EliRegexes to an appropriate escape string
    * for colored console output. 
    */
-  def color2EscString(color : Color) : String = {
-    val colorStr = "#" + Integer.toHexString(color.getRGB).drop(2).toLowerCase()
+  def color2EscString(color : String) : String = {
+    val colorStr = color // "#" + Integer.toHexString(color.getRGB).drop(2).toLowerCase()
     
     if(colorStr.equals(EliWebColors.comments)) {
       greenEsc

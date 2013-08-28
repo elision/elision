@@ -36,7 +36,6 @@
 ======================================================================*/
 package ornl.elision.syntax
 
-import java.awt.Color
 import scala.collection.mutable.ListBuffer
 
 /** 
@@ -46,7 +45,7 @@ import scala.collection.mutable.ListBuffer
  * @param colors    List of colors associated with each index in starts.
  * @param ends      List of color end indices (exclusive) for the string.
  */
-class SyntaxFormattedString(val src : String, val starts : ListBuffer[Int], val colors : ListBuffer[Color], val ends : ListBuffer[Int]) {
+class SyntaxFormattedString(val src : String, val starts : ListBuffer[Int], val colors : ListBuffer[String], val ends : ListBuffer[Int]) {
   
   val rawLines = src.split("\n", -1)
   
@@ -59,8 +58,8 @@ class SyntaxFormattedString(val src : String, val starts : ListBuffer[Int], val 
   
   
   def _init : Unit = {
-    var colorStack = new collection.mutable.Stack[Color]
-    var curColor = Color.BLACK
+    var colorStack = new collection.mutable.Stack[String]
+    var curColor = "0" // black
     var chompedChars = 0
     
     val startsCpy = starts.clone
