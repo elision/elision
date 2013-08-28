@@ -36,6 +36,7 @@
 ======================================================================*/
 package ornl.elision.syntax
 
+import java.awt.Color
 import scala.collection.mutable.ListBuffer
 import scala.util.matching._
 
@@ -312,6 +313,7 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
     try {
       if(doesColoring) {
         _applyRegexes(result, 0, starts, colors, ends)
+        
         if(showColorData) {
           System.err.println("----Color Data----")
           System.err.println("starts: " + starts)
@@ -325,14 +327,16 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
         // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
         System.err.println("Error during syntax formatting :\n" + text) 
     } 
+    /*
+    val resultColors = new ListBuffer[Color]
     
-    val resultColors = new ListBuffer[java.awt.Color]
     for(strColor <- colors) {
-      resultColors += new java.awt.Color(Integer.parseInt(strColor.drop(1), 16))
+      System.out.println(strColor);
+      resultColors += new Color(Integer.parseInt(strColor.drop(1), 16))
     }
-        
-    // new SyntaxFormattedString(result, resultStarts, resultColors, resultEnds)
-    new SyntaxFormattedString(result, starts, resultColors, ends)
+    */
+    
+    new SyntaxFormattedString(result, starts, colors, ends)
   }
   
   
@@ -357,7 +361,7 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
         substr = substr.replaceAllLiterally(">", SyntaxFormatter.htmlGT)
         substr = substr.replaceAllLiterally(" ", SyntaxFormatter.htmlSpace)
         if(doesColoring)
-          resultString += "<font color=\"" + _colorToWebString(csubstr.color) + "\">" + substr + "</font>"
+          resultString += "<font color=\"" + csubstr.color + "\">" + substr + "</font>"
         else
           resultString += substr
       }

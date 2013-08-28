@@ -235,7 +235,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
         for((j, substr) <- line.substrings) {
-          g.setColor(substr.color)
+          g.setColor(new Color(Integer.parseInt(substr.color.replace("#",""), 16)))
           g.drawString(substr.toString, (3 + j*(tree.font.getSize*0.6)).toInt, (box.y - 3 + (tree.font.getSize + 3)*(i+1)).toInt)
         } // endfor
       } // endfor
