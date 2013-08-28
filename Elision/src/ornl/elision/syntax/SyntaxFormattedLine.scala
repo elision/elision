@@ -36,7 +36,6 @@
 ======================================================================*/
 package ornl.elision.syntax
 
-import java.awt.Color
 import scala.collection.mutable.ListBuffer
 
 /** 
