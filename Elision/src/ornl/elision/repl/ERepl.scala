@@ -355,7 +355,7 @@ extends Processor(state.settings) {
     
     if(getProperty[Boolean]("syntaxcolor")) {
       // color-format the atom's parseString and print it.
-      val formatCols = 80 // console.width
+      val formatCols = console.width
       val formatRows = console.height
       val atomParseString = ConsoleStringFormatter.format(
           prefix + atom.toParseString, formatCols)
