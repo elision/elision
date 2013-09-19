@@ -210,12 +210,17 @@ with HasHistory {
         }
         
         // Proceed with reading the file's stream.
-        read(scala.io.Source.fromInputStream(reader), filename)
+        val result = read(scala.io.Source.fromInputStream(reader), filename)
         
         // Restore our original path.
         setProperty[String]("path", path)
         Processor.fileReadStack.pop
-        true
+        println(result.toString())
+        result match {
+          case r : Success => true
+          case r : Failure => false
+          case _ => false
+        }
     }
   }
   
@@ -226,7 +231,7 @@ with HasHistory {
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
    */
-  def read(file: java.io.File) {
+  def read(file: java.io.File) : Presult = {
     read(scala.io.Source.fromFile(file), file.getAbsolutePath)
   }
   
@@ -238,7 +243,7 @@ with HasHistory {
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
    */
-  def read(source: scala.io.Source, filename: String = "(console)") {
+  def read(source: scala.io.Source, filename: String = "(console)") : Presult = {
     _execute(_makeParser(filename).parseAtoms(source), true) 
   }
   
@@ -286,7 +291,7 @@ with HasHistory {
    *                    This is accomplished by throwing an exception to
    *                    be caught at a higher level.
    */
-  private def _execute(result: Presult, stoponerror: Boolean = false) {
+  private def _execute(result: Presult, stoponerror: Boolean = false) : Presult = {
     import ornl.elision.util.ElisionException
     startTimer
     try {
@@ -346,6 +351,7 @@ with HasHistory {
     }
     stopTimer
     showElapsed
+    result
   }
   
   private def _handleNode(node: AST.BA): Option[AST.BA] = {
