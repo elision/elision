@@ -214,7 +214,6 @@ with HasHistory {
         // Restore our original path.
         setProperty[String]("path", path)
         Processor.fileReadStack.pop
-        println(result.toString())
         result match {
           case r : Success => true
           case r : Failure => false
