@@ -226,6 +226,7 @@ with HasHistory {
    * @param file		The file to read.
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
   def read(file: java.io.File) : Boolean = {
     read(scala.io.Source.fromFile(file), file.getAbsolutePath)
@@ -238,6 +239,7 @@ with HasHistory {
    * @param filename  The file name, if relevant.
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
+   * @return  True if parse was successful; false if it was not.
    */
   def read(source: scala.io.Source, filename: String = "(console)") : Boolean = {
     _execute(_makeParser(filename).parseAtoms(source), true) match {
