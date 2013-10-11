@@ -184,7 +184,7 @@ with HasHistory {
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
    * @param quiet       If true, do not emit any error messages.
-   * @return  True if the file was found; false if it was not.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
   def read(filename: String, quiet: Boolean): Boolean = {
     // Make a resolver from the properties.  Is this costly to do every time
@@ -193,10 +193,11 @@ with HasHistory {
     val useClassPath = getProperty[Boolean]("useclasspath")
     val path = getProperty[String]("path")
     val resolver = FileResolver(usePath, useClassPath, Some(path))
+    var result = false
     resolver.find(filename) match {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
-        false
+        result = false
         
       case Some((reader, dir)) =>
         Processor.fileReadStack.push(filename)
@@ -209,13 +210,13 @@ with HasHistory {
         }
         
         // Proceed with reading the file's stream.
-        read(scala.io.Source.fromInputStream(reader), filename)
+        result = read(scala.io.Source.fromInputStream(reader), filename)
         
         // Restore our original path.
         setProperty[String]("path", path)
         Processor.fileReadStack.pop
-        true
     }
+    result
   }
   
   /**
@@ -224,8 +225,9 @@ with HasHistory {
    * @param file		The file to read.
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
-  def read(file: java.io.File) {
+  def read(file: java.io.File) : Boolean = {
     read(scala.io.Source.fromFile(file), file.getAbsolutePath)
   }
   
@@ -236,9 +238,13 @@ with HasHistory {
    * @param filename  The file name, if relevant.
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
+   * @return  True if parse was successful; false if it was not.
    */
-  def read(source: scala.io.Source, filename: String = "(console)") {
-    _execute(_makeParser(filename).parseAtoms(source), true) 
+  def read(source: scala.io.Source, filename: String = "(console)") : Boolean = {
+    _execute(_makeParser(filename).parseAtoms(source), true) match {
+      case r : Success => true
+      case r : Failure => false
+    }
   }
   
   /**
@@ -309,7 +315,7 @@ with HasHistory {
    *                    This is accomplished by throwing an exception to
    *                    be caught at a higher level.
    */
-  private def _execute(result: Presult, stoponerror: Boolean = false) {
+  private def _execute(result: Presult, stoponerror: Boolean = false) : Presult = {
     import ornl.elision.util.ElisionException
     startTimer
     try {
@@ -369,6 +375,7 @@ with HasHistory {
     }
     stopTimer
     showElapsed
+    result
   }
   
   private def _handleNode(node: AST.BA): Option[AST.BA] = {
