@@ -74,6 +74,16 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    * @return  -1 if left < right, 0 if left = right, and 1 if left > right.
    */
   def apply(left: BasicAtom, right: BasicAtom) = compare(left, right)
+
+  def fcmp(atom1: BasicAtom, atom2: BasicAtom) = {
+    if (((atom1.hashCode compare atom2.hashCode) == 0) &&
+        ((atom1.otherHashCode compare atom2.otherHashCode) == 0)) {
+        0
+    }
+    else {
+        atom1.hashCode compare atom2.hashCode
+    }
+  }
   
   /**
    * Perform a comparison of optional atoms.  None is less than Some.
@@ -108,6 +118,11 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    * @return  -1 if left < right, 0 if left = right, and 1 if left > right.
    */
   def compare(left: BasicAtom, right: BasicAtom): Int = {
+
+   return fcmp(left, right)
+
+   // Too slow.
+   /*
     // First check the ordinals.
     val lo = getOrdinal(left)
     var sgn = (lo - getOrdinal(right)).signum
@@ -297,5 +312,6 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     }
     
     // If we get here, something is wrong.  Bail out.
+    */
   }
 }
