@@ -131,11 +131,11 @@ trait Applicable {
  *    
  *  - Implement `rewrite`.
  *  
- *  - Visit [[ornl.elision.core.ElisionGenerator]] and add code to create a
+ *  - Visit [[ornl.elision.dialects.ElisionGenerator]] and add code to create a
  *    string from the new atom.  This must return a string that is parseable by
- *    [[ornl.elision.core.AtomParser]] to re-create the atom.
+ *    [[ornl.elision.parse.ElisionParser]] to re-create the atom.
  *    
- *  - Visit [[ornl.elision.core.ScalaGenerator]] and add code to create a
+ *  - Visit [[ornl.elision.dialects.ScalaGenerator]] and add code to create a
  *    string from the new atom.  This must return a string that is parseable by
  *    Scala to re-create the atom.  In many cases making the class into a
  *    `case class` will be sufficient, but if there are arguments that are
@@ -433,7 +433,7 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
 
   /**
    * Generate a parseable string from this atom.  The returned string should
-   * be able to "round trip," that is, [[ornl.elision.parse.AtomParser]] must
+   * be able to "round trip," that is, [[ornl.elision.parse.ElisionParser]] must
    * be able to parse it and return an atom equal to this one.
    * 
    * @return	The string.

@@ -37,21 +37,24 @@
 package ornl.elision.gui
 
 import java.io._
+import java.util.HashMap
+import java.util.Map
 import scala.xml._
 
 /** Stores and saves configuration settings for Eva. */
 object EvaConfig extends Serializable {
+  
 	/** The current decompression depth for the visualization trees. */
-	var decompDepth = 2
+	var decompDepth = 0
 	
 	/** The maximum number of lines we want to have in the REPL panel at any one time. */
-	var replMaxLines = 60
+	var replMaxLines = 0
 	
 	/** The last directory viewed with the File->Open dialog. */
-	var lastOpenPath = "."
+	var lastOpenPath = ""
     
   /** Maximum RWTree depth. If this is < 0, then there is assumed to be no maximum depth. */
-  var maxTreeDepth = -1
+  var maxTreeDepth = 0
 
   /** Flag for temporarilly disabling Eva tree construction in Elision */
   var disableTree = false
@@ -60,44 +63,92 @@ object EvaConfig extends Serializable {
   var disableNodeSyntaxColoring = false
   
   /** The maximum nodes that Eva will include in a tree visualization. */
-  var nodeLimit = 10000
+  var nodeLimit = 0
   
   /** Mode for Eva to start up in next time on boot-up. */
-  var bootMode = "Welcome"
+  var bootMode = ""
 	
-	// try to read config information from Eva's config file (if it exists)
-	try {
-		val readObj = XML.loadFile("EvaConfig.xml")
-		
-		readObj match {
-			case config : Elem => 
-                try {
-                    decompDepth = (config \ "decompDepth").text.toInt
-                    replMaxLines = (config \ "replMaxLines").text.toInt
-                    lastOpenPath = (config \ "lastOpenPath").text
-                    maxTreeDepth = (config \ "maxTreeDepth").text.toInt
-                    disableTree = (config \ "disableTree").text.toBoolean
-                    disableNodeSyntaxColoring = (config \ "disableNodeSyntaxColoring").text.toBoolean
-                    nodeLimit = (config \ "nodeLimit").text.toInt
-                    bootMode = (config \ "bootMode").text
-                } catch { case _: Throwable => System.err.println("One or more configurations didn't load from EvaConfig, \nprobably because you just updated to a newer version of Eva with new shiny features.")}
-			case _ => restoreDefaults
-		}
-	} catch {
-		case _: Throwable =>
-			restoreDefaults
-	}
+  
+  /** 
+   * Initialize the configurations object. Read it from the config file or
+   * generate the default configurations.
+   */
+  def init : Unit = {
+    restoreDefaults
+    
+    val configFile = new File("EvaConfig.xml")
+    if(configFile.exists()) {
+      XML.loadFile(configFile) match {
+        case config : Elem => 
+            parseConfigXMLProperties(config)
+      }
+    }
+  }
+  
+  /**
+   * Parses the XML config properties for EVA. Any properties not present in 
+   * the XML are skipped and retain their default values.
+   */
+  private def parseConfigXMLProperties(config : Elem) : Unit = {
+    (config \ "decompDepth").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        decompDepth = text.toInt
+    }
+    
+    (config \ "replMaxLines").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        replMaxLines = text.toInt
+    }
+    
+    (config \ "lastOpenPath").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        lastOpenPath = text
+    }
+    
+    (config \ "maxTreeDepth").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        maxTreeDepth = text.toInt
+    }
+    
+    (config \ "disableTree").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        disableTree = text.toBoolean
+    }
+    
+    (config \ "disableNodeSyntaxColoring").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        disableNodeSyntaxColoring = text.toBoolean
+    }
+    
+    (config \ "nodeLimit").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        nodeLimit = text.toInt
+    }
+    
+    (config \ "bootMode").text match {
+      case "" => // Skip this property.
+      case text : String =>
+        bootMode = text
+    }
+  }
 	
 	/** Restores the default values for all configuration variables. */
 	def restoreDefaults : Unit = {
 		decompDepth = 2
 		replMaxLines = 60
 		lastOpenPath = "."
-        maxTreeDepth = -1
-        disableTree = false
-        disableNodeSyntaxColoring = false
-        nodeLimit = 10000
-        bootMode = "Welcome"
+    maxTreeDepth = -1
+    disableTree = false
+    disableNodeSyntaxColoring = false
+    nodeLimit = 10000
+    bootMode = "Welcome"
 	}
 	
 	/** Saves the configuration object to ".\EvaConfig.xml" */
@@ -115,12 +166,11 @@ object EvaConfig extends Serializable {
     <bootMode>""" + bootMode + """</bootMode>
 </Eva>
 """
-
-        val config = XML.loadString(xmlString)
-        
-		XML.save("EvaConfig.xml",config)
+    
+		XML.save("EvaConfig.xml", XML.loadString(xmlString))
 	}
      
+  init
 }
 
 

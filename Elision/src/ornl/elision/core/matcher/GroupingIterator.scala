@@ -50,7 +50,7 @@ import ornl.elision.util.OmitSeq.fromIndexedSeq
  * The number of patterns must be less than the number of subjects, or an
  * exception is thrown on construction.  Note that if there are more patterns
  * than subjects, no match is possible.  If there are equal numbers of patterns
- * and subjects, use the [[ornl.elision.core.SequenceMatcher]] instead.
+ * and subjects, use the [[ornl.elision.core.matcher.SequenceMatcher]] instead.
  * 
  * Additionally the number of patterns must be at least two.  If the number of
  * patterns is less than two, there is no need to perform any grouping.

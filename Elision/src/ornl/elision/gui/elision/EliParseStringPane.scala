@@ -82,11 +82,12 @@ class EliParseStringPane extends ScrollPane {
    */
   def parseStringFormat(text : String, isComment : Boolean) = {
     // determine the current character width of the textArea.
-    val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 1
+    val cols = (textArea.size.getWidth/ConsolePanel.charWidth).toInt - 2
     formatter.doesColoring = !isComment
     
     // set the textArea's text to the resulting HTML-injected parse string.
     textArea.text = """<div style="font-family:Lucida Console;font-size:12pt">""" + formatter.htmlFormat(text, cols) + """</div>"""
+    
   }
 }
 

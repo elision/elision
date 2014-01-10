@@ -71,7 +71,7 @@ import ornl.elision.util.other_hashify
  * For proposed binding of variable `$``x` to value `v`, with guard `g`, we do
  * the following.
  * 
- * - If `g` is a [[ornl.elision.core.Rewritable]], then `g.a` is computed and
+ * - If `g` is a [[ornl.elision.core.Rewriter]], then `g.a` is computed and
  *   if the flag is true, `$``x` is bound to the resulting atom.
  * - If `g` is a [[ornl.elision.core.Applicable]], then `g.a` is computed and
  *   `$``x` is bound the result.

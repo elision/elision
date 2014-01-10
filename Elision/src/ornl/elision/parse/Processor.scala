@@ -78,12 +78,12 @@ trait TraceableParse {
 /**
  * A processor is responsible for reading and handling atoms.
  * 
- * The processor instance maintains a [[ornl.elision.core.Context]] instance
+ * The processor instance maintains a [[ornl.elision.context.Context]] instance
  * that is available via the `context` field.  An existing context can be
  * provided when the processor is created.  Otherwise a new context is created
  * and used.
  * 
- * The processor instance also maintains its own [[ornl.elision.core.AtomParser]]
+ * The processor instance also maintains its own [[ornl.elision.parse.ElisionParser]]
  * instance to parse atoms.  You can enable and disable tracing of the parser
  * via the `trace` field.
  * 
@@ -179,7 +179,7 @@ with HasHistory {
   
   /**
    * Read the content of the provided file.  This method uses a
-   * [[ornl.elision.parse.FileResolver]] instance to find the requested
+   * [[ornl.elision.util.FileResolver]] instance to find the requested
    * file.
    * 
    * @param filename		The file to read.  It may be absolute, or it may be
