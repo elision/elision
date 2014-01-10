@@ -203,12 +203,9 @@ object ReplMain {
       erepl.run()
     } catch {
       case th: Throwable =>
-        try {
-          erepl.console.error("(" + th.getClass + ") " + th.getMessage())
-          if (erepl.getProperty[Boolean]("stacktrace")) th.printStackTrace()
-        } catch {
-          case _: Throwable =>
-        }
+        erepl.console.error("(" + th.getClass + ") " + th.getMessage())
+        if (erepl.getProperty[Boolean]("stacktrace")) 
+          th.printStackTrace()
         erepl.coredump("Internal error.", Some(th))
     }
     erepl.clean()
@@ -744,12 +741,9 @@ extends Processor(state.settings) {
           console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
 
         case th: Throwable =>
-          try {
-            console.error("(" + th.getClass + ") " + th.getMessage())
-            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-          } catch {
-            case _: Throwable =>
-          }
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) 
+            th.printStackTrace()
           coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.

@@ -46,6 +46,8 @@ import java.awt.Graphics2D
 
 import sage2D.images.ImageLoader
 
+import ornl.elision.gui.mainGUI
+
 /** A dialog window containing help docs for the Elision GUI */
 class EliHelpDialog extends Dialog {
 	title = "Elision Mode Help"
@@ -71,73 +73,77 @@ class EliHelpDialog extends Dialog {
 class EliAboutDialog extends Dialog {
 	title = "Elision Mode About"
 	val inset = 3
-    background = new Color(0xBBBBff)
+  background = new Color(0xBBBBff)
 
-    val evaIcon = ImageLoader.loadPath("EvaIcon.png")
-    
-    val infoPaneContents = 
+  val evaIcon = ImageLoader.loadPath("EvaIcon.png")
+  
+  val infoPaneContents = 
 """<b><u>Elision Visualization Assistant</u></b><br/>
 Copyright (c) 2012 by UT-Battelle, LLC. <br/>
 All rights reserved. <br/>
 Homepage: <a href='""" + ornl.elision.util.Version.web + """'>""" + ornl.elision.util.Version.web + """</a>
 """
     
-    contents = new BoxPanel(Orientation.Vertical) {
-        /** Panel containing the EVA icon and version/build info. */
-        val infoPane = new BoxPanel(Orientation.Horizontal) {
-            border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-            
-            /** The panel containing the Eva graphical icon. */
-            contents += new FlowPanel {
-                // Wait for the icon's image to finish loading before setting this panel's size.
-                val imageLoader = new ImageLoader(this.peer)
-                imageLoader.addImage(evaIcon)
-                imageLoader.waitForAll
+  contents = new BoxPanel(Orientation.Vertical) {
+    /** Panel containing the EVA icon and version/build info. */
+    val infoPane = new BoxPanel(Orientation.Horizontal) {
+      border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+      
+      /** The panel containing the Eva graphical icon. */
+      contents += new FlowPanel {
+        // Wait for the icon's image to finish loading before setting this panel's size.
+        val imageLoader = new ImageLoader(this.peer)
+        imageLoader.addImage(evaIcon)
+        imageLoader.waitForAll
 
-                preferredSize = new Dimension(evaIcon.getWidth(null), evaIcon.getHeight(null))
-                override def paint(g : java.awt.Graphics2D) : Unit = {
-                    super.paint(g)
-                    g.drawImage(evaIcon,0,0,null)
-                }
+        preferredSize = new Dimension(evaIcon.getWidth(null), evaIcon.getHeight(null))
+        override def paint(g : java.awt.Graphics2D) : Unit = {
+          super.paint(g)
+          g.drawImage(evaIcon,0,0,null)
+        }
+      }
+      
+      /** Panel containing the version/build information and things. */
+      contents += new EditorPane("text/html", infoPaneContents) {
+        border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+        import javax.swing.event.HyperlinkListener
+        import javax.swing.event.HyperlinkEvent
+        import java.awt.Desktop
+        class hyperlinkOpener extends HyperlinkListener {
+          def hyperlinkUpdate(event : HyperlinkEvent) : Unit = {
+            if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
+              try {
+                Desktop.getDesktop.browse(new java.net.URI(ornl.elision.util.Version.web))
+              } 
+              catch { 
+                case _: Throwable => 
+                  Dialog.showMessage(mainGUI.visPanel, "Could not open Elision website.", "Error", Dialog.Message.Error)
+              }
             }
-            
-            /** Panel containing the version/build information and things. */
-            contents += new EditorPane("text/html", infoPaneContents) {
-                border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-                import javax.swing.event.HyperlinkListener
-                import javax.swing.event.HyperlinkEvent
-                import java.awt.Desktop
-                class hyperlinkOpener extends HyperlinkListener {
-                    def hyperlinkUpdate(event : HyperlinkEvent) : Unit = {
-                        if(event.getEventType == HyperlinkEvent.EventType.ACTIVATED && Desktop.isDesktopSupported) {
-                            try {
-                                Desktop.getDesktop.browse(new java.net.URI(ornl.elision.util.Version.web))
-                            } catch { case _: Throwable => }
-                        }
-                    }
-                }
-                
-                editable = false
-                opaque = false
-                peer.addHyperlinkListener(new hyperlinkOpener)
-            }
+          }
         }
         
-        val licensePane = new ScrollPane {
-            horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
-            verticalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Always
-            border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-            
-            val licenseContents = new TextArea(ornl.elision.HelpText.about, 20, 80) { // HelpDialog.licenseText, 20, 80) {
-                editable = false
-                border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
-                font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 10 )
-            }
-            contents = licenseContents
+        editable = false
+        opaque = false
+        peer.addHyperlinkListener(new hyperlinkOpener)
+      }
+    }
+    
+    val licensePane = new ScrollPane {
+        horizontalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Never
+        verticalScrollBarPolicy = scala.swing.ScrollPane.BarPolicy.Always
+        border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+        
+        val licenseContents = new TextArea(ornl.elision.HelpText.about, 20, 80) { // HelpDialog.licenseText, 20, 80) {
+            editable = false
+            border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset + 10)
+            font = new java.awt.Font("Lucida Console", java.awt.Font.PLAIN, 10 )
         }
+        contents = licenseContents
+    }
 
-        contents += infoPane
-        contents += licensePane
+    contents += infoPane
+    contents += licensePane
 	}
     
 	open

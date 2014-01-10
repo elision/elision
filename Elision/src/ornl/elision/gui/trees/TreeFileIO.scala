@@ -40,6 +40,7 @@ package ornl.elision.gui.trees
 import collection.mutable.ArrayStack
 import collection.mutable.{OpenHashMap => HashMap}
 import scala.actors.Actor
+import scala.swing.Dialog
 import scala.xml._
 
 import ornl.elision.gui._
@@ -53,96 +54,92 @@ object TreeFileIO {
    *              backwards compatibility.
    */
   def loadFromFile(file : java.io.File) : TreeSprite = {
+    
+    /** Extracts a named attribute from an xml node. If the attribute doesn't exist, "", the empty string, is returned. */
+    def extrAtt(myXML : Node, tttrait : String) : String = {
+      val ttrait = "@" + tttrait
+      (myXML \ ttrait).text
+    }
+    
+    /** 
+     * Replaces XML new-line literals, '&#13;' 
+     * with their C equivalent, '\n'. 
+     */
+    def unreplaceNLs(str : String) : String = {
+      val toks = str.split("""&#13;""")
+      var result = ""
       
-      /** Extracts a named attribute from an xml node. If the attribute doesn't exist, "", the empty string, is returned. */
-      def extrAtt(myXML : Node, tttrait : String) : String = {
-          try {
-              val ttrait = "@" + tttrait
-              (myXML \ ttrait).text
-          }
-          catch {
-              case _: Throwable => ""
-          }
+      for(tok <- toks) {
+          result += tok + "\n"
+      }
+      result
+    }
+    
+    try {
+      val topXML = XML.loadFile(file)
+      
+      // load the label map
+      val labels = (topXML \ "labelMap") \ "label"
+      val labelMap = new HashMap[Int, String]
+      for(labelXML <- labels) {
+        val key = extrAtt(labelXML, "key").toInt
+        val value = extrAtt(labelXML, "value")
+        
+        labelMap += (key -> value)
       }
       
-      /** 
-       * Replaces XML new-line literals, '&#13;' 
-       * with their C equivalent, '\n'. 
-       */
-      def unreplaceNLs(str : String) : String = {
-          val toks = str.split("""&#13;""")
-          var result = ""
-          
-          for(tok <- toks) {
-              result += tok + "\n"
-          }
-          result
+      // load the properties map
+      val props = (topXML \ "propsMap") \ "props"
+      val propsMap = new HashMap[Int, String]
+      for(propsXML <- props) {
+        val key = extrAtt(propsXML, "key").toInt
+        val value = extrAtt(propsXML, "value")
+        
+        propsMap += (key -> value)
       }
       
-      try {
-          val topXML = XML.loadFile(file)
+      // load the root NodeSprite
+      val rootXML = (topXML \ "root")(0)
+      
+      val rLabelKey = extrAtt(rootXML, "label").toInt
+      val rPropsKey = extrAtt(rootXML, "props").toInt
+      
+      val treeSprite = new elision.sprites.ElisionTreeSprite
+      val rootNode = treeSprite.makeRoot(labelMap(rLabelKey)) 
+      rootNode.properties = unreplaceNLs(propsMap(rPropsKey))
+      
+      // recursively load the rest of the tree.
+      def recLoadTree(subroot : NodeSprite, subrootXML : Node) : Unit = {
+        val nodes = subrootXML \ "node"
+        for(nodeXML <- nodes) {
+          // load the node's data
+          val lKey = extrAtt(nodeXML, "label").toInt
+          val nodeLabel = labelMap(lKey)
           
-          // load the label map
-          val labels = (topXML \ "labelMap") \ "label"
-          val labelMap = new HashMap[Int, String]
-          for(labelXML <- labels) {
-              val key = extrAtt(labelXML, "key").toInt
-              val value = extrAtt(labelXML, "value")
-              
-              labelMap += (key -> value)
-          }
+          val pKey = extrAtt(nodeXML, "props").toInt
+          val nodeProps = unreplaceNLs(propsMap(pKey))
           
-          // load the properties map
-          val props = (topXML \ "propsMap") \ "props"
-          val propsMap = new HashMap[Int, String]
-          for(propsXML <- props) {
-              val key = extrAtt(propsXML, "key").toInt
-              val value = extrAtt(propsXML, "value")
-              
-              propsMap += (key -> value)
-          }
+          val nodeIsComment = extrAtt(nodeXML, "com").toBoolean
           
-          // load the root NodeSprite
-          val rootXML = (topXML \ "root")(0)
+          // create the node and add it to subroot's list of children.
+          val node = subroot. makeChild(nodeLabel, nodeIsComment) 
+          node.properties = nodeProps
           
-          val rLabelKey = extrAtt(rootXML, "label").toInt
-          val rPropsKey = extrAtt(rootXML, "props").toInt
-          
-          val treeSprite = new elision.sprites.ElisionTreeSprite
-          val rootNode = treeSprite.makeRoot(labelMap(rLabelKey)) 
-          rootNode.properties = unreplaceNLs(propsMap(rPropsKey))
-          
-          // recursively load the rest of the tree.
-          def recLoadTree(subroot : NodeSprite, subrootXML : Node) : Unit = {
-              val nodes = subrootXML \ "node"
-              for(nodeXML <- nodes) {
-                  // load the node's data
-                  val lKey = extrAtt(nodeXML, "label").toInt
-                  val nodeLabel = labelMap(lKey)
-                  
-                  val pKey = extrAtt(nodeXML, "props").toInt
-                  val nodeProps = unreplaceNLs(propsMap(pKey))
-                  
-                  val nodeIsComment = extrAtt(nodeXML, "com").toBoolean
-                  
-                  // create the node and add it to subroot's list of children.
-                  val node = subroot. makeChild(nodeLabel, nodeIsComment) 
-                  node.properties = nodeProps
-                  
-                  // recursive call
-                  recLoadTree(node, nodeXML)
-              }
-          }
-          recLoadTree(rootNode, rootXML)
-          
-          // return the loaded tree.
-          treeSprite
+          // recursive call
+          recLoadTree(node, nodeXML)
+        }
       }
-      catch {
-          case ex : Throwable => 
-              System.err.println("" + ex)
-              null
-      }
+      recLoadTree(rootNode, rootXML)
+      
+      // return the loaded tree.
+      treeSprite
+    }
+    catch {
+      case ex : Throwable => 
+        // There was an error parsing the XML file, so return null.
+        Dialog.showMessage(mainGUI.visPanel, "Could not read the saved tree file.", "Error", Dialog.Message.Error)
+        null
+    }
   }
   
   /** Loads a TreeSprite from a treejson file. */
@@ -295,7 +292,7 @@ object TreeFileIO {
       }
       catch {
           case ex : Throwable => 
-              System.err.println("" + ex)
+              Dialog.showMessage(mainGUI.visPanel, "Could not read the saved tree file.", "Error", Dialog.Message.Error)
               null
       }
   }
@@ -391,7 +388,9 @@ object TreeFileIO {
           true
       }
       catch {
-          case _: Throwable => false
+          case _: Throwable => 
+            Dialog.showMessage(mainGUI.visPanel, "Could not save the tree.", "Error", Dialog.Message.Error)
+            false
       }
   }
   
@@ -461,7 +460,9 @@ object TreeFileIO {
           true
       }
       catch {
-          case _: Throwable => false
+          case _: Throwable => 
+            Dialog.showMessage(mainGUI.visPanel, "Could not save the tree.", "Error", Dialog.Message.Error)
+            false
       }
   }
 }

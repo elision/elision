@@ -68,29 +68,29 @@ object EliMenu {
 
 
 class RulePredDialog(val lhs : String) extends Dialog {
-    this.title = "Create Rule from Node"
-    val inset = 3
-    
-    val linesInput = new TextField(10) { 
-        listenTo(keys) 
-        reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
-        text = ""
-    }
-    val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
-    val cancelBtn = new Button(Action("Cancel") { close } )
-    
-    contents = new BorderPanel {
-        border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
-        layout( new GridPanel(2,1) { 
-                    contents += new Label("Enter new rule right-hand-side:")
-                    contents += new Label(lhs + " -> ")
-                } ) = North
-        layout(linesInput) = Center
-        layout(new FlowPanel {
-            contents += okBtn
-            contents += cancelBtn
-        } ) = South
-    }
+  this.title = "Create Rule from Node"
+  val inset = 3
+  
+  val linesInput = new TextField(10) { 
+    listenTo(keys) 
+    reactions += { case e : swing.event.KeyTyped => if(e.char == '\n') enterInput(text) }
+    text = ""
+  }
+  val okBtn = new Button(Action("OK") {enterInput(linesInput.text)})
+  val cancelBtn = new Button(Action("Cancel") { close } )
+  
+  contents = new BorderPanel {
+    border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+    layout( new GridPanel(2,1) { 
+                contents += new Label("Enter new rule right-hand-side:")
+                contents += new Label(lhs + " -> ")
+            } ) = North
+    layout(linesInput) = Center
+    layout(new FlowPanel {
+      contents += okBtn
+      contents += cancelBtn
+    } ) = South
+  }
     
     
     /** 
@@ -98,50 +98,56 @@ class RulePredDialog(val lhs : String) extends Dialog {
      * @param input		The input string for the rule's RHS.
      */
     private def enterInput(input : String) : Unit = {
-        // if the input is an integer > 0, proceed to set the decompression depth to the input. 
-        // Otherwise, just close the dialog.
-        val rhs = input
-        
-        try {
-            val openDirectory = EvaConfig.lastOpenPath
-            val fc = new FileChooser(new java.io.File(openDirectory))
-            fc.fileFilter = new EliFileFilter
-      			val result = fc.showSaveDialog(null)
-      			val selFile = fc.selectedFile
-      			if(selFile != null && result == FileChooser.Result.Approve) {
-      				EvaConfig.lastOpenPath = selFile.getParent
-      				EvaConfig.save
-				
-                var filePath = selFile.getPath
-                if(!filePath.endsWith(".eli")) filePath += ".eli"
-                
-                // create the parse string for the new rule declaration.
-                var ruleDecl = """decl.{rule
+      // if the input is an integer > 0, proceed to set the decompression depth to the input. 
+      // Otherwise, just close the dialog.
+      val rhs = input
+      
+      try {
+        val openDirectory = EvaConfig.lastOpenPath
+        val fc = new FileChooser(new java.io.File(openDirectory))
+        fc.fileFilter = new EliFileFilter
+        val result = fc.showSaveDialog(null)
+        val selFile = fc.selectedFile
+        if(selFile != null && result == FileChooser.Result.Approve) {
+          EvaConfig.lastOpenPath = selFile.getParent
+          EvaConfig.save
+    
+          var filePath = selFile.getPath
+          if(!filePath.endsWith(".eli")) {
+            filePath += ".eli"
+          }
+          
+          // create the parse string for the new rule declaration.
+          var ruleDecl = """decl.{rule
     """ + lhs + """
     -> 
     """ + rhs
-                if(!rhs.contains("#rulesets"))
-                    ruleDecl += """
+          
+          // Append the default ruleset if no ruleset was provided.
+          if(!rhs.contains("#rulesets")) {
+            ruleDecl += """
     
     #rulesets DEFAULT"""
                 ruleDecl += """
 }
 """
-                
-                // save the rule to the file.
-                val fw = new java.io.FileWriter(filePath)
-                fw.write(ruleDecl)
-                fw.close
-                
-                // declare the rule in our context.
-                GUIActor ! "IgnoreNextTree"
-                GUIActor ! ("ReplInput", ruleDecl)
-      		  }
-            // close the dialog when we finish processing input
-            close
-        } catch {
-            case _: Throwable =>
+          }
+          
+          // save the rule to the file.
+          val fw = new java.io.FileWriter(filePath)
+          fw.write(ruleDecl)
+          fw.close
+          
+          // declare the rule in our context.
+          GUIActor ! "IgnoreNextTree"
+          GUIActor ! ("ReplInput", ruleDecl)
         }
+        // close the dialog when we finish processing input
+        close
+      } catch {
+        case _: Throwable =>
+          Dialog.showMessage(mainGUI.visPanel, "Failed to create the rule.", "Error", Dialog.Message.Error)
+      }
     }
     
     // open the dialog when it is finished setting up
