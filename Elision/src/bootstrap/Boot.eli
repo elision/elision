@@ -92,7 +92,6 @@ decl.{! inc($fn: STRING)
   // files read.  There are other approaches, but this one will probably do
   // for now.
   import scala.collection.mutable.Set
-  
   // Go and get the included files from the cache.
   val included = 
     context.fetchAs[Set[String]]("read_once.included", Set[String]())
@@ -140,7 +139,7 @@ decl.{! print($a: STRING)
 #handler=
 """
   args match {
-    case Args(StringLiteral(_, str)) => print(str)
+    case Args(StringLiteral(_, str)) => console.send(str)
     case _ =>
   }
   _no_show
