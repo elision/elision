@@ -38,6 +38,7 @@
 package ornl.elision.core
 
 import scala.collection.immutable.HashSet
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
@@ -193,6 +194,9 @@ trait Applicable {
  */
 abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
   import scala.collection.mutable.{Map => MMap}
+
+  /** Cache the operator applies contained in this atom. */
+  var myOperators : MMap[String, Apply] = new HashMap[String, Apply]
 
   /**
    * The rulesets with respect to which this atom is clean. If this is
