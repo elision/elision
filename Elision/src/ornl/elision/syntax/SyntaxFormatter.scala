@@ -36,10 +36,12 @@
 ======================================================================*/
 package ornl.elision.syntax
 
+import java.awt.Color
 import scala.collection.mutable.ListBuffer
 import scala.util.matching._
 
 import ornl.elision.gui._
+import ornl.elision.util.AbbrevException
 
 /** 
  * An object for applying syntax formatting to a string. 
@@ -109,7 +111,6 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
       
       // iterate over our list of regexes and find the one the can be applied the earliest.
       for(regex <- regexes.rList) {
-        
         regex.findFirstMatchIn(text) match {
           case Some(myMatch : scala.util.matching.Regex.Match) =>
             // If this regex can be applied earliest, remember it. 
@@ -196,13 +197,14 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
     // indentation data
     var indents = 0
     val maxIndents = maxCols/tabSize - 1
+    var tabsSize = 0
     
     // Apply line wrapping as long as the remaining text size is longer than 
     // the maximum allowed columns. 
-    while(edibleTxt.size > maxCols) {
+    while(edibleTxt.size > maxCols - tabsSize) {
     
       // Apply word wrapping.
-      val (breakPt, isNewLine) = _wordWrap(edibleTxt, maxCols)
+      val (breakPt, isNewLine) = _wordWrap(edibleTxt, maxCols - tabsSize)
       
       // chomp the characters before the break point. Om nom nom...
       var curLine = edibleTxt.take(breakPt)
@@ -223,7 +225,7 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
         // If line starts with some number of block end characters }, ), or ] 
         // subtract that from our number of indentations to apply.
         var j = 0
-        while(j < maxCols) {
+        while(j < maxCols - tabsSize) {
           if(j >= edibleTxt.size) 
             j = maxCols
           else {
@@ -238,8 +240,11 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
         } // endwhile
         
         // apply the number of indentations we counted.
+        tabsSize = 0
         for(i <- 0 until indents % maxIndents) {
-          edibleTxt = spaceTab + edibleTxt
+          //edibleTxt = spaceTab + edibleTxt
+          result += spaceTab
+          tabsSize += spaceTab.length
         }
       } // endif
     } // endwhile
@@ -273,7 +278,7 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
     // search backwards from maxCols until we reach a nonalphanumeric character.
     while(!foundIt && index > 1) {
       index -= 1
-      foundIt = !_isWordChar(txt.charAt(index))
+      foundIt = !_isWrappable(txt.charAt(index))
     }
     
     if(!foundIt) 
@@ -287,8 +292,8 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
    * @param c    the character we are testing.
    * @return    if c is an alphanumeric character, true. Otherwise false.
    */
-  def _isWordChar(c : Char) : Boolean = {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+  def _isWrappable(c : Char) : Boolean = {
+    return (c > ' ' && c != '(' && c != ')' && c != '[' && c != ']' && c != '{' && c != '}')
   }
   
   
@@ -308,31 +313,19 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
     val starts = new ListBuffer[Int]
     val colors = new ListBuffer[String]
     val ends = new ListBuffer[Int]
-    
-    try {
-      if(doesColoring) {
-        _applyRegexes(result, 0, starts, colors, ends)
-        if(showColorData) {
-          System.err.println("----Color Data----")
-          System.err.println("starts: " + starts)
-          System.err.println("colors: " + colors)
-          System.err.println("ends: " + ends)
-        }
+
+    if(doesColoring) {
+      _applyRegexes(result, 0, starts, colors, ends)
+      
+      if(showColorData) {
+        System.err.println("----Color Data----")
+        System.err.println("starts: " + starts)
+        System.err.println("colors: " + colors)
+        System.err.println("ends: " + ends)
       }
-    } 
-    catch {
-      case _: Throwable =>
-        // catch an errors or exception just in case something goes horribly wrong while applying the regexes.
-        System.err.println("Error during syntax formatting :\n" + text) 
-    } 
-    
-    val resultColors = new ListBuffer[java.awt.Color]
-    for(strColor <- colors) {
-      resultColors += new java.awt.Color(Integer.parseInt(strColor.drop(1), 16))
     }
-        
-    // new SyntaxFormattedString(result, resultStarts, resultColors, resultEnds)
-    new SyntaxFormattedString(result, starts, resultColors, ends)
+    
+    new SyntaxFormattedString(result, starts, colors, ends)
   }
   
   
@@ -350,22 +343,24 @@ class SyntaxFormatter (val regexes : SyntaxRegexes = null, var doesColoring : Bo
     
     var resultString = ""
     for(i <- 0 until formattedString.lines.size) {
+      var resultLine = ""
       val line = formattedString.lines(i)
-      for((j, csubstr) <- line.substrings) {
+      for((_, csubstr) <- line.substrings) {
         var substr = csubstr.toString
         substr = substr.replaceAllLiterally("<", SyntaxFormatter.htmlLT)
         substr = substr.replaceAllLiterally(">", SyntaxFormatter.htmlGT)
         substr = substr.replaceAllLiterally(" ", SyntaxFormatter.htmlSpace)
         if(doesColoring)
-          resultString += "<font color=\"" + _colorToWebString(csubstr.color) + "\">" + substr + "</font>"
+          resultLine += "<font color=\"" + csubstr.color + "\">" + substr + "</font>"
         else
-          resultString += substr
+          resultLine += substr
       }
       
       if(i < formattedString.lines.size-1)
-        resultString += SyntaxFormatter.htmlLineBreak
+        resultLine += SyntaxFormatter.htmlLineBreak
+        
+      resultString += resultLine
     }
-    
     resultString
   }
   

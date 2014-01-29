@@ -44,20 +44,20 @@ inc("bootstrap/Test.eli")
 inc("bootstrap/Math.eli")
 
 // Non-commutative, non-associative operators.
-{! f1($x: INTEGER): INTEGER}
-{! f2($x: INTEGER, $y: INTEGER): INTEGER}
-{! f3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER}
+decl.{! f1($x: INTEGER): INTEGER}
+decl.{! f2($x: INTEGER, $y: INTEGER): INTEGER}
+decl.{! f3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER}
 
 // Commutative, non-associative operators.
-{! c2($x: INTEGER, $y: INTEGER): INTEGER is %C}
-{! c3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER is %C}
+decl.{! c2($x: INTEGER, $y: INTEGER): INTEGER is %C}
+decl.{! c3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER is %C}
 
 // Associative, non-commutative operators.
-{! a21($x: INTEGER, $y: INTEGER): INTEGER is %A}
-{! a22($x: INTEGER, $y: INTEGER): INTEGER is %A}
+decl.{! a21($x: INTEGER, $y: INTEGER): INTEGER is %A}
+decl.{! a22($x: INTEGER, $y: INTEGER): INTEGER is %A}
 
 // Associative, commutative operators.
-{! foo($x: INTEGER, $y: INTEGER): INTEGER is %AC}
+decl.{! foo($x: INTEGER, $y: INTEGER): INTEGER is %AC}
 
 _test_init()
 

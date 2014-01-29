@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ======================================================================*/
+ * ======================================================================
+ * */
 package ornl.elision.core
 
 import scala.compat.Platform
@@ -68,7 +69,33 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   /** The hash code for this apply. */
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
-  
+
+  //println("** Making apply " + op.toParseString + " " + arg.toParseString)
+  op match {
+    case x: Operator => {
+      //println("** Old myOperators (1) = " + myOperators)
+      myOperators = myOperators + (x.name -> this)
+      //println("** New myOperators (1) = " + myOperators)
+    }
+    case x: OperatorRef => {
+      //println("** Old myOperators (1) = " + myOperators)
+      myOperators = myOperators + (x.name -> this)
+      //println("** New myOperators (1) = " + myOperators)
+    }
+    case _ => {}
+  }
+  arg match {
+    case x: AtomSeq => {
+      for (a <- x) {
+        //println("** Adding in " + a.myOperators)
+        //println("** Old myOperators (2) = " + myOperators)
+        myOperators = myOperators ++ a.myOperators
+        //println("** New myOperators (2) = " + myOperators)
+      }
+    }
+    case _ => {}
+  }
+
   override def equals(other: Any) = (other match {
       case oapp: Apply =>
         feq(oapp, this, (op == oapp.op) && (arg == oapp.arg))
@@ -332,33 +359,14 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * Get the operators in the operator arguments, plus this operator.
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
-    // Make the result set to hold the variables.
-    var r = new HashSet[BasicAtom]
 
-    // This is used a lot, so it needs to be fast. We will find all
-    // the operators here with a stack to avoid recursive calls.
-    var work = new Stack[BasicAtom]
-    var done = new HashSet[BasicAtom]
-    work.push(this)
-    while (!work.isEmpty) {
-      work.pop match {
-
-        // Are we working on an operator instance?
-        case currOp: OpApply => {
-
-          // Is this one of the operators we are looking for?
-          if (opNames contains currOp.op.operator.name) r.add(currOp)
-
-          // Push all the operator arguments on the stack to check, if
-          // we have not already checked this operator instance.
-          if (!(done contains currOp)) {
-            for (a <- currOp.arg) work.push(a)
-            done += currOp
-          }
-        }
-        
-        // Any other type of atom we ignore.
-        case _ => {}
+    //println("** Getting operators " + opNames)
+    //println("** Operators in " + this.toParseString + " = " + myOperators)
+    var r : HashSet[BasicAtom] = new HashSet[BasicAtom]
+    for (desiredOp <- opNames) {
+      myOperators.get(desiredOp) match {
+        case Some(app) => r += app
+        case None => {}
       }
     }
 

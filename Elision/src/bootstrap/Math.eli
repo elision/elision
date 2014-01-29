@@ -38,7 +38,64 @@
 println("Reading Math...")
 
 //======================================================================
-// General operators.
+// Automatic simplification rulesets.
+//======================================================================
+
+// Declare and enable the ruleset for symbolic evaluation.
+declare(EVALUATE)
+enable(EVALUATE)
+
+// Declare and enable the ruleset for always beneficial rewrites.
+declare(ALWAYS)
+enable(ALWAYS)
+
+
+//======================================================================
+// Partial function operators.
+//======================================================================
+
+// Declare and enable the ruleset for domain computation.
+declare(DOMAIN)
+enable(DOMAIN)
+
+
+decl.{! is_defined($x @non_strict): BOOLEAN
+  #description="Test whether the argument is defined."
+  #detail=
+  "Return true if the argument is defined. ".
+  "Return false if the argument is the bottom element."
+}
+
+decl.{ rule
+          is_defined(is_defined($x))
+       ->
+          true
+       #ruleset DOMAIN }
+
+decl.{ rule
+          is_defined($x{is_literal($$x)})
+       ->
+          true
+       #ruleset EVALUATE }
+
+
+decl.{! diverge($T: ^TYPE, $msg: STRING): $T
+  #description="Return the bottom element of type $T."
+  #detail=
+  "This term represents the bottom element of type $T. ".
+  "The second argument is an error message to contain and propagate the ".
+  "reason for creating the undefined term."
+}
+
+decl.{ rule
+          is_defined(diverge($T,$msg))
+       ->
+          false
+       #ruleset DOMAIN }
+
+
+//======================================================================
+// Equality operators.
 //======================================================================
 
 decl.{! eq($x,$y): BOOLEAN is %C
@@ -67,9 +124,408 @@ decl.{! equal($x,$y): BOOLEAN is %C
   "constant terms and is deferred otherwise."
 }
 
+
 //======================================================================
-// Integer math.
+// Boolean math.
 //======================================================================
+
+decl.{! not($x: BOOLEAN): BOOLEAN
+  #handler="""
+    args match {
+      case Args(BooleanLiteral(_,x)) => (!x)
+      case _ => as_is
+    }
+  """
+  #description="Boolean not operator."
+  #detail="Evaluate to true if $x is false. ".
+          "Evaluate to false if $x is true."
+}
+
+decl.{ rule
+          is_defined(not($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+decl.{ rule
+          not(not($x))
+       ->
+          $x
+       #ruleset ALWAYS }
+
+
+decl.{! and($x: BOOLEAN, $y: BOOLEAN): BOOLEAN is %ACID[true]
+  #handler="""
+    // Accumulate the boolean literals found.
+    var lits:Boolean = true
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case BooleanLiteral(_, value) => lits &&= value
+        case _ => other :+= x
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(BOOLEAN, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Boolean conjunction."
+  #detail="Evaluate to true if $x and $y are both true. ".
+          "Evaluate to false if either $x or $y is false."
+}
+
+decl.{ rule
+          is_defined(and($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! or($x: BOOLEAN, $y: BOOLEAN): BOOLEAN is %ACID[false]
+  #handler="""
+    // Accumulate the boolean literals found.
+    var lits:Boolean = false
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case BooleanLiteral(_, value) => lits ||= value
+        case _ => other :+= x
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(BOOLEAN, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Boolean disjunction."
+  #detail="Evaluate to true if either $x or $y is true. ".
+          "Evaluate to false if both $x and $y are false."
+}
+
+decl.{ rule
+          is_defined(or($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! lazy_and($x: BOOLEAN, $y: BOOLEAN @lazy): BOOLEAN is %A!CID[true]
+  #handler="""
+    // Accumulate the boolean literals found.
+    var lits:Boolean = true
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case BooleanLiteral(_, value) =>
+          lits &&= value
+        case _ =>
+          if (lits == true) {
+            other :+= x
+          }
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(BOOLEAN, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Boolean lazy conjunction."
+  #detail="Evaluate to true if $x and $y are both true. ".
+          "Evaluate to false if either $x or $y is false. ".
+          "Do not evaluate $y if $x is false."
+}
+
+decl.{ rule
+          is_defined(lazy_and($x,$y))
+       ->
+          and(is_defined($x),
+              or(is_defined($y), lazy_and(is_defined($x), not($x))) )
+       #ruleset DOMAIN }
+
+
+decl.{! lazy_or($x: BOOLEAN, $y: BOOLEAN @lazy): BOOLEAN is %A!CID[false]
+  #handler="""
+    // Accumulate the boolean literals found.
+    var lits:Boolean = false
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case BooleanLiteral(_, value) =>
+          lits ||= value
+        case _ =>
+          if (lits == false) {
+            other :+= x
+          }
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(BOOLEAN, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Boolean lazy disjunction."
+  #detail="Evaluate to true if either $x or $y is true. ".
+          "Evaluate to false if both $x and $y are false. ".
+          "Do not evaluate $y if $x is true."
+}
+
+decl.{ rule
+          is_defined(lazy_or($x,$y))
+       ->
+          and(is_defined($x),
+              or(is_defined($y), lazy_and(is_defined($x), $x)) )
+       #ruleset DOMAIN }
+
+
+decl.{! xor($x: BOOLEAN, $y: BOOLEAN): BOOLEAN is %AC!ID[false]
+  #handler="""
+    // Accumulate the boolean literals found.
+    var lits:Boolean = false
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case BooleanLiteral(_, value) => lits ^= value
+        case _ => other :+= x
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(BOOLEAN, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Boolean exclusive or."
+  #detail="Evaluate to true if exactly one of $x and $y is true. ".
+          "Evaluate to false if $x and $y are equal."
+}
+
+decl.{ rule
+          is_defined(xor($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! equiv($x: BOOLEAN, $y: BOOLEAN): BOOLEAN is %C!I
+  #handler="""
+    args match {
+      case Args(BooleanLiteral(_,x),BooleanLiteral(_,y)) => (x == y)
+      case _ => as_is
+    }
+  """
+  #description="Boolean equivalence."
+  #detail="Evaluate to true if $x and $y are equal. ".
+          "Evaluate to false if $x and $y are not equal."
+}
+
+decl.{ rule
+          is_defined(equiv($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+decl.{ rule
+          equiv(true,$x)
+       ->
+          $x
+       #ruleset ALWAYS }
+
+
+decl.{! not_equiv($x: BOOLEAN, $y: BOOLEAN): BOOLEAN is %C!I
+  #handler="""
+    args match {
+      case Args(BooleanLiteral(_,x),BooleanLiteral(_,y)) => (x != y)
+      case _ => as_is
+    }
+  """
+  #description="Boolean inequivalence."
+  #detail="Evaluate to true if $x and $y are not equal. ".
+          "Evaluate to false if $x and $y are equal."
+}
+
+decl.{ rule
+          is_defined(not_equiv($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+decl.{ rule
+          not_equiv(false,$x)
+       ->
+          $x
+       #ruleset ALWAYS }
+
+
+decl.{! implies($x: BOOLEAN, $y: BOOLEAN): BOOLEAN is !A!C!I
+  #handler="""
+    args match {
+      case Args(BooleanLiteral(_,x),BooleanLiteral(_,y)) => (y || !x)
+      case _ => as_is
+    }
+  """
+  #description="Boolean implication."
+  #detail="Evaluate to true if $y is true or if $x is false. ".
+          "Evaluate to false if $x is true and $y is false."
+}
+
+decl.{ rule
+          is_defined(implies($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! lazy_implies($x: BOOLEAN, $y: BOOLEAN @lazy): BOOLEAN is !A!C!I
+  #handler="""
+    args match {
+      case Args(BooleanLiteral(_,x), y) =>
+        if (x) {
+          y
+        } else {
+          true
+        }
+      case _ => as_is
+    }
+  """
+  #description="Boolean lazy implication."
+  #detail="Evaluate to true if $y is true or if $x is false. ".
+          "Evaluate to false if $x is true and $y is false. ".
+          "Do not evaluate $y if $x is false."
+}
+
+decl.{ rule
+          is_defined(lazy_implies($x,$y))
+       ->
+          and(is_defined($x),
+              or(is_defined($y), lazy_and(is_defined($x), not($x))) )
+       #ruleset DOMAIN }
+
+
+//======================================================================
+// Integer math, arithmetic operators.
+//======================================================================
+
+decl.{! int_add($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
+  #handler="""
+    // Accumulate the integer literals found.
+    var lits:BigInt = 0
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case IntegerLiteral(_, value) => lits += value
+        case _ => other :+= x
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(INTEGER, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Compute the integer sum of the arguments."
+  #detail="Compute the sum of the integer arguments."
+}
+
+decl.{ rule
+          is_defined(int_add($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_negate($x: INTEGER): INTEGER
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_, x)) => -x
+      case _ => as_is
+    }
+  """
+  #description="Negate an integer."
+  #detail="Compute the negation of the integer $x; that is, compute 0 - $x."
+}
+
+decl.{ rule
+          is_defined(int_negate($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+decl.{ rule
+          int_negate(int_negate($x))
+       ->
+          $x
+       #ruleset ALWAYS }
+
+
+decl.{! int_sub($x: INTEGER, $y: INTEGER): INTEGER is %!A!C!I
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x),IntegerLiteral(_,y)) => (x - y)
+      case _ => as_is
+    }
+  """
+  #description="Integer subtraction."
+  #detail="Compute the difference of the integer arguments $x - $y."
+}
+
+decl.{ rule
+          is_defined(int_sub($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_mult($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[1]
+  #handler="""
+    // Accumulate the integer literals found.
+    var lits:BigInt = 1
+    // Accumulate other atoms found.
+    var other = IndexedSeq[BasicAtom]()
+    // Traverse the list and divide the atoms.
+    args.foreach {
+      x => x match {
+        case IntegerLiteral(_, value) => lits *= value
+        case _ => other :+= x
+      }
+    }
+    // Now add the accumulated literals to the list.
+    other :+= Literal(INTEGER, lits)
+    // Construct and return a new operator application.
+    Apply(_data.op, AtomSeq(NoProps, other), true)
+  """
+  #description="Compute the integer product of the arguments."
+  #detail="Compute the product of the integer arguments."
+}
+
+decl.{ rule
+          is_defined(int_mult($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_div($num: INTEGER, $den: INTEGER): INTEGER
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x/y
+      case _ => as_is
+    }"""
+  #description="Integer division."
+  #detail="Compute the quotient of two integers $num / $den, and discard ".
+          "any remainder."
+}
+
 
 decl.{! mod($b: INTEGER, $d: INTEGER): INTEGER
 #handler=
@@ -83,147 +539,263 @@ decl.{! mod($b: INTEGER, $d: INTEGER): INTEGER
 #detail="Compute $b mod $d, returning the remainder when $b is divided by $d."
 }
 
-decl.{! ineg($x: INTEGER): INTEGER
-#handler=
-"""
-  args match {
-    case Args(IntegerLiteral(_, x)) => -x
-    case _ => as_is
-  }
-"""
-#description="Negate an integer."
-#detail="Compute the negation of the integer $x; that is, compute 0 - $x."
-}
 
-decl.{! iadd($x: INTEGER, $y: INTEGER): INTEGER is %AC!ID[0]
-#handler=
-"""
-  // Accumulate the integer literals found.
-  var lits:BigInt = 0
-  // Accumulate other atoms found.
-  var other = IndexedSeq[BasicAtom]()
-  // Traverse the list and divide the atoms.
-  args.foreach {
-    x => x match {
-      case IntegerLiteral(_, value) => lits += value
-      case _ => other :+= x
-    }
-  }
-  // Now add the accumulated literals to the list.
-  other :+= Literal(INTEGER, lits)
-  // Construct and return a new operator application.
-  Apply(_data.op, AtomSeq(NoProps, other), true)
-"""
-#description="Compute the integer sum of the arguments."
-#detail="Compute the sum of the integer arguments."
-}
+//======================================================================
+// Integer math, one argument inequality operators.
+//======================================================================
 
-decl.{operator #name=isub #type=INTEGER #cases
-  %($x: INTEGER, $y: INTEGER) -> iadd($$x,ineg($$y)) 
-  #description="Integer subtraction."
-  #detail="Compute the difference of the integer arguments $x - $y."
-}
-
-decl.{! imul($x: INTEGER, $y: INTEGER): INTEGER is %ACD[1]B[0]
+decl.{! int_is_zero($x: INTEGER): BOOLEAN
   #handler="""
     args match {
-      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x*y
-      case _ => as_is
-    }"""
-  #description="Integer multiplication."
-  #detail="Compute the product of two integers $x and $y."
-}
-
-decl.{! idiv($num: INTEGER, $den: INTEGER): INTEGER
-  #handler="""
-    args match {
-      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x/y
-      case _ => as_is
-    }"""
-  #description="Integer division."
-  #detail="Compute the quotient of two integers $num / $den, and discard ".
-          "any remainder."
-}
-
-//======================================================================
-// Boolean math.
-//======================================================================
-
-decl.{operator #name=not #type=BOOLEAN #cases
-  %(true) -> false,
-  %(false) -> true,
-  %($x: BOOLEAN) -> _,
-  true -> false,
-  false -> true,
-  $x: BOOLEAN -> _
-#description="Boolean negation."
-#detail="Negate a provided Boolean value."
-}
-
-decl.{operator #name=implies #type=BOOLEAN #cases
-  %($P: BOOLEAN, true) -> true,
-  %(false, $Q: BOOLEAN) -> true,
-  %(true, false) -> false,
-  %($P: BOOLEAN, $Q: BOOLEAN) -> _
-#description="Boolean implication."
-#detail=
-"The result is true if either the premise $P is false, or the consequent ".
-"$Q is true."
-}
-
-decl.{operator #name=iff #type=BOOLEAN #cases
-  %(true, true) -> true,
-  %(false, $Q: BOOLEAN) -> false,
-  %($P: BOOLEAN, false) -> false,
-  %($P: BOOLEAN, $Q: BOOLEAN) -> _
-#description="Boolean if and only if."
-#detail=
-"The result is true if both the premise $P and the consequent $Q are both true."
-}
-
-decl.{! and($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[false]D[true]
-#description="Boolean conjunction."
-#detail="True if all arguments are true, and false if any is false."
-}
-
-decl.{! or($P: BOOLEAN, $Q: BOOLEAN): BOOLEAN is %ACIB[true]D[false]
-#description="Boolean disjunction."
-#detail="True if any argument is true, and false if all are false."
-}
-
-decl.{ operator #name=xor #type=BOOLEAN #cases
-  %($P: BOOLEAN) -> $$P,
-  %ACD[false](false, $P: BOOLEAN) -> $$P,
-  %ACD[false](true, $Q: BOOLEAN) -> not($$Q),
-  %ACD[false]($P: BOOLEAN, $P: BOOLEAN) -> false,
-  %ACD[false]($P: BOOLEAN, $Q: BOOLEAN) -> _
-#description="Boolean exclusive or."
-#detail="True if exactly one argument is true, and false otherwise."
-}
-
-//======================================================================
-// Simple inequalities.
-//======================================================================
-
-decl.{! i_less_than($x: INTEGER, $y: INTEGER): BOOLEAN
-  #handler="""
-    args match {
-      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x < y
+      case Args(IntegerLiteral(_,x)) => (x == 0)
       case _ => as_is
     }
   """
-  #description="Integer less-than."
-  #detail="Evaluate to true iff $x is less than $y."
+  #description="Integer test if argument is zero."
+  #detail="Evaluate to true if $x is zero. ".
+          "Evaluate to false if $x is non-zero."
 }
 
-decl.{! i_greater_than($x: INTEGER, $y: INTEGER): BOOLEAN
+decl.{ rule
+          is_defined(int_is_zero($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_nonzero($x: INTEGER): BOOLEAN
   #handler="""
     args match {
-      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => x > y
+      case Args(IntegerLiteral(_,x)) => (x != 0)
       case _ => as_is
     }
   """
-  #description="Integer less-than."
-  #detail="Evaluate to true iff $x is less than $y."
+  #description="Integer test if argument is non-zero."
+  #detail="Evaluate to true if $x is non-zero. ".
+          "Evaluate to false if $x is zero."
 }
+
+decl.{ rule
+          is_defined(int_is_nonzero($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_positive($x: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x)) => (x > 0)
+      case _ => as_is
+    }
+  """
+  #description="Integer test if argument is positive."
+  #detail="Evaluate to true if $x is positive. ".
+          "Evaluate to false if $x is negative or zero."
+}
+
+decl.{ rule
+          is_defined(int_is_positive($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_negative($x: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x)) => (x < 0)
+      case _ => as_is
+    }
+  """
+  #description="Integer test if argument is negative."
+  #detail="Evaluate to true if $x is negative. ".
+          "Evaluate to false if $x is positive or zero."
+}
+
+decl.{ rule
+          is_defined(int_is_negative($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_nonnegative($x: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x)) => (x >= 0)
+      case _ => as_is
+    }
+  """
+  #description="Integer test if argument is non-negative."
+  #detail="Evaluate to true if $x is positive or zero. ".
+          "Evaluate to false if $x is negative."
+}
+
+decl.{ rule
+          is_defined(int_is_nonnegative($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_nonpositive($x: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x)) => (x <= 0)
+      case _ => as_is
+    }
+  """
+  #description="Integer test if argument is non-positive."
+  #detail="Evaluate to true if $x is negative or zero. ".
+          "Evaluate to false if $x is positive."
+}
+
+decl.{ rule
+          is_defined(int_is_nonpositive($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+//======================================================================
+// Integer math, two and three argument inequality operators.
+//======================================================================
+
+decl.{! int_less_than($x: INTEGER, $y: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => (x < y)
+      case _ => as_is
+    }
+  """
+  #description="Integer less than."
+  #detail="Evaluate to true if $x is less than $y. ".
+          "Evaluate to false if $x is greater than or equal to $y."
+}
+
+decl.{ rule
+          is_defined(int_less_than($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_greater_than($x: INTEGER, $y: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => (x > y)
+      case _ => as_is
+    }
+  """
+  #description="Integer greater than."
+  #detail="Evaluate to true if $x is greater than $y. ".
+          "Evaluate to false if $x is less than or equal to $y."
+}
+
+decl.{ rule
+          is_defined(int_greater_than($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_less_or_equal($x: INTEGER, $y: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => (x <= y)
+      case _ => as_is
+    }
+  """
+  #description="Integer less than or equal to."
+  #detail="Evaluate to true if $x is less than or equal to $y. ".
+          "Evaluate to false if $x is greater than $y."
+}
+
+decl.{ rule
+          is_defined(int_less_or_equal($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_greater_or_equal($x: INTEGER, $y: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,y)) => (x >= y)
+      case _ => as_is
+    }
+  """
+  #description="Integer greater than or equal to."
+  #detail="Evaluate to true if $x is greater than or equal to $y. ".
+          "Evaluate to false if $x is less than $y."
+}
+
+decl.{ rule
+          is_defined(int_greater_or_equal($x,$y))
+       ->
+          and(is_defined($x),is_defined($y))
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_in_interval($x: INTEGER, $low: INTEGER, $high: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x), IntegerLiteral(_,low), IntegerLiteral(_,high)) =>
+             ((x >= low) && (x <= high))
+      case _ => as_is
+    }
+  """
+  #description="Integer greater than or equal to."
+  #detail="Evaluate to true if $x is in the closed interval [$low,$high]. ".
+          "Evaluate to false if $x is less than $low or greater than $high."
+}
+
+decl.{ rule
+          is_defined(int_is_in_interval($x,$low,$high))
+       ->
+          and(is_defined($x),is_defined($low),is_defined($high))
+       #ruleset DOMAIN }
+
+
+//======================================================================
+// Integer math, miscellaneous predicate operators.
+//======================================================================
+
+decl.{! int_is_even($x: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x)) => ((x % 2) == 0)
+      case _ => as_is
+    }
+  """
+  #description="Integer test if argument is even."
+  #detail="Evaluate to true if $x is even. ".
+          "Evaluate to false if $x is odd."
+}
+
+decl.{ rule
+          is_defined(int_is_even($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
+
+
+decl.{! int_is_odd($x: INTEGER): BOOLEAN
+  #handler="""
+    args match {
+      case Args(IntegerLiteral(_,x)) => ((x % 2) != 0)
+      case _ => as_is
+    }
+  """
+  #description="Integer test if argument is odd."
+  #detail="Evaluate to true if $x is odd. ".
+          "Evaluate to false if $x is even."
+}
+
+decl.{ rule
+          is_defined(int_is_odd($x))
+       ->
+          is_defined($x)
+       #ruleset DOMAIN }
 

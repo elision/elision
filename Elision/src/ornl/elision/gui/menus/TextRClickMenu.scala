@@ -91,23 +91,18 @@ object EvaClipboard extends ClipboardOwner {
     
     def getString : String = {
         if(!hasString)
-            return null
+          return null
         
-        try {
-            val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-            val contents = clipboard.getContents(null)
-            
-            contents.getTransferData(DataFlavor.stringFlavor) match {
-                case str : String => 
-                    str
-                case _: Throwable =>
-                    ""
-            }
+        val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+        val contents = clipboard.getContents(null)
+        
+        contents.getTransferData(DataFlavor.stringFlavor) match {
+          case str : String => 
+            str
+          case _ =>
+            ""
         }
-        catch {
-            case _: Throwable => // Pokemon exception: gotta catch 'em all!
-                ""
-        }
+
     }
     
 }

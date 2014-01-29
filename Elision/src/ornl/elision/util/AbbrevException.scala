@@ -34,13 +34,34 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
-package ornl.elision.syntax
+package ornl.elision.util
+
+import java.util.HashSet
+import java.util.Set
 
 /** 
- * A single-colored substring of a SyntaxFormattedLine. 
- * @param str     The uncolored substring.
- * @param color   The color for this substring.
+ * Wraps an Throwable so that printStackTrace omits repeating calls. 
+ * This is intended to help make debugging easier so that long stack traces
+ * will fit in the console.
  */
-class ColoredSubstring(val str : String, val color : String) {
-  override def toString : String = str
-} 
+class AbbrevException(val orig : Throwable) extends Exception {
+  
+  override def printStackTrace() : Unit = {
+    val elems = orig.getStackTrace()
+    val usedSet : Set[StackTraceElement] = new HashSet[StackTraceElement]
+    var isRepeating = false
+    
+    System.out.println(orig + " at ")
+    for(elem <- elems) {
+      if(!usedSet.contains(elem)) {
+        System.out.println(elem)
+        isRepeating = false
+        usedSet.add(elem)
+      }
+      else if(!isRepeating){
+        System.out.println("...")
+        isRepeating = true
+      }
+    }
+  }
+}

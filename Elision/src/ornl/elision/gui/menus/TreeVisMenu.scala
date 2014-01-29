@@ -208,12 +208,15 @@ class DepthDialog extends Dialog {
                 EvaConfig.save
                 GUIActor ! "treeReselectCurrentNode"  
             }
+            
+            // close the dialog when we finish processing input
+            close
         } catch {
             case _: Throwable =>
+              Dialog.showMessage(mainGUI.visPanel, input + " is not an integer.", "Input Error", Dialog.Message.Error)
         }
         
-        // close the dialog when we finish processing input
-        close
+        
     }
     
     // open the dialog when it is finished setting up
@@ -267,6 +270,7 @@ class MaxDepthDialog extends Dialog {
             close
         } catch {
             case _: Throwable =>
+              Dialog.showMessage(mainGUI.visPanel, input + " is not an integer.", "Input Error", Dialog.Message.Error)
         }
     }
     
@@ -317,6 +321,7 @@ class NodeLimitDialog extends Dialog {
             close
         } catch {
             case _: Throwable =>
+              Dialog.showMessage(mainGUI.visPanel, input + " is not an integer.", "Input Error", Dialog.Message.Error)
         }
     }
     
