@@ -108,6 +108,11 @@ _test(equal(a21(4,a21(5,9)), a21(a21(4,5),9)), true)
 _test_status()
 
 // Testing associative and commutative matching.
+println("Testing associative-commutative matching...")
+decl.{! f($x:INTEGER,$y:INTEGER):INTEGER is %AC }
+decl.{! top($x:INTEGER,$y:INTEGER):INTEGER }
+_test({match top($x,f($x,$y))}.top(1,f(1,1,1,2,3)), { binds x -> 1 y -> f(1,1,2,3) })
+_test({match top($x,f($x,$y))}.top(f(1,2),f(1,2,3)), { binds x -> f(1,2) y -> 3 })
 
 // Done.
 println("Testing complete.")
