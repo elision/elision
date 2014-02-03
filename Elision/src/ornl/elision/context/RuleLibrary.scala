@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ======================================================================*/
+ ======================================================================
+ * */
 package ornl.elision.context
 
 import scala.annotation.tailrec
@@ -322,7 +323,7 @@ extends Fickle with Mutable {
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Debugger("rewrite", "Rewriting timed out: " + atom.toParseString)
-      return (atom, true)
+      throw new TimedOut(atom.loc, "Rewriting timed out")
     }
 
     var (newtop, appliedtop) = _rewriteTop(atom, rulesets)
@@ -350,7 +351,7 @@ extends Fickle with Mutable {
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Debugger("rewrite", "Rewriting timed out: " + atom.toParseString)
-      return (atom, true)
+      throw new TimedOut(atom.loc, "Rewriting timed out")
     }
 
     // Get the rules.
@@ -389,7 +390,7 @@ extends Fickle with Mutable {
       rulesets: Set[String]): (BasicAtom, Boolean) = {
     if (BasicAtom.rewriteTimedOut) {
       Debugger("rewrite", "Rewriting timed out: " + atom.toParseString)
-      return (atom, true)
+      throw new TimedOut(atom.loc, "Rewriting timed out")
     } else {
       atom match {
         case AtomSeq(props, atoms) =>
@@ -475,7 +476,7 @@ extends Fickle with Mutable {
         if (BasicAtom.rewriteTimedOut) {
           Debugger("rewrite", "Rewriting timed out: " +
               atom.toParseString)
-          (atom, true)
+          throw new TimedOut(atom.loc, "Rewriting timed out")
         } else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) {
           (atom, false)
         } else if (atom.isInstanceOf[Variable]) {
@@ -526,7 +527,7 @@ extends Fickle with Mutable {
             // to indicate a timeout.
             Debugger("rewrite", "Rewriting timed out: " +
                 atom.toParseString)
-            (atom, true)
+            throw new TimedOut(atom.loc, "Rewriting timed out")
           }
           
           // No timeout.
@@ -579,7 +580,7 @@ extends Fickle with Mutable {
         if (BasicAtom.rewriteTimedOut) {
           Debugger("rewrite", "Rewriting timed out: " +
               atom.toParseString)
-          (atom, true)
+          throw new TimedOut(atom.loc, "Rewriting timed out")
         } else if (atom.isInstanceOf[Literal[_]] && !_allowLiteralRules) {
           (atom, false)
         } else if (atom.isInstanceOf[Variable]) {
@@ -630,7 +631,7 @@ extends Fickle with Mutable {
             // to indicate a timeout.
             Debugger("rewrite", "Rewriting timed out: " +
                 atom.toParseString)
-            (atom, true)
+            throw new TimedOut(atom.loc, "Rewriting timed out")
           }
           
           // No timeout.
@@ -669,7 +670,7 @@ extends Fickle with Mutable {
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Debugger("rewrite", "Rewriting timed out: " + atom.toParseString)
-      return (atom, true)
+      throw new TimedOut(atom.loc, "Rewriting timed out")
     }
 
     if (limit == 0) return (atom, bool)

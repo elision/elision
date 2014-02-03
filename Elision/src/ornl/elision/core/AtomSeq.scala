@@ -37,7 +37,9 @@
 * */
 package ornl.elision.core
 
+import scala.collection.mutable.HashSet
 import scala.collection.IndexedSeq
+
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.matcher.AMatcher
 import ornl.elision.core.matcher.CMatcher
@@ -80,7 +82,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    */
   lazy val xatoms =
     (if (props.isC(false)) orig_xatoms.sorted(BasicAtomComparator)
-        else orig_xatoms)
+     else orig_xatoms)
   
   /**
    * Whether this sequence is specified to be associative.  Note that false here
@@ -112,21 +114,39 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * The identity for this sequence, if any.
    */
   lazy val identity = props.identity
-  
+
   /**
-   * The atoms in this sequence.
+   * The names of the operators appearing in the sequence. This is
+   * populated in process().
    */
-  val atoms = AtomSeq.process(props, xatoms)
+  private var _operators : java.util.HashSet[String] = null
+
+  /** Precomputed version of isConstant. */
+  private var _isConstant = false
+  /** Whether _isConstant has been set or not. */
+  private var _gotIsConstant = false
 
   /**
    * This is a mapping from constants in the sequence to the (zero-based)
    * index of the constant.
    */
-  val constantMap = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
-  // Because it is used right here, the constant map cannot be lazy.
-  for (i <- 0 until atoms.length)
-    if (atoms(i).isConstant) constantMap(atoms(i)) = i
-  
+  lazy val constantMap : scala.collection.mutable.OpenHashMap[BasicAtom, Int] = {
+    var r = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
+    _isConstant = true
+    _gotIsConstant = true
+    for (i <- 0 until atoms.length) {
+      if (atoms(i).isConstant) r(atoms(i)) = i
+      _isConstant = _isConstant && atoms(i).isConstant
+    }
+    r
+  }
+
+  /** Compute these things when processing the atoms in process(). */
+  /**
+   * The atoms in this sequence.
+   */
+  val atoms = process(props, xatoms)
+
   import SymbolicOperator.LIST
   
   /**
@@ -136,15 +156,133 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * or the sequence is empty, then the type is ANY.
    */
   lazy val theType = {
-      if (atoms.length == 0) LIST(ANY) else {
-		    val aType = atoms(0).theType
-		    if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
-      }
+    if (atoms.length == 0) LIST(ANY) 
+    else {
+      val aType = atoms(0).theType
+      if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
     }
-  lazy val isConstant = atoms.forall(_.isConstant)
+  }
+  lazy val isConstant = {
+    if (_gotIsConstant) _isConstant
+    else atoms.forall(_.isConstant)
+  }
   lazy val isTerm = atoms.forall(_.isTerm)
   lazy val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
   lazy val depth = atoms.foldLeft(0)(_ max _.depth) + 1
+
+  def hasOperator(op : Operator) = {
+    ((_operators == null) || (_operators.contains(op.name)))
+  }
+
+  def hasOperator(op : String) = {
+    ((_operators == null) || (_operators.contains(op)))
+  }
+
+  /**
+   * Process the atoms and build the new sequence.  This reduces any included
+   * associative sequences, and incidentally makes sure the result is an
+   * `OmitSeq`.
+   * 
+   * This method is used during instance construction.
+   * 
+   * @param props	The properties.
+   * @param atoms	The atoms.
+   * @return	The possibly-new sequence.
+   */
+  private def process(props: AlgProp,
+                      xatoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
+
+    // If the list is associative, has an identity, has an absorber,
+    // or is idempotent we process it.
+    val assoc = props.isA(false)
+    val ident = props.identity.getOrElse(null)
+    val absor = props.absorber.getOrElse(null)
+    val idemp = props.isI(false)
+    var atoms: OmitSeq[BasicAtom] = xatoms
+    var seen : java.util.HashSet[BasicAtom] = new java.util.HashSet[BasicAtom]
+    if (assoc || ident != null || absor != null || idemp) {
+      _operators = new java.util.HashSet[String]
+      var index = 0
+      var finalIndex = 0
+
+      while (index < atoms.size) {
+        val atom = atoms(index)
+
+        // Track the name of the operator appearing in the sequence.
+        atom match {
+          case OpApply(opref, opargs, binds) => _operators.add(opref.operator.name)
+          case _ =>
+        }        
+
+        if (absor == atom) {
+
+          // Found the absorber.  It must be the only thing in the sequence.
+          _operators = new java.util.HashSet[String]
+           atom match {
+            case OpApply(opref, opargs, binds) => _operators.add(opref.operator.name)
+            case _ =>
+          }
+
+          return OmitSeq[BasicAtom]() :+ atom
+        }
+
+        // The atom is not the identity?
+        if (ident != atom) {
+          var flattened = false
+          if (assoc) atom match {
+            case AtomSeq(oprops, args) if props == oprops =>
+
+              // Add the arguments directly to this list.  We can assume this
+              // list has already been processed, so no deeper checking is
+              // needed.
+              atoms = atoms.omit(index)
+              atoms = atoms.insert(index, args)
+              flattened = true
+
+              // We have not yet checked the flattened arguments for
+              // idempotency against the unflattened arguments. Therefore
+              // we cannot skip the 1st flattened argument when checking
+              // arguments in this loop.
+              index -= 1
+              finalIndex -= 1
+
+            case _ =>
+              // Nothing to do in this case.
+          }
+
+          // Handle idempotency. If idempotent and the current argument
+          // has already been seen, skip it.
+          if (idemp && !flattened) {
+
+            // Have we already seen this argument?
+            if (seen.contains(atom)) {
+
+              // Skip the argument due to idempotency.
+              atoms = atoms.omit(index)
+              finalIndex -= 1
+            }
+
+            // Track that we have seen this argument.
+            seen.add(atom)
+          }
+        }
+
+        // The atom IS the identity. Skip it.
+        else {
+          atoms = atoms.omit(index)
+          finalIndex -= 1
+        }
+
+        // Move to the next atom.
+        index += 1
+        finalIndex += 1
+      } // Run through all arguments.
+
+    }
+    
+    // Done!
+    return atoms
+  }
   
   /**
    * Get an element of this sequence by (zero-based) index.
@@ -166,7 +304,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * correctly type subsequences.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]): Outcome = {
+                           hints: Option[Any]): Outcome = {
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out", this, subject)
     } else {
@@ -335,65 +473,6 @@ object AtomSeq {
    */
   def apply(props: AlgProp, atoms: BasicAtom*) =
     new AtomSeq(props, atoms.toIndexedSeq[BasicAtom])
-  
-  /**
-   * Process the atoms and build the new sequence.  This reduces any included
-   * associative sequences, and incidentally makes sure the result is an
-   * `OmitSeq`.
-   * 
-   * This method is used during instance construction.
-   * 
-   * @param props	The properties.
-   * @param atoms	The atoms.
-   * @return	The possibly-new sequence.
-   */
-  private def process(props: AlgProp,
-      xatoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
-    // If the list is associative, has an identity, or has an absorber, we
-    // process it.  Idempotency is handled at the very end.
-    val assoc = props.isA(false)
-    val ident = props.identity.getOrElse(null)
-    val absor = props.absorber.getOrElse(null)
-    var atoms: OmitSeq[BasicAtom] = xatoms
-    if (assoc || ident != null || absor != null) {
-      var index = 0
-      while (index < atoms.size) {
-        val atom = atoms(index)
-        if (absor == atom) {
-          // Found the absorber.  It must be the only thing in the sequence.
-          return OmitSeq[BasicAtom]() :+ atom
-        }
-        if (ident != atom) {
-          if (assoc) atom match {
-            case AtomSeq(oprops, args) if props == oprops =>
-              // Add the arguments directly to this list.  We can assume this
-              // list has already been processed, so no deeper checking is
-              // needed.
-              atoms = atoms.omit(index)
-              atoms = atoms.insert(index, args)
-            case _ =>
-              // Nothing to do in this case.
-          }          
-        }
-        index += 1
-      } // Run through all arguments.
-    }
-    
-    // Now handle idempotency.  If we change the sequence with idempotency,
-    // then we replace the old sequence with the new one, since we don't need
-    // to keep the old sequence around.  Othewise we leave as-is.
-    if (props.isI(false)) {
-      val testseq: OmitSeq[BasicAtom] = atoms.distinct
-      if (testseq.length != atoms.length) {
-        // Idempotency changed the sequence.  Replace the old one with the new
-        // one.
-        atoms = testseq
-      }
-    }
-    
-    // Done!
-    return atoms
-  }
 }
 
 /**

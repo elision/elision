@@ -42,12 +42,15 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
+import scala.collection.immutable.List
+
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.generators.ScalaGenerator
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.util.FastLinkedList
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -195,10 +198,16 @@ trait Applicable {
  * @param loc The location where this atom originated.
  */
 abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
-  import scala.collection.mutable.{Map => MMap}
+  import java.util.{HashMap => MMap}
 
-  /** Cache the operator applies contained in this atom. */
-  var myOperators : MMap[String, Apply] = new HashMap[String, Apply]
+  /** Cache the applies contained in the atom. */
+  var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+
+  /** Cache the variables contained in the atom in an easy to use data structure. */
+  var myVars : MutableHashSet[BasicAtom] = null
+
+  /** Cache the results of getOperators(). */
+  var myOperators : MMap[String, MutableHashSet[Apply]] = new MMap[String, MutableHashSet[Apply]]
 
   /**
    * The rulesets with respect to which this atom is clean. If this is
