@@ -352,6 +352,7 @@ object AtomSeq {
     // If the list is associative, has an identity, or has an absorber, we
     // process it.  Idempotency is handled at the very end.
     val assoc = props.isA(false)
+    val commu = props.isC(false)
     val ident = props.identity.getOrElse(null)
     val absor = props.absorber.getOrElse(null)
     var atoms: OmitSeq[BasicAtom] = xatoms
@@ -377,11 +378,16 @@ object AtomSeq {
         }
         index += 1
       } // Run through all arguments.
+      // If this sequence is associative and commutative we need to sort it
+      // after flattening it.
+      if(assoc && commu){
+        atoms = atoms.sorted(BasicAtomComparator)
+      }
     }
     
     // Now handle idempotency.  If we change the sequence with idempotency,
     // then we replace the old sequence with the new one, since we don't need
-    // to keep the old sequence around.  Othewise we leave as-is.
+    // to keep the old sequence around.  Otherwise we leave as-is.
     if (props.isI(false)) {
       val testseq: OmitSeq[BasicAtom] = atoms.distinct
       if (testseq.length != atoms.length) {
