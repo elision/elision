@@ -83,7 +83,7 @@ with Rewriter {
   lazy val deBruijnIndex = left.deBruijnIndex max right.deBruijnIndex
 
   override lazy val hashCode = left.hashCode * 31 + right.hashCode
-  lazy val otherHashCode = left.otherHashCode + 8191*right.otherHashCode
+  override lazy val otherHashCode = left.otherHashCode + 8191*right.otherHashCode
 
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
       hints: Option[Any]): Outcome = subject match {

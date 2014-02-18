@@ -44,6 +44,7 @@ import scala.compat.Platform
 import scala.util.DynamicVariable
 import scala.collection.immutable.List
 
+import ornl.elision.util.ElisionException
 import ornl.elision.generators.ElisionGenerator
 import ornl.elision.generators.ScalaGenerator
 import ornl.elision.util.PropertyManager
@@ -201,13 +202,22 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
   import java.util.{HashMap => MMap}
 
   /** Cache the applies contained in the atom. */
-  var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+  // This speeds things up, but getting FastLinkedList to work
+  // correctly is very hard.
+  //var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+  //var realApplies : java.util.HashSet[Apply] = new java.util.HashSet[Apply]()
+
+  /**
+   * Does this atom or its children contain any of the operators
+   * registered via trackOperator()?
+   */
+  var hasTrackedOps : Boolean = false
 
   /** Cache the variables contained in the atom in an easy to use data structure. */
   var myVars : MutableHashSet[BasicAtom] = null
 
   /** Cache the results of getOperators(). */
-  var myOperators : MMap[String, MutableHashSet[Apply]] = new MMap[String, MutableHashSet[Apply]]
+  var myOperators : MMap[String, MutableHashSet[Apply]] = null
 
   /**
    * The rulesets with respect to which this atom is clean. If this is
@@ -230,6 +240,12 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * will need to collide for a hash collision to occur).
    */
   val otherHashCode: BigInt
+
+  /** YOU MUST OVERRIDE THIS IN INHERITED CLASSES! */
+  override lazy val hashCode = {
+    println("BasicAtom::hashCode not overriden for " + this)
+    0
+  }
 
   /**
    * If true then this atom can be bound.  Only variables should be bound, so
@@ -515,6 +531,13 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+
+  /** Only track and return these operators from BasicAtom::getOperators(). */
+  val trackedOperators : java.util.HashSet[String] = new java.util.HashSet[String]()
+
+  def trackOperator(op : String) = {
+    trackedOperators.add(op)
+  }
   
   /*
    * FIXME  Eliminate all timeout stuff from this object.

@@ -76,15 +76,17 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   NamedRootType._set(this)
   
   /**
-	 * Try to match this type against the provided atom.  Note that root types
-	 * match only themselves, so the match works iff the subject is equal to this
-	 * pattern.
-	 */
-	override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-	    hints: Option[Any]) =
-	  // A root type matches only itself.
-	  if (this == subject) Match(binds)
-	  else Fail("This type matches only itself.", this, subject)
+   * Try to match this type against the provided atom.  Note that root types
+   * match only themselves, so the match works iff the subject is equal to this
+   * pattern.
+   */
+  override def tryMatchWithoutTypes(subject: BasicAtom, 
+                                    binds: Bindings,
+	                            hints: Option[Any]) = {
+    // A root type matches only itself.
+    if (this == subject) Match(binds)
+    else Fail("This type matches only itself.", this, subject)
+  }
 
   /**
    * The root types cannot be rewritten, as they do not have children.

@@ -44,7 +44,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
 import scala.collection.JavaConversions._
-import ornl.elision.util.OmitSeq
+import ornl.elision.util.ElisionException
 
 /**
  * The common root for all application atoms.  This class represents the
@@ -72,17 +72,89 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   
   /** The hash code for this apply. */
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
-  lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
+  override lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
 
-  myApplies.append(this)
+  if (BasicAtom.trackedOperators.contains(
+    this.op match {
+      case x : Operator => x.name
+      case x : OperatorRef => x.name
+      case _ => ""
+    }
+  )) {
+    hasTrackedOps = true
+  }
   arg match {
     case x: AtomSeq => {
       for (a <- x) {
-        myApplies.append(a.myApplies)
+        hasTrackedOps = hasTrackedOps || a.hasTrackedOps
       }
     }
     case _ => {}
   }
+
+  /*
+   * This speeds things up, but FastLinkedList does not work the way
+   * it should.
+   * 
+  if (BasicAtom.trackedOperators.contains(
+        this.op match {
+          case x : Operator => x.name
+          case x : OperatorRef => x.name
+          case _ => ""
+        }
+    )) {
+    myApplies.append(this)
+    realApplies.add(this)
+  }
+  arg match {
+    case x: AtomSeq => {
+      for (a <- x) {
+        myApplies.appendAll(a.myApplies)
+        realApplies.addAll(a.realApplies)
+      }
+    }
+    case _ => {}
+  }
+  println("Applies for " + this.toParseString)
+  myApplies.reset()
+  var node = myApplies.next()
+  while (node != null) {
+    val app = node.data
+    println("Apply:   " + app.toParseString)
+    node = myApplies.next()
+  }
+  myApplies.reset()
+  node = myApplies.next()
+  var fakeApplies : java.util.HashSet[Apply] = new java.util.HashSet[Apply]()
+  while (node != null) {
+    val app = node.data
+    fakeApplies.add(app)
+    node = myApplies.next()
+  }
+  for (app <- realApplies) {
+    if (!fakeApplies.contains(app)) {
+      println("** MISSING apply " + app.toParseString)
+      println("** Curr apply = " + this.toParseString)
+      println("** Applies of arguments:")
+      arg match {
+        case x: AtomSeq => {
+          for (a <- x) {
+            println("**  Arg = " + a.toParseString)
+            a.myApplies.reset()
+            node = a.myApplies.next()
+            while (node != null) {
+              val app = node.data
+              println("**    " + app.toParseString)
+              node = a.myApplies.next()
+            }
+          }
+        }
+        case _ => {}
+      }
+      throw new LambdaUnboundedRecursionException(arg.loc, "Apply tracking error")
+    }
+  }
+  */
 
   override def equals(other: Any) = (other match {
       case oapp: Apply =>
@@ -354,19 +426,86 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
 
+    // Do we need to compute the operators contained in the current
+    // Apply?
+    if (myOperators == null) {
+
+      // Yes, look for the tracked operators. Since looking for the
+      // operators is a high cost action, we will look for all of them
+      // at once.
+      myOperators = new java.util.HashMap[String, HashSet[Apply]]()
+      for (opName <- BasicAtom.trackedOperators) 
+        myOperators.put(opName, new HashSet[Apply])
+
+      // This is used a lot, so it needs to be fast. We will find all
+      // the variables here with a stack to avoid recursive calls.
+      var work = new Stack[BasicAtom]
+      var done = new HashSet[BasicAtom]
+      work.push(this)
+      while (!work.isEmpty) {
+        work.pop match {
+
+          // Are we working on an operator instance?
+          case op: OpApply => {
+
+            // Is this apply one of the ones we are looking for?
+            val currName = op.op match {
+              case x : Operator => x.name
+              case x : OperatorRef => x.name
+              case _ => ""
+            }
+            if (BasicAtom.trackedOperators.contains(currName)) {
+              myOperators.get(currName).add(op)
+            }
+
+            // Push all the operator arguments on the stack to check, if
+            // we have not already checked this operator instance and
+            // the argument contains some of the operators instance we
+            // are looking for.
+            if (!(done contains op) && (op.hasTrackedOps)) {
+              for (a <- op.arg) if (a.hasTrackedOps) work.push(a)
+              done += op
+            }
+          }
+          
+          // Any other type of atom we ignore.
+          case _ => {}
+        }
+      }      
+    }
+
+    // Collect up all of the desired operator instances.
+    var r : HashSet[BasicAtom] = new HashSet[BasicAtom]()
+    for (desiredOp <- opNames) {
+      if (!BasicAtom.trackedOperators.contains(desiredOp)) {
+        throw new ElisionException(arg.loc, "Operator '" + desiredOp +
+                                   "' is not tracked. Add with BasicAtom::trackOperator().")
+      }
+      r.addAll(myOperators.get(desiredOp))
+    }
+    return Some(r)
+  }
+
+    /*
+     * Faster, but FastLinkedList does not work the way it should.
+     * 
     //println("** Getting operators " + opNames)
     var r : HashSet[BasicAtom] = new HashSet[BasicAtom]
     var missing : HashSet[String] = new HashSet[String]
     for (desiredOp <- opNames) {
 
-      // Have we already computed this?
-      if (myOperators.containsKey(desiredOp)) {
-        r = r ++ myOperators.get(desiredOp)
-      }
+      // Is this one of the operators we are tracking?
+      if (BasicAtom.trackedOperators.contains(desiredOp)) {
 
-      // No, save it for later computation.
-      else {
-        missing = missing.+(desiredOp)
+        // Have we already computed this?
+        if (myOperators.containsKey(desiredOp)) {
+          r = r ++ myOperators.get(desiredOp)
+        }
+        
+        // No, save it for later computation.
+        else {
+          missing = missing.+(desiredOp)
+        }
       }
     }
 
@@ -380,6 +519,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
       myApplies.reset()
       var node = myApplies.next()
       while (node != null) {
+      //for (app <- myApplies) {
         val app = node.data
         val name = app.op match {
           case x : Operator => x.name
@@ -401,7 +541,8 @@ case class OpApply protected[core] (override val op: OperatorRef,
 
     //println("** Operators " + opNames + "in " + this.toParseString + " = " + r)
     return Some(r)
-  }
+    }
+    */
 }
 
 /**

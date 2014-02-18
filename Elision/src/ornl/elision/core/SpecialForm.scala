@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ======================================================================*/
+ * ======================================================================
+ * */
 package ornl.elision.core
 
 import ornl.elision.util.ElisionException
@@ -267,7 +268,7 @@ extends BasicAtom(loc) {
   lazy val isTerm = tag.isTerm && content.isTerm
 
   override lazy val hashCode = tag.hashCode * 31 + content.hashCode
-  lazy val otherHashCode = tag.otherHashCode + 8191*content.otherHashCode
+  override lazy val otherHashCode = tag.otherHashCode + 8191*content.otherHashCode
   
   override def equals(other: Any) = other match {
     case sf:SpecialForm =>

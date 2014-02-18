@@ -31,6 +31,8 @@ package ornl.elision.util
 
 import scala.collection.mutable.HashSet
 
+import ornl.elision.core.BasicAtom
+
 /**
  * A fast (but risky) linked list implementation. Note that for speed
  * objects of this class are VERY mutable. Use with care.
@@ -48,6 +50,15 @@ class FastLinkedList[A] extends Mutable {
    * over the list via next().
    */
   private var visitMark : Long = 0
+  /** A unique ID for this linked list. */
+  private var listID = FastLinkedList.nextListID
+  /** Approximate # of elements in the list. */
+  private var len : Long = 0
+  /** Track the list IDs to follow when there is branching. */
+  private var idStack : java.util.LinkedList[Long] = null
+  private var alreadyAppended : java.util.HashSet[Long] = new java.util.HashSet[Long]()
+  // Can't append a list to itself.
+  alreadyAppended.add(listID)
 
   /**
    * Add an item to the end of the list. This will create 1 new linked
@@ -56,12 +67,20 @@ class FastLinkedList[A] extends Mutable {
    * @param item The item to append.
    */
   def append(item : A) {
+    //println("** Appending '" + item+ "' to " + this)
     val nextNode = new FastLinkedListNode[A](item)
+    nextNode.next.put(listID, null)
     if (tail != null) {
-      tail.next = nextNode
+      tail.next.put(listID, nextNode)
     }
     tail = nextNode
-    if (head == null) head = nextNode
+    if (head == null) {
+      nextNode.switchID = listID
+      head = nextNode
+      //println("** Switched head to " + head + " w. switch ID " + listID)
+    }
+    len += 1
+    //println("** Result is " + this)
   }
 
   /**
@@ -70,14 +89,50 @@ class FastLinkedList[A] extends Mutable {
    * the current list). Use this with caution as it is possible to
    * wind up with lists with cycles.  This is an O(1) operation.
    *
-   * @param item The list to append.
+   * @param item The list to append. Note that a list can only be appended
+   * to the current list once (subsequent appendings are ignored).
    */
-  def append(item : FastLinkedList[A]) {
+  def appendAll(item : FastLinkedList[A]) {
+    //println("** Appending '" + item + "' to " + this)
     if (item.head != null) {
-      if (tail != null) tail.next = item.head
+
+      // Was other already appended to us? If so, we do not need
+      // to change.
+      if (alreadyAppended.contains(item.listID)) return
+      alreadyAppended.addAll(item.alreadyAppended)
+
+      // Were we already appended to the other list? If so, make
+      // ourselves equal to the other list.
+      if (item.alreadyAppended.contains(listID)) {
+        head = item.head
+        tail = item.tail
+        listID = item.listID
+        alreadyAppended = item.alreadyAppended
+        return
+      }
+
+      // No appendings of us or the other list have been done. Append
+      // the other list to this one.
+      if (head == null) {
+        head = item.head
+        listID = item.listID
+        //println("** Switched head to head of other list (" + head + " w. ID " + listID + ")")
+      }
+      if (tail != null) {
+        tail.next.put(listID, item.head)
+        //println("** Connected " + tail + " -> " + item.head + " w. ID " + listID)
+      }
       tail = item.tail
-      if (head == null) head = item.head
+      len += item.size
+      //println("** Result = " + this)
     }
+  }
+
+  /**
+   * Get the approximate # of elements in the list.
+   */
+  def size() : Long = {
+    len
   }
 
   /**
@@ -88,6 +143,8 @@ class FastLinkedList[A] extends Mutable {
     currNode = head
     visitMark = FastLinkedList.nextVisitMark
     FastLinkedList.nextVisitMark = FastLinkedList.nextVisitMark + 1
+    idStack = new java.util.LinkedList[Long]()
+    idStack.add(listID)
   }
 
   /**
@@ -103,13 +160,36 @@ class FastLinkedList[A] extends Mutable {
 
     // No loops.
     if (currNode.visitMark == visitMark) {
+      //println("** FastLinkedList: found loop")
+      //println("** FastLinkedList: curr list = " + listID)
+      //println("** FastLinkedList: next nodes = " + currNode.next)
       currNode = null;
       return null;
     }
     currNode.visitMark = visitMark
 
+    //println("** next(): currNode = '" + currNode + "'")
+    //println("** idStack = " + idStack)
     val r = currNode
-    currNode = currNode.next
+    var i : java.util.Iterator[Long] = idStack.iterator()
+    var transientListID = i.next()
+    //println("** Next links = " + currNode.next)
+    //println("** Trying list ID " + transientListID)
+    while (!currNode.hasNext(transientListID)) {
+      if (!i.hasNext()) {
+        currNode = null
+        return null
+      }
+      transientListID = i.next()
+      //println("** Trying list ID " + transientListID)
+    }
+    currNode = currNode.getNext(transientListID)
+    //println("** next node = '" + currNode + "'")
+    if ((currNode != null) && (currNode.switchID > 0)) {
+      idStack.add(currNode.switchID)
+      //println("** Added list ID " + currNode.switchID + " to stack")
+    }
+    //println("** next() (" + visitMark + ") returning " + r)
     return r
   }
 
@@ -138,7 +218,14 @@ class FastLinkedList[A] extends Mutable {
  * Class data for FastLinkedList objects.
  */
 object FastLinkedList {
+
   protected var nextVisitMark : Long = 1
+  protected var _nextListID : Long = 1
+
+  def nextListID() = {
+    _nextListID += 1
+    _nextListID
+  }
 }
 
 /**
@@ -147,9 +234,46 @@ object FastLinkedList {
  * @param d The data stored in the node.
  */
 class FastLinkedListNode[A](d : A) {
-  var next : FastLinkedListNode[A] = null
+
+  var next : java.util.HashMap[Long, FastLinkedListNode[A]] = 
+    new java.util.HashMap[Long, FastLinkedListNode[A]]
   val data : A = d
   var visitMark : Long = 0
+  var switchID : Long = -1
+
+  /**
+   * Test to see if the given list ID will yield a valid next node.
+   *
+   * @param id The ID of the list for which to check the next node.
+   *
+   * @return true if calling getNext() with the given ID will return a
+   * next node, or false if there is no next node associated with the
+   * given ID.
+   */
+  def hasNext(id : Long) : Boolean = {
+    ((next.keySet().size() == 1) || next.containsKey(id))
+  }
+
+  /**
+   * Get the next node in the given list.
+   *
+   * @param id The ID of the list for which to get the next node.
+   *
+   * @return The next node in the list.
+   */
+  def getNext(id : Long) : FastLinkedListNode[A] = {
+
+    // If there is only 1 branch for the next node, return that.
+    val keys = next.keySet()
+    if (keys.size() == 1) return next.get(keys.iterator().next)
+
+    // If the desired list ID is not a possible branch for the next node,
+    // return null.
+    if (!next.containsKey(id)) return null
+
+    // Return the next list node for the desired list.
+    return next.get(id)
+  }
 
   /**
    * The list node as a string.
@@ -157,6 +281,9 @@ class FastLinkedListNode[A](d : A) {
    * @return The list node as a string.
    */
   override def toString() : String = {
-    return data.toString
+    data match {
+      case x : BasicAtom => return x.toParseString
+      case _ => return data.toString
+    }
   }
 }
