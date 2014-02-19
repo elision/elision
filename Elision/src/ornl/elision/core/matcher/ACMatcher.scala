@@ -41,6 +41,7 @@ import scala.annotation.tailrec
 
 import ornl.elision.core.knownExecutor
 import ornl.elision.core.Apply
+import ornl.elision.core.AlgProp
 import ornl.elision.core.AtomSeq
 import ornl.elision.core.BasicAtom
 import ornl.elision.core.Bindings
@@ -56,6 +57,7 @@ import ornl.elision.core.Operator
 import ornl.elision.core.Variable
 import ornl.elision.core.Literal
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.Loc
 
 abstract class res
 case class uninitialized() extends res
@@ -537,29 +539,45 @@ object ACMatcher {
       else {
         _local = null
         Debugger("ACmatching", "Starting AMatcher from AC matcher")
-        if (_perms.hasNext)
-          AMatcher.tryMatch(patterns, AtomSeq(subjects.props, _perms.next),
+        if (_perms.hasNext) {
+          // We're about to run the associative matcher. In order to do that we
+          // need an atom sequence. However, both the patterns and subjects are
+          // associative and commutative. If we give commutativity to AtomSeq
+          // it will always sort the atoms at creation time. We don't want that.
+          // So, we create a new AlgProp that's just associative to facilitate 
+          // matching as we go through the permutations.
+          AMatcher.tryMatch(patterns,
+            AtomSeq(AlgProp(Loc.internal,
+              Option(subjects.props.isA(true)),
+              Option(Literal.FALSE),
+              Option(subjects.props.isI(false)),
+              Option(subjects.props.getB(Literal.FALSE)),
+              Option(subjects.props.getD(Literal.FALSE))),
+              _perms.next),
             binds, op) match {
-              case fail: Fail =>
+              case fail: Fail => {
                 // We ignore this case.  We only fail if we exhaust all attempts.
                 Debugger("ACmatching", fail.toString)
                 findNext
-              case Match(binds) =>
+              }
+              case Match(binds) => {
                 // This case we care about.  Save the bindings as the current match.
-                _current = binds
                 Debugger("ACmatching", "AC Found.")
-              case Many(iter) =>
+                _current = binds
+              }
+              case Many(iter) => {
                 // We've potentially found many matches.  We save this as a local
                 // iterator and then use it in the future.
                 Debugger("ACmatching", "Iterating...")
                 _local = iter
                 findNext
+              }
             }
-        else {
+        } else {
           // We have exhausted the permutations.  We have exhausted this
           // iterator.
-          _exhausted = true
           Debugger("ACmatching", "AC Exhausted.")
+          _exhausted = true
         }
       }
     }

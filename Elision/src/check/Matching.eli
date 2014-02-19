@@ -110,11 +110,20 @@ _test_status()
 // Testing associative and commutative matching.
 println("Testing associative-commutative matching...")
 decl.{! fac($x:INTEGER,$y:INTEGER):INTEGER is %AC }
+decl.{! fa($x:INTEGER,$y:INTEGER):INTEGER is %A }
 decl.{! top($x:INTEGER,$y:INTEGER):INTEGER }
 _test(%AC(%AC(2,4),1,3), %AC(1,3,2,4))
 _test({match top($x,fac($x,$y))}.top(1,fac(1,1,1,2,3)), { binds x -> 1 y -> fac(1,1,2,3) })
 _test({match top($x,fac($x,$y))}.top(fac(1,2),fac(1,2,3)), { binds x -> fac(1,2) y -> 3 })
+_test({match top($x,fac($x,$y))}.top(fac(1,2),fac(1,2,3)), { binds x -> fac(1,2) y -> 3 })
+_test({match top($x,fac($x,$y))}.top(fac(f1(1),2),fac(f1(1),2,3)), { binds x -> fac(f1(1),2) y -> 3 })
 
+//Issue #194
+_test({match fac($a,$b)}.fac(1,2,3), { binds a -> 1 b-> fac(2,3) })
+_test({match fac($a,$b) #if equal($$a,1)}.fac(1,2,3), { binds a -> 1 b-> fac(2,3) })
+_test({match fa($a,$b) #if equal($$a,2)}.fa(2,1,3), { binds a -> 2 b-> fa(1,3) })
+_test({match fac($a,$b) #if equal($$a,2)}.fac(1,2,3), { binds a -> 2 b-> fac(1,3) })
+_test({match fac($a,$b) #if equal($$a,3)}.fac(1,2,3), { binds a -> 3 b-> fac(1,2) })
 
 // Done.
 println("Testing complete.")

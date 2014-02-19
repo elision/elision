@@ -507,7 +507,7 @@ object AlgProp {
   /**
    * Create an algebraic properties object.
    * 
-   * @param loc           Location of this properties object declaration.
+   * @param loc          Location of this properties object declaration.
 	 * @param associative		Optional associativity.  Default is none.
 	 * @param commutative		Optional commutativity.  Default is none.
 	 * @param idempotent		Optional idempotency.  Default is none.
