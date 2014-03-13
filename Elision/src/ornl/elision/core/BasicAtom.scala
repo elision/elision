@@ -549,11 +549,14 @@ object BasicAtom {
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
+      //println("** Use new timeout time: " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
     } else if (timeoutTime.value > -1) {
       // Return the previously computed timeout value.
+      //println("** Use old timeout time: " + timeoutTime.value)
       timeoutTime.value
     } else {
+      //println("** Use NO timeout time: " + -1L)
       -1L
     }
   }
@@ -573,7 +576,14 @@ object BasicAtom {
    */
   def rewriteTimedOut = {
     if (timingOut && (timeoutTime.value > 0)) {
-      (Platform.currentTime >= timeoutTime.value)
+      if (Platform.currentTime >= timeoutTime.value) {
+        //println("** TIMED OUT. timeoutTime = " + timeoutTime.value + ", curr time = " + Platform.currentTime)
+        timeoutTime.value = -1L
+        true
+      }
+      else {
+        false
+      }
     } else {
       false
     }
