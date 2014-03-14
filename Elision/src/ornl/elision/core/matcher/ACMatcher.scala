@@ -106,7 +106,7 @@ object ACMatcher {
     // TODO: error handling for fail?
     var (plist, vlist) = MatchHelper.stripVariables(plistv)
 
-    //    Debugger("ACmatching","plist.length " + plist.length)
+    Debugger("ACmatching", "plist.length " + plist.length)
     var _pindex = 0
     while (_pindex < plist.length) {
       var p = plist(_pindex)
@@ -137,27 +137,34 @@ object ACMatcher {
                     case found(_) => toomany()
                     case toomany() => toomany()
                   }
+                } else {
+                  Debugger("ACmatching", "found non-identically named operators")
                 }
+              case _ =>
+                Debugger("ACmatching", "si match failed, continuing to next subject.")
             }
             _sindex = _sindex + 1
           }
 
           s match {
-            case uninitialized() => // Debugger("ACmatching","no possible match")
-              return None
+            case uninitialized() =>
+              //Does this indicate a failed match or just a failure on this subject?
+              Debugger("ACmatching", "no possible match")
             case found(a) =>
               Debugger("ACmatching", "found mandatory terms, descending")
               Debugger("ACmatching", AtomSeq(prpp, argp).toParseString)
               Debugger("ACmatching", a.toParseString)
               slist = slist.omit(_somitme)
-              if (!prpp.isA(false) && !prpp.isC(false)) {
-                SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
+              if (prpp.isA(false) && prpp.isC(false)) {
+                Debugger("ACmatching", "Calling ACMatcher.get_mandatory_bindings from ACMatcher")
+                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
                   a, binds) match {
                     case None => return None
                     case Some(b) => binds = b
                   }
               } else {
-                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
+                Debugger("ACmatching", "Calling SequenceMatcher.get_mandatory_bindings from ACMatcher")
+                SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
                   a, binds) match {
                     case None => return None
                     case Some(b) => binds = b
