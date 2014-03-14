@@ -185,8 +185,8 @@ object SequenceMatcher {
       Debugger("matching", "    Bindings: " + binds.toParseString)
     }
     //Properties should have been taken into account at creation time, so we ignore them here.
-    val plist = AtomSeq(NoProps, patterns.toIndexedSeq)
-    val slist = AtomSeq(NoProps, subjects.toIndexedSeq)
+    val plist = AtomSeq(NoProps, patterns)
+    val slist = AtomSeq(NoProps, subjects)
     var mbinds = binds
     get_mandatory_bindings(plist, slist, binds) match {
       case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
