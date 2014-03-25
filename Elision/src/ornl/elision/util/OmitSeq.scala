@@ -68,7 +68,7 @@ abstract class OmitSeq[A] extends IndexedSeq[A] with HasOtherHash {
    * computation for an IndexedSeq uses toString (which is bad), so
    * hashCode has been overwritten.
    */
-  override lazy val hashCode = foldLeft(0)(hashify)
+  override lazy val hashCode = this.foldLeft(0)(hashify)
 }
 
 /**
@@ -120,13 +120,17 @@ object OmitSeq {
  * @param backing The backing sequence.
  */
 private class _OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
+
   // Proxy to backing sequence.
   lazy val length = backing.length
+
+  // Give this a different hash code than the wrapped sequence.
+  override lazy val hashCode = this.foldLeft(31)(hashify)
 
   /**
    * Alternate hash code for an OmitSeq.
    */
-  lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
 
   // Proxy to backing sequence.
   def apply(index: Int) = {
@@ -149,7 +153,7 @@ extends OmitSeq[A] {
   /**
    * Alternate hash code for an OmitSeq.
    */
-  lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
   
   /** Return the requested element by zero-based index. */
   override def apply(index: Int) =
@@ -173,7 +177,7 @@ private class _OmitSeq3[A](backing: IndexedSeq[A], insert: Int,
   /**
    * Alternate hash code for an OmitSeq.
    */
-  lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
   
   /** Length is the backing sequence plus the inserted items. */
   override lazy val length = backing.length + _il

@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision
 
 /**
@@ -100,7 +101,9 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
-  def hashify(hash: Int = 0, obj: Any) = hash * 31 + obj.hashCode
+  def hashify(hash: Int = 0, obj: Any) = {
+    hash * 31 + obj.hashCode
+  }
 
   /**
    * Compute an alternate hash code from many different objects. An

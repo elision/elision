@@ -285,7 +285,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   def toNakedString = atoms.mkParseString("", ", ", "")
   
   override lazy val hashCode = atoms.hashCode * 31 + props.hashCode
-  lazy val otherHashCode = atoms.otherHashCode + 8191*props.otherHashCode
+  override lazy val otherHashCode = atoms.otherHashCode + 8191*props.otherHashCode
 
   /**
    * Two sequences are equal iff their properties and atoms are equal.

@@ -220,6 +220,12 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    */
   val otherHashCode: BigInt
 
+  /** YOU MUST OVERRIDE THIS IN INHERITED CLASSES! */
+  override lazy val hashCode = {
+    println("BasicAtom::hashCode not overriden for " + this)
+    0
+  }
+
   /**
    * If true then this atom can be bound.  Only variables should be bound, so
    * override this for variables; it is `false` by default.
@@ -507,6 +513,13 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+
+  /** Only track and return these operators from BasicAtom::getOperators(). */
+  val trackedOperators : java.util.HashSet[String] = new java.util.HashSet[String]()
+
+  def trackOperator(op : String) = {
+    trackedOperators.add(op)
+  }
   
   /*
    * FIXME  Eliminate all timeout stuff from this object.

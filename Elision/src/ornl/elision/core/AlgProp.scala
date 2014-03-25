@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ======================================================================*/
+ * ======================================================================
+ * */
 package ornl.elision.core
 
 import ornl.elision.util.ElisionException
@@ -115,7 +116,7 @@ class AlgProp(
     case Some(atom) => atom.hashCode
   }
   
-  lazy val otherHashCode =
+  override lazy val otherHashCode =
     (this.toString).foldLeft(BigInt(0))(other_hashify)+1
     
   override lazy val hashCode =
