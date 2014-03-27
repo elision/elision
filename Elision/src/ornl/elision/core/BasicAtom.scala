@@ -51,6 +51,7 @@ import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.context.TimedOut
 import ornl.elision.util.FastLinkedList
 
 /**
@@ -597,6 +598,7 @@ object BasicAtom {
       if (Platform.currentTime >= timeoutTime.value) {
         //println("** TIMED OUT. timeoutTime = " + timeoutTime.value + ", curr time = " + Platform.currentTime)
         timeoutTime.value = -1L
+        throw new TimedOut(Loc.internal, "Rewriting timed out")
         true
       }
       else {
