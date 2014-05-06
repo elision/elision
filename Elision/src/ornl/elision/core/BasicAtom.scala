@@ -38,6 +38,7 @@
 package ornl.elision.core
 
 import scala.collection.immutable.HashSet
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
@@ -194,6 +195,9 @@ trait Applicable {
 abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
   import scala.collection.mutable.{Map => MMap}
 
+  /** Cache the operator applies contained in this atom. */
+  var myOperators : MMap[String, Apply] = new HashMap[String, Apply]
+
   /**
    * The rulesets with respect to which this atom is clean. If this is
    * not None the atom has already been rewritten with some set of
@@ -215,6 +219,12 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * will need to collide for a hash collision to occur).
    */
   val otherHashCode: BigInt
+
+  /** YOU MUST OVERRIDE THIS IN INHERITED CLASSES! */
+  override lazy val hashCode = {
+    println("BasicAtom::hashCode not overriden for " + this)
+    0
+  }
 
   /**
    * If true then this atom can be bound.  Only variables should be bound, so
@@ -503,6 +513,13 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+
+  /** Only track and return these operators from BasicAtom::getOperators(). */
+  val trackedOperators : java.util.HashSet[String] = new java.util.HashSet[String]()
+
+  def trackOperator(op : String) = {
+    trackedOperators.add(op)
+  }
   
   /*
    * FIXME  Eliminate all timeout stuff from this object.

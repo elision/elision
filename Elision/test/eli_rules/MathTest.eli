@@ -1,3 +1,4 @@
+inc("bootstrap/Math.eli")
 inc("bootstrap/Test.eli")
 
 _test_init()

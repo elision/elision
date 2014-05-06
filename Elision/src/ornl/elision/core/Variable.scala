@@ -260,7 +260,7 @@ class Variable(typ: BasicAtom, val name: String,
   def asMetaVariable = MetaVariable(typ, name, guard, labels, byName)
       
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
-  lazy val otherHashCode = typ.otherHashCode +
+  override lazy val otherHashCode = typ.otherHashCode +
     8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(varx: Any) = varx match {

@@ -45,6 +45,8 @@ import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
 
+import ornl.elision.core.Variable
+
 /**
  * Provide some support methods for matching.
  */
@@ -53,7 +55,7 @@ object MatchHelper {
   /**
    * Given two lists of atoms, identify and remove any constants from the two
    * lists, returning the resulting lists.
-   * 
+   *
    * The atoms in the two lists are assumed to be unordered.  That is, this
    * method is only suitable for use when performing commutative matching
    * (whether or not associative).
@@ -61,10 +63,9 @@ object MatchHelper {
    * @param plist	The pattern list.
    * @param slist	The subject list.
    * @return  A triple that contains the new patterns, new subjects, and an
-   *          optional failure instance in the event matching does not succeed. 
+   *          optional failure instance in the event matching does not succeed.
    */
-  def eliminateConstants(plist: AtomSeq, slist: AtomSeq):
-  		(OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
+  def eliminateConstants(plist: AtomSeq, slist: AtomSeq): (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
     var patterns = plist.atoms
     var subjects = slist.atoms
     for ((pat, pindex) <- plist.constantMap) {
@@ -78,11 +79,29 @@ object MatchHelper {
       }
     } // Omit constants from the lists.
     Debugger("matching") {
-	    Debugger("matching", "Removing Constants: Patterns: " +
-	        patterns.mkParseString("", ",", ""))
-	    Debugger("matching", "                    Subjects: " +
-	        subjects.mkParseString("", ",", ""))
+      Debugger("matching", "Removing Constants: Patterns: " +
+        patterns.mkParseString("", ",", ""))
+      Debugger("matching", "                    Subjects: " +
+        subjects.mkParseString("", ",", ""))
     }
     (patterns, subjects, None)
+  }
+
+  def stripVariables(plist: OmitSeq[BasicAtom]): (OmitSeq[BasicAtom], OmitSeq[BasicAtom]) = {
+    var (pl, vl) = (plist, plist)
+    if (plist.length <= 0) {
+      return (pl, vl)
+    }
+
+    var _pindex = plist.length - 1
+    while (_pindex >= 0) {
+      plist(_pindex) match {
+        case _: Variable => pl = pl.omit(_pindex)
+        case _ => vl = vl.omit(_pindex)
+      }
+      _pindex = _pindex - 1
+    }
+
+    (pl, vl)
   }
 }

@@ -43,21 +43,22 @@ inc("bootstrap/Test.eli")
 // Get the math stuff.
 inc("bootstrap/Math.eli")
 
+timing(true)
 // Non-commutative, non-associative operators.
-{! f1($x: INTEGER): INTEGER}
-{! f2($x: INTEGER, $y: INTEGER): INTEGER}
-{! f3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER}
+decl.{! f1($x: INTEGER): INTEGER}
+decl.{! f2($x: INTEGER, $y: INTEGER): INTEGER}
+decl.{! f3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER}
 
 // Commutative, non-associative operators.
-{! c2($x: INTEGER, $y: INTEGER): INTEGER is %C}
-{! c3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER is %C}
+decl.{! c2($x: INTEGER, $y: INTEGER): INTEGER is %C}
+decl.{! c3($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER is %C}
 
 // Associative, non-commutative operators.
-{! a21($x: INTEGER, $y: INTEGER): INTEGER is %A}
-{! a22($x: INTEGER, $y: INTEGER): INTEGER is %A}
+decl.{! a21($x: INTEGER, $y: INTEGER): INTEGER is %A}
+decl.{! a22($x: INTEGER, $y: INTEGER): INTEGER is %A}
 
 // Associative, commutative operators.
-{! foo($x: INTEGER, $y: INTEGER): INTEGER is %AC}
+decl.{! foo($x: INTEGER, $y: INTEGER): INTEGER is %AC}
 
 _test_init()
 
@@ -102,12 +103,49 @@ _test({match a21($a,9)}.a21(7,8,9), {binds a->a21(7,8)})
 _test({match a21($a,9)}.a21(7,9,8), NONE)
 _test({match a21($a,9)}.a21(8,9), {binds a->8})
 _test({match a21($a,9)}.a21(9), NONE)
-_test(equal(a21(4,a21(5,$x)), a21(a21(4,5),$y)), false)
-_test(equal(a21(4,a21(5,$x)), a21(a21(4,5),$x)), true)
+_test(eq(a21(4,a21(5,$x)), a21(a21(4,5),$y)), false)
+_test(eq(a21(4,a21(5,$x)), a21(a21(4,5),$x)), true)
 _test(equal(a21(4,a21(5,9)), a21(a21(4,5),9)), true)
 _test_status()
 
 // Testing associative and commutative matching.
+println("Testing associative-commutative matching...")
+decl.{! fac($x:INTEGER,$y:INTEGER):INTEGER is %AC }
+decl.{! fa($x:INTEGER,$y:INTEGER):INTEGER is %A }
+decl.{! top($x:INTEGER,$y:INTEGER):INTEGER }
+_test(%AC(%AC(2,4),1,3), %AC(1,3,2,4))
+_test({match top($x,fac($x,$y))}.top(1,fac(1,1,1,2,3)), { binds x -> 1 y -> fac(1,1,2,3) })
+_test({match top($x,fac($x,$y))}.top(fac(1,2),fac(1,2,3)), { binds x -> fac(1,2) y -> 3 })
+_test({match top($x,fac($x,$y))}.top(fac(1,2),fac(1,2,3)), { binds x -> fac(1,2) y -> 3 })
+_test({match top($x,fac($x,$y))}.top(fac(f1(1),2),fac(f1(1),2,3)), { binds x -> fac(f1(1),2) y -> 3 })
+
+//Issue #194
+_test({match fac($a,$b)}.fac(1,2,3), { binds a -> 1 b-> fac(2,3) })
+_test({match fac($a,$b) #if equal($$a,1)}.fac(1,2,3), { binds a -> 1 b-> fac(2,3) })
+_test({match fa($a,$b) #if equal($$a,2)}.fa(2,1,3), { binds a -> 2 b-> fa(1,3) })
+_test({match fac($a,$b) #if equal($$a,2)}.fac(1,2,3), { binds a -> 2 b-> fac(1,3) })
+_test({match fac($a,$b) #if equal($$a,3)}.fac(1,2,3), { binds a -> 3 b-> fac(1,2) })
+
+//Issue #195
+decl.{! baa($x:INTEGER, $y:INTEGER):INTEGER is %A }
+decl.{! baz($x:INTEGER):INTEGER }
+_test({match top($x,fac(f1($x),$y))}.top(1,fac(f1(1),1,1,2,3)), { binds x -> 1 y-> fac(1,1,2,3) } )
+_test({match top($x,fac(baz(baz($x)),$y))}.top(baz(1),fac(baz(1),1,1,2,3)), NONE ) 
+_test({match top($x,fac($x,$y))}.top(baz(1),fac(baz(1),1,1,2,3)), { binds x -> baz(1) y -> fac(1,1,2,3) })
+_test({match top($x,fac($x,$y))}.top(1,fac(f1(f1(1)),f1(2),1,2,3)), { binds x -> 1 y -> fac(f1(2),f1(f1(1)),2,3) })
+
+//Eker example
+decl.{! f($x: INTEGER, $y: INTEGER, $z: INTEGER): INTEGER}
+decl.{! g($x: INTEGER, $y: INTEGER): INTEGER}
+decl.{! h($x: INTEGER): INTEGER}
+decl.{! F($x:INTEGER, $y:INTEGER):INTEGER is %AC }
+decl.{! G($x:INTEGER, $y:INTEGER):INTEGER is %AC }
+f(F(g($a,$L),g($M,$b),$N,$N,$P),G($a,g($T,$a),h($Q),h($S),$N,$U,$U),$V)
+f(F($a,$b,$b,g($a,$b),g($a,$c),g($b,$a),g($c,$b)),G($a,$a,$a,$b,g($b,$a),h($a),h($b)),F($a,$b))
+_test({match f(F(g($a,$L),g($M,$b),$N,$N,$P),G($a,g($T,$a),h($Q),h($S),$N,$U,$U),$V)}.f(F($a,$b,$b,g($a,$b),g($a,$c),g($b,$a),g($c,$b)),G($a,$a,$a,$b,g($b,$a),h($a),h($b)),F($a,$b)), { binds N -> $b T -> $b U -> $a a -> $a M -> $a V -> F($a,$b) Q -> $a L -> $c b -> $b P -> F($a,g($b,$a),g($c,$b)) S -> $b })
+
+//Intentional failure to test SequenceMatcher's operator name comparison
+_test({match top($x,fac(f1(f1($x)),$y))}.top(1,fac(f1(f2(1,9)),1,1,2,3)), NONE )
 
 // Done.
 println("Testing complete.")

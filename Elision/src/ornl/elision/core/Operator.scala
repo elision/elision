@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.core
 
 import scala.compat.Platform
@@ -265,7 +266,7 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
   }
 
   override lazy val hashCode = 31 * operator.hashCode
-  lazy val otherHashCode = 8191 * operator.otherHashCode
+  override lazy val otherHashCode = 8191 * operator.otherHashCode
 }
 
 /**
@@ -604,14 +605,22 @@ object SymbolicOperator {
       code: Option[String]): Option[ApplyData => BasicAtom] = {
     // Fetch the handler text.
     if (code.isDefined) {
-      var handlertxt = code.get
-      if (handlertxt.length > 0 && handlertxt(0) == '|')
-        handlertxt = handlertxt.stripMargin('|')
+      var handlertxt = code.get.split("\n")
+      def removeBlankLines(txt: Array[String]) =
+        for(line <- txt if line.trim.length > 0) yield line
+      //The compiler doesn't like blank lines, so we remove them.      
+      handlertxt = removeBlankLines(handlertxt)
+      // Concatenate all the lines into a single block of code. Each element
+      // of the array represents a line of code, but the elements are not
+      // terminated by a newline, so we insert them along with the concatenation.
+      var handlerblock = ("" /: handlertxt)(_ + _ + "\n")
+      if (handlerblock.length > 0 && handlerblock(0) == '|')
+        handlerblock = handlerblock.stripMargin('|')
         
       // Compile the handler, if we were given one.
-      if (handlertxt != "") {
+      if (handlerblock != "") {
         return Some(_timer.time {
-          _ncomp.compile(op.loc, op.name, handlertxt)
+          _ncomp.compile(op.loc, op.name, handlerblock)
         })
       }
     } // Handler has text.

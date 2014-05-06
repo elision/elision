@@ -2,17 +2,18 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="test"/>
-	<classpathentry kind="lib" path="lib/jline.jar"/>
-	<classpathentry kind="lib" path="lib/sage2D.jar"/>
-	<classpathentry kind="lib" path="lib/hamcrest-core.jar"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"/>
 	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="lib/jline.jar"/>
+	<classpathentry kind="lib" path="lib/sage2D.jar"/>
+	<classpathentry kind="lib" path="lib/hamcrest-core.jar"/>
 	<classpathentry kind="lib" path="lib/parboiled-core-1.1.5.jar"/>
 	<classpathentry kind="lib" path="lib/parboiled-scala_2.10-1.1.5.jar"/>
 	<classpathentry kind="lib" path="lib/scalatest_2.10-1.9.1.jar"/>
 	<classpathentry kind="lib" path="lib/specs2_2.10-1.14.jar"/>
 	<classpathentry kind="lib" path="lib/specs2-scalaz-core_2.10-7.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/specs2-scalaz-concurrent_2.10-7.0.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
