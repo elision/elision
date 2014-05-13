@@ -38,6 +38,7 @@
 package ornl.elision.core.matcher
 
 import ornl.elision.core.Apply
+import ornl.elision.core.ANY
 import ornl.elision.core.AtomSeq
 import ornl.elision.core.BasicAtom
 import ornl.elision.core.Bindings
@@ -57,6 +58,7 @@ import ornl.elision.core.AtomSeq
 import ornl.elision.core.Literal
 import ornl.elision.core.Variable
 import ornl.elision.core.NoProps
+import ornl.elision.core.NamedRootType
 
 /**
  * Match two sequences of atoms.
@@ -83,12 +85,27 @@ object SequenceMatcher {
   // the original.
   def add_bind(binds: Option[Bindings],
     e: (String, BasicAtom)): Option[Bindings] = {
+    Debugger("SequenceMatcher", "Attempting to add binding " + e.toString + " to " + binds.toString())
     (e, binds) match {
       case ((n, a), Some(b)) =>
         try {
-          if (b(n) == a) { binds } else { None }
+          Debugger("SequenceMatcher", "b(n) = " + (b(n)))
+          if (b(n) == a) { binds } else {
+            var got_any = false
+            b(n) match {
+              case typ:NamedRootType => if(typ.name == "ANY") got_any = true 
+              case _ => None
+            }
+            a match {
+              case typ:NamedRootType => if(typ.name == "ANY") got_any = true 
+              case _ => None
+            }
+            if(got_any == true) { binds } else { None }
+          }
         } catch {
-          case _: Throwable => Some(b + (e))
+          case _: Throwable =>
+            Debugger("SequenceMatcher", "Got throwable in add_bind(): " + (b + (e)))
+            Some(b + (e))
         }
       case (_, None) => None
     }
@@ -111,22 +128,34 @@ object SequenceMatcher {
   def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
     ibinds: Bindings): Option[Bindings] = {
     Debugger("matching", "called SequenceMatcher.get_mandatory_bindings")
+    Debugger("matching", "    Patterns: " + plist.mkParseString("", ",", ""))
+    Debugger("matching", "    Subjects: " + slist.mkParseString("", ",", ""))
+    Debugger("matching", "    Bindings: " + ibinds.toParseString)
+
     var binds = ibinds
 
-    // add error checking: what if both lists are not the same length
     if (plist.isEmpty && slist.isEmpty) {
       Debugger("matching", "empty lists")
       return Some(binds)
+    } else if (plist.length != slist.length) {
+      Debugger("matching", "Lists not the same length, no match possible.")
+      return None
     } else {
       Debugger("matching", "looking at head")
       plist.head match {
         case Variable(typ, nam, gua, lab, byn) =>
           Debugger("matching", "found a variable")
           Debugger("matching", nam + " function " + slist.head.toParseString)
-          add_bind(Some(ibinds), (nam, slist.head)) match {
+          /*if(typ == ANY) return get_mandatory_bindings(
+                AtomSeq(plist.props, plist.tail),
+                AtomSeq(slist.props, slist.tail), binds)*/
+          Debugger("matching", "Calling add_bind( " + binds + ", (" + nam + ", " + slist.head.toParseString + "))")
+          add_bind(Some(binds), (nam, slist.head)) match {
             case None =>
+              Debugger("matching", "add_bind() failed -- conflicting binds")
               return None
             case Some(b) =>
+              Debugger("matching", "add_bind() got: " + b)
               Debugger("matching", "Recursive call to get_mandatory_bindings")
               return get_mandatory_bindings(
                 AtomSeq(plist.props, plist.tail),
@@ -148,15 +177,23 @@ object SequenceMatcher {
                 return None
               }
 
-              if (oprps.isA(false) && oprps.isC(false)) {
-                Debugger("matching", "SeqenceMatcher found AC operator " + ns)
-                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), ibinds) match {
-                  case None => return None
-                  case Some(b) => binds = b
+              if (oprps.isA(false)) {
+                if (oprps.isC(false)) {
+                  Debugger("matching", "SeqenceMatcher found AC operator " + ns)
+                  ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
+                    case None => return None
+                    case Some(b) => binds = b
+                  }
+                } else {
+                  Debugger("matching", "SeqenceMatcher found non-AC operator " + ns)
+                  get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
+                    case None => return None
+                    case Some(b) => binds = b
+                  }
                 }
               } else {
                 Debugger("matching", "SeqenceMatcher found non-AC operator " + ns)
-                get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), ibinds) match {
+                get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
                   case None => return None
                   case Some(b) => binds = b
                 }
@@ -184,26 +221,6 @@ object SequenceMatcher {
       Debugger("matching", "    Subjects: " + subjects.mkParseString("", ",", ""))
       Debugger("matching", "    Bindings: " + binds.toParseString)
     }
-    //Properties should have been taken into account at creation time, so we ignore them here.
-    val plist = AtomSeq(NoProps, patterns)
-    val slist = AtomSeq(NoProps, subjects)
-    var mbinds = binds
-    get_mandatory_bindings(plist, slist, binds) match {
-      case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
-      case Some(b) =>
-        Debugger("matching", "binding results: ")
-        Debugger("matching", b.toParseString)
-        mbinds = b
-    }
-
-    Debugger("SequenceMatcher", "->trymatch")
-    Debugger("SequenceMatcher", "plist:")
-    Debugger("SequenceMatcher", plist.mkParseString("", ",", ""))
-    Debugger("SequenceMatcher", "slist")
-    Debugger("SequenceMatcher", slist.mkParseString("", ",", ""))
-    Debugger("SequenceMatcher", "mbinds")
-    Debugger("SequenceMatcher", mbinds.toParseString)
-    Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
 
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
@@ -211,6 +228,27 @@ object SequenceMatcher {
     } else if (patterns.length != subjects.length) {
       Fail("Sequences are not the same length.")
     } else {
+      //Properties should have been taken into account at creation time, so we ignore them here.
+      val plist = AtomSeq(NoProps, patterns)
+      val slist = AtomSeq(NoProps, subjects)
+      var mbinds = binds
+      get_mandatory_bindings(plist, slist, binds) match {
+        case None => return Fail((() => "SequenceMatcher mandatory-bindings induced fail"), 0)
+        case Some(b) =>
+          Debugger("matching", "binding results: ")
+          Debugger("matching", b.toParseString)
+          mbinds = b
+      }
+
+      Debugger("SequenceMatcher", "->trymatch")
+      Debugger("SequenceMatcher", "plist:")
+      Debugger("SequenceMatcher", plist.mkParseString("", ",", ""))
+      Debugger("SequenceMatcher", "slist")
+      Debugger("SequenceMatcher", slist.mkParseString("", ",", ""))
+      Debugger("SequenceMatcher", "mbinds")
+      Debugger("SequenceMatcher", mbinds.toParseString)
+      Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
+
       _tryMatch(patterns, subjects, mbinds, 0)
     }
   }

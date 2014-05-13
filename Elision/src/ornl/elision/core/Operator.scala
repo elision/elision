@@ -565,21 +565,18 @@ object SymbolicOperator {
   private val _ps = _prop("path.separator")
 
   // Get the current class path and convert it into a proper path expression.
-  private lazy val _urls =
+  private val _urls =
     java.lang.Thread.currentThread.getContextClassLoader match {
     case cl: java.net.URLClassLoader => cl.getURLs.toList
     case other => sys.error("classloader is not a URLClassLoader. " +
         "It is a " + other.getClass.getName)
   }
-  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
+  private val _classpath = (_urls.map(_.getPath)).mkString(_ps)
 
   // Build a settings with the correct classpath.
-  private val _settings = try {
-    new scala.tools.nsc.Settings(println _) {
-      override val classpath = PathSetting("-cp", "Classpath", _classpath)
-    }
-  }
-
+  private val _settings = new scala.tools.nsc.Settings(knownExecutor.console.emitln _) 
+  _settings.classpath.value = _classpath
+  
   /** Make an interpreter. */
   private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
 
