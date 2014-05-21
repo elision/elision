@@ -38,7 +38,6 @@
 package ornl.elision.core.matcher
 
 import scala.annotation.tailrec
-
 import ornl.elision.core.knownExecutor
 import ornl.elision.core.Apply
 import ornl.elision.core.AlgProp
@@ -51,7 +50,6 @@ import ornl.elision.core.Match
 import ornl.elision.core.MatchIterator
 import ornl.elision.core.Outcome
 import ornl.elision.util.Debugger
-
 import ornl.elision.core.OperatorRef
 import ornl.elision.core.Operator
 import ornl.elision.core.Variable
@@ -95,7 +93,6 @@ object ACMatcher {
   def get_mandatory_bindings(ps: AtomSeq, ss: AtomSeq,
     ibinds: Bindings): Option[Bindings] = {
     Debugger("ACmatching", "called ACMatcher.get_mandatory_bindings")
-    Debugger("ACmatching", ps.toParseString)
     var binds: Bindings = ibinds
     var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss)
     if (fail.isDefined) {
@@ -107,6 +104,7 @@ object ACMatcher {
     var (plist, vlist) = MatchHelper.stripVariables(plistv)
 
     Debugger("ACmatching", "plist.length " + plist.length)
+    Debugger("ACmatching", "slist.length " + slist.length)
     var _pindex = 0
     while (_pindex < plist.length) {
       var p = plist(_pindex)
@@ -155,16 +153,16 @@ object ACMatcher {
               Debugger("ACmatching", AtomSeq(prpp, argp).toParseString)
               Debugger("ACmatching", a.toParseString)
               slist = slist.omit(_somitme)
-              if (prpp.isA(false) && prpp.isC(false)) {
-                Debugger("ACmatching", "Calling ACMatcher.get_mandatory_bindings from ACMatcher")
-                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
+              if (!prpp.isA(false) && !prpp.isC(false)) {
+                Debugger("ACmatching", "Calling SequenceMatcher.get_mandatory_bindings from ACMatcher")
+                SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
                   a, binds) match {
                     case None => return None
                     case Some(b) => binds = b
                   }
               } else {
-                Debugger("ACmatching", "Calling SequenceMatcher.get_mandatory_bindings from ACMatcher")
-                SequenceMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
+                Debugger("ACmatching", "Calling ACMatcher.get_mandatory_bindings from ACMatcher")
+                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp),
                   a, binds) match {
                     case None => return None
                     case Some(b) => binds = b

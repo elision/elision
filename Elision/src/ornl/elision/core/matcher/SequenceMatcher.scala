@@ -93,19 +93,33 @@ object SequenceMatcher {
           if (b(n) == a) { binds } else {
             var got_any = false
             b(n) match {
-              case typ:NamedRootType => if(typ.name == "ANY") got_any = true 
+              case typ: NamedRootType => if (typ.name == "ANY") got_any = true
               case _ => None
             }
             a match {
-              case typ:NamedRootType => if(typ.name == "ANY") got_any = true 
+              case typ: NamedRootType => if (typ.name == "ANY") got_any = true
               case _ => None
             }
-            if(got_any == true) { binds } else { None }
+            if (got_any == true) { binds } else { None }
           }
         } catch {
           case _: Throwable =>
             Debugger("SequenceMatcher", "Got throwable in add_bind(): " + (b + (e)))
-            Some(b + (e))
+            //Some(b + (e))
+            a match {
+              case a: Variable =>
+                //                a.bindMe(e._2, b) match {
+                //                  case Match(nbind) =>
+                //                    Some(b ++ nbind)
+                //                  case Many(nbinds) =>
+                //                    binds
+                //                  case fail: Fail =>
+                //                    None
+                if (a.guard == Literal.TRUE) Some(b + (e))
+                else binds
+
+              case _ => Some(b + (e))
+            }
         }
       case (_, None) => None
     }
@@ -149,18 +163,26 @@ object SequenceMatcher {
           /*if(typ == ANY) return get_mandatory_bindings(
                 AtomSeq(plist.props, plist.tail),
                 AtomSeq(slist.props, slist.tail), binds)*/
-          Debugger("matching", "Calling add_bind( " + binds + ", (" + nam + ", " + slist.head.toParseString + "))")
-          add_bind(Some(binds), (nam, slist.head)) match {
-            case None =>
-              Debugger("matching", "add_bind() failed -- conflicting binds")
-              return None
-            case Some(b) =>
-              Debugger("matching", "add_bind() got: " + b)
-              Debugger("matching", "Recursive call to get_mandatory_bindings")
-              return get_mandatory_bindings(
-                AtomSeq(plist.props, plist.tail),
-                AtomSeq(slist.props, slist.tail), b)
+          //Only attempt if we don't have a guard to deal with.
+          if (gua == Literal.TRUE) {
+            Debugger("matching", "Calling add_bind( " + binds + ", (" + nam + ", " + slist.head.toParseString + "))")
+            add_bind(Some(binds), (nam, slist.head)) match {
+              case None =>
+                Debugger("matching", "add_bind() failed -- conflicting binds")
+                return None
+              case Some(b) =>
+                Debugger("matching", "add_bind() got: " + b)
+                Debugger("matching", "Recursive call to get_mandatory_bindings")
+                return get_mandatory_bindings(
+                  AtomSeq(plist.props, plist.tail),
+                  AtomSeq(slist.props, slist.tail), b)
+            }
+          } else {
+            return get_mandatory_bindings(
+              AtomSeq(plist.props, plist.tail),
+              AtomSeq(slist.props, slist.tail), binds)
           }
+
         case Apply(OperatorRef(Operator(np, tp, AtomSeq(oprpp, oargp))),
           AtomSeq(prpp, argp)) =>
           Debugger("matching", "SequenceMatcher found pattern operator: " + np + " arg: " + oargp.toString)
@@ -177,27 +199,24 @@ object SequenceMatcher {
                 return None
               }
 
-              if (oprps.isA(false)) {
-                if (oprps.isC(false)) {
-                  Debugger("matching", "SeqenceMatcher found AC operator " + ns)
-                  ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
-                    case None => return None
-                    case Some(b) => binds = b
-                  }
-                } else {
-                  Debugger("matching", "SeqenceMatcher found non-AC operator " + ns)
-                  get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
-                    case None => return None
-                    case Some(b) => binds = b
-                  }
-                }
-              } else {
+              if (!prpp.isA(false) && !prpp.isC(false)) {
                 Debugger("matching", "SeqenceMatcher found non-AC operator " + ns)
                 get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
                   case None => return None
                   case Some(b) => binds = b
                 }
+              } else {
+                Debugger("matching", "SeqenceMatcher found AC operator " + ns)
+                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
+                  case None => return None
+                  case Some(b) => binds = b
+                }
               }
+
+            //Not certain this is correct. 
+            case _ =>
+              return None
+
           }
         case _ => return Some(binds)
       }
@@ -232,7 +251,7 @@ object SequenceMatcher {
       val plist = AtomSeq(NoProps, patterns)
       val slist = AtomSeq(NoProps, subjects)
       var mbinds = binds
-      get_mandatory_bindings(plist, slist, binds) match {
+      get_mandatory_bindings(plist, slist, mbinds) match {
         case None => return Fail((() => "SequenceMatcher mandatory-bindings induced fail"), 0)
         case Some(b) =>
           Debugger("matching", "binding results: ")

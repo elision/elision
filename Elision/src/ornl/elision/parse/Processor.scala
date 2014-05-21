@@ -191,9 +191,11 @@ with HasHistory {
     // Make a resolver from the properties.  Is this costly to do every time
     // we want to read a file?  Probably not.
 
-    //TODO: Remove these two lines
+    //TODO: Remove these lines
     //ornl.elision.util.Debugger.enableDebugModes("matching", ornl.elision.util.Debugger.Mode.ON)
-    //ornl.elision.util.Debugger.enableDebugModes("SequenceMatching", ornl.elision.util.Debugger.Mode.ON)
+    //ornl.elision.util.Debugger.enableDebugModes("SequenceMatcher", ornl.elision.util.Debugger.Mode.ON)
+    //ornl.elision.util.Debugger.enableDebugModes("ACmatching", ornl.elision.util.Debugger.Mode.ON)
+    //ornl.elision.util.Debugger.enableDebugModes("rewrite", ornl.elision.util.Debugger.Mode.ON)
     
     val usePath = getProperty[Boolean]("usepath")
     val useClassPath = getProperty[Boolean]("useclasspath")
