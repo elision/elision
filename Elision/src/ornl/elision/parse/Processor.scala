@@ -190,11 +190,19 @@ with HasHistory {
   def read(filename: String, quiet: Boolean): Boolean = {
     // Make a resolver from the properties.  Is this costly to do every time
     // we want to read a file?  Probably not.
+
+    //TODO: Remove these lines
+    //ornl.elision.util.Debugger.enableDebugModes("matching", ornl.elision.util.Debugger.Mode.ON)
+    //ornl.elision.util.Debugger.enableDebugModes("SequenceMatcher", ornl.elision.util.Debugger.Mode.ON)
+    //ornl.elision.util.Debugger.enableDebugModes("ACmatching", ornl.elision.util.Debugger.Mode.ON)
+    //ornl.elision.util.Debugger.enableDebugModes("rewrite", ornl.elision.util.Debugger.Mode.ON)
+    
     val usePath = getProperty[Boolean]("usepath")
     val useClassPath = getProperty[Boolean]("useclasspath")
     val path = getProperty[String]("path")
     val resolver = FileResolver(usePath, useClassPath, Some(path))
     var result = false
+    
     resolver.find(filename) match {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
@@ -376,6 +384,7 @@ with HasHistory {
     // We'll only send the GUI atom data here. This may change depending how 
     // we ultimately want the GUI to
     // receive data about the atoms it needs to visualize.
+        
     ReplActor ! ("toGUI", "startBatch")
     ReplActor ! ("toGUI", (theAtom, "Parsed Atom: "))
     
@@ -390,7 +399,6 @@ with HasHistory {
           ReplActor ! ("toGUI", (theAtom, "Handler " + (handlersCount - 1) + " result: "))
       }
     } // Perform all handlers.
-    
     ReplActor ! ("toGUI", "endBatch")
     return Some(theAtom)
   }
