@@ -108,16 +108,18 @@ object SequenceMatcher {
             //Some(b + (e))
             a match {
               case a: Variable =>
-                //                a.bindMe(e._2, b) match {
-                //                  case Match(nbind) =>
-                //                    Some(b ++ nbind)
-                //                  case Many(nbinds) =>
-                //                    binds
-                //                  case fail: Fail =>
-                //                    None
-                if (a.guard == Literal.TRUE) Some(b + (e))
-                else binds
-
+                a.bindMe(e._2, b, false) match {
+                  case Match(nbinds) =>
+                    //Some(nbinds)
+                    Some(b + (e))
+                  case Many(nbinds) =>
+                    binds
+                  case fail: Fail =>
+                    binds
+                }
+                //if (a.guard == Literal.TRUE) Some(b + (e))
+                //else binds
+              //Some(b + (e))
               case _ => Some(b + (e))
             }
         }
