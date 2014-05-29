@@ -104,20 +104,13 @@ object SequenceMatcher {
           }
         } catch {
           case _: Throwable =>
-            //Debugger("SequenceMatcher", "Got throwable in add_bind(): " + (b + (e)))
-            //Some(b + (e))
             e._1.bindMe(e._2, b) match {
               case Match(nbinds) =>
                 Some(nbinds)
-              //Some(b + (e))
               case Many(nbinds) =>
                 binds
               case fail: Fail =>
                 None
-              //if (a.guard == Literal.TRUE) Some(b + (e))
-              //else binds
-              //Some(b + (e))
-              //case _ => binds //Some(b + (e))
             }
         }
       case (_, None) => None
@@ -156,15 +149,12 @@ object SequenceMatcher {
     } else {
       Debugger("matching", "looking at head")
       plist.head match {
-        //case Variable(typ, nam, gua, lab, byn) =>
         case p: Variable =>
           Debugger("matching", "found a variable")
           Debugger("matching", p.name + " function " + slist.head.toParseString)
           /*if(typ == ANY) return get_mandatory_bindings(
                 AtomSeq(plist.props, plist.tail),
                 AtomSeq(slist.props, slist.tail), binds)*/
-          //Only attempt if we don't have a guard to deal with.
-          //if (p.guard == Literal.TRUE) {
             Debugger("matching", "Calling add_bind( " + binds + ", (" + p.name + ", " + slist.head.toParseString + "))")
             add_bind(Some(binds), (p, slist.head)) match {
               case None =>
@@ -177,11 +167,6 @@ object SequenceMatcher {
                   AtomSeq(plist.props, plist.tail),
                   AtomSeq(slist.props, slist.tail), b)
             }
-//          } else {
-//            return get_mandatory_bindings(
-//              AtomSeq(plist.props, plist.tail),
-//              AtomSeq(slist.props, slist.tail), binds)
-//          }
 
         case Apply(OperatorRef(Operator(np, tp, AtomSeq(oprpp, oargp))),
           AtomSeq(prpp, argp)) =>
