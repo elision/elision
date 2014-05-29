@@ -84,15 +84,15 @@ object SequenceMatcher {
   // the binding is already there, then it leaves it alone and returns
   // the original.
   def add_bind(binds: Option[Bindings],
-    e: (String, BasicAtom)): Option[Bindings] = {
+    e: (Variable, BasicAtom)): Option[Bindings] = {
     Debugger("SequenceMatcher", "Attempting to add binding " + e.toString + " to " + binds.toString())
     (e, binds) match {
       case ((n, a), Some(b)) =>
         try {
-          Debugger("SequenceMatcher", "b(n) = " + (b(n)))
-          if (b(n) == a) { binds } else {
+          Debugger("SequenceMatcher", "b(n) = " + (b(n.name)))
+          if (b(n.name) == a) { binds } else {
             var got_any = false
-            b(n) match {
+            b(n.name) match {
               case typ: NamedRootType => if (typ.name == "ANY") got_any = true
               case _ => None
             }
@@ -104,23 +104,20 @@ object SequenceMatcher {
           }
         } catch {
           case _: Throwable =>
-            Debugger("SequenceMatcher", "Got throwable in add_bind(): " + (b + (e)))
+            //Debugger("SequenceMatcher", "Got throwable in add_bind(): " + (b + (e)))
             //Some(b + (e))
-            a match {
-              case a: Variable =>
-                a.bindMe(e._2, b, false) match {
-                  case Match(nbinds) =>
-                    //Some(nbinds)
-                    Some(b + (e))
-                  case Many(nbinds) =>
-                    binds
-                  case fail: Fail =>
-                    binds
-                }
-                //if (a.guard == Literal.TRUE) Some(b + (e))
-                //else binds
+            e._1.bindMe(e._2, b) match {
+              case Match(nbinds) =>
+                Some(nbinds)
               //Some(b + (e))
-              case _ => Some(b + (e))
+              case Many(nbinds) =>
+                binds
+              case fail: Fail =>
+                None
+              //if (a.guard == Literal.TRUE) Some(b + (e))
+              //else binds
+              //Some(b + (e))
+              //case _ => binds //Some(b + (e))
             }
         }
       case (_, None) => None
@@ -131,9 +128,9 @@ object SequenceMatcher {
   // second set of bindings conflicts with anything in the first, and
   // that none of the bindings in the second set conflict with each
   // other
-  def add_binds(binds: Bindings, newbinds: Bindings): Option[Bindings] = {
-    (newbinds.toList).foldLeft[Option[Bindings]](Some(binds))(add_bind)
-  }
+  //def add_binds(binds: Bindings, newbinds: Bindings): Option[Bindings] = {
+  //  (newbinds.toList).foldLeft[Option[Bindings]](Some(binds))(add_bind)
+  // }
 
   // see comments on get_mandatory_bindings in ACMatcher. The
   // SequenceMatcher version of get_mandatory_bindings is not
@@ -159,16 +156,17 @@ object SequenceMatcher {
     } else {
       Debugger("matching", "looking at head")
       plist.head match {
-        case Variable(typ, nam, gua, lab, byn) =>
+        //case Variable(typ, nam, gua, lab, byn) =>
+        case p: Variable =>
           Debugger("matching", "found a variable")
-          Debugger("matching", nam + " function " + slist.head.toParseString)
+          Debugger("matching", p.name + " function " + slist.head.toParseString)
           /*if(typ == ANY) return get_mandatory_bindings(
                 AtomSeq(plist.props, plist.tail),
                 AtomSeq(slist.props, slist.tail), binds)*/
           //Only attempt if we don't have a guard to deal with.
-          if (gua == Literal.TRUE) {
-            Debugger("matching", "Calling add_bind( " + binds + ", (" + nam + ", " + slist.head.toParseString + "))")
-            add_bind(Some(binds), (nam, slist.head)) match {
+          //if (p.guard == Literal.TRUE) {
+            Debugger("matching", "Calling add_bind( " + binds + ", (" + p.name + ", " + slist.head.toParseString + "))")
+            add_bind(Some(binds), (p, slist.head)) match {
               case None =>
                 Debugger("matching", "add_bind() failed -- conflicting binds")
                 return None
@@ -179,11 +177,11 @@ object SequenceMatcher {
                   AtomSeq(plist.props, plist.tail),
                   AtomSeq(slist.props, slist.tail), b)
             }
-          } else {
-            return get_mandatory_bindings(
-              AtomSeq(plist.props, plist.tail),
-              AtomSeq(slist.props, slist.tail), binds)
-          }
+//          } else {
+//            return get_mandatory_bindings(
+//              AtomSeq(plist.props, plist.tail),
+//              AtomSeq(slist.props, slist.tail), binds)
+//          }
 
         case Apply(OperatorRef(Operator(np, tp, AtomSeq(oprpp, oargp))),
           AtomSeq(prpp, argp)) =>

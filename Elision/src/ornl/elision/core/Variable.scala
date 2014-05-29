@@ -136,7 +136,7 @@ class Variable(typ: BasicAtom, val name: String,
    * @param subject		The atom to which the variable is to be bound.
    * @param binds			Other bindings that must be honored.
    */
-  def bindMe(subject: BasicAtom, binds: Bindings, guardRewrite: Boolean = true): Outcome = {
+  def bindMe(subject: BasicAtom, binds: Bindings): Outcome = {
     // If this is a by-name variable, reject immediately if the subject is not
     // a variable of the same name.
     if (byName) {
@@ -148,7 +148,6 @@ class Variable(typ: BasicAtom, val name: String,
     // Check any guard.
     if (guard.isTrue) return Match(binds + (name -> subject))
     else {
-      if (guardRewrite) {
         guard match {
           case rew: Rewriter =>
             // Rewrite the atom.
@@ -169,9 +168,6 @@ class Variable(typ: BasicAtom, val name: String,
             else return Fail("Variable guard failed.  Is now: " +
               newterm.toParseString)
         }
-      } else {
-        Fail("Guard rewriting disabled.")
-      }
     }
   }
 

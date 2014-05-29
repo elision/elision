@@ -178,15 +178,15 @@ object ACMatcher {
 
     if ((vlist.length == 1) && (slist.length == 1)) {
       vlist(0) match {
-        case Variable(typ, nam, gua, lab, byn) =>
-          SequenceMatcher.add_bind(Some(binds), (nam, slist(0))) match {
+        case vzero : Variable =>
+          SequenceMatcher.add_bind(Some(binds), (vzero, slist(0))) match {
             case Some(b) =>
               Debugger("ACmatching", "clever binding")
               binds = b
             case None =>
               Debugger("ACmatching", "unclever binding")
               Debugger("ACmatching", binds.toParseString)
-              Debugger("ACmatching", nam + " " + slist(0).toParseString)
+              Debugger("ACmatching", vzero.name + " " + slist(0).toParseString)
               return None
           }
       }
