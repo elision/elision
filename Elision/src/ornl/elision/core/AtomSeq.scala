@@ -358,6 +358,7 @@ object AtomSeq {
     var atoms: OmitSeq[BasicAtom] = xatoms
     if (assoc || ident != null || absor != null) {
       var index = 0
+      var flattened_a = false
       while (index < atoms.size) {
         val atom = atoms(index)
         if (absor == atom) {
@@ -372,6 +373,7 @@ object AtomSeq {
               // needed.
               atoms = atoms.omit(index)
               atoms = atoms.insert(index, args)
+              flattened_a = true
             case _ =>
               // Nothing to do in this case.
           }          
@@ -380,7 +382,7 @@ object AtomSeq {
       } // Run through all arguments.
       // If this sequence is associative and commutative we need to sort it
       // after flattening it.
-      if(assoc && commu){
+      if(flattened_a && assoc && commu){
         atoms = atoms.sorted(BasicAtomComparator)
       }
     }

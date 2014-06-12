@@ -906,6 +906,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         // identities, and flatten associative lists.
         var newseq = args.atoms
         var index = 0
+        var flattened_a = false
         // While loops are significantly faster than for comprehensions.
         while (index < newseq.size) {
           val atom = newseq(index)
@@ -930,7 +931,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
               // is needed.  This flattens associative lists, as required.
               newseq = newseq.omit(index)
               newseq = newseq.insert(index, opargs)
-              
+              flattened_a = true
             case _ =>
               // Nothing to do except increment the pointer.
               index += 1
@@ -941,7 +942,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         } // Run through all arguments.
         // If this sequence is associative and commutative we need to sort it
         // after flattening it.
-        if(assoc && commu){
+        if(flattened_a && assoc && commu){
           newseq = newseq.sorted(BasicAtomComparator)
         }
 
