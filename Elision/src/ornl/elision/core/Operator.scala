@@ -939,6 +939,11 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
             index += 1
           }
         } // Run through all arguments.
+        // If this sequence is associative and commutative we need to sort it
+        // after flattening it.
+        if(assoc && commu){
+          newseq = newseq.sorted(BasicAtomComparator)
+        }
 
         // Handle actual operator application.
         def handleApply(binds: Bindings): BasicAtom = {
