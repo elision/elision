@@ -323,7 +323,7 @@ extends Fickle with Mutable {
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Debugger("rewrite", "Rewriting timed out: " + atom.toParseString)
-      throw new TimedOut(Loc.internal, "Rewriting timed out")
+      throw new TimedOut(atom.loc, "Rewriting timed out")
     }
 
     var (newtop, appliedtop) = _rewriteTop(atom, rulesets)

@@ -105,6 +105,7 @@ class Variable(typ: BasicAtom, val name: String,
   val guard: BasicAtom = Literal.TRUE,
   val labels: Set[String] = Set[String](),
   val byName: Boolean = false) extends BasicAtom {
+
   /** The prefix for this variable. */
   val prefix = "$"
 

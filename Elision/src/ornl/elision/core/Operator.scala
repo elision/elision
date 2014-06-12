@@ -44,6 +44,7 @@ import scala.collection.mutable.{Set => MSet}
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
 import scala.tools.nsc.interpreter.Results
+
 import ornl.elision.context.NativeCompiler
 import ornl.elision.context.Executor
 import ornl.elision.core.matcher.SequenceMatcher
@@ -51,6 +52,7 @@ import ornl.elision.util.ElisionException
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.util.FastLinkedList
 
 /**
  * An incorrect argument list was supplied to an operator.
@@ -161,7 +163,7 @@ abstract class Operator(
   override def tryMatchWithoutTypes(
       subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
     super.tryMatchWithoutTypes(subject, binds, Some(OperatorRef(this)))
-}
+  }
 
 /**
  * Provide construction and matching for operators.
@@ -599,7 +601,8 @@ object SymbolicOperator {
    * @return  The optional handler result.
    */
   private def compileHandler(op: SymbolicOperator,
-      code: Option[String]): Option[ApplyData => BasicAtom] = {
+                             code: Option[String]): Option[ApplyData => BasicAtom] = {
+
     // Fetch the handler text.
     if (code.isDefined) {
       var handlertxt = code.get.split("\n")
@@ -676,6 +679,7 @@ object SymbolicOperator {
    */
   def unapply(so: SymbolicOperator) = Some((so.name, so.theType, so.params))
 
+
   /**
    * The well-known MAP operator.  This is needed to define the types of
    * operators, but is not used to define its own type.  The type of the MAP
@@ -690,6 +694,7 @@ object SymbolicOperator {
       "This operator is used to construct types for operators.  It " +
       "indicates a mapping from one type (the domain) to another type " +
       "(the codomain)."))
+
   /**
    * The well-known cross product operator.  This is needed to define the
    * types of operators, but is not used to define its own type.  The type
@@ -702,6 +707,7 @@ object SymbolicOperator {
       "This operator is used to construct types for operators.  It " +
       "indicates the cross product of two atoms (typically types).  " +
       "These originate from the types of the parameters of an operator."))
+
   /**
    * The well-known list operator.  This is used to define the type of lists
    * such as the atom sequence.  It has type ^TYPE, indicating that it is a
@@ -713,6 +719,7 @@ object SymbolicOperator {
       "This operator is used to indicate the type of a list.  It takes a " +
       "single argument that is the type of the atoms in the list.  For " +
       "heterogeneous lists this will be ANY."))
+
 
   /**
    * Compute an operator type.
@@ -746,11 +753,17 @@ object SymbolicOperator {
  *                    probably leave this with the default value of false.
  * @param handlertxt  The text for an optional native handler.
  */
-protected class SymbolicOperator protected (sfh: SpecialFormHolder,
-  name: String, typ: BasicAtom, val params: AtomSeq,
-  description: String, detail: String, evenMeta: Boolean,
+protected class SymbolicOperator protected (
+  sfh: SpecialFormHolder,
+  name: String, 
+  typ: BasicAtom, 
+  val params: AtomSeq,
+  description: String, 
+  detail: String, 
+  evenMeta: Boolean,
   val handlertxt: Option[String])
   extends Operator(sfh, name, typ, params, description, detail, evenMeta) {
+
   override val theType: BasicAtom = ANY
 
   // Check the properties.
@@ -776,6 +789,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
    * then an exception is thrown (`ArgumentListException`).
    */
   private def _check() {
+
     /**
      * Define a little method to require that all parameters have the same
      * type.
@@ -893,7 +907,7 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         // the argument list by flattening associative applications.  Second
         // we reduce by looking for identities, etc.  Third we check for an
         // empty argument list.
-
+        
         // Save the properties for fast access.
         val props = params.props
         val assoc = props.isA(false)
@@ -906,228 +920,235 @@ protected class SymbolicOperator protected (sfh: SpecialFormHolder,
         // identities, and flatten associative lists.
         var newseq = args.atoms
         var index = 0
+      
+        // The args AtomSeq has already done some of the following
+        // processing. Only do the while() loop if additional
+        // processing is needed.
+        val diffProps = params.props != args.props
         var flattened_a = false
-        // While loops are significantly faster than for comprehensions.
-        while (index < newseq.size) {
-          val atom = newseq(index)
-          if (absor == atom) {
+        if (diffProps || (assoc && (args.hasOperator(this)))) {
+
+          // While loops are significantly faster than for comprehensions.
+          while (index < newseq.size) {
+            val atom = newseq(index)
+            if (diffProps && (absor == atom)) {
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+              
+              // Found the absorber.  Nothing else to do.
+              return absor
+            }
+            
+            // Omit identities and check for associative lists to flatten.  If
+            // we remove an identity, do not increment the index.  If we insert
+            // items, we should not increment the index.  If we don't change the
+            // item at the current index, then we can advance the index pointer.
+            if (diffProps && (ident == atom)) {
+              newseq = newseq.omit(index)
+            } 
+            else if (assoc) atom match {
+              //case OpApply(opref, opargs, binds) if (opref.operator == this) =>
+              case OpApply(opref, opargs, binds) if (opref.operator.name == this.name) =>
+                // Add the arguments directly to this list.  We can assume the
+                // sub-list has already been processed, so no deeper checking
+                // is needed.  This flattens associative lists, as required.
+                newseq = newseq.omit(index)
+                newseq = newseq.insert(index, opargs)
+                flattened_a = true
+              case _ =>
+                // Nothing to do except increment the pointer.
+                index += 1
+            } 
+            else {
+              // Since nothing at this position changed, increment the pointer.
+              index += 1
+            }
+          } // Run through all arguments.
+          // If this sequence is associative and commutative we need to sort it
+          // after flattening it.
+          if(flattened_a && assoc && commu){
+            newseq = newseq.sorted(BasicAtomComparator)
+          }
+        }
+
+      // Handle actual operator application.
+      def handleApply(binds : Bindings): BasicAtom = {
+        // Re-package the arguments with the correct properties.
+        val newargs = AtomSeq(params.props, newseq)
+        // See if we are bypassing the native handler.
+        var r : BasicAtom = null
+        if (!bypass) {
+          // Run any native handler.            
+          if (handler.isDefined) {
+            val ad = new ApplyData(this, newargs, binds)
+            r = handler.get(ad)
+            return r
+          }
+        }
+        // No native handler.
+        r = OpApply(OperatorRef(this), newargs, binds)
+        return r
+      }
+      
+      // Check the argument length versus the parameter length.
+      if (!assoc) {
+        // The number of arguments must exactly match the number of
+        // parameters.
+        if (newseq.length > params.length) {
+          throw new ArgumentListException(rhs.loc,
+                                          "Too many arguments for non-associative operator " +
+                                          toESymbol(name) + ".  Expected " + params.length +
+                                          " but got " + newseq.length + ".")
+        } else if (newseq.length < params.length) {
+          throw new ArgumentListException(rhs.loc,
+                                          "Too few arguments for non-associative operator " +
+                                          toESymbol(name) + ".  Expected " + params.length +
+                                          " but got " + newseq.length + ".")
+        }
+      } else {
+        // There are special cases to handle here.  First, if the argument
+        // list is empty, but there is an identity, return it.  Second, if
+        // the argument list is empty, but there is no identity, apply the
+        // operator to the empty list.
+        if (newseq.length == 0) {
+          if (ident == null) {
+            val r = handleApply(Bindings())
+            
             // Resume timing out rewrites.
             BasicAtom.timeoutTime.value = oldTimeout
-
-            // Found the absorber.  Nothing else to do.
-            return absor
-          }
-          
-          // Omit identities and check for associative lists to flatten.  If
-          // we remove an identity, do not increment the index.  If we insert
-          // items, we should not increment the index.  If we don't change the
-          // item at the current index, then we can advance the index pointer.
-          if (ident == atom) {
-            newseq = newseq.omit(index)
-          } else if (assoc) atom match {
-            case OpApply(opref, opargs, binds) if (opref.operator == this) =>
-              // Add the arguments directly to this list.  We can assume the
-              // sub-list has already been processed, so no deeper checking
-              // is needed.  This flattens associative lists, as required.
-              newseq = newseq.omit(index)
-              newseq = newseq.insert(index, opargs)
-              flattened_a = true
-            case _ =>
-              // Nothing to do except increment the pointer.
-              index += 1
+            return r
           } else {
-            // Since nothing at this position changed, increment the pointer.
-            index += 1
+            // Resume timing out rewrites.
+            BasicAtom.timeoutTime.value = oldTimeout
+            return ident
           }
-        } // Run through all arguments.
-        // If this sequence is associative and commutative we need to sort it
-        // after flattening it.
-        if(flattened_a && assoc && commu){
-          newseq = newseq.sorted(BasicAtomComparator)
         }
-
-        // Handle actual operator application.
-        def handleApply(binds: Bindings): BasicAtom = {
-          // Re-package the arguments with the correct properties.
-          val newargs = AtomSeq(params.props, newseq)
-          // See if we are bypassing the native handler.
-          if (!bypass) {
-            // Run any native handler.            
-            if (handler.isDefined) {
-              val ad = new ApplyData(this, newargs, binds)
-              return handler.get(ad)
+      }
+      
+      // If the argument list is associative, we have an identity, and we
+      // have a single element, then that element must match the type of
+      // the operator, and we return it.  Why is this the rule?  We want
+      // to use associative operators to mimic "var args", but don't want
+      // them to "collapse" when there is just one argument.  That is, we
+      // don't want f(x)->x when we just want a var args f.  But if we give
+      // f an identity, it is probably a mathematical operator of some kind,
+      // and we probably do want f(x)->x.  So, for now, that's the rule.
+      // For greater control, you have to use a case operator.
+      if (newseq.length == 1) {
+        if (assoc && ident != null) {
+          // Get the atom.
+          val atom = newseq(0)
+          // Match the type of the atom against the type of the parameters.
+          val param = params(0)
+          param.tryMatch(atom) match {
+            case Fail(reason, index) =>
+              // The argument is invalid.  Reject!
+              throw new ArgumentListException(atom.loc, "Incorrect argument " +
+                                              "for operator " + toESymbol(name) + " at position 0: " +
+                                              atom.toParseString + ".  " + reason())
+            case mat: Match => {
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+              
+              // The argument matches.
+              return atom
+            }
+            case many: Many => {
+              // Resume timing out rewrites.
+              BasicAtom.timeoutTime.value = oldTimeout
+              
+              // The argument matches.
+              return atom
             }
           }
-          // No native handler.
-          return OpApply(OperatorRef(this), newargs, binds)
         }
+      }
+      
+      // Is the current operator associative?
+      if (assoc) {
+        // Handle type checking of an associative operator. All
+        // formal parameters of an associative operator must have
+        // the same type, so type checking of an associative
+        // operator will be performed by checking:
+        //
+        // 1. That all arguments of the operator we are trying to
+        //    create have the same type.
+        // 2. That the type of 1 of the arguments matches the type
+        //    of 1 of the formal parameters of the associative
+        //    operator.
         
-        // Check the argument length versus the parameter length.
-        if (!assoc) {
-          // The number of arguments must exactly match the number of
-          // parameters.
-          if (newseq.length > params.length) {
-            throw new ArgumentListException(rhs.loc,
-                "Too many arguments for non-associative operator " +
-                toESymbol(name) + ".  Expected " + params.length +
-                " but got " + newseq.length + ".")
-          } else if (newseq.length < params.length) {
-            throw new ArgumentListException(rhs.loc,
-                "Too few arguments for non-associative operator " +
-                toESymbol(name) + ".  Expected " + params.length +
-                " but got " + newseq.length + ".")
-          }
-        } else {
-          // There are special cases to handle here.  First, if the argument
-          // list is empty, but there is an identity, return it.  Second, if
-          // the argument list is empty, but there is no identity, apply the
-          // operator to the empty list.
-          if (newseq.length == 0) {
-            if (ident == null) {
-              val r = handleApply(Bindings())
+        // Check to see if all arguments have the same type.
+        val anArg = newseq(0)
+        /*
+        if (!args.sameType) {
+          throw new ArgumentListException(anArg.loc,
+                                          "Not all arguments for associative operator have the same type.")
+        }
+        */
 
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
-              return r
-            } else {
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
-              return ident
-            }
+        // All arguments have the same type. Now try to match the
+        // parameter type with the argument type. Note that the
+        // bindings returned by the match are only used for
+        // inferring the value of type variables. Since all
+        // arguments/formal parameters have the same type, matching
+        // 1 formal parameter with 1 argument gives us all the
+        // binding information needed to do type inference.
+        val aParam = params.atoms(0)
+        aParam.tryMatch(anArg) match {
+          case Fail(reason, index) =>
+            throw new ArgumentListException(anArg.loc,
+                                            "Incorrect argument for operator " + toESymbol(name) +
+                                            " at position " + index + ": " + newseq(index).toParseString +
+                                            ".  " + reason())
+          case Match(binds1) => {
+            // The argument matches.
+            val r = handleApply(binds1)
+            
+            // Resume timing out rewrites.
+            BasicAtom.timeoutTime.value = oldTimeout
+            return r
+          }
+          case Many(iter) => {
+            // The argument matches.
+            val r =  handleApply(iter.next)
+            
+            // Resume timing out rewrites.
+            BasicAtom.timeoutTime.value = oldTimeout
+            return r
           }
         }
-
-        // If the argument list is associative, we have an identity, and we
-        // have a single element, then that element must match the type of
-        // the operator, and we return it.  Why is this the rule?  We want
-        // to use associative operators to mimic "var args", but don't want
-        // them to "collapse" when there is just one argument.  That is, we
-        // don't want f(x)->x when we just want a var args f.  But if we give
-        // f an identity, it is probably a mathematical operator of some kind,
-        // and we probably do want f(x)->x.  So, for now, that's the rule.
-        // For greater control, you have to use a case operator.
-        if (newseq.length == 1) {
-          if (assoc && ident != null) {
-            // Get the atom.
-            val atom = newseq(0)
-            // Match the type of the atom against the type of the parameters.
-            val param = params(0)
-            param.tryMatch(atom) match {
-              case Fail(reason, index) =>
-                // The argument is invalid.  Reject!
-                throw new ArgumentListException(atom.loc, "Incorrect argument " +
-                  "for operator " + toESymbol(name) + " at position 0: " +
-                  atom.toParseString + ".  " + reason())
-              case mat: Match => {
-                // Resume timing out rewrites.
-                BasicAtom.timeoutTime.value = oldTimeout
-
-                // The argument matches.
-                return atom
-              }
-              case many: Many => {
-                // Resume timing out rewrites.
-                BasicAtom.timeoutTime.value = oldTimeout
-
-                // The argument matches.
-                return atom
-              }
-            }
+      } else {
+        // We've run out of special cases to handle.  Now just try to match
+        // the arguments against the parameters.
+        val newparams = params.atoms
+        SequenceMatcher.tryMatch(newparams, newseq) match {
+          case Fail(reason, index) =>
+            throw new ArgumentListException(newseq(index).loc,
+                                            "Incorrect argument for operator " + toESymbol(name) +
+                                            " at position " + index + ": " + newseq(index).toParseString +
+                                            ".  " + reason())
+          case Match(binds1) => {
+            // The argument list matches.
+            val r = handleApply(binds1)
+            
+            // Resume timing out rewrites.
+            BasicAtom.timeoutTime.value = oldTimeout
+            return r
+          }
+          case Many(iter) => {
+            // The argument list matches.
+            val r = handleApply(iter.next)
+            
+            // Resume timing out rewrites.
+            BasicAtom.timeoutTime.value = oldTimeout
+            return r
           }
         }
-
-        // Is the current operator associative?
-        if (assoc) {
-          // Handle type checking of an associative operator. All
-          // formal parameters of an associative operator must have
-          // the same type, so type checking of an associative
-          // operator will be performed by checking:
-          //
-          // 1. That all arguments of the operator we are trying to
-          //    create have the same type.
-          // 2. That the type of 1 of the arguments matches the type
-          //    of 1 of the formal parameters of the associative
-          //    operator.
-
-          // Check to see if all arguments have the same type.
-          val anArg = newseq(0)
-          val aParam = params.atoms(0)
-          while (index < newseq.length) {
-            // Does the current argument have the same type as the
-            // other arguments?
-            if (newseq(index).theType != anArg.theType) {
-              // No, bomb out.
-              throw new ArgumentListException(anArg.loc,
-                  "Incorrect argument for operator " + toESymbol(name) +
-                  " at position " + index + ": " + newseq(index).toParseString +
-                  ".  All arguments must have the same type (" + 
-                  newseq(index).theType.toParseString + " != " +
-                  anArg.theType.toParseString + ").")
-            }
-          }
-
-          // All arguments have the same type. Now try to match the
-          // parameter type with the argument type. Note that the
-          // bindings returned by the match are only used for
-          // inferring the value of type variables. Since all
-          // arguments/formal parameters have the same type, matching
-          // 1 formal parameter with 1 argument gives us all the
-          // binding information needed to do type inference.
-          aParam.tryMatch(anArg) match {
-            case Fail(reason, index) =>
-              throw new ArgumentListException(anArg.loc,
-                  "Incorrect argument for operator " + toESymbol(name) +
-                  " at position " + index + ": " + newseq(index).toParseString +
-                  ".  " + reason())
-            case Match(binds1) => {
-              // The argument matches.
-              val r = handleApply(binds1)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
-              return r
-            }
-            case Many(iter) => {
-              // The argument matches.
-              val r =  handleApply(iter.next)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
-              return r
-            }
-          }
-        } else {
-          // We've run out of special cases to handle.  Now just try to match
-          // the arguments against the parameters.
-          val newparams = params.atoms
-          SequenceMatcher.tryMatch(newparams, newseq) match {
-            case Fail(reason, index) =>
-              throw new ArgumentListException(newseq(index).loc,
-                  "Incorrect argument for operator " + toESymbol(name) +
-                  " at position " + index + ": " + newseq(index).toParseString +
-                  ".  " + reason())
-            case Match(binds1) => {
-              // The argument list matches.
-              val r = handleApply(binds1)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
-              return r
-            }
-            case Many(iter) => {
-              // The argument list matches.
-              val r = handleApply(iter.next)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
-              return r
-            }
-          }
-        }
-
+      }
+      
       case _ => {
         val r = SimpleApply(this, rhs)
-
+        
         // Resume timing out rewrites.
         BasicAtom.timeoutTime.value = oldTimeout
         return r
