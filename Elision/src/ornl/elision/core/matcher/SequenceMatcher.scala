@@ -88,22 +88,10 @@ object SequenceMatcher {
     Debugger("SequenceMatcher", "Attempting to add binding " + e.toString + " to " + binds.toString())
     (e, binds) match {
       case ((n, a), Some(b)) =>
-        try {
-          Debugger("SequenceMatcher", "b(n) = " + (b(n.name)))
-          if (b(n.name) == a) { binds } else {
-            var got_any = false
-            b(n.name) match {
-              case typ: NamedRootType => if (typ.name == "ANY") got_any = true
-              case _ => None
-            }
-            a match {
-              case typ: NamedRootType => if (typ.name == "ANY") got_any = true
-              case _ => None
-            }
-            if (got_any == true) { binds } else { None }
-          }
-        } catch {
-          case _: Throwable =>
+        val prev_bind = b.getOrElse(n.name, None)
+        Debugger("SequenceMatcher", "b(n) = " + prev_bind)
+        prev_bind match {
+          case None => 
             e._1.bindMe(e._2, b) match {
               case Match(nbinds) =>
                 Some(nbinds)
@@ -112,8 +100,21 @@ object SequenceMatcher {
               case fail: Fail =>
                 None
             }
+          
+          case _ =>
+            if (prev_bind == a) { return binds } else { None }
+            var got_any = false
+            prev_bind match {
+              case typ: NamedRootType => if (typ.name == "ANY") got_any = true
+              case _ => None
+            }
+            a match {
+              case typ: NamedRootType => if (typ.name == "ANY") got_any = true
+              case _ => None
+            }
+            if (got_any == true) { binds } else { None }
         }
-      case (_, None) => None
+      case _ => None
     }
   }
 
@@ -155,18 +156,18 @@ object SequenceMatcher {
           /*if(typ == ANY) return get_mandatory_bindings(
                 AtomSeq(plist.props, plist.tail),
                 AtomSeq(slist.props, slist.tail), binds)*/
-            Debugger("matching", "Calling add_bind( " + binds + ", (" + p.name + ", " + slist.head.toParseString + "))")
-            add_bind(Some(binds), (p, slist.head)) match {
-              case None =>
-                Debugger("matching", "add_bind() failed -- conflicting binds")
-                return None
-              case Some(b) =>
-                Debugger("matching", "add_bind() got: " + b)
-                Debugger("matching", "Recursive call to get_mandatory_bindings")
-                return get_mandatory_bindings(
-                  AtomSeq(plist.props, plist.tail),
-                  AtomSeq(slist.props, slist.tail), b)
-            }
+          Debugger("matching", "Calling add_bind( " + binds + ", (" + p.name + ", " + slist.head.toParseString + "))")
+          add_bind(Some(binds), (p, slist.head)) match {
+            case None =>
+              Debugger("matching", "add_bind() failed -- conflicting binds")
+              return None
+            case Some(b) =>
+              Debugger("matching", "add_bind() got: " + b)
+              Debugger("matching", "Recursive call to get_mandatory_bindings")
+              return get_mandatory_bindings(
+                AtomSeq(plist.props, plist.tail),
+                AtomSeq(slist.props, slist.tail), b)
+          }
 
         case Apply(OperatorRef(Operator(np, tp, AtomSeq(oprpp, oargp))),
           AtomSeq(prpp, argp)) =>
