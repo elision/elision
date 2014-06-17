@@ -263,8 +263,7 @@ class Variable(typ: BasicAtom, val name: String,
 
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   override lazy val otherHashCode = typ.otherHashCode +
-    8191 * (name.toString).foldLeft(BigInt(0))(other_hashify) + 1
-
+  8191 * (name.toString).foldLeft(BigInt(0))(other_hashify) + 1
   override def equals(varx: Any) = varx match {
     case ovar: Variable =>
       feq(ovar, this,

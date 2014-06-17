@@ -45,6 +45,7 @@ import scala.util.DynamicVariable
 import scala.collection.immutable.List
 import ornl.elision.dialects.ElisionGenerator
 import ornl.elision.dialects.ScalaGenerator
+import ornl.elision.util.ElisionException
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
@@ -202,13 +203,22 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
   import java.util.{HashMap => MMap}
 
   /** Cache the applies contained in the atom. */
-  var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+  // This speeds things up, but getting FastLinkedList to work
+  // correctly is very hard.
+  //var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+  //var realApplies : java.util.HashSet[Apply] = new java.util.HashSet[Apply]()
+
+  /**
+   * Does this atom or its children contain any of the operators
+   * registered via trackOperator()?
+   */
+  var hasTrackedOps : Boolean = false
 
   /** Cache the variables contained in the atom in an easy to use data structure. */
   var myVars : MutableHashSet[BasicAtom] = null
 
   /** Cache the results of getOperators(). */
-  var myOperators : MMap[String, MutableHashSet[Apply]] = new MMap[String, MutableHashSet[Apply]]
+  var myOperators : MMap[String, MutableHashSet[Apply]] = null
 
   /**
    * The rulesets with respect to which this atom is clean. If this is
