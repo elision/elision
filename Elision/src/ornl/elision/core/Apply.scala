@@ -37,10 +37,14 @@
  * */
 package ornl.elision.core
 
+import java.util.HashMap
+
 import scala.compat.Platform
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
+import scala.collection.JavaConversions._
+import ornl.elision.util.ElisionException
 
 /**
  * The common root for all application atoms.  This class represents the
@@ -70,31 +74,87 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   override lazy val hashCode = op.hashCode * 31 + arg.hashCode
   override lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
 
-  //println("** Making apply " + op.toParseString + " " + arg.toParseString)
-  op match {
-    case x: Operator => {
-      //println("** Old myOperators (1) = " + myOperators)
-      myOperators = myOperators + (x.name -> this)
-      //println("** New myOperators (1) = " + myOperators)
+  if (BasicAtom.trackedOperators.contains(
+    this.op match {
+      case x : Operator => x.name
+      case x : OperatorRef => x.name
+      case _ => ""
     }
-    case x: OperatorRef => {
-      //println("** Old myOperators (1) = " + myOperators)
-      myOperators = myOperators + (x.name -> this)
-      //println("** New myOperators (1) = " + myOperators)
-    }
-    case _ => {}
+  )) {
+    hasTrackedOps = true
   }
   arg match {
     case x: AtomSeq => {
       for (a <- x) {
-        //println("** Adding in " + a.myOperators)
-        //println("** Old myOperators (2) = " + myOperators)
-        myOperators = myOperators ++ a.myOperators
-        //println("** New myOperators (2) = " + myOperators)
+        hasTrackedOps = hasTrackedOps || a.hasTrackedOps
       }
     }
     case _ => {}
   }
+
+  /*
+   * This speeds things up, but FastLinkedList does not work the way
+   * it should.
+   * 
+  if (BasicAtom.trackedOperators.contains(
+        this.op match {
+          case x : Operator => x.name
+          case x : OperatorRef => x.name
+          case _ => ""
+        }
+    )) {
+    myApplies.append(this)
+    realApplies.add(this)
+  }
+  arg match {
+    case x: AtomSeq => {
+      for (a <- x) {
+        myApplies.appendAll(a.myApplies)
+        realApplies.addAll(a.realApplies)
+      }
+    }
+    case _ => {}
+  }
+  println("Applies for " + this.toParseString)
+  myApplies.reset()
+  var node = myApplies.next()
+  while (node != null) {
+    val app = node.data
+    println("Apply:   " + app.toParseString)
+    node = myApplies.next()
+  }
+  myApplies.reset()
+  node = myApplies.next()
+  var fakeApplies : java.util.HashSet[Apply] = new java.util.HashSet[Apply]()
+  while (node != null) {
+    val app = node.data
+    fakeApplies.add(app)
+    node = myApplies.next()
+  }
+  for (app <- realApplies) {
+    if (!fakeApplies.contains(app)) {
+      println("** MISSING apply " + app.toParseString)
+      println("** Curr apply = " + this.toParseString)
+      println("** Applies of arguments:")
+      arg match {
+        case x: AtomSeq => {
+          for (a <- x) {
+            println("**  Arg = " + a.toParseString)
+            a.myApplies.reset()
+            node = a.myApplies.next()
+            while (node != null) {
+              val app = node.data
+              println("**    " + app.toParseString)
+              node = a.myApplies.next()
+            }
+          }
+        }
+        case _ => {}
+      }
+      throw new LambdaUnboundedRecursionException(arg.loc, "Apply tracking error")
+    }
+  }
+  */
 
   override def equals(other: Any) = (other match {
       case oapp: Apply =>
@@ -198,8 +258,10 @@ object Apply {
    * @param bypass	If true, bypass native operator handler invocations.
    * @return	The basic atom resulting from the application.
    */
-  def apply(op: BasicAtom, arg: BasicAtom,
-      bypass: Boolean = false): BasicAtom = {
+  def apply(op: BasicAtom, 
+            arg: BasicAtom,
+            bypass: Boolean = false): BasicAtom = {
+
     // Temporarily disable rewrite timeouts.
     val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
@@ -214,38 +276,38 @@ object Apply {
       retval = SimpleApply(op, arg)
     } else {
       op match {
-  		  case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
-  		    // If the argument is also a string literal, then we want to simply
-  		    // concatenate them.
-  		    retval = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
+  	case StringLiteral(typ, str) if arg.isInstanceOf[StringLiteral] =>
+  	  // If the argument is also a string literal, then we want to simply
+  	  // concatenate them.
+  	  retval = StringLiteral(typ, str + arg.asInstanceOf[StringLiteral].value)
           
-  	    case app:Applicable =>
-  	      try {
-  		      // The lhs is applicable; invoke its apply method.  This will
-  		      // return some atom, and that atom is the overall result.
-  		      retval = app.doApply(arg, bypass)
-  	      } catch {
-  	        case ex:java.lang.StackOverflowError =>
+  	case app:Applicable =>
+  	  try {
+  	    // The lhs is applicable; invoke its apply method.  This will
+  	    // return some atom, and that atom is the overall result.
+  	    retval = app.doApply(arg, bypass)
+  	  } catch {
+  	    case ex:java.lang.StackOverflowError =>
               // Trapped unbounded recursion.
-  		        throw new LambdaUnboundedRecursionException(arg.loc,
-  		            "Application results in unbounded recursion: (" +
-  		            op.toParseString + ").(" + arg.toParseString + ")")
-  	      }
-  	      
-  	    case rew:Rewriter =>
-  	      // The lhs is a rewriter; invoke its rewrite method.  This will return
-  	      // a pair.  We need to convert the pair to a binding.
-  	      val (r_atom, r_flag) = rew.doRewrite(arg)
-  	      retval = BindingsAtom(Bindings() +
-  	          ("atom" -> r_atom) +
-  	          ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
-          
-  	    case _ =>
-  	      // The lhs is something else.  It may be a variable or some other
-  	      // expression that we have yet to evaluate.  Just build a simple
-  	      // apply of the lhs and rhs.
-  	      retval = SimpleApply(op, arg)
-	    }
+  	      throw new LambdaUnboundedRecursionException(arg.loc,
+  		                                          "Application results in unbounded recursion: (" +
+  		                                          op.toParseString + ").(" + arg.toParseString + ")")
+  	  }
+  	
+  	case rew:Rewriter =>
+  	  // The lhs is a rewriter; invoke its rewrite method.  This will return
+  	  // a pair.  We need to convert the pair to a binding.
+  	  val (r_atom, r_flag) = rew.doRewrite(arg)
+  	retval = BindingsAtom(Bindings() +
+  	                      ("atom" -> r_atom) +
+  	                      ("flag" -> (if (r_flag) Literal.TRUE else Literal.FALSE)))
+        
+  	case _ =>
+  	  // The lhs is something else.  It may be a variable or some other
+  	  // expression that we have yet to evaluate.  Just build a simple
+  	  // apply of the lhs and rhs.
+  	  retval = SimpleApply(op, arg)
+      }
     }
 
     // Resume timing out rewrites.
@@ -319,40 +381,44 @@ case class OpApply protected[core] (override val op: OperatorRef,
    * Get the variables in the operator arguments.
    */
   override def getVariables(): Option[HashSet[BasicAtom]] = {
-    // Make the result set to hold the variables.
-    var r = new HashSet[BasicAtom]
 
-    // This is used a lot, so it needs to be fast. We will find all
-    // the variables here with a stack to avoid recursive calls.
-    var work = new Stack[BasicAtom]
-    var done = new HashSet[BasicAtom]
-    work.push(this)
-    while (!work.isEmpty) {
-      work.pop match {
+    // Do we need to compute this?
+    if (myVars == null) {
 
-        // Are we working on an operator instance?
-        case op: OpApply => {
-          // Push all the operator arguments on the stack to check, if
-          // we have not already checked this operator instance.
-          if (!(done contains op)) {
-            for (a <- op.arg) work.push(a)
-            done += op
+      // This is used a lot, so it needs to be fast. We will find all
+      // the variables here with a stack to avoid recursive calls.
+      myVars = new HashSet[BasicAtom]
+      var work = new Stack[BasicAtom]
+      var done = new HashSet[BasicAtom]
+      work.push(this)
+      while (!work.isEmpty) {
+        work.pop match {
+
+          // Are we working on an operator instance?
+          case op: OpApply => {
+            // Push all the operator arguments on the stack to check, if
+            // we have not already checked this operator instance.
+            if (!(done contains op)) {
+              for (a <- op.arg) work.push(a)
+              done += op
+            }
           }
-        }
 
-        // Did we find a variable?
-        case v: Variable => {
+          // Did we find a variable?
+          case v: Variable => {
 
-          // Save the variable.
-          r.add(v)
+            // Save the variable.
+            myVars.add(v)
+          }
+          
+          // Any other type of atom we ignore.
+          case _ => {}
         }
-        
-        // Any other type of atom we ignore.
-        case _ => {}
       }
+
     }
 
-    return Some(r)
+    return Some(myVars)
   }
 
   /**
@@ -360,18 +426,123 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
 
-    //println("** Getting operators " + opNames)
-    //println("** Operators in " + this.toParseString + " = " + myOperators)
-    var r : HashSet[BasicAtom] = new HashSet[BasicAtom]
+    // Do we need to compute the operators contained in the current
+    // Apply?
+    if (myOperators == null) {
+
+      // Yes, look for the tracked operators. Since looking for the
+      // operators is a high cost action, we will look for all of them
+      // at once.
+      myOperators = new java.util.HashMap[String, HashSet[Apply]]()
+      for (opName <- BasicAtom.trackedOperators) 
+        myOperators.put(opName, new HashSet[Apply])
+
+      // This is used a lot, so it needs to be fast. We will find all
+      // the variables here with a stack to avoid recursive calls.
+      var work = new Stack[BasicAtom]
+      var done = new HashSet[BasicAtom]
+      work.push(this)
+      while (!work.isEmpty) {
+        work.pop match {
+
+          // Are we working on an operator instance?
+          case op: OpApply => {
+
+            // Is this apply one of the ones we are looking for?
+            val currName = op.op match {
+              case x : Operator => x.name
+              case x : OperatorRef => x.name
+              case _ => ""
+            }
+            if (BasicAtom.trackedOperators.contains(currName)) {
+              myOperators.get(currName).add(op)
+            }
+
+            // Push all the operator arguments on the stack to check, if
+            // we have not already checked this operator instance and
+            // the argument contains some of the operators instance we
+            // are looking for.
+            if (!(done contains op) && (op.hasTrackedOps)) {
+              for (a <- op.arg) if (a.hasTrackedOps) work.push(a)
+              done += op
+            }
+          }
+          
+          // Any other type of atom we ignore.
+          case _ => {}
+        }
+      }      
+    }
+
+    // Collect up all of the desired operator instances.
+    var r : HashSet[BasicAtom] = new HashSet[BasicAtom]()
     for (desiredOp <- opNames) {
-      myOperators.get(desiredOp) match {
-        case Some(app) => r += app
-        case None => {}
+      if (!BasicAtom.trackedOperators.contains(desiredOp)) {
+        throw new ElisionException(arg.loc, "Operator '" + desiredOp +
+                                   "' is not tracked. Add with BasicAtom::trackOperator().")
+      }
+      r.addAll(myOperators.get(desiredOp))
+    }
+    return Some(r)
+  }
+
+    /*
+     * Faster, but FastLinkedList does not work the way it should.
+     * 
+    //println("** Getting operators " + opNames)
+    var r : HashSet[BasicAtom] = new HashSet[BasicAtom]
+    var missing : HashSet[String] = new HashSet[String]
+    for (desiredOp <- opNames) {
+
+      // Is this one of the operators we are tracking?
+      if (BasicAtom.trackedOperators.contains(desiredOp)) {
+
+        // Have we already computed this?
+        if (myOperators.containsKey(desiredOp)) {
+          r = r ++ myOperators.get(desiredOp)
+        }
+        
+        // No, save it for later computation.
+        else {
+          missing = missing.+(desiredOp)
+        }
       }
     }
 
+    // Find any of the operators that we are have not already computed.
+    if (missing.size() > 0) {
+
+      var newOpMap : HashMap[String, HashSet[Apply]] = new HashMap[String, HashSet[Apply]]
+      for (op <- missing) {
+        newOpMap.put(op, new HashSet[Apply])
+      }
+      myApplies.reset()
+      var node = myApplies.next()
+      while (node != null) {
+      //for (app <- myApplies) {
+        val app = node.data
+        val name = app.op match {
+          case x : Operator => x.name
+          case x : OperatorRef => x.name
+          case _ => ""
+        }
+        if (missing.contains(name)) {
+          newOpMap.put(name, newOpMap.get(name).+(app))
+          r = r + app
+        }
+        node = myApplies.next()
+      }
+
+      // Cache the operators.
+      for (op <- missing) {
+        myOperators.put(op, newOpMap.get(op))
+      }
+    }
+
+    //println("** Operators " + opNames + "in " + this.toParseString + " = " + r)
     return Some(r)
-  }
+    }
+    */
 }
 
 /**

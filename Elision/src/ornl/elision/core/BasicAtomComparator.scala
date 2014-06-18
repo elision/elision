@@ -119,10 +119,11 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    */
   def compare(left: BasicAtom, right: BasicAtom): Int = {
 
-   return fcmp(left, right)
+    return fcmp(left, right)
 
-   // Too slow.
-   /*
+    /*
+    // Too slow.
+
     // First check the ordinals.
     val lo = getOrdinal(left)
     var sgn = (lo - getOrdinal(right)).signum

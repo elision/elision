@@ -42,10 +42,17 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
+import scala.collection.immutable.List
+import ornl.elision.dialects.ElisionGenerator
+import ornl.elision.dialects.ScalaGenerator
+import ornl.elision.util.ElisionException
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.context.TimedOut
+import ornl.elision.util.FastLinkedList
+
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -193,10 +200,25 @@ trait Applicable {
  * @param loc The location where this atom originated.
  */
 abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
-  import scala.collection.mutable.{Map => MMap}
+  import java.util.{HashMap => MMap}
 
-  /** Cache the operator applies contained in this atom. */
-  var myOperators : MMap[String, Apply] = new HashMap[String, Apply]
+  /** Cache the applies contained in the atom. */
+  // This speeds things up, but getting FastLinkedList to work
+  // correctly is very hard.
+  //var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+  //var realApplies : java.util.HashSet[Apply] = new java.util.HashSet[Apply]()
+
+  /**
+   * Does this atom or its children contain any of the operators
+   * registered via trackOperator()?
+   */
+  var hasTrackedOps : Boolean = false
+
+  /** Cache the variables contained in the atom in an easy to use data structure. */
+  var myVars : MutableHashSet[BasicAtom] = null
+
+  /** Cache the results of getOperators(). */
+  var myOperators : MMap[String, MutableHashSet[Apply]] = null
 
   /**
    * The rulesets with respect to which this atom is clean. If this is
@@ -549,11 +571,14 @@ object BasicAtom {
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
+      //println("** Use new timeout time: " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
     } else if (timeoutTime.value > -1) {
       // Return the previously computed timeout value.
+      //println("** Use old timeout time: " + timeoutTime.value)
       timeoutTime.value
     } else {
+      //println("** Use NO timeout time: " + -1L)
       -1L
     }
   }
@@ -573,7 +598,15 @@ object BasicAtom {
    */
   def rewriteTimedOut = {
     if (timingOut && (timeoutTime.value > 0)) {
-      (Platform.currentTime >= timeoutTime.value)
+      if (Platform.currentTime >= timeoutTime.value) {
+        //println("** TIMED OUT. timeoutTime = " + timeoutTime.value + ", curr time = " + Platform.currentTime)
+        timeoutTime.value = -1L
+        throw new TimedOut(Loc.internal, "Rewriting timed out")
+        true
+      }
+      else {
+        false
+      }
     } else {
       false
     }

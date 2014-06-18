@@ -43,14 +43,14 @@ import ornl.elision.util.other_hashify
 
 /**
  * Represent a variable.
- * 
+ *
  * == Structure and Syntax ==
  * A variable is indicated with a leading dollar sign (`$`) followed by a
  * valid symbol.  So the following are valid variables:
  * - `$``x`
  * - `$``Fred51_2`
  * - <code>$`1`</code>
- * 
+ *
  * It is also possible to construct a "by name" variable.  This is a variable
  * that has an implicit guard (in addition to any other guards it may have)
  * that restricts the variable to only matching itself.  That is, the by-name
@@ -60,41 +60,41 @@ import ornl.elision.util.other_hashify
  * By-name variables otherwise behave as synonyms for the variable itself, so
  * if you directly bind `$``"FOO"` to 17, you have actually bound `$``FOO`
  * to 17.
- * 
+ *
  * == Guards ==
  * A variable is allowed to have a guard.  The guard is substituted before the
  * variable is bound, and must evaluate to `true` to allow the binding to take
  * place.
- * 
+ *
  * In fact, the variable "guard" is more.  The guard is specified as an atom
  * in curly braces after the variable name and before any type information.
  * For proposed binding of variable `$``x` to value `v`, with guard `g`, we do
  * the following.
- * 
+ *
  * - If `g` is a [[ornl.elision.core.Rewriter]], then `g.a` is computed and
  *   if the flag is true, `$``x` is bound to the resulting atom.
  * - If `g` is a [[ornl.elision.core.Applicable]], then `g.a` is computed and
  *   `$``x` is bound the result.
  * - Otherwise `g` is assumed to be a predicate, and is rewritten with the
  *   potential bindings.  If the result is true, then `$``x` is bound to `v`.
- * 
+ *
  * In all other cases the binding attempt is rejected.
- * 
+ *
  * See the previous section for information on the implicit guard created for
  * a "by name" variable.
- * 
+ *
  * == Type ==
  * Every variable must have a type, and the type can be `ANY`.
- * 
+ *
  * == Equality and Matching ==
  * Variables are equal iff their name, type, guard, and labels are all equal.
- * 
+ *
  * Variables can be bound, so that gets checked during matching.  A variable
  * pattern matches a subject iff it is already bound to that subject, or if it
  * is unbound and the types match.  Guards are not matched; this would be
  * problematic, as the guards are used to determine whether a match succeeds!
  * Labels are also not matched, as they serve a different semantic purpose.
- * 
+ *
  * @param typ			The variable type.
  * @param name		The variable name.
  * @param guard		The variable's guard.  Default is true.
@@ -102,12 +102,13 @@ import ornl.elision.util.other_hashify
  * @param byName  If true, this is a "by name" variable.  Default is false.
  */
 class Variable(typ: BasicAtom, val name: String,
-    val guard: BasicAtom = Literal.TRUE,
-    val labels: Set[String] = Set[String](),
-    val byName: Boolean = false) extends BasicAtom {
+  val guard: BasicAtom = Literal.TRUE,
+  val labels: Set[String] = Set[String](),
+  val byName: Boolean = false) extends BasicAtom {
+
   /** The prefix for this variable. */
   val prefix = "$"
-    
+
   /** This variable is a term. */
   val isTerm = true
   val theType = typ
@@ -121,7 +122,7 @@ class Variable(typ: BasicAtom, val name: String,
   /**
    * This contains a single variable, itself.
    */
-  override def getVariables() : Option[HashSet[BasicAtom]] = {
+  override def getVariables(): Option[HashSet[BasicAtom]] = {
     val r = new HashSet[BasicAtom]
     r.add(this)
     return Some(r)
@@ -132,7 +133,7 @@ class Variable(typ: BasicAtom, val name: String,
    * to the provided bindings, and the variable guard is rewritten.  If the
    * guard is true, then the new bindings are returned.  If it is false, then
    * a [[ornl.elision.core.Fail]] instance is returned.
-   * 
+   *
    * @param subject		The atom to which the variable is to be bound.
    * @param binds			Other bindings that must be honored.
    */
@@ -148,31 +149,31 @@ class Variable(typ: BasicAtom, val name: String,
     // Check any guard.
     if (guard.isTrue) return Match(binds + (name -> subject))
     else {
-      guard match {
-        case rew: Rewriter =>
-          // Rewrite the atom.
-          val (newatom, flag) = rew.doRewrite(subject)
-          if (flag) {
-            return Match(binds + (name -> newatom))
-          } else {
-            return Fail("Variable guard rewriter returned false after rewrite.")
-          }
-        case app: Applicable =>
-          // Apply and return.
-          return Match(binds + (name -> app.doApply(subject)))
-        case _ =>
-          // Compute the bindings and check the guard.
-          val newbinds = binds + (name -> subject)
-          val newterm = guard.rewrite(newbinds)._1
-          if (newterm.isTrue) return Match(newbinds)
-          else return Fail("Variable guard failed.  Is now: " +
+        guard match {
+          case rew: Rewriter =>
+            // Rewrite the atom.
+            val (newatom, flag) = rew.doRewrite(subject)
+            if (flag) {
+              return Match(binds + (name -> newatom))
+            } else {
+              return Fail("Variable guard rewriter returned false after rewrite.")
+            }
+          case app: Applicable =>
+            // Apply and return.
+            return Match(binds + (name -> app.doApply(subject)))
+          case _ =>
+            // Compute the bindings and check the guard.
+            val newbinds = binds + (name -> subject)
+            val newterm = guard.rewrite(newbinds)._1
+            if (newterm.isTrue) return Match(newbinds)
+            else return Fail("Variable guard failed.  Is now: " +
               newterm.toParseString)
-      }
+        }
     }
   }
-  
+
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-      hints: Option[Any]) = {
+    hints: Option[Any]) = {
     // if the variable allows binding, and it is not already bound to a
     // different atom.  We also allow the variable to match ANY.
     if (isBindable) binds.get(name) match {
@@ -194,14 +195,15 @@ class Variable(typ: BasicAtom, val name: String,
         Fail("Variable " + this.toParseString +
           " is already bound to the term " + binds.get(name).get.toParseString +
           ".", this, subject)
-    } else {
+    }
+    else {
       // Variables that are not bindable cannot be bound, and cannot match
       // any subject.  This is to prevent allowing them to "match" a bindable
       // variable of the same name and type, and having chaos ensue.
       Fail("Variable is not bindable.", this, subject)
     }
   }
-	  
+
   def rewrite(binds: Bindings) = {
     // If we have no bindings, don't rewrite the variable.
     if (binds == null) {
@@ -211,15 +213,15 @@ class Variable(typ: BasicAtom, val name: String,
       // the bound value.
       binds.get(name) match {
         case Some(atom) =>
-	        (atom, true)
-        
+          (atom, true)
+
         case None => {
-	        // Though the atom is not bound, its type still might have to be
+          // Though the atom is not bound, its type still might have to be
           // rewritten.
           theType.rewrite(binds) match {
             case (newtype, true) =>
               (Variable(newtype, name), true)
-            
+
             case _ => {
               (this, false)
             }
@@ -228,7 +230,7 @@ class Variable(typ: BasicAtom, val name: String,
       }
     }
   }
-  
+
   def replace(map: Map[BasicAtom, BasicAtom]) = {
     // Variables are complex critters.  We need to replace in (1) the type,
     // (2) the guard(s), and (3) the variable itself.  We try the easiest
@@ -246,7 +248,7 @@ class Variable(typ: BasicAtom, val name: String,
         }
     }
   }
-  
+
   /**
    * Make a non-meta version of this variable.
    * @return  The new variable.
@@ -258,20 +260,19 @@ class Variable(typ: BasicAtom, val name: String,
    * @return  The new metavariable.
    */
   def asMetaVariable = MetaVariable(typ, name, guard, labels, byName)
-      
+
   override lazy val hashCode = typ.hashCode * 31 + name.hashCode
   override lazy val otherHashCode = typ.otherHashCode +
-    8191*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
-  
+  8191 * (name.toString).foldLeft(BigInt(0))(other_hashify) + 1
   override def equals(varx: Any) = varx match {
-    case ovar:Variable =>
+    case ovar: Variable =>
       feq(ovar, this,
-          ovar.theType == theType &&
+        ovar.theType == theType &&
           ovar.name == name &&
           ovar.guard == guard &&
           ovar.labels == labels &&
           ovar.isTerm == isTerm)
-    		
+
     case _ =>
       false
   }
@@ -283,42 +284,42 @@ class Variable(typ: BasicAtom, val name: String,
 object Variable extends {
   /**
    * Make a new variable instance.
-   * 
-	 * @param typ			The variable type.
-	 * @param name		The variable name.
+   *
+   * @param typ			The variable type.
+   * @param name		The variable name.
    * @param guard   The variable's guard.  Default is true.
    * @param labels  Labels for this variable.  Default is none.
    * @param byName  If true, this is a "by name" variable.  Default is false.
-	 */
+   */
   def apply(typ: BasicAtom, name: String, guard: BasicAtom = Literal.TRUE,
-      labels: Set[String] = Set[String](), byName: Boolean = false) =
-        new Variable(typ, name, guard, labels, byName)
-  
+    labels: Set[String] = Set[String](), byName: Boolean = false) =
+    new Variable(typ, name, guard, labels, byName)
+
   /**
    * Extract the parts of a variable.
-   * 
+   *
    * @param vx	The variable.
    * @return	The type, name, guard, labels, and whether this is a "by name"
    *          variable.
    */
   def unapply(vx: Variable) = Some((vx.theType, vx.name, vx.guard, vx.labels,
-      vx.byName))
+    vx.byName))
 }
 
 /**
  * Define a metavariable.
- * 
+ *
  * == Purpose ==
  * A metavariable is just like an ordinary variable, with the exception that
  * any metavariables in an atom make that atom a meta atom, and meta atoms
  * block evaluation in an apply.
- * 
+ *
  * For example, consider `is_bindable(``$``x)`.  This will immediately
  * evaluate to `true` since `$``x` is bindable.  If we wanted to use this
  * as a guard for a variable, however, this won't work.  Instead we write
  * `is_bindable($``$``x)` using the metavariable, and evaluation is
  * deferred until the atom is rewritten.
- * 
+ *
  * @param typ			The variable type.
  * @param name		The variable name.
  * @param guard   The variable's guard.  Default is true.
@@ -326,29 +327,29 @@ object Variable extends {
  * @param byName  If true, this is a "by name" variable.  Default is false.
  */
 class MetaVariable(typ: BasicAtom, name: String,
-    guard: BasicAtom = Literal.TRUE,
-    labels: Set[String] = Set[String](),
-    byName: Boolean = false)
-    extends Variable(typ, name, guard, labels) {
+  guard: BasicAtom = Literal.TRUE,
+  labels: Set[String] = Set[String](),
+  byName: Boolean = false)
+  extends Variable(typ, name, guard, labels) {
   override val isTerm = false
   /** Metavariable prefix. */
   override val prefix = "$$"
   override lazy val hashCode = typ.hashCode * 37 + name.hashCode
   override lazy val otherHashCode = typ.otherHashCode +
-    8193*(name.toString).foldLeft(BigInt(0))(other_hashify)+1
-    
+    8193 * (name.toString).foldLeft(BigInt(0))(other_hashify) + 1
+
   /**
    * Make a non-meta version of this metavariable.
    * @return  The new variable.
    */
   override def asVariable = Variable(typ, name, guard, labels, byName)
-  
+
   /**
    * Make a meta version of this metavariable.  I.e., do nothing.
    * @return  This metavariable.
    */
   override def asMetaVariable = this
-  
+
   override def replace(map: Map[BasicAtom, BasicAtom]) = {
     // Variables are complex critters.  We need to replace in (1) the type,
     // (2) the guard(s), and (3) the variable itself.  We try the easiest
@@ -374,23 +375,23 @@ class MetaVariable(typ: BasicAtom, name: String,
 object MetaVariable {
   /**
    * Make a new metavariable instance.
-   * 
-	 * @param typ			The variable type.
-	 * @param name		The variable name.
+   *
+   * @param typ			The variable type.
+   * @param name		The variable name.
    * @param guard   The variable's guard.  Default is true.
    * @param labels  Labels for this variable.  Default is none.
    * @param byName  If true, this is a "by name" variable.  Default is false.
- 	 */
+   */
   def apply(typ: BasicAtom, name: String, guard: BasicAtom = Literal.TRUE,
-      labels: Set[String] = Set[String](), byName: Boolean) =
-        new MetaVariable(typ, name, guard, labels, byName)
-  
+    labels: Set[String] = Set[String](), byName: Boolean) =
+    new MetaVariable(typ, name, guard, labels, byName)
+
   /**
    * Extract the parts of a metavariable.
-   * 
+   *
    * @param vx	The variable.
    * @return	The type, name, guard, labels, and by-name status.
    */
   def unapply(vx: MetaVariable) = Some((vx.theType, vx.name, vx.guard,
-      vx.labels, vx.byName))
+    vx.labels, vx.byName))
 }
