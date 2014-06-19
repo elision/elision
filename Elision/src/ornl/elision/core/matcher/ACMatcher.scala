@@ -400,11 +400,9 @@ object ACMatcher {
           var newPats = scala.collection.immutable.Vector.empty[BasicAtom]
           var newSubs = subs
           var last_sub_len = Int.MaxValue
-          //var discardSubs = scala.collection.immutable.Vector.empty[BasicAtom]
-          for (patItem <- pats) {
+          for (patItem <- pats.takeWhile(p => !failFast)) {
             // Is the current pattern variable currently bound to
             // something?
-            if (!failFast) {
               patItem match {
                 case patVar: Variable => {
                   // The pattern item is a variable. This is what we
@@ -433,7 +431,6 @@ object ACMatcher {
                         case _ => AtomSeq(slist.props, atom)
                       }
                       var gotIt = false
-                      //var new_atom_subs = atom_subs
                       last_sub_len = newSubs.length
                       newSubs = AtomSeq(slist.props, newSubs.diff(atom_subs))
                       if (newSubs.length < last_sub_len) {
@@ -459,7 +456,6 @@ object ACMatcher {
                   failFast = true
                 }
               }
-            }
           } // Loop over patterns.
 
           // If we get here all of the previously bound pattern
