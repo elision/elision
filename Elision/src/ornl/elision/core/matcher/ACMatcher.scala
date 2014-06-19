@@ -178,7 +178,7 @@ object ACMatcher {
 
     if ((vlist.length == 1) && (slist.length == 1)) {
       vlist(0) match {
-        case vzero : Variable =>
+        case vzero: Variable =>
           SequenceMatcher.add_bind(Some(binds), (vzero, slist(0))) match {
             case Some(b) =>
               Debugger("ACmatching", "clever binding")
@@ -399,81 +399,63 @@ object ACMatcher {
           var failFast = false
           var newPats = scala.collection.immutable.Vector.empty[BasicAtom]
           var newSubs = subs
-          //var discardSubs = scala.collection.immutable.Vector.empty[BasicAtom]
-          for (patItem <- pats) {
+          var last_sub_len = Int.MaxValue
+          for (patItem <- pats.takeWhile(p => !failFast)) {
             // Is the current pattern variable currently bound to
             // something?
-            patItem match {
-              case patVar: Variable => {
-                // The pattern item is a variable. This is what we
-                // expect.
-                newBinds.get(patVar.name) match {
-                  case None => {
-                    // Nothing is bound to this pattern variable, so we have
-                    // nothing to check. Since nothing is bound to this
-                    // pattern variable it must remain in the pattern
-                    // list.
-                    newPats = newPats :+ patItem
-                  }
-
-                  case Some(atom) => {
-                    // The pattern variable is already bound to
-                    // something. That something MUST appear in the subject
-                    // list.
-                    var atom_subs = atom match {
-                      case Apply(opapllied, arguments) => {
-                        Debugger("ACmatching", "Doing something with an operator")
-                        Debugger("ACmatching", opapllied.toParseString + " ")
-                        Debugger("ACmatching", arguments.toParseString)
-                        if (opapllied == op.getOrElse(None)) AtomSeq(slist.props, arguments)
-                        else AtomSeq(slist.props, atom)
-                      }
-                      case _ => AtomSeq(slist.props, atom)
+              patItem match {
+                case patVar: Variable => {
+                  // The pattern item is a variable. This is what we
+                  // expect.
+                  newBinds.get(patVar.name) match {
+                    case None => {
+                      // Nothing is bound to this pattern variable, so we have
+                      // nothing to check. Since nothing is bound to this
+                      // pattern variable it must remain in the pattern
+                      // list.
+                      newPats = newPats :+ patItem
                     }
-                    var gotIt = false
-                    for (subVal <- subs) {
-                      // Have we found the bound value?
 
-                      if (atom_subs.contains(subVal)) {
+                    case Some(atom) => {
+                      // The pattern variable is already bound to
+                      // something. That something MUST appear in the subject
+                      // list.
+                      var atom_subs = atom match {
+                        case Apply(opapllied, arguments) => {
+                          Debugger("ACmatching", "Doing something with an operator")
+                          Debugger("ACmatching", opapllied.toParseString + " ")
+                          Debugger("ACmatching", arguments.toParseString)
+                          if (opapllied == op.getOrElse(None)) AtomSeq(slist.props, arguments)
+                          else AtomSeq(slist.props, atom)
+                        }
+                        case _ => AtomSeq(slist.props, atom)
+                      }
+                      var gotIt = false
+                      last_sub_len = newSubs.length
+                      newSubs = AtomSeq(slist.props, newSubs.diff(atom_subs))
+                      if (newSubs.length < last_sub_len) {
                         gotIt = true
-                        // We have now found a match in the subjects for
-                        // the prior match of this pattern variable. We
-                        // do not need to try to match this pattern
-                        // variable any more. The matched subject item
-                        // is also now out of play. Therefore we will
-                        // NOT add the pattern or subject to the new
-                        // pattern/subject list.
-                        //
-                        // Note that the pattern variable is already
-                        // bound to this subject value, so the bindings
-                        // do not need to be updated.
-                        //discardSubs = discardSubs :+ subVal
-                        newSubs = AtomSeq(slist.props, newSubs.diff(Seq(subVal)))
-                        atom_subs = AtomSeq(slist.props, atom_subs.diff(Seq(subVal)))
-
                       }
-
-                    }
-
-                    // Did we find something in the subject list equal to
-                    // the already bound pattern variable?
-                    if (!gotIt) {
-                      // No, we did not. There is no way this can match.
-                      failFast = true
+                      // Did we find something in the subject list equal to
+                      // the already bound pattern variable?
+                      if (!gotIt) {
+                        // No, we did not. There is no way this can match.
+                        failFast = true
+                      }
                     }
                   }
                 }
-              }
 
-              case _ => {
-                // This is unexpected. We expect all the remaining
-                // things in the pattern to be variables.
+                case _ => {
+                  // This is unexpected. We expect all the remaining
+                  // things in the pattern to be variables.
 
-                // Since nothing is bound to this pattern variable it
-                // must remain in the pattern list.
-                newPats = newPats :+ patItem
+                  // Since nothing is bound to this pattern variable it
+                  // must remain in the pattern list.
+                  //newPats = newPats :+ patItem
+                  failFast = true
+                }
               }
-            }
           } // Loop over patterns.
 
           // If we get here all of the previously bound pattern
@@ -481,12 +463,12 @@ object ACMatcher {
           // thing they match in the subject. Do the actual matching.
           if (!failFast) {
             // We might have already discarded some patterns/subjects
-            // based on the bindings from the unbindable matcher. Make
-            // new pattern/subject sequences here.
+            // based on the bindings from the unbindable matcher.
 
             val pats1 = AtomSeq(plist.props, newPats)
             val subs1 = newSubs
-            new ACMatchIterator(pats1, subs1, newBinds, op)
+            val tmp_match = new ACMatchIterator(pats1, subs1, newBinds, op)
+            tmp_match
           } else {
             // This set of bindings can never match. Return an empty iterator.
             new MatchIterator {
