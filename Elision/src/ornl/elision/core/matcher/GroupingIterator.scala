@@ -244,26 +244,23 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
       
       // We need the endpoints of the slice.  The first slice starts at zero.
       var startSlice = 0
-      
-      // This holds the list we are building.  If there are M markers, we need
-      // M+1 positions (for the M+1 groups).
-      val nextList = new scala.collection.mutable.ArraySeq[BasicAtom](_markcount+1)
+
+      // Do a sanity check on the current groupings to see if they
+      // have any chance of matching.
       var failed = false
       breakable {
         for (marker <- 0 to _markcount) {
+
 	  // Get the end of the slice.  The last time through the slice ends at
 	  // the last subject.
 	  val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
-	  
-	  // Now get the slice.
-	  val slice = _subs.slice(startSlice, endSlice+1)
 	  
           // If we are using associative grouping to group this slice,
           // see if grouping in this manner generates something that has
           // a chance of matching the pattern. We do this before
           // constructing anything to avoid the cost of object creation
           // for things that will never match.
-          if ((slice.length != 1) && (operator != null)) {
+          if (((endSlice+1-startSlice) != 1) && (operator != null)) {
             
             // Is the pattern for this grouping an operator apply?
             _pats(marker) match {
@@ -278,7 +275,39 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
               case _ =>
             }
           }
+
+	  // Set the start of the next slice.
+	  startSlice = endSlice+1
           
+        } // Collect all the slices.
+      } // breakable
+      
+      // If the grouping that was generated will never match, generate
+      // the next grouping.
+      if (failed) {
+        _current = null
+        _advance
+        hasNext
+      }
+
+      // This may be a valid grouping.
+      else {
+
+        // We need the endpoints of the slice.  The first slice starts at zero.
+        startSlice = 0
+      
+        // This holds the list we are building.  If there are M markers, we need
+        // M+1 positions (for the M+1 groups).
+        val nextList = new scala.collection.mutable.ArraySeq[BasicAtom](_markcount+1)
+        for (marker <- 0 to _markcount) {
+
+	  // Get the end of the slice.  The last time through the slice ends at
+	  // the last subject.
+	  val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
+	  
+	  // Now get the slice.
+	  val slice = _subs.slice(startSlice, endSlice+1)
+	  
 	  // Turn the slice into an atom list, except in the case of a single
 	  // atom.
 	  val item: BasicAtom =
@@ -297,24 +326,12 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
 	  
 	  // Set the start of the next slice.
 	  startSlice = endSlice+1
-
+          
         } // Collect all the slices.
-      } // breakable
-      
-      // If the grouping that was generated will never match, generate
-      // the next grouping.
-      if (failed) {
-        _current = null
-        _advance
-        hasNext
-      }
-
-      // This may be a valid grouping.
-      else {
-
+        
         // Save the new current value.
         _current = nextList
-      
+        
         // Advance the markers.
         _advance
         
