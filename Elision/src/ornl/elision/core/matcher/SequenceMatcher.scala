@@ -226,7 +226,7 @@ object SequenceMatcher {
       Debugger("matching", "    Subjects: " + subjects.mkParseString("", ",", ""))
       Debugger("matching", "    Bindings: " + binds.toParseString)
     }
-
+        
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out")
