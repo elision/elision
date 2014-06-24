@@ -37,6 +37,7 @@
  * */
 package ornl.elision.core.matcher
 
+import scala.annotation.tailrec
 import scala.util.control.Breaks._
 
 import ornl.elision.core.Apply
@@ -232,7 +233,8 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
   * 
   * @return True if there is another grouping, and false if not.
   */
-  def hasNext = {
+  @scala.annotation.tailrec
+  final def hasNext = {
     if (_exhausted) false
     else if (_current != null) true
     else {
