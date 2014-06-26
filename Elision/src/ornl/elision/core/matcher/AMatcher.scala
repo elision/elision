@@ -203,39 +203,6 @@ object AMatcher {
     
     /** An iterator over all groupings of the subjects. */
     private val _groups = new GroupingIterator(patterns, subjects, op)
-
-    private def matchPossible(pattern : IndexedSeq[BasicAtom],
-                              grouping : IndexedSeq[BasicAtom]) : Boolean = {
-
-      var _pindex = 0
-      while (_pindex < pattern.length) {
-        pattern(_pindex) match {
-          case Apply(p_op0: OperatorRef, p_args0: AtomSeq) => {
-            
-            // Pattern is an operator apply. Subject must be an
-            // operator apply with the same name.
-            grouping(_pindex) match {
-              case Apply(g_op0: OperatorRef, g_args0: AtomSeq) => {
-                if (p_op0.name != g_op0.name) return false
-
-                // They have the same name. See if they will ever
-                // match.
-                pattern(_pindex).tryMatch(grouping(_pindex)) match {
-                  case fail:Fail => return false
-                  case _ =>
-                }       
-              }
-              case _ => return false
-            }
-          }
-          case _ =>
-        }
-
-        _pindex += 1
-      }
-
-      return true
-    }
     
     /**
      * Find the next match.  At the end of running this method either we
@@ -261,29 +228,22 @@ object AMatcher {
         if (_groups.hasNext) {
 
           val grouping = _groups.next
-          if (matchPossible(patterns.atoms, grouping)) {
-            SequenceMatcher.tryMatch(patterns.atoms, grouping, binds) match {
-              case fail:Fail =>
-                // We ignore this case.  We only fail if we exhaust all attempts.
-                Debugger("matching", fail.toString)
-              findNext
-              case Match(binds1) =>
-                // This case we care about.  Save the bindings as the current match.
-                _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
-                                                 binds1.subjects.getOrElse(subjects))
-              Debugger("matching", "A Found.")
-              case Many(iter) =>
-                // We've potentially found many matches.  We save this as a local
-                // iterator and then use it in the future.
-                _local = iter
-              findNext
-            }
-          }
-          else {
-            Debugger("matching", "AMatcher precheck failed")
+          SequenceMatcher.tryMatch(patterns.atoms, grouping, binds) match {
+            case fail:Fail =>
+              // We ignore this case.  We only fail if we exhaust all attempts.
+              Debugger("matching", fail.toString)
+            findNext
+            case Match(binds1) =>
+              // This case we care about.  Save the bindings as the current match.
+              _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
+                                               binds1.subjects.getOrElse(subjects))
+            Debugger("matching", "A Found.")
+            case Many(iter) =>
+              // We've potentially found many matches.  We save this as a local
+              // iterator and then use it in the future.
+              _local = iter
             findNext
           }
-
         } 
         else {
           // We have exhausted the permutations.  We have exhausted this
