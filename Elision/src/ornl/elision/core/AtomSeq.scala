@@ -41,6 +41,7 @@ import scala.collection.mutable.HashSet
 import scala.collection.IndexedSeq
 
 import ornl.elision.util.OmitSeq
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.AMatcher
 import ornl.elision.core.matcher.CMatcher
 import ornl.elision.core.matcher.ACMatcher
@@ -73,16 +74,7 @@ object EmptySeq extends AtomSeq(NoProps, IndexedSeq())
  */
 class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
 extends BasicAtom with IndexedSeq[BasicAtom] {
-  require(xatoms != null)
   require(props != null)
-  
-  /**
-   * Determine whether we have to sort the atoms.  If we know the list is
-   * commutative, then we have to sort it.
-   */
-  lazy val xatoms =
-    (if (props.isC(false)) orig_xatoms.sorted(BasicAtomComparator)
-     else orig_xatoms)
   
   /**
    * Whether this sequence is specified to be associative.  Note that false here
@@ -141,11 +133,13 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     r
   }
 
-  /** Compute these things when processing the atoms in process(). */
-  /**
-   * The atoms in this sequence.
+  /** Compute these things when processing the atoms in process().
+   * 
+   * Determine whether we have to sort the atoms.  If we know the list is
+   * commutative, then we have to sort it.
    */
-  val atoms = process(props, xatoms)
+  val atoms : OmitSeq[BasicAtom] = (if (props.isC(false)) process(props, orig_xatoms).sorted(BasicAtomComparator)
+               else process(props, orig_xatoms))
 
   import SymbolicOperator.LIST
   
@@ -195,7 +189,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     // If the list is associative, has an identity, has an absorber,
     // or is idempotent we process it.
     val assoc = props.isA(false)
-    val commu = props.isC(false)
     val ident = props.identity.getOrElse(null)
     val absor = props.absorber.getOrElse(null)
     val idemp = props.isI(false)
@@ -278,11 +271,6 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         index += 1
         finalIndex += 1
       } // Run through all arguments.
-      // If this sequence is associative and commutative we need to sort it
-      // after flattening it.
-      if(flattened_a && assoc && commu){
-        atoms = atoms.sorted(BasicAtomComparator)
-      }
     }
     
     // Done!
@@ -427,7 +415,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
   
-  override lazy val hashCode = atoms.hashCode * 31 + props.hashCode
+  override lazy val hashCode = atoms.hashCode * 12289 + props.hashCode
   override lazy val otherHashCode = atoms.otherHashCode + 8191*props.otherHashCode
 
   /**

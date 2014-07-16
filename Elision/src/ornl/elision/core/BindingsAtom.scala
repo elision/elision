@@ -42,6 +42,7 @@ import scala.collection.mutable.ListBuffer
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.util.hashify
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.SequenceMatcher
 
 /**

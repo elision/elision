@@ -37,6 +37,7 @@
 * */
 package ornl.elision.core
 
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.SequenceMatcher
 
 object MapPair {

@@ -125,7 +125,7 @@ private class _OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
   lazy val length = backing.length
 
   // Give this a different hash code than the wrapped sequence.
-  override lazy val hashCode = this.foldLeft(31)(hashify)
+  override lazy val hashCode = this.foldLeft(0)(hashify)
 
   /**
    * Alternate hash code for an OmitSeq.
