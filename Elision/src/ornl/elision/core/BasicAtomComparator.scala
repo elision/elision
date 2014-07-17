@@ -29,6 +29,8 @@
  */
 package ornl.elision.core
 
+import ornl.elision.util.PropertyManager
+
 /**
  * Compare basic atoms.
  * 
@@ -75,6 +77,51 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    */
   def apply(left: BasicAtom, right: BasicAtom) = compare(left, right)
 
+    /**
+   * Whether to compute equality faster but in a riskier fashion.
+   */
+  var _riskyEqual: Boolean = true;
+
+  /** 
+   * Declare the Elision property for setting whether to do risky
+   * equality checking. 
+   */
+  knownExecutor.declareProperty("risky_equality_check",
+      "Whether to do fast, but risky, equality checking of atoms.",
+      _riskyEqual,
+      (pm: PropertyManager) => {
+        _riskyEqual =
+          pm.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
+      })
+
+
+  /**
+   * Perform "fast equality checking" on two atoms.  This performs basic
+   * structural comparson of the atoms.  If this cannot prove that the two
+   * atoms are either equal to unequal, then the closure `other` is invoked
+   * to resolve.
+   * 
+   * @param atom1   The first atom.
+   * @param atom2   The second atom.
+   * @param other   Other checking to perform, if the fast check is
+   *                indeterminate.
+   * @return  True if equal, false if not.
+   */
+  def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean = false) = {
+    (atom1 eq atom2) || (
+        (atom1.depth == atom2.depth) &&
+        (atom1.isConstant == atom2.isConstant) &&
+        (atom1.isTerm == atom2.isTerm) &&
+        (atom1.hashCode == atom2.hashCode) &&
+        (atom1.otherHashCode == atom2.otherHashCode) &&
+        (if (_riskyEqual) true else other)
+    )
+    //if(BasicAtomComparator.compare(atom1, atom2) == 0) true 
+    //else false
+  }
+  
+
+  
   def fcmp(atom1: BasicAtom, atom2: BasicAtom) = {
     if (((atom1.hashCode compare atom2.hashCode) == 0) &&
         ((atom1.otherHashCode compare atom2.otherHashCode) == 0)) {
@@ -119,21 +166,21 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    */
   def compare(left: BasicAtom, right: BasicAtom): Int = {
 
-    return fcmp(left, right)
-
-    /*
-    // Too slow.
-
     // First check the ordinals.
     val lo = getOrdinal(left)
-    var sgn = (lo - getOrdinal(right)).signum
+    var sgn = (getOrdinal(right) - lo).signum
     if (sgn != 0) return sgn
-    
+
+
     // Watch for root types!
     if (left == TypeUniverse) {
       if (right == TypeUniverse) return 0
       else return 1
     } else if (right == TypeUniverse) return -1
+
+    
+
+    // Too slow.
     
     // Test for fast equality.  This explicitly breaks a potential unbounded
     // recursion caused by the LIST(x) operator.  The problems looks like this
@@ -143,6 +190,9 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       return 0
     }
     
+    return fcmp(left, right)
+    
+    /*
     // Ordinals did not solve the problem; the two atoms have the same ordinal.
     // Try to order the atoms by their types.  Watch for recursion!
     if (!(left.theType eq right.theType)) {

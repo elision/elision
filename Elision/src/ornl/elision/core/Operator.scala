@@ -267,7 +267,7 @@ class OperatorRef(val operator: Operator) extends BasicAtom with Applicable {
     case _ => false
   }
 
-  override lazy val hashCode = 31 * operator.hashCode
+  override lazy val hashCode = 12289 * operator.hashCode
   override lazy val otherHashCode = 8191 * operator.otherHashCode
 }
 
@@ -352,7 +352,7 @@ object CaseOperator {
    * @return	A triple of the name, type, and cases.
    */
   def unapply(co: CaseOperator) = Some((co.name, co.theType, co.cases,
-      co.description, co.detail))
+      co.description, co.detail, co.evenMeta))
 }
 
 /**

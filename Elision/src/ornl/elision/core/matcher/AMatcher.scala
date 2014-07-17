@@ -222,26 +222,30 @@ object AMatcher {
       _current = null
       if (_local != null && _local.hasNext) {
         _current = _local.next
-      } else {
+      } 
+      else {
         _local = null
         if (_groups.hasNext) {
-          SequenceMatcher.tryMatch(patterns.atoms, _groups.next, binds) match {
+
+          val grouping = _groups.next
+          SequenceMatcher.tryMatch(patterns.atoms, grouping, binds) match {
             case fail:Fail =>
               // We ignore this case.  We only fail if we exhaust all attempts.
               Debugger("matching", fail.toString)
-              findNext
+            findNext
             case Match(binds1) =>
               // This case we care about.  Save the bindings as the current match.
               _current = (binds ++ binds1).set(binds1.patterns.getOrElse(patterns),
-                  binds1.subjects.getOrElse(subjects))
-              Debugger("matching", "A Found.")
+                                               binds1.subjects.getOrElse(subjects))
+            Debugger("matching", "A Found.")
             case Many(iter) =>
               // We've potentially found many matches.  We save this as a local
               // iterator and then use it in the future.
               _local = iter
-              findNext
+            findNext
           }
-        } else {
+        } 
+        else {
           // We have exhausted the permutations.  We have exhausted this
           // iterator.
           _exhausted = true

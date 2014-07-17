@@ -45,6 +45,7 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
 import scala.collection.JavaConversions._
 import ornl.elision.util.ElisionException
+import ornl.elision.core.BasicAtomComparator._
 
 /**
  * The common root for all application atoms.  This class represents the
@@ -71,7 +72,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   lazy val deBruijnIndex = op.deBruijnIndex max arg.deBruijnIndex
   
   /** The hash code for this apply. */
-  override lazy val hashCode = op.hashCode * 31 + arg.hashCode
+  override lazy val hashCode = op.hashCode * 12289 + arg.hashCode
   override lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
 
   if (BasicAtom.trackedOperators.contains(
@@ -158,7 +159,7 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
 
   override def equals(other: Any) = (other match {
       case oapp: Apply =>
-        feq(oapp, this, (op == oapp.op) && (arg == oapp.arg))
+        feq(oapp, this, ((op == oapp.op) && (arg == oapp.arg)))
         
       case _ =>
         false
@@ -449,11 +450,8 @@ case class OpApply protected[core] (override val op: OperatorRef,
           case op: OpApply => {
 
             // Is this apply one of the ones we are looking for?
-            val currName = op.op match {
-              case x : Operator => x.name
-              case x : OperatorRef => x.name
-              case _ => ""
-            }
+            val currName = op.op.name
+            
             if (BasicAtom.trackedOperators.contains(currName)) {
               myOperators.get(currName).add(op)
             }

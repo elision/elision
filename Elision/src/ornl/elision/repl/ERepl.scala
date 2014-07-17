@@ -489,7 +489,7 @@ extends Processor(state.settings) {
         true
       }
       override def handleAtom(atom: BasicAtom) = {
-        if (atom eq ApplyData._no_show) None
+        if (atom == ApplyData._no_show) None
         else Some(atom)
       }
       override def result(atom: BasicAtom) = {

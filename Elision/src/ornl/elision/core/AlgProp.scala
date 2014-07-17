@@ -120,11 +120,11 @@ class AlgProp(
     (this.toString).foldLeft(BigInt(0))(other_hashify)+1
     
   override lazy val hashCode =
-    (((((_codify(associative) * 31) +
-    _codify(commutative) * 31) +
-    _codify(idempotent) * 31) +
-    _codify(absorber) * 31) +
-    _codify(identity) * 31)
+    (((((_codify(associative) * 12289) +
+    _codify(commutative) * 12289) +
+    _codify(idempotent) * 12289) +
+    _codify(absorber) * 12289) +
+    _codify(identity) * 12289)
   
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {
