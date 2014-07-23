@@ -583,7 +583,7 @@ object SymbolicOperator {
   private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
 
   // Make the core package available.
-  _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
+  _main.beQuietDuring(_main.interpret("import ornl.elision.core._ //"))
   
   // Time the compilation of native handlers.
   import ornl.elision.util.Timeable

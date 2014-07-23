@@ -30,10 +30,10 @@
 package ornl.elision.core
 
 import scala.collection.immutable.Map
-import scala.io.Source
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
 import ornl.elision.util.Version
+import java.io.Reader
 
 /**
  * Hold the registry of known dialects.  Also provide the classes that
@@ -120,7 +120,7 @@ object Dialect extends Fickle with Mutable {
    * @param name    Name of the data source.
    * @param source  The data source.
    */
-  def parse(dialect: Symbol, name: String, source: Source) =
+  def parse(dialect: Symbol, name: String, source: Reader) =
     apply(dialect) match {
     case None =>
       throw new NoSuchDialect(Loc.internal,
@@ -191,6 +191,6 @@ abstract class Dialect extends Fickle {
    * @param source  The data source.
    * @return  The result of parsing.
    */
-  def parse(name: String, source: Source): Dialect.Result =
+  def parse(name: String, source: Reader): Dialect.Result =
     Dialect.Failure(Loc.internal, "Parsing is not implemented for this dialect.")
 }

@@ -40,6 +40,7 @@ import ornl.elision.cli.Switch
 import ornl.elision.parse.Processor
 import ornl.elision.parse.ProcessorControl
 import ornl.elision.util.Loc
+import scala.language.reflectiveCalls
 
 /**
  * Implement an interface to run the REPL from the prompt.
