@@ -615,10 +615,11 @@ class EliParser(context: Context, source: Reader, val name: String,
         map += "name" -> SymbolLiteral(SYMBOL, Symbol(fname))
         worker.consumeWhitespace()
         
-        // The parameter list must be next.  Consume it.
+        // The parameter list must be next.  Consume it. We don't add it to
+        // the map yet, since it might be modified by algebraic properties
+        // later.
         var ap = AlgProp(worker.loc)
         val params = parseNakedList("a parameter list")
-        map += "params" -> AtomSeq(ap, params)
         worker.consumeWhitespace()
         
         // The fully-applied type may be next.  Consume it if present.
@@ -631,9 +632,13 @@ class EliParser(context: Context, source: Reader, val name: String,
         if (worker.peekAndConsume("is")) {
           // Found the keyword.  Process it.
           worker.consumeWhitespace()
-          ap = parseAlgebraicProperties()
+          // The percent sign is optional here
+          ap = parseAlgebraicProperties(false)
           worker.consumeWhitespace()
         }
+        
+        // Now build the params.
+        map += "params" -> AtomSeq(ap, params)
       } else {
         // The tag must be the first thing inside the braces.
         worker.consumeWhitespace()
@@ -801,11 +806,13 @@ class EliParser(context: Context, source: Reader, val name: String,
     }
   }
   
-  def parseAlgebraicProperties() = {
+  def parseAlgebraicProperties(requirePercent: Boolean = false) = {
     // Consume the percent sign.
     if (! worker.peekAndConsume("%")) {
-      worker.fail("Expected to parse an algebraic property specification at " +
-          "this location, but did not find the initial percent sign (%).")
+      if (requirePercent) {
+        worker.fail("Expected to parse an algebraic property specification " +
+            "at this location, but did not find the initial percent sign (%).")
+      }
     }
     
     // Now process until we run out of the usual suspects.
