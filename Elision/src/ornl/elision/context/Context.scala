@@ -242,7 +242,7 @@ class Context extends Fickle with Mutable with Cache {
       operatorLibrary.add(op)
       op
       
-    case SymbolLiteral(_, sym) =>
+    case SymbolLiteral(_, sym, _) =>
       ruleLibrary.declareRuleset(sym.name)
       RulesetRef(this, sym.name)
       
