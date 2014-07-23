@@ -216,7 +216,7 @@ with HasHistory {
         }
         
         // Proceed with reading the file's stream.
-        read(new InputStreamReader(reader), filename)
+        result = read(new InputStreamReader(reader), filename)
         
         // Restore our original path.
         setProperty[String]("path", path)
