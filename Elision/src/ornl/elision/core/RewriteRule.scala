@@ -64,7 +64,7 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
   /** The ruleset names that are concrete. */
   private val _namelist = (names.map {
     _ match {
-      case SymbolLiteral(_, sym) => sym.name
+      case SymbolLiteral(_, sym, _) => sym.name
       case StringLiteral(_, name) => name
       case _ =>
         _conc = false
@@ -386,7 +386,7 @@ object RewriteRule {
       bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq))
     val rulesets = rseq map {
       rs => rs match {
-        case SymbolLiteral(_, name) => name.name
+        case SymbolLiteral(_, name, _) => name.name
         case _ =>
           throw new SpecialFormException(rs.loc,
               "Ruleset specification is not a symbol: " + rs.toParseString)

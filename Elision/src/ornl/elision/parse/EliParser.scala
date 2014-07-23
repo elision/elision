@@ -166,12 +166,6 @@ class EliParser(context: Context, source: Reader, val name: String,
   private val worker = new ParseWorker(name, source)
   
   /**
-   * If the most recent symbol parsed was a naked symbol, this is the text.
-   * Otherwise this is null, indicating that the symbol was a typed symbol.
-   */
-  private var naked: String = null
-  
-  /**
    * Get the current location in the source.
    * @return  The current location in the source.
    */
@@ -216,7 +210,6 @@ class EliParser(context: Context, source: Reader, val name: String,
       case None => return None
       case Some(ba) => ba
     }
-    val firsttext = naked
     worker.consumeWhitespace()
     
     // Check for an arrow for a map pair and then a dot for application.
@@ -242,14 +235,16 @@ class EliParser(context: Context, source: Reader, val name: String,
           ba
       }
       
-      // If the first atom is a symbol, try to interpret it as an operator.
-      if (firsttext != null) {
-        // Apply the naked symbol as an operator.
-        val op = context.operatorLibrary(firsttext)
-        Some(Apply(op, second))
-      } else {      
-        // Build the apply.
-        Some(Apply(first, second))
+      // If the first atom is a naked symbol, try to interpret it as an operator.
+      first match {
+        case SymbolLiteral(_, rawtext, true) =>
+          // This is a naked symbol.  Try to interpret it as an operator.
+          val op = context.operatorLibrary(rawtext.name)
+          Some(Apply(op, second))
+          
+        case _ =>
+          // Build the apply.
+          Some(Apply(first, second))
       }
     } else {
       // Just return the single atom.
@@ -267,7 +262,6 @@ class EliParser(context: Context, source: Reader, val name: String,
    * @return  The next atom from the stream.
    */
   def parseInnerAtom(what: String = null): Option[BasicAtom] = {
-    naked = null
     val action = what match {
       case null => ""
       case _ => "While parsing "+what+": "
@@ -363,7 +357,18 @@ class EliParser(context: Context, source: Reader, val name: String,
       case _ if Character.isJavaIdentifierStart(ch) =>
         // We've found the start of an unquoted symbol.  Note that we captured
         // the dollar sign above, so this should work correctly.
-        return Some(parseSymbol())
+        val sym = parseSymbol()
+        sym match {
+          case SymbolLiteral(_, rawtext, true) if worker.peek() == '(' =>
+            val loc = worker.loc
+            val op = context.operatorLibrary(rawtext.name)
+            val args = parseNakedList("an argument list")
+            val seq = AtomSeq(AlgProp(loc), args)
+            return Some(Apply(op, seq))
+            
+          case _ =>
+            return Some(sym)
+        }
         
       case _ if Character.isDigit(ch) || ch == '-' =>
         // We've found a digit.  This is a number, so we need to process it
@@ -532,8 +537,8 @@ class EliParser(context: Context, source: Reader, val name: String,
     // the shorthand for ANY, or the special values true or false.
     worker.consumeWhitespace()
     if (worker.peek() != ':') {
-      naked = text
-      
+      // No type is specified.  Try to interpret this as one of the special
+      // symbols.
       text match {
         case "true" => true
         case "false" => false
@@ -543,20 +548,10 @@ class EliParser(context: Context, source: Reader, val name: String,
             case Some(nrt) =>
               nrt
             case _ =>
-              if (worker.peek() == '(') {
-                val loc = worker.loc
-                val op = context.operatorLibrary(text)
-                val args = parseNakedList("an argument list")
-                val seq = AtomSeq(AlgProp(loc), args)
-                Apply(op, seq)
-              } else {
-                SymbolLiteral(SYMBOL, Symbol(text))
-              }
+              SymbolLiteral(SYMBOL, Symbol(text), true)
           }
       }
     } else {
-      naked = null
-      
       // Parse the type and build the atom.
       val theType = parseType(SYMBOL)
       if (theType == OPREF) {

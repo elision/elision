@@ -160,7 +160,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   def doApply(atom: BasicAtom, bypass: Boolean) = {
 		// Check the argument to see if it is a single symbol.
 		atom match {
-		  case SymbolLiteral(SYMBOL, sym) =>
+		  case SymbolLiteral(SYMBOL, sym, _) =>
   			// Try to extract the symbol from the binding.  If it is not there,
   			// then the answer is NONE.
   			mybinds.get(sym.name) match {
@@ -217,7 +217,7 @@ object BindingsAtom {
   private def _build(atoms: Seq[BasicAtom]) = atoms.foldLeft(Bindings()) {
     (binds, atom) => binds + (atom match {
       case MapPair(left, right) => left match {
-        case SymbolLiteral(_, sym) => (sym.name -> right)
+        case SymbolLiteral(_, sym, _) => (sym.name -> right)
         case _ =>
           throw new SpecialFormException(atom.loc,
               "Invalid binding specification: " + atom.toParseString)

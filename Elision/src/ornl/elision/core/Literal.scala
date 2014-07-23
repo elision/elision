@@ -407,13 +407,18 @@ extends Literal[String](typ) {
 /**
  * Provide a symbol literal.  Symbol literals are backed by the Scala
  * `Symbol` type.
+ * 
+ * @param typ     The type for this literal.
+ * @param value   The value of this literal.
+ * @param naked   True iff this symbol was parsed as a "naked" symbol, without
+ *                an explicit type specification.
  */
-case class SymbolLiteral(typ: BasicAtom, value: Symbol)
+case class SymbolLiteral(typ: BasicAtom, value: Symbol, naked: Boolean = false)
 extends Literal[Symbol](typ) {
   /**
    * Alternate constructor with default `SYMBOL` type.
    */
-  def this(value: Symbol) = this(SYMBOL, value)
+  def this(value: Symbol) = this(SYMBOL, value, true)
   
   override lazy val otherHashCode = (value.toString).foldLeft(BigInt(0))(other_hashify)
   override lazy val hashCode = theType.hashCode * 12289 + value.toString.hashCode
