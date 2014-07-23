@@ -182,6 +182,13 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
   def operatorCount(op: String): Int = {
     _operators.getOrElse(op, 0)
   }
+  
+  /**
+   * Explicitly override the toString method to force calling the method in
+   * BasicAtom; otherwise we get the method from IndexedSeq, which is not
+   * what we want.
+   */
+  override def toString = super[BasicAtom].toString
 
   /**
    * Process the atoms and build the new sequence.  This reduces any included

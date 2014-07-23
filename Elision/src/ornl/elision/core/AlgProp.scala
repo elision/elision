@@ -116,8 +116,12 @@ class AlgProp(
     case Some(atom) => atom.hashCode
   }
   
-  override lazy val otherHashCode =
-    (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode: BigInt =
+    (((((_codify(associative) * 8191) +
+    _codify(identity) * 8191) +
+    _codify(idempotent) * 8191) +
+    _codify(commutative) * 8191) +
+    _codify(absorber) * 8191)
     
   override lazy val hashCode =
     (((((_codify(associative) * 12289) +

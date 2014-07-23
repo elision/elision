@@ -471,6 +471,14 @@ extends Processor(state.settings) {
               console.error("Round trip testing failed for atom:\n  " + string +
                   "\nAtom returned by parser not equal to original:\n  " +
                   atoms(0).toParseString)
+              console.error("Original atom:  " + atom.toParseString)
+              console.error("Original atom:  " + atom.toString)
+              console.error("Original hash:  " + atom.hashCode)
+              console.error("Original other: " + atom.otherHashCode)
+              console.error("Reparsed atom:  " + atoms(0).toParseString)
+              console.error("Reparsed atom:  " + atoms(0).toString)
+              console.error("Reparsed hash:  " + atoms(0).hashCode)
+              console.error("Reparsed other: " + atoms(0).otherHashCode)
             }
         }
       }
