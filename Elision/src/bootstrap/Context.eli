@@ -68,7 +68,7 @@ decl.{! enable($x: SYMBOL)
 #handler=
 """
   args match {
-    case Args(SymbolLiteral(_, sym)) =>
+    case Args(SymbolLiteral(_, sym, _)) =>
       // Enable the specified ruleset.
       context.ruleLibrary.enableRuleset(sym.name)
       _no_show
@@ -85,7 +85,7 @@ decl.{! disable($x: SYMBOL)
 #handler=
 """
   args match {
-    case Args(SymbolLiteral(_, sym)) =>
+    case Args(SymbolLiteral(_, sym, _)) =>
       // Enable the specified ruleset.
       context.ruleLibrary.disableRuleset(sym.name)
       _no_show
