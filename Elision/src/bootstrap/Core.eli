@@ -164,7 +164,7 @@ decl.{! operator($name)
   #handler=
   """
   args match {
-    case Args(SymbolLiteral(_, sym)) =>
+    case Args(SymbolLiteral(_, sym, _)) =>
       context.operatorLibrary(sym.name)
     case Args(StringLiteral(_, name)) =>
       context.operatorLibrary(name)
@@ -183,7 +183,7 @@ decl.{! getop($x)
         opref.operator
       case Args(op: Operator) =>
       	op
-      case Args(SymbolLiteral(_, sym)) =>
+      case Args(SymbolLiteral(_, sym, _)) =>
         getop(sym.name)
       case Args(StringLiteral(_, name)) =>
         getop(name)
@@ -292,7 +292,7 @@ decl.{! _help_op($r)
     args match {
       case Args(or: OperatorRef) =>
         givehelp(or.name)
-      case Args(SymbolLiteral(_, sym)) =>
+      case Args(SymbolLiteral(_, sym, _)) =>
         givehelp(sym.name)
       case Args(StringLiteral(_, name)) =>
         givehelp(name)
@@ -706,7 +706,7 @@ decl.{! _declprop($name: STRING, $default, $description: STRING)
            case StringLiteral(_, str) => str
            case IntegerLiteral(_, ival) => ival
            case BooleanLiteral(_, flag) => flag
-           case SymbolLiteral(_, sym) => sym
+           case SymbolLiteral(_, sym, _) => sym
          }
          exec.declareProperty(name, description, realval)
          console.emitln("Declared property "+toEString(name)+" with type "+
