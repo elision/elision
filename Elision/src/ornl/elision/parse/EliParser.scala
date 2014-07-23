@@ -534,23 +534,25 @@ class EliParser(context: Context, source: Reader, val name: String,
     if (worker.peek() != ':') {
       naked = text
       
-      if (worker.peek() == '(') {
-        val loc = worker.loc
-        val op = context.operatorLibrary(text)
-        val args = parseNakedList("an argument list")
-        val seq = AtomSeq(AlgProp(loc), args)
-        Apply(op, seq)
-      } else {
-        text match {
-          case "true" => true
-          case "false" => false
-          case _ =>
-            val lookup = (if (text == "_") "ANY" else text)
-            NamedRootType.get(lookup) match {
-              case Some(nrt) => nrt
-              case _ => SymbolLiteral(SYMBOL, Symbol(text))
-            }
-        }
+      text match {
+        case "true" => true
+        case "false" => false
+        case _ =>
+          val lookup = (if (text == "_") "ANY" else text)
+          NamedRootType.get(lookup) match {
+            case Some(nrt) =>
+              nrt
+            case _ =>
+              if (worker.peek() == '(') {
+                val loc = worker.loc
+                val op = context.operatorLibrary(text)
+                val args = parseNakedList("an argument list")
+                val seq = AtomSeq(AlgProp(loc), args)
+                Apply(op, seq)
+              } else {
+                SymbolLiteral(SYMBOL, Symbol(text))
+              }
+          }
       }
     } else {
       naked = null
@@ -632,7 +634,7 @@ class EliParser(context: Context, source: Reader, val name: String,
         if (worker.peekAndConsume("is")) {
           // Found the keyword.  Process it.
           worker.consumeWhitespace()
-          // The percent sign is optional here
+          // The percent sign is optional here.
           ap = parseAlgebraicProperties(false)
           worker.consumeWhitespace()
         }
