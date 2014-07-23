@@ -69,7 +69,12 @@ abstract class OmitSeq[A] extends IndexedSeq[A] with HasOtherHash {
    * computation for an IndexedSeq uses toString (which is bad), so
    * hashCode has been overwritten.
    */
-  override lazy val hashCode = this.foldLeft(0)(hashify)
+  override lazy val hashCode = this.foldLeft(0)(hashify)+1
+  
+  /**
+   * Alternate hash code for OmitSeq 
+   */
+  override lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
 }
 
 /**
@@ -123,15 +128,7 @@ object OmitSeq {
 private class _OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
 
   // Proxy to backing sequence.
-  lazy val length = backing.length
-
-  // Give this a different hash code than the wrapped sequence.
-  override lazy val hashCode = this.foldLeft(0)(hashify)
-
-  /**
-   * Alternate hash code for an OmitSeq.
-   */
-  override lazy val otherHashCode = backing.foldLeft(BigInt(0))(other_hashify)+1
+  val length = backing.length
 
   // Proxy to backing sequence.
   def apply(index: Int) = {
@@ -149,13 +146,8 @@ private class _OmitSeq1[A](backing: IndexedSeq[A]) extends OmitSeq[A] {
 private class _OmitSeq2[A](backing: IndexedSeq[A], omit: Int)
 extends OmitSeq[A] {
   /** Length is one less than the backing sequence. */
-  lazy val length = backing.length - 1
+  val length = backing.length - 1
 
-  /**
-   * Alternate hash code for an OmitSeq.
-   */
-  override lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
-  
   /** Return the requested element by zero-based index. */
   override def apply(index: Int) =
     if (index >= omit) backing(index+1) else backing(index)
@@ -174,14 +166,9 @@ private class _OmitSeq3[A](backing: IndexedSeq[A], insert: Int,
   // Some stored constants for fast reference.
   private val _il = items.length
   private val _tip = _il + insert
-
-  /**
-   * Alternate hash code for an OmitSeq.
-   */
-  override lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
   
   /** Length is the backing sequence plus the inserted items. */
-  override lazy val length = backing.length + _il
+  val length = backing.length + _il
   
   /** Return the requested element by zero-based index. */
   override def apply(index: Int) =
