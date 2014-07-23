@@ -117,18 +117,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         (if (_riskyEqual) true else other)
     )
   }
-  
 
-  
-  def fcmp(atom1: BasicAtom, atom2: BasicAtom) = {
-    if(feq(atom1, atom2, false)){
-        0
-    }
-    else {
-        atom1.hashCode compare atom2.hashCode
-    }
-  }
-  
   /**
    * Perform a comparison of optional atoms.  None is less than Some.
    * 
@@ -167,9 +156,10 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     // This explicitly breaks a potential unbounded
     // recursion caused by the LIST(x) operator.  The problems looks like this
     // (for reference): LIST(x) => LIST:OPREF . %(x), but the argument is also
-    // a LIST(x), so we have an unbounded recursion. 
-    val hashcmp = fcmp(left, right)
-    if(hashcmp == 0) return 0
+    // a LIST(x), so we have an unbounded recursion.
+    if (feq(left, right)) return 0
+    val hashcmp = left.hashCode compare right.hashCode
+    if (hashcmp == 0) return 0
     
     // Check the ordinals.
     val lo = getOrdinal(left)
