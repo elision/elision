@@ -69,6 +69,7 @@ import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import scala.language.reflectiveCalls
 
 /**
  * Indicate an attempt to use an undeclared ruleset.

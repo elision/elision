@@ -49,6 +49,7 @@ import ornl.elision.core.wrapBindingsAtom
 import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
+import scala.language.reflectiveCalls
 
 /**
  * Match two sequences of atoms.

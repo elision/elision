@@ -44,6 +44,7 @@ import ornl.elision.core.giveMkParseString
 import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
+import scala.language.reflectiveCalls
 
 /**
  * Provide some support methods for matching.

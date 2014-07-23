@@ -43,6 +43,7 @@ import ornl.elision.core.matcher.AMatcher
 import ornl.elision.core.matcher.CMatcher
 import ornl.elision.core.matcher.ACMatcher
 import ornl.elision.core.matcher.SequenceMatcher
+import scala.language.reflectiveCalls
 
 /**
  * Fast access to an untyped empty sequence.

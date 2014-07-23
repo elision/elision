@@ -36,6 +36,8 @@
 ======================================================================*/
 package ornl.elision.util
 
+import scala.language.existentials
+
 /**
  * Provide information about the current version of Elision.
  * 
