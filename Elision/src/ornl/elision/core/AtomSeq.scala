@@ -206,10 +206,9 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     var atoms: OmitSeq[BasicAtom] = xatoms
     if (assoc || ident != null || absor != null || idemp) {
       var index = 0
-      var finalIndex = 0
       while (index < atoms.size) {
         val atom = atoms(index)
-        // Track the name of the operator appearing in the sequence.
+        // Track the name and number of occurrences of the operator appearing in the sequence.
         atom match {
           case OpApply(opref, _, _) => _operators += (opref.operator.name -> (_operators.getOrElse(opref.operator.name, 0) + 1))
           case _ =>
@@ -239,8 +238,8 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
               // idempotency against the unflattened arguments. Therefore
               // we cannot skip the 1st flattened argument when checking
               // arguments in this loop.
-              index -= 1
-              finalIndex -= 1
+              //index -= 1
+              //finalIndex -= 1
 
             case _ =>
             // Nothing to do in this case.
@@ -253,21 +252,22 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
             if (seen.contains(atom)) {
               // Skip the argument due to idempotency.
               atoms = atoms.omit(index)
-              finalIndex -= 1
+              index -= 1
+            } else {
+              // Track that we have seen this argument.
+              seen.add(atom)
             }
-
-            // Track that we have seen this argument.
-            seen.add(atom)
           }
-        } // The atom IS the identity. Skip it.
+        } // The atom IS the identity. Skip it, or leave it if it's the only item.
         else {
-          atoms = atoms.omit(index)
-          finalIndex -= 1
+          if(atoms.length > 1){
+            atoms = atoms.omit(index)
+            index -= 1
+          }
         }
 
         // Move to the next atom.
         index += 1
-        finalIndex += 1
       } // Run through all arguments.
     }
 
