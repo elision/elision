@@ -234,12 +234,7 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
               // needed.
               atoms = atoms.omit(index)
               atoms = atoms.insert(index, args)
-              // We have not yet checked the flattened arguments for
-              // idempotency against the unflattened arguments. Therefore
-              // we cannot skip the 1st flattened argument when checking
-              // arguments in this loop.
-              //index -= 1
-              //finalIndex -= 1
+              if(args.length == 0) index -= 1
 
             case _ =>
             // Nothing to do in this case.
