@@ -105,34 +105,22 @@ class EvaVisPanel extends GamePanel {
                 return false
                 
             val t = info.getTransferable
+            val droppedObj = t.getTransferData(DataFlavor.javaFileListFlavor)
             
-            try {
-                /*
-                for(flavor <- t.getTransferDataFlavors) {
-                    System.err.println("Drag and drop type: " + flavor)
-                }*/
-                
-                val droppedObj = t.getTransferData(DataFlavor.javaFileListFlavor)
-                
-                droppedObj match {
-                    case list : java.util.List[_] =>
-                        val file = list.get(0).asInstanceOf[File]
-                        val name = file.getName
-                        val lastDot = name.lastIndexOf('.')
-                        val ext = name.drop(lastDot+1)
-                        if(ext == "eli") 
-                            GUIActor ! file
-                        if(ext == "treexml" || ext == "treejson")
-                            GUIActor ! ("OpenTree", file)
-                    case _ => 
-                        
+            droppedObj match {
+              case list : java.util.List[_] =>
+                val file = list.get(0).asInstanceOf[File]
+                val name = file.getName
+                val lastDot = name.lastIndexOf('.')
+                val ext = name.drop(lastDot+1)
+                if(ext == "eli") 
+                  GUIActor ! file
+                if(ext == "treexml" || ext == "treejson") {
+                  GUIActor ! ("OpenTree", file)
                 }
-                
                 true
-            }
-            catch {
-                case _: Throwable => System.err.println("Drag and drop not successful.")
-                false
+              case _ => 
+                false 
             }
         }
     }

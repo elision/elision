@@ -95,6 +95,7 @@ abstract class MatchIterator extends Iterator[Bindings] {
    * @return	True if there is a next match, and false if not.
    */
   final def hasNext: Boolean = {
+//    println("(.)")
     if (_exhausted) {
       // The iterator is exhausted.
       return false
@@ -108,17 +109,20 @@ abstract class MatchIterator extends Iterator[Bindings] {
     } else if (_local != null) {
       if (_local.hasNext) {
         // The current binding is the next binding from the local iterator.
+//	println("--")
         _current = _local.next
         return true
       } else {
+//	println("++")
         // The local iterator is exhausted.
         _local = null
       }
     }
-    
+//    println("(..)")
     // Go and find the next match.  This will set the fields properly, so we
     // need to repeat the above.
     findNext
+//    println("(...)")
     
     // This needs to be the last thing here so it gets optimized properly.
     return hasNext
@@ -144,6 +148,7 @@ abstract class MatchIterator extends Iterator[Bindings] {
     val first = this
     new MatchIterator {
       def findNext {
+//        println("~ findNext")
         // We only come here if the local iterator has been exhausted, so we
         // need to build a new complete match.  We do that now.
         if (first.hasNext) {
@@ -179,6 +184,7 @@ abstract class MatchIterator extends Iterator[Bindings] {
     val first = this
     new MatchIterator {
       def findNext {
+//        println("~> findNext")
         // We only come here if the local iterator has been exhausted, so we
         // need to build a new complete match.  We do that now.
         if (first.hasNext) {
@@ -254,6 +260,7 @@ object MatchIterator {
   def apply(binds: Bindings) = new MatchIterator {
     _current = binds
     def findNext = {
+//      println("empty findNext")
       _exhausted = true
     }
   }
@@ -324,6 +331,7 @@ private class SubMatchIterator(val localMatch: (Bindings) => Outcome,
    * The method to generate the next match.
    */
   protected def findNext {
+//    println("generic findNext")
     // This method is very un-scala and highly imperative, but that seems the
     // simplest, most understandable approach.
     _current = null

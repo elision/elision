@@ -29,6 +29,7 @@
  */
 package ornl.elision.util
 
+import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 
 /**
@@ -51,9 +52,16 @@ object AnsiPrintConsole extends Console {
   private val resetColorEsc = "\u001B[0m"
   private var restoreColorEsc = resetColorEsc
   
-  
   def write(text: String) { 
-    AnsiConsole.out.print(text) 
+    // Only use Jansi's AnsiConsole on Windows. Assume that consoles in other systems
+    // can handle unix-style ansi coloring just fine.
+    if(isWindows) {
+        AnsiConsole.out.print(text) 
+    }
+    else {
+        Console.out.print(text)
+    }
+    
     
     // save the last coloring escape sequence.
     val escIndex = text.lastIndexOf("\u001B[")
@@ -75,7 +83,13 @@ object AnsiPrintConsole extends Console {
    */
   private def ansiPause() : Boolean = {
     write(resetColorEsc + "--More--" + restoreColorEsc)
-    AnsiConsole.out.flush
+    
+    if(isWindows) {
+      AnsiConsole.out.flush
+    }
+    else {
+      Console.out.flush();
+    }
     
     val ch = scala.io.Source.stdin.reader.read.toChar
     
@@ -117,6 +131,14 @@ object AnsiPrintConsole extends Console {
     } 
     
   }
+  
+  /**
+   * Checks if we're running in Windows.
+   * @return true iff we're running in Windows.
+   */
+  private def isWindows() : Boolean = {
+    System.getProperty("os.name").startsWith("Windows")
+  }   
   
   
   writeText_=(ansiWriteText)

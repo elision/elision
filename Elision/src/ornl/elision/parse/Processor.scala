@@ -81,12 +81,12 @@ trait TraceableParse {
 /**
  * A processor is responsible for reading and handling atoms.
  * 
- * The processor instance maintains a [[ornl.elision.core.Context]] instance
+ * The processor instance maintains a [[ornl.elision.context.Context]] instance
  * that is available via the `context` field.  An existing context can be
  * provided when the processor is created.  Otherwise a new context is created
  * and used.
  * 
- * The processor instance also maintains its own [[ornl.elision.core.AtomParser]]
+ * The processor instance also maintains its own [[ornl.elision.parse.ElisionParser]]
  * instance to parse atoms.  You can enable and disable tracing of the parser
  * via the `trace` field.
  * 
@@ -182,25 +182,28 @@ with HasHistory {
   
   /**
    * Read the content of the provided file.  This method uses a
-   * [[ornl.elision.parse.FileResolver]] instance to find the requested
+   * [[ornl.elision.util.FileResolver]] instance to find the requested
    * file.
    * 
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
    * @param quiet       If true, do not emit any error messages.
-   * @return  True if the file was found; false if it was not.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
   def read(filename: String, quiet: Boolean): Boolean = {
     // Make a resolver from the properties.  Is this costly to do every time
     // we want to read a file?  Probably not.
+    
     val usePath = getProperty[Boolean]("usepath")
     val useClassPath = getProperty[Boolean]("useclasspath")
     val path = getProperty[String]("path")
     val resolver = FileResolver(usePath, useClassPath, Some(path))
+    var result = false
+    
     resolver.find(filename) match {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
-        false
+        result = false
         
       case Some((reader, dir)) =>
         Processor.fileReadStack.push(filename)
@@ -218,8 +221,8 @@ with HasHistory {
         // Restore our original path.
         setProperty[String]("path", path)
         Processor.fileReadStack.pop
-        true
     }
+    result
   }
   
   /**
@@ -228,6 +231,7 @@ with HasHistory {
    * @param file		The file to read.
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
   def read(file: java.io.File) {
     read(new FileReader(file), file.getAbsolutePath())
@@ -240,9 +244,13 @@ with HasHistory {
    * @param filename  The file name, if relevant.
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
+   * @return  True if parse was successful; false if it was not.
    */
-  def read(source: Reader, filename: String = "(console)") {
-    _execute(_makeParser(filename).parseAtoms(source, context), true) 
+  def read(source: Reader, filename: String = "(console)") = {
+    _execute(_makeParser(filename).parseAtoms(source, context), true) match {
+      case _: Success => true
+      case _: Failure => false
+    }
   }
   
   /**
@@ -289,7 +297,7 @@ with HasHistory {
    *                    This is accomplished by throwing an exception to
    *                    be caught at a higher level.
    */
-  private def _execute(result: Presult, stoponerror: Boolean = false) {
+  private def _execute(result: Presult, stoponerror: Boolean = false) : Presult = {
     import ornl.elision.util.ElisionException
     startTimer
     try {
@@ -343,6 +351,7 @@ with HasHistory {
     }
     stopTimer
     showElapsed
+    result
   }
   
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
@@ -354,6 +363,7 @@ with HasHistory {
     // We'll only send the GUI atom data here. This may change depending how 
     // we ultimately want the GUI to
     // receive data about the atoms it needs to visualize.
+        
     ReplActor ! ("toGUI", "startBatch")
     ReplActor ! ("toGUI", (theAtom, "Parsed Atom: "))
     
@@ -368,7 +378,6 @@ with HasHistory {
           ReplActor ! ("toGUI", (theAtom, "Handler " + (handlersCount - 1) + " result: "))
       }
     } // Perform all handlers.
-    
     ReplActor ! ("toGUI", "endBatch")
     return Some(theAtom)
   }

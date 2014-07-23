@@ -115,6 +115,7 @@ class MaxLinesDialog extends Dialog {
       close
     } catch {
       case _ : Throwable =>
+        Dialog.showMessage(mainGUI.visPanel, input + " is not an integer.", "Input Error", Dialog.Message.Error)
     }
   }
   

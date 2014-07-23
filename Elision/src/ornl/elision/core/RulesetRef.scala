@@ -79,8 +79,8 @@ abstract class RulesetRef extends BasicAtom with Rewriter {
       (atom, true)
   }
     
-  override def hashCode = 61*name.hashCode
-  lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val hashCode = 12289*name.hashCode
+  override lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   override def equals(other: Any) =
     (other match {

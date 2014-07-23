@@ -119,9 +119,9 @@ class EliReplThread extends ReplThread {
     myRepl.clean()
 	}
     
+  /**  */
   def clean : Unit = {
     ornl.elision.actors.ReplActor ! ":quit"
-    // System.out.println("Successfully quit the Elision REPL's thread.")
   }
 
 }

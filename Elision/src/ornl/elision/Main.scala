@@ -51,7 +51,7 @@ import ornl.elision.parse.ProcessorControl
  * 
  * If you want to add a command to Elision, you can do that by adding a new
  * main declaration to the `configuration.xml` file loaded by
- * [[ornl.elision.Version]].  You can then use [[ornl.elision.cli.Switches]]
+ * [[ornl.elision.util.Version]].  You can then use [[ornl.elision.cli.CLI]]
  * to process command line arguments and switches in a consistent manner.
  */
 object Main extends App {

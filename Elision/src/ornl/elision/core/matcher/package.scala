@@ -41,13 +41,13 @@ package ornl.elision.core
  * 
  * There are several basic matching algorithms.
  * 
- *  - [[ornl.elision.core.matching.SequenceMatcher]] handles non-associative,
+ *  - [[ornl.elision.core.matcher.SequenceMatcher]] handles non-associative,
  *    non-commutative matching.
- *  - [[ornl.elision.core.matching.CMatcher]] handles commutative,
+ *  - [[ornl.elision.core.matcher.CMatcher]] handles commutative,
  *    non-associative matching.
- *  - [[ornl.elision.core.matching.AMatcher]] handles associative,
+ *  - [[ornl.elision.core.matcher.AMatcher]] handles associative,
  *    non-commutative matching.
- *  - [[ornl.elision.core.matching.ACMatcher]] handles associative, commutative
+ *  - [[ornl.elision.core.matcher.ACMatcher]] handles associative, commutative
  *    matching.
  * 
  * There are also supporting classes that handle parts of the matching process.
