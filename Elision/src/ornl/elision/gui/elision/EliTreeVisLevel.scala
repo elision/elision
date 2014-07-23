@@ -46,44 +46,42 @@ import sage2D.GamePanel
 
 /** An extension of TreeVisLevel that handles some Elision-specific functions. */
 class EliTreeVisLevel(game : GamePanel) extends TreeVisLevel(game) {
-    var selectingRuleLHS = false
+  var selectingRuleLHS = false
+  
+  /** A right-click menu that appears when you right-click a node. */
+  val nodeRClickMenu = new NodeRightClickMenu
+  
+  changeTree(elision.sprites.ElisionWelcomeTree)
+  
+  override def selectNode(clickedNode : NodeSprite) : Unit = {
+    super.selectNode(clickedNode)
     
-    /** A right-click menu that appears when you right-click a node. */
-    val nodeRClickMenu = new NodeRightClickMenu
-    
-    changeTree(elision.sprites.ElisionWelcomeTree)
-    
-    override def selectNode(clickedNode : NodeSprite) : Unit = {
-        super.selectNode(clickedNode)
-        
-        // Interactive rule creation: User selects an atom node for the LHS and then 
-        // inputs the RHS and saves it to an eli file.
-        if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
-            val ruleDia = new RulePredDialog(clickedNode.term)
-            selectingRuleLHS = false
-        }
+    // Interactive rule creation: User selects an atom node for the LHS and then 
+    // inputs the RHS and saves it to an eli file.
+    if(clickedNode != null && selectingRuleLHS && !clickedNode.isComment) {
+      val ruleDia = new RulePredDialog(clickedNode.term)
+      selectingRuleLHS = false
     }
+  }
+  
+  override def render(g : Graphics2D) : Unit = {
+    super.render(g)
     
-    override def decompDepth : Int = EvaConfig.decompDepth
-    
-    override def render(g : Graphics2D) : Unit = {
-        super.render(g)
-        
-        val helpPromptY = (this.game.size.getHeight-10).toInt
-        g.setColor(new Color(0x000000))
-        if(selectingRuleLHS) {
-            g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
-        }
+    val helpPromptY = (this.game.size.getHeight-10).toInt
+    g.setColor(new Color(0x000000))
+    if(selectingRuleLHS) {
+      g.drawString("Create Rule from Node: Click a node representing an atom to be the left-hand-side of the rule. Press Esc to cancel.", 10,helpPromptY)
     }
-    
-    listenTo(this)
-    reactions += {
-      case nce : NodeClickedEvent =>
-        val clickedNode = nce.node
-        if(mouse.justRightPressed) {
-          nodeRClickMenu.show(game.peer, mouseScreenPosition.getX.toInt, mouseScreenPosition.getY.toInt, clickedNode)
-        }
-    }
+  }
+  
+  listenTo(this)
+  reactions += {
+    case nce : NodeClickedEvent =>
+      val clickedNode = nce.node
+      if(mouse.justRightPressed) {
+        nodeRClickMenu.show(game.peer, mouseScreenPosition.getX.toInt, mouseScreenPosition.getY.toInt, clickedNode)
+      }
+  }
 }
 
 

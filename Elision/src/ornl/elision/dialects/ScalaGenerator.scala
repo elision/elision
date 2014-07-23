@@ -79,6 +79,7 @@ import ornl.elision.core.TypeUniverse
 import ornl.elision.core.TypedSymbolicOperator
 import ornl.elision.core.Variable
 import ornl.elision.core.toEString
+import ornl.elision.core.BasicAtomComparator
 
 /**
  * Generate the Scala code to create an atom.
@@ -218,14 +219,15 @@ object ScalaGenerator {
       context: Boolean,
       buf: Appendable): Appendable = {
     atom match {
-      case CaseOperator(name, typ, cases, description, detail) =>
+      case CaseOperator(name, typ, cases, description, detail, evenMeta) =>
         buf.append("CaseOperator(")
         buf.append(atom.loc.toString).append(",")
         buf.append(toEString(name)).append(",")
         gen(typ, context, buf).append(",")
         gen(cases, context, buf).append(",")
         buf.append(toEString(description)).append(",")
-        buf.append(toEString(detail)).append(")")
+        buf.append(toEString(detail)).append(",")
+        buf.append(if(evenMeta) "true" else "false").append(")")
       case TypedSymbolicOperator(name, typ, params, description, detail,
           evenMeta, handlertxt) =>
         buf.append("TypedSymbolicOperator(")
@@ -247,7 +249,7 @@ object ScalaGenerator {
         buf.append(atom.loc.toString).append(",")
         gen(pat, context, buf).append(",")
         gen(rew, context, buf).append(",")
-        buf.append("Seq(")
+        buf.append("Seq[BasicAtom](")
         var tail = false
         gua foreach { guard =>
           if (tail) buf.append(",")
@@ -327,7 +329,7 @@ object ScalaGenerator {
         gen(lhs, context, buf).append(",")
         gen(rhs, context, buf).append(")")
         
-      case AtomSeq(props, atoms) =>
+      case AtomSeq(props, atoms) => 
         buf.append("AtomSeq(")
         gen(props, context, buf)
         atoms foreach {
@@ -367,7 +369,7 @@ object ScalaGenerator {
         gen(mvari.theType, context, buf).append(",")
         buf.append(toEString(mvari.name)).append(",")
         gen(mvari.guard, context, buf).append(",")
-        buf.append(mvari.labels.map(toEString(_)).mkString("Set(", ",", ")")).
+        buf.append(mvari.labels.map(toEString(_)).mkString("Set[String](", ",", ")")).
           append(",")
         buf.append(mvari.byName.toString)
         buf.append(")")
@@ -377,7 +379,7 @@ object ScalaGenerator {
         gen(vari.theType, context, buf).append(",")
         buf.append(toEString(vari.name)).append(",")
         gen(vari.guard, context, buf).append(",")
-        buf.append(vari.labels.map(toEString(_)).mkString("Set(", ",", ")")).
+        buf.append(vari.labels.map(toEString(_)).mkString("Set[String](", ",", ")")).
           append(",")
         buf.append(vari.byName.toString)
         buf.append(")")

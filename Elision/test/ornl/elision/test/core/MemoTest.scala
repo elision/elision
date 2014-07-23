@@ -114,7 +114,7 @@ class MemoTest extends AssertionsForJUnit {
   }
   
   
-  @Test def testPutThreaded {
+  def putThreaded {
     if(numThreads == 1) {
       testPut
       return
@@ -198,16 +198,20 @@ class MemoTest extends AssertionsForJUnit {
     println("Avg time to get: " + gt.reduceLeft(_ + _) / gt.length + "(ms) and total time was " + totalGetTime)
   }
   
-  @Test def testAll {
-    testPut
-    
+  @Test
+  def test2Threads {
     numThreads = 2
-    testPutThreaded
-    
+    putThreaded
+  }
+  
+  @Test
+  def test10Threads {
     numThreads = 10
-    testPutThreaded
-    
+    putThreaded
+  }
+  
+  def test20Threads {
     numThreads = 20
-    testPutThreaded
+    putThreaded
   }
 }

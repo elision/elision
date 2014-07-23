@@ -38,14 +38,21 @@
 package ornl.elision.core
 
 import scala.collection.immutable.HashSet
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.{HashSet => MutableHashSet, BitSet}
 import scala.compat.Platform
 import scala.util.DynamicVariable
+import scala.collection.immutable.List
+import ornl.elision.dialects.ElisionGenerator
+import ornl.elision.dialects.ScalaGenerator
+import ornl.elision.util.ElisionException
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.HasOtherHash
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
 import scala.language.existentials
+import ornl.elision.context.TimedOut
+import ornl.elision.util.FastLinkedList
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -132,11 +139,11 @@ trait Applicable {
  *    
  *  - Implement `rewrite`.
  *  
- *  - Visit [[ornl.elision.core.ElisionGenerator]] and add code to create a
+ *  - Visit [[ornl.elision.dialects.ElisionGenerator]] and add code to create a
  *    string from the new atom.  This must return a string that is parseable by
- *    [[ornl.elision.core.AtomParser]] to re-create the atom.
+ *    [[ornl.elision.parse.ElisionParser]] to re-create the atom.
  *    
- *  - Visit [[ornl.elision.core.ScalaGenerator]] and add code to create a
+ *  - Visit [[ornl.elision.dialects.ScalaGenerator]] and add code to create a
  *    string from the new atom.  This must return a string that is parseable by
  *    Scala to re-create the atom.  In many cases making the class into a
  *    `case class` will be sufficient, but if there are arguments that are
@@ -193,7 +200,25 @@ trait Applicable {
  * @param loc The location where this atom originated.
  */
 abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
-  import scala.collection.mutable.{Map => MMap}
+  import java.util.{HashMap => MMap}
+
+  /** Cache the applies contained in the atom. */
+  // This speeds things up, but getting FastLinkedList to work
+  // correctly is very hard.
+  //var myApplies : FastLinkedList[Apply] = new FastLinkedList[Apply]()
+  //var realApplies : java.util.HashSet[Apply] = new java.util.HashSet[Apply]()
+
+  /**
+   * Does this atom or its children contain any of the operators
+   * registered via trackOperator()?
+   */
+  var hasTrackedOps : Boolean = false
+
+  /** Cache the variables contained in the atom in an easy to use data structure. */
+  var myVars : MutableHashSet[BasicAtom] = null
+
+  /** Cache the results of getOperators(). */
+  var myOperators : MMap[String, MutableHashSet[Apply]] = null
 
   /**
    * The rulesets with respect to which this atom is clean. If this is
@@ -216,6 +241,12 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * will need to collide for a hash collision to occur).
    */
   val otherHashCode: BigInt
+
+  /** YOU MUST OVERRIDE THIS IN INHERITED CLASSES! */
+  override lazy val hashCode = {
+    println("BasicAtom::hashCode not overriden for " + this)
+    0
+  }
 
   /**
    * If true then this atom can be bound.  Only variables should be bound, so
@@ -434,7 +465,7 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
 
   /**
    * Generate a parseable string from this atom.  The returned string should
-   * be able to "round trip," that is, [[ornl.elision.parse.AtomParser]] must
+   * be able to "round trip," that is, [[ornl.elision.parse.ElisionParser]] must
    * be able to parse it and return an atom equal to this one.
    * 
    * @return	The string.
@@ -504,6 +535,13 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
  * compute the constant pool for an atom.
  */
 object BasicAtom {
+
+  /** Only track and return these operators from BasicAtom::getOperators(). */
+  val trackedOperators : java.util.HashSet[String] = new java.util.HashSet[String]()
+
+  def trackOperator(op : String) = {
+    trackedOperators.add(op)
+  }
   
   /*
    * FIXME  Eliminate all timeout stuff from this object.
@@ -533,11 +571,14 @@ object BasicAtom {
     if ((rewrite_timeout > 0) && (timeoutTime.value <= -1)) {
       // The time at which things time out is the current time plus
       // the maximum amount of time to rewrite things.
+      //println("** Use new timeout time: " + Platform.currentTime + (rewrite_timeout.longValue * 1000))
       Platform.currentTime + (rewrite_timeout.longValue * 1000)
     } else if (timeoutTime.value > -1) {
       // Return the previously computed timeout value.
+      //println("** Use old timeout time: " + timeoutTime.value)
       timeoutTime.value
     } else {
+      //println("** Use NO timeout time: " + -1L)
       -1L
     }
   }
@@ -557,7 +598,15 @@ object BasicAtom {
    */
   def rewriteTimedOut = {
     if (timingOut && (timeoutTime.value > 0)) {
-      (Platform.currentTime >= timeoutTime.value)
+      if (Platform.currentTime >= timeoutTime.value) {
+        //println("** TIMED OUT. timeoutTime = " + timeoutTime.value + ", curr time = " + Platform.currentTime)
+        timeoutTime.value = -1L
+        throw new TimedOut(Loc.internal, "Rewriting timed out")
+        true
+      }
+      else {
+        false
+      }
     } else {
       false
     }

@@ -105,7 +105,7 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
         // backspace should not got past the prompt string.
         if(e.char == '\b' && getLength < _anchorPos) {
           text = """<div style="font-family:Lucida Console;font-size:12pt">""" + _readOnlyOutput
-          _sendCaretToStart
+          _caretLeftBound
         }
         
       case e : swing.event.KeyPressed => 
@@ -119,7 +119,7 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
         
         // Prevent the user from moving the caret past the prompt string.
         if(e.key == swing.event.Key.Left) {
-          _sendCaretToStart
+          _caretLeftBound
         }
         
         // keyboard menu shortcuts
@@ -140,29 +140,21 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
         }
         
         // home moves the caret to the beginning of the allowed input area.
-        if(e.key == swing.event.Key.Home) {
-          _sendCaretToStart
+        if(e.key == swing.event.Key.Home || e.key == swing.event.Key.Left) {
+          _caretLeftBound
         }
         caret.visible = true
   }
   
   
   /** Sets the caret's position to the beginning of the allowed input area. */
-  def _sendCaretToStart : Unit = {
-    try {
-      caret.position = math.max(_anchorPos, caret.position)
-    } catch {
-      case _ : Throwable =>
-    }
+  def _caretLeftBound : Unit = {
+    caret.position = math.max(_anchorPos, caret.position)
   }
   
   /** Sets the caret's position to the end of the allowed input area. */
   def _sendCaretToEnd : Unit = {
-    try {
-      caret.position = getLength
-    } catch {
-      case _ : Throwable => {}
-    }
+    caret.position = getLength
   }
   
     
@@ -172,30 +164,25 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
       react {
         case _newTxt : String =>
           // Received a new chunk of output. Format it and append it to past output.
-          try {
-            var newTxt = _newTxt
-            
-            // Inject our new text with HTML tags for formatting.
-            if(applyFormatting) 
-              newTxt = ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols)
-            else 
-              newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
-            
-            // append our processed new text to our previous output.
-            _updateReadOnlyText(newTxt)
-            _enforceMaxLines
-            
-            // apply a constant-width font to our entire EditorPane.
-            text = """<div style="font-family:Lucida Console;font-size:12pt">""" + _readOnlyOutput
-            
-            // update our anchor point and caret position.
-            _anchorPos = getLength
-            caret.position = _anchorPos
-              
-          } 
-          catch {
-            case ioe : Exception => ioe.printStackTrace
-          }
+          var newTxt = _newTxt
+          
+          // Inject our new text with HTML tags for formatting.
+          if(applyFormatting) 
+            newTxt = ConsolePanel.formatter.htmlFormat(newTxt, ConsolePanel.maxCols)
+          else 
+            newTxt = ConsolePanel.formatter.minHtmlFormat(newTxt, ConsolePanel.maxCols) 
+          
+          // append our processed new text to our previous output.
+          _updateReadOnlyText(newTxt)
+          _enforceMaxLines
+          
+          // apply a constant-width font to our entire EditorPane.
+          text = """<div style="font-family:Lucida Console;font-size:12pt">""" + _readOnlyOutput
+          
+          // update our anchor point and caret position.
+          _anchorPos = getLength
+          caret.position = _anchorPos
+
         case _ =>
       } // endactorreact
     } // endactorloop
@@ -288,44 +275,40 @@ class EvaConsole(val console : ConsolePanel) extends EditorPane with Actor with 
   
   
   /**
-   * This sends whatever is the current input text to the Repl's actor so that it can be processed by the Repl.
+   * This sends whatever is the current input text to the Repl's actor so that 
+   * it can be processed by the Repl.
    * The input is also saved into the input history.
    */
   def sendToInputStream : Unit = {
     import java.lang.System
-    
-    try {
-    
-      // create the inputString to send to the REPL
-      val srcString : String = getText
-      var inputString = srcString.substring(_anchorPos)
-      
-      // get rid of the new line we just put in our input string
-      val nlIndex = inputString.indexOf('\n')
-      if(nlIndex != -1) {
-        val (inpStr1, inpStr2) = inputString.splitAt(nlIndex)
-        inputString = inpStr1 + inpStr2.drop(1)
-      }
-      
-      // apply formatting to the fixed input string
-      val formattedInputString = ConsolePanel.formatter.htmlFormat(inputString, ConsolePanel.maxCols)
-      
-      // add the input string to the readOnlyOutput
-      _updateReadOnlyText(formattedInputString)
-      _anchorPos = getLength
-      
-      // store the input string in the history list.
-      if(inputString != "") {
-        GUIActor ! ("Repl", ("addHistory", inputString))
-      }
-      
-      // send the input String to the Repl's actor
-      this ! "\n"
-      GUIActor ! ("ReplInput", inputString)
 
-    } catch {
-      case _ : Throwable =>
+    // create the inputString to send to the REPL
+    val srcString : String = getText
+    var inputString = srcString.substring(_anchorPos)
+    
+    // get rid of the new line we just put in our input string
+    val nlIndex = inputString.indexOf('\n')
+    if(nlIndex != -1) {
+      val (inpStr1, inpStr2) = inputString.splitAt(nlIndex)
+      inputString = inpStr1 + inpStr2.drop(1)
     }
+    
+    // apply formatting to the fixed input string
+    val formattedInputString = ConsolePanel.formatter.htmlFormat(inputString, 
+                                                        ConsolePanel.maxCols)
+    
+    // add the input string to the readOnlyOutput
+    _updateReadOnlyText(formattedInputString)
+    _anchorPos = getLength
+    
+    // store the input string in the history list.
+    if(inputString != "") {
+      GUIActor ! ("Repl", ("addHistory", inputString))
+    }
+    
+    // send the input String to the Repl's actor
+    this ! "\n"
+    GUIActor ! ("ReplInput", inputString)
   }
   
   

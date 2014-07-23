@@ -33,14 +33,18 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
-package ornl.elision.syntax
+======================================================================
+* */
+package ornl.elision.context
 
-/** 
- * A single-colored substring of a SyntaxFormattedLine. 
- * @param str     The uncolored substring.
- * @param color   The color for this substring.
+import ornl.elision.util.ElisionException
+import ornl.elision.util.Loc
+
+/**
+ * Indicate rewriting timed out.
+ * 
+ * @param loc   Location of the atom containing the bad reference, or of the
+ *              bad reference.
+ * @param msg		A human readable message.
  */
-class ColoredSubstring(val str : String, val color : String) {
-  override def toString : String = str
-} 
+class TimedOut(loc: Loc, msg: String) extends ElisionException(loc, msg)

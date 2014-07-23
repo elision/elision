@@ -62,7 +62,7 @@ class ProcessorTest extends AssertionsForJUnit {
   val test = new ERepl(CLIState(List(), settings.toMap))
     ornl.elision.core.knownExecutor = test
     test.bootstrap(0)
-    test.parse("(UnitTest)", """inc("/home/fxuser/fx/system/config/files_inc.eli")""")
+    test.parse("(UnitTest)", "inc(\"" + sys.env("FX_DIR") + "/config/files_inc.eli\")")
     val a = test.parse("(UnitTest)", "mult_32(acc_32($M:FMAP(DWORD,BYTE),add_32(-12,$EBP:DWORD)),add_32(2,acc_32($M:FMAP(DWORD,BYTE),add_32(-4,$EBP:DWORD))))")
     println (a.toString)
   }

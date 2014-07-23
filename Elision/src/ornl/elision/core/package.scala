@@ -143,47 +143,6 @@ package object core {
    */
   def toEString(str: String) = ornl.elision.util.toQuotedString(str)
 
-  /**
-   * Whether to compute equality faster but in a riskier fashion.
-   */
-  var _riskyEqual: Boolean = true;
-
-  /** 
-   * Declare the Elision property for setting whether to do risky
-   * equality checking. 
-   */
-  knownExecutor.declareProperty("risky_equality_check",
-      "Whether to do fast, but risky, equality checking of atoms.",
-      _riskyEqual,
-      (pm: PropertyManager) => {
-        _riskyEqual =
-          pm.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
-      })
-
-
-  /**
-   * Perform "fast equality checking" on two atoms.  This performs basic
-   * structural comparson of the atoms.  If this cannot prove that the two
-   * atoms are either equal to unequal, then the closure `other` is invoked
-   * to resolve.
-   * 
-   * @param atom1   The first atom.
-   * @param atom2   The second atom.
-   * @param other   Other checking to perform, if the fast check is
-   *                indeterminate.
-   * @return  True if equal, false if not.
-   */
-  def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean) = {
-    (atom1 eq atom2) || (
-        (atom1.depth == atom2.depth) &&
-        (atom1.isConstant == atom2.isConstant) &&
-        (atom1.isTerm == atom2.isTerm) &&
-        (atom1.hashCode == atom2.hashCode) &&
-        (atom1.otherHashCode == atom2.otherHashCode) &&
-        (if (_riskyEqual) true else other)
-    )
-  }
-  
   //======================================================================
   // WARNING: Implicit modification of containers!
   //======================================================================

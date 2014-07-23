@@ -41,6 +41,8 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
+import ornl.elision.util.hashify
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.SequenceMatcher
 
 /**
@@ -73,7 +75,8 @@ import ornl.elision.core.matcher.SequenceMatcher
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
-  lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val hashCode = this.toString.hashCode
 
   /** The type of a bindings atom is the special bindings type. */
   val theType = ANY

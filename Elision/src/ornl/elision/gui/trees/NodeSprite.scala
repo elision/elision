@@ -37,11 +37,20 @@
 
 package ornl.elision.gui.trees
 
-import java.awt._
-import java.awt.geom._
+import java.awt.Color
+import java.awt.Graphics2D
+import java.awt.geom.CubicCurve2D
+import java.awt.geom.Line2D
+import java.awt.geom.Point2D
+import java.awt.geom.Rectangle2D
+import java.awt.geom.RoundRectangle2D
 import sage2D.sprites.Sprite
 import sage2D.Camera
 import collection.mutable.ArrayBuffer
+
+import scala.swing.Dialog
+
+import ornl.elision.gui.mainGUI
 
 /**
  * A sprite used to represent a rewritten term node in a TreeSprite.
@@ -235,7 +244,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
       for(i <- 0 until formattedString.lines.size) {
         val line = formattedString.lines(i)
         for((j, substr) <- line.substrings) {
-          g.setColor(substr.color)
+          g.setColor(new Color(Integer.parseInt(substr.color.replace("#",""), 16)))
           g.drawString(substr.toString, (3 + j*(tree.font.getSize*0.6)).toInt, (box.y - 3 + (tree.font.getSize + 3)*(i+1)).toInt)
         } // endfor
       } // endfor
@@ -255,9 +264,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
    * @param g    The graphics context the edges are being rendered to.
    */
   private def drawEdges(g : Graphics2D) : Unit = {
-    import java.awt.geom.CubicCurve2D
-        import java.awt.geom.Line2D
-    import java.awt.geom.Rectangle2D
+    
     
     // store the original transform
     val origTrans = g.getTransform
@@ -277,8 +284,8 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
       
       // scale the current graphics transform according to how compressed/decompressed this node's children are.
       g.scale(child.expansion,child.expansion)
-      val startPt = g.getTransform.transform(new geom.Point2D.Double(0,0), null)
-      val endPt = g.getTransform.transform(new geom.Point2D.Double(endX,0), null)
+      val startPt = g.getTransform.transform(new Point2D.Double(0,0), null)
+      val endPt = g.getTransform.transform(new Point2D.Double(endX,0), null)
       
       if(startPt.getX <= tree.camera.pWidth && endPt.getX >= 0) {
         // create the cubic curve shape for the edge. //  Then draw the edge.
@@ -356,12 +363,12 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
    * @param index    the index of the child whose position we need.
    * @return      the child node's position relative to its parent.
    */
-  def getChildPosition(index : Int) : geom.Point2D = {
+  def getChildPosition(index : Int) : Point2D = {
     val longestSib = getLongestSibling
     val childX = longestSib - box.width + tree.defX + 5*_adjustedLeafCount
     val childY = tree.defY*index + children(index).offsetY
     
-    new geom.Point2D.Double(childX,childY)
+    new Point2D.Double(childX,childY)
   }
   
   
@@ -407,7 +414,7 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
       accumulatedChildYOffset += leafOffset
       
       // Compute the child's world coordinates.
-      val childPos : geom.Point2D = this.getChildPosition(child.index)
+      val childPos : Point2D = this.getChildPosition(child.index)
       child.worldX = this.worldX + childPos.getX + this.box.width
       child.worldY = this.worldY + childPos.getY
       
@@ -463,8 +470,8 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   /**
    * Returns this node's world coordinates as a Point2D.Double object.
    */
-  def getWorldPosition : geom.Point2D = {
-    new geom.Point2D.Double(worldX,worldY)
+  def getWorldPosition : Point2D = {
+    new Point2D.Double(worldX,worldY)
   }
 
   
@@ -499,22 +506,16 @@ class NodeSprite(var term : String = "Unnamed Node", val tree : TreeSprite, val 
   
   /** Returns the rectangle of this node's bounding box in screen coordinates. */
   def getScreenBox : Rectangle2D = {
-    try {
-      val pt1 = new Point2D.Double(box.getX, box.getY)
-      val pt2 = new Point2D.Double(boxWidth, boxHeight)
-      
-      val scrPt1 = curTrans.transform(pt1, null)
-      val scrPt2 = curTrans.transform(pt2, null)
-      
-      val scrW = scrPt2.getX - scrPt1.getX
-      val scrH = scrPt2.getY - scrPt1.getY
-      
-      new Rectangle2D.Double(scrPt1.getX, scrPt1.getY, scrW, scrH)
-    }
-    catch {
-      case _: Throwable =>
-        null
-    }
+    val pt1 = new Point2D.Double(box.getX, box.getY)
+    val pt2 = new Point2D.Double(boxWidth, boxHeight)
+    
+    val scrPt1 = curTrans.transform(pt1, null)
+    val scrPt2 = curTrans.transform(pt2, null)
+    
+    val scrW = scrPt2.getX - scrPt1.getX
+    val scrH = scrPt2.getY - scrPt1.getY
+    
+    new Rectangle2D.Double(scrPt1.getX, scrPt1.getY, scrW, scrH)
   }
 }
 

@@ -42,54 +42,42 @@ import scala.concurrent.ops._
 import sys.process._
 
 import java.io._
-import java.awt._
+import java.lang.Object
+import java.awt.Color
+import java.awt.Image
+import java.awt.Graphics2D
 import java.awt.geom.Point2D
 import java.awt.image.BufferedImage
 import java.awt.image.VolatileImage
 import javax.swing.SwingWorker
 
+import scala.swing.Dialog
+
 import sage2D._
 import sage2D.input._
 
+import ornl.elision.gui.EvaConfig
+import ornl.elision.gui.mainGUI
 
 /**
  * This level shall display a tree structure showing the rewriting hierarchy 
  * of the last atom string passed to the REPL as input.
  */
-class TreeVisLevel(game : GamePanel) extends Level(game, null) with HasCamera {
-  /** The panel's camera for panning around and zooming in the visualization */
-  val camera = new Camera(0, 0, 640, 480)
-  
-  /** Keeps track of the mouse's position in world coordinates */
-  var mouseWorldPosition : Point2D = new Point2D.Double(0,0)
-  
-  /** Keeps track of the mouse's position in screen coordinates. Necessary because of multi-threadedness. */
-  var mouseScreenPosition : Point2D = new Point2D.Double(0,0)
-  
-  /** The sprite representing the visualization of the rewrite tree */
-  var treeSprite : TreeSprite = null
-  changeTree(DefaultTreeSprite)
+class TreeVisLevel(game : GamePanel) extends Level(game, null) {
   
   var timerLock = false
-  var isLoading = false
   
   /** A SwingWorker thread used for concurrently rendering the panel's image. */
   val renderThread = new TreeVisThread(this,game.timer)
+  renderThread.changeTree(DefaultTreeSprite)
   renderThread.start
-  
-  /** The Image containing the latest rendering of the visualization tree. */
-  var renderedImage : Image = new BufferedImage(640,480, TreeVisLevel.imageType)
   
   /** 
    * We actually run the logic for this level is a thread separate from the EDT. 
    * Here, we just tell the thread that it's safe to run another iteration.
    */
   def logic : Unit = {
-    // if we're still processing a previous frame, just return.
-    if(!timerLock) {
-      timerLock = true
-      renderThread.isReady = true
-    }
+    // All the logic for this level is done inside the renderThread.
   }
     
   def loadData : Unit = {}
@@ -107,114 +95,41 @@ class TreeVisLevel(game : GamePanel) extends Level(game, null) with HasCamera {
   /** Draws the tree visualization. */
   def render(g : Graphics2D) : Unit = {
     // render the most recent image produced by our rendering thread.
-    g.drawImage(renderedImage, null, null)
+    g.drawImage(renderThread.getImage, null, null)
     
     // display HUD information
     g.setColor(new Color(0x000000))
     g.drawString("frame rate: " + game.timer.fpsCounter, 10,32)
-    g.drawString("camera zoom: " + camera.zoom, 10,52)
+  //  g.drawString("camera zoom: " + camera.zoom, 10,52)
   }
-    
-  /** 
-   * test painting function.
-   * This draws a grid of red lines centered at the origin spaced 30 pixels apart.
-   * It is no longer invoked anywhere. It was used during early development of the GUI to test the SAGE 2D library. 
-   * @param g    The graphics context of the component this is being painted to. In this case, it's the TreeVisPanel's context.
-   */
-/*  def testPaint(g : Graphics2D) : Unit = {
-    
-    import java.awt.geom.CubicCurve2D
   
-    for(i <- -300 to 300 if(i % 30 == 0))  {
-      g.setColor(new Color(0xFF9999))
-      
-      val curve1 = new CubicCurve2D.Double(-300,0,-100,0,100,i,300,i)
-      val curve2 = new CubicCurve2D.Double(0,-300,0,-100,i,100,i,300)
-      g.draw(curve1)
-      g.draw(curve2)
-      g.drawLine(-300,i,300,i)
-      g.drawLine(i,-300,i,300)
-    }
-    
-    g.setColor(new Color(0xFF0000))
-    g.drawLine(-300,0,300,0)
-    g.drawLine(0,-300,0,300)
-  }
-*/
   
   /**
    * Selects a node in the current tree visualization, 
    * does some fancy camera work to make sure that that node stays in the same place onscreen
    * after the graph is re-expanded, and displays that node's information in the atom properties panel.
-   * @param clickedNode    The node being selected in our tree.
+   * @param node    The node being selected in our tree.
    */
-  def selectNode(clickedNode : NodeSprite) : Unit = {
-    // don't allow null parameter.
-    if(clickedNode == null) {
-      return
-    }
-    
-    val clickedNodeScreenPos = clickedNode.getScreenPosition
-    camera.moveCenter(clickedNodeScreenPos)
-    treeSprite.selectNode(clickedNode, decompDepth)
-    
-    // Let registered Reactors know that the node has been clicked.
-    publish(new NodeClickedEvent(clickedNode))
-    
-    camera.x = clickedNode.worldX
-    camera.y = clickedNode.worldY
+  def selectNode(node : NodeSprite) : Unit = {
+    renderThread.selectNode(node)
   }
   
-  /** 
-   * Performs one iteration through the visualization panel's logic. 
-   * It's mostly just processing mouse input for controlling the camera and selecting nodes.
-   */
-  def threadlogic : Unit = {
-    // There could be a change in the mouse's position between calls to mouse due
-    // to the threaded nature of this Level. So, make sure we're using only one
-    // mouse screen position per iteration.
-    mouseScreenPosition = mouse.position
-    
-    if(mouse.justLeftPressed || mouse.justRightPressed) {
-      //    requestFocusInWindow
-      val clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
-      selectNode(clickedNode)
-      camera.startDrag(mouseScreenPosition)
-    }
-    if(mouse.isLeftPressed) {
-      camera.drag(mouseScreenPosition)
-      camera.startDrag(mouseScreenPosition)
-    }
-    if(mouse.wheel == -1)
-      camera.zoomAtScreen(10.0/7.0, mouseScreenPosition)
-    if(mouse.wheel == 1)
-      camera.zoomAtScreen(7.0/10.0, mouseScreenPosition)
-    
-    // update the camera's transform based on its new state.
-    camera.pWidth = game.size.width
-    camera.pHeight = game.size.height
-    camera.updateTransform
-    
-    // update the mouse's current world coordinates
-    mouseWorldPosition = camera.screenToWorldCoords(mouseScreenPosition)
+  /** Gets the current treesprite in the visualization. */
+  def treeSprite : TreeSprite = {
+    renderThread.getTreeSprite
   }
   
   
   /** Changes the tree currently being viewed. */
   def changeTree(newTree : TreeSprite) : Unit = {
-    treeSprite = newTree
-    treeSprite.selectNode(treeSprite.root, decompDepth) 
-    camera.reset
+    renderThread.changeTree(newTree)
   }
   
-  /** Gets the decompression depth of trees in this visualization. Default implementation returns 3.*/
-  def decompDepth : Int = 3
+  /** Returns the mouse's position in the panel's view coordinates. */
+  def mouseScreenPosition : Point2D = {
+    renderThread.getMouseScreenPosition
+  }
   
-}
-
-/** */
-object TreeVisLevel {
-  val imageType = BufferedImage.TYPE_INT_ARGB
 }
 
 
@@ -223,57 +138,198 @@ object TreeVisLevel {
  * rendering, so that the EDT doesn't get tied up during large tree renderings. 
  */
 class TreeVisThread(val treeVis : TreeVisLevel, val gt : GameTimer) extends Thread { 
+  
+  /** The sprite representing the visualization of the rewrite tree */
+  var treeSprite : TreeSprite = null
+  val treeLock = new Object
+  
+  /** The Image containing the latest rendering of the visualization tree. */
+  var renderedImage : Image = new BufferedImage(640,480, BufferedImage.TYPE_INT_ARGB)
+  val imgLock = new Object
+  
+  /** The panel's camera for panning around and zooming in the visualization */
+  val camera = new Camera(0, 0, 640, 480)
+  
+  /** Keeps track of the mouse's position in world coordinates */
+  var mouseWorldPosition : Point2D = new Point2D.Double(0,0)
+  
+  /** Keeps track of the mouse's position in screen coordinates. Necessary because of multi-threadedness. */
+  var mouseScreenPosition : Point2D = new Point2D.Double(0,0)
+  
+  /** Gets the decompression depth of trees in this visualization. */
+  def decompDepth : Int = EvaConfig.decompDepth
+  
+  /** run exits safely when this becomes true. */
+  var exitFlag = false
+  
+  
+  override def run {
     
-    var isReady = false
-    var exitFlag = false
-    
-    override def run {
-        
-      while(!exitFlag) {
-        // block until the TreeVisPanel says it should render the next frame.
-        while(!isReady) {
-            Thread.sleep(1)
-            if(exitFlag) return
-        }
-        try {
-          // run the panel's logic before rendering it.
-          treeVis.threadlogic
-
-          // update the TreeVisPanel's image
-          treeVis.renderedImage = render
-        }
-        catch {
-          case _: Throwable =>
-        }
-        finally {
-          // update the frame rate counter
-          gt.updateFrameRateCounter
-          
-          // we're done, so unlock the TreeVisPanel
-          treeVis.timerLock = false
-          isReady = false
-        }
-      } // endwhile
+    // The thread does a logic-render loop as fast as possible.
+    while(!exitFlag) {
+      Thread.sleep(1)
+      
+      // Run the panel's logic and then render it.
+      logic
+      setImage(createdRenderedFrame)
+    } // endwhile
+  }
+  
+  
+  
+  /**
+   * Selects a node in the current tree visualization, 
+   * does some fancy camera work to make sure that that node stays in the same place onscreen
+   * after the graph is re-expanded, and displays that node's information in the atom properties panel.
+   * @param node    The node being selected in our tree.
+   */
+  def selectNode(node : NodeSprite) : Unit = {
+    // don't allow null parameter.
+    if(node == null) {
+      return
     }
+    
+    
+    treeLock.synchronized {
+      try {
+        val clickedNodeScreenPos = node.getScreenPosition
+        camera.moveCenter(clickedNodeScreenPos)
+        treeSprite.selectNode(node, decompDepth)
+        
+        // Let registered Reactors know that the node has been clicked.
+        treeVis.publish(new NodeClickedEvent(node))
+        
+        camera.x = node.worldX
+        camera.y = node.worldY
+      }
+      catch {
+        case e : Throwable => 
+          Dialog.showMessage(mainGUI.visPanel, e.toString, "Error", Dialog.Message.Error)
+      }
+    }
+  }
+  
+  /** 
+   * Performs one iteration through the visualization panel's logic. 
+   * It's mostly just processing mouse input for controlling the camera and selecting nodes.
+   */
+  def logic : Unit = {
+    val mouse = treeVis.mouse
+    val game = treeVis.game
+    
+    // There could be a change in the mouse's position between calls to mouse due
+    // to the threaded nature of this Level. So, make sure we're using only one
+    // mouse screen position per iteration.
+    treeLock.synchronized {
+      mouseScreenPosition = mouse.position
+    }
+    
+    // select and begin dragging nodes
+    if(mouse.justLeftPressed || mouse.justRightPressed) {
+      var clickedNode : NodeSprite = null
+      treeLock.synchronized {
+        clickedNode = treeSprite.detectMouseOver(mouseWorldPosition)
+      }
+      
+      selectNode(clickedNode)
+      
+      treeLock.synchronized {
+        camera.startDrag(mouseScreenPosition)
+      }
+    }
+    
+    treeLock.synchronized {
+      
+      // drag-pan camera
+      if(mouse.isLeftPressed) {
+        camera.drag(mouseScreenPosition)
+        camera.startDrag(mouseScreenPosition)
+      }
+      
+      // Zooming
+      if(mouse.wheel == -1) {
+        camera.zoomAtScreen(10.0/7.0, mouseScreenPosition)
+      }
+      if(mouse.wheel == 1) {
+        camera.zoomAtScreen(7.0/10.0, mouseScreenPosition)
+      }
+      
+      // update the camera's transform based on its new state.
+      camera.pWidth = game.size.width
+      camera.pHeight = game.size.height
+      camera.updateTransform
+      
+      // update the mouse's current world coordinates
+      mouseWorldPosition = camera.screenToWorldCoords(mouseScreenPosition)
+    }
+  }
+  
+  
+  /** Changes the tree currently being viewed. */
+  def changeTree(newTree : TreeSprite) : Unit = {
+    treeLock.synchronized {
+      treeSprite = newTree
+      treeSprite.selectNode(treeSprite.root, decompDepth) 
+      camera.reset
+    }
+  }
+  
+  
+  /** Returns the current tree sprite. */
+  def getTreeSprite : TreeSprite = {
+    treeLock.synchronized {
+      treeSprite
+    }
+  }
+  
+  /** Returns the mouse's screen position. */
+  def getMouseScreenPosition : Point2D = {
+    treeLock.synchronized {
+      mouseScreenPosition
+    }
+  }
+  
+  
+  
+  
   
   /** Prepares an image containing the current frame rendering for the tree visualization.*/
-  def render : Image = {
-    val image = treeVis.game.peer.createVolatileImage(treeVis.game.size.width, 
-                      treeVis.game.size.height)
+  def createdRenderedFrame : Image = {
+    val game = treeVis.game
+    
+    val image = game.peer.createVolatileImage(game.size.width, 
+                      game.size.height)
     var g = image.createGraphics
 
     // white background
     g.setColor(new Color(0xffffff))
-    g.fillRect(0,0,treeVis.game.size.width, treeVis.game.size.height)
+    g.fillRect(0, 0, game.size.width, game.size.height)
     
-    // apply the Camera transform and then render.
-    g.setTransform(treeVis.camera.getTransform)
-    treeVis.treeSprite.camera = treeVis.camera
-    treeVis.treeSprite.render(g)
-    g.dispose
+    treeLock.synchronized {
+      // apply the Camera transform and then render.
+      g.setTransform(camera.getTransform)
+      treeVis.treeSprite.camera = camera
+      treeVis.treeSprite.render(g)
+      g.dispose
+    }
     
     // return the completed image
     image
+  }
+  
+  
+  /** Sets the rendered image available for use after rendering. */
+  def setImage(img : Image) : Unit = {
+    imgLock.synchronized {
+      renderedImage = img
+    }
+  }
+  
+  /** Gets the latest rendered image available for use. */
+  def getImage : Image = {
+    imgLock.synchronized {
+      renderedImage
+    }
   }
 }
 

@@ -39,6 +39,7 @@ package ornl.elision.core
 
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
+import ornl.elision.core.BasicAtomComparator._
 
 /* Notes on De Bruijn indices.
  * 
@@ -208,8 +209,8 @@ extends BasicAtom with Applicable {
     }
   }
   
-  override lazy val hashCode = lvar.hashCode * 31 + body.hashCode
-  lazy val otherHashCode = lvar.otherHashCode + 8191*body.otherHashCode
+  override lazy val hashCode = lvar.hashCode * 12289 + body.hashCode
+  override lazy val otherHashCode = lvar.otherHashCode + 8191*body.otherHashCode
   
   override def equals(other: Any) = other match {
     case lambda:Lambda =>

@@ -64,11 +64,15 @@ All rights reserved.
 	
 	
   	<!-- A target to configure the build for release. -->
-	<target name="release" unless="build.debug"
+	<target name="release-config" unless="build.debug"
 		description="Select release configuration.">
 		<property name="build.optimize" value="on"/>
 		<property name="build.debug"    value="off"/>
 		<echo level="info">Building RELEASE configuration.</echo>
+	</target>
+	
+	<target name="release" unless="build.debug"
+		description="Build release configuration." depends="release-config,jars">
 	</target>
 
 
@@ -180,9 +184,14 @@ bin, lib, and other folders.</echo>
 	<target name="compile" depends="init"
 		description="Compile all Scala code.">
 		<mkdir dir="${build.bin}"/>
+		<echo>  Deprecation: ... on</echo>
+	    <echo>  Unchecked: ..... on</echo>
+	  	<echo>  Optimise: ...... ${build.optimize}</echo>
+
 		<scalac
 			destdir		="${build.bin}"
 			classpathref	="build.classpath"
+			optimise="${build.optimize}"
 			deprecation	="on"
 			unchecked	="on">
 			<src path="${build.src}"/>

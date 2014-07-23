@@ -134,8 +134,9 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
   private def detectMouseOverRec(mouseWorld : geom.Point2D, node : NodeSprite) : NodeSprite = {
     
     // check if the mouse is overlapping this node.
-    if(node.getCollisionBox.contains(mouseWorld.getX, mouseWorld.getY))
+    if(node.getCollisionBox.contains(mouseWorld.getX, mouseWorld.getY)) {
       node
+    }
     else {
       // recursively check if the mouse is overlapping one of its children.
       for(i <- 0 to node.children.size - 1) {
@@ -144,12 +145,13 @@ class TreeSprite(x : Double, y : Double) extends Sprite(x,y) {
         // check children that match our heuristics.
         if(!child.isCompressed && mouseWorld.getY >= child.subTreeUpperY && mouseWorld.getY <= child.subTreeLowerY) {
           val result = detectMouseOverRec(mouseWorld, child)
-          if(result != null)
+          if(result != null) {
             return result
-        } // endif
-      } // endfor
+          }
+        } 
+      }
       null
-    } //endif
+    }
   }
   
 

@@ -310,7 +310,6 @@ object Version {
 	      // So here we just store it and let the registry pull it later.
 	      try {
 	        val clazz = Class.forName(fqcn).newInstance()
-	        println(clazz.getClass().getName())
 	        _dialects += (Symbol(name) -> clazz.asInstanceOf[AnyRef])
 	      } catch {
 	        case ex: Exception =>
