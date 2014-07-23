@@ -70,6 +70,7 @@ import ornl.elision.core.INTEGER
 import ornl.elision.core.MapPair
 import ornl.elision.core.Apply
 import ornl.elision.core.OPREF
+import ornl.elision.core.BOOLEAN
 
 /**
  * Parse Elision source.
@@ -552,12 +553,31 @@ class EliParser(context: Context, source: Reader, val name: String,
           }
       }
     } else {
-      // Parse the type and build the atom.
+      // Parse the type and build the atom.  Some atom / type combinations are
+      // special.
       val theType = parseType(SYMBOL)
-      if (theType == OPREF) {
-        context.operatorLibrary(text)
-      } else {
-        SymbolLiteral(theType, Symbol(text))
+      theType match {
+        case OPREF =>
+          // This is intended to be an operator.
+          context.operatorLibrary(text)
+          
+        case BOOLEAN =>
+          // This might be a Boolean literal.
+          text match {
+            case "true" => true
+            case "false" => false
+            case _ => SymbolLiteral(theType, Symbol(text))
+          }
+          
+        case TypeUniverse =>
+          // This might be a known root type.
+          val lookup = (if (text == "_") "ANY" else text)
+          NamedRootType.get(lookup) match {
+            case Some(nrt) =>
+              nrt
+            case _ =>
+              SymbolLiteral(TypeUniverse, Symbol(text), true)
+          }
       }
     }
   }
