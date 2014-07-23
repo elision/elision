@@ -39,13 +39,13 @@ package ornl.elision.core
 
 import scala.collection.mutable.HashSet
 import scala.collection.IndexedSeq
-
 import ornl.elision.util.OmitSeq
 import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.AMatcher
 import ornl.elision.core.matcher.CMatcher
 import ornl.elision.core.matcher.ACMatcher
 import ornl.elision.core.matcher.SequenceMatcher
+import scala.collection.mutable.HashMap
 
 /**
  * Fast access to an untyped empty sequence.
@@ -54,7 +54,7 @@ object EmptySeq extends AtomSeq(NoProps, IndexedSeq())
 
 /**
  * An atom sequence is just that: a sequence of atoms.
- * 
+ *
  * == Properties ==
  * Atom sequences may have properties like operators.  That is, they may be
  * commutative, associative, idempotent, and may have absorbers and identities.
@@ -62,56 +62,56 @@ object EmptySeq extends AtomSeq(NoProps, IndexedSeq())
  * example, a list that is associative, commutative, and idempotent is
  * essentially a set.  If not idempotent, it is a multiset.  Properties are
  * specified with an algebraic properties object.
- * 
+ *
  * == Use ==
- * Create a list by specifying the properties and then providing a list of 
+ * Create a list by specifying the properties and then providing a list of
  * atoms to include in the list.  The atoms are specified using an instance
  * of an `IndexedSeq`.
- * 
+ *
  * @param props		The properties for this atom sequence.
  * @param xatoms	The sequence of atoms in this sequence.  Note that, depending
  * on the specified properties, the stored sequence may be different.
  */
 class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
-extends BasicAtom with IndexedSeq[BasicAtom] {
+  extends BasicAtom with IndexedSeq[BasicAtom] {
   require(props != null)
-  
+
   /**
    * Whether this sequence is specified to be associative.  Note that false here
    * just means the sequence was not marked as associative; it's associativity
    * may be unspecified.
    */
   lazy val associative = props.isA(false)
-  
+
   /**
    * Whether this sequence is specified to be commutative.  Note that false here
    * just means the sequence was not marked as commutative; it's associativity
    * may be unspecified.
    */
   lazy val commutative = props.isC(false)
-  
+
   /**
    * Whether this sequence is specified to be idempotent.  Note that false here
    * just means the sequence was not marked as idempotent; it's associativity
    * may be unspecified.
    */
   lazy val idempotent = props.isI(false)
-  
+
   /**
    * The absorber for this sequence, if any.
    */
   lazy val absorber = props.absorber
-  
+
   /**
    * The identity for this sequence, if any.
    */
   lazy val identity = props.identity
 
   /**
-   * The names of the operators appearing in the sequence. This is
-   * populated in process().
+   * The names and number of occurrences of the operators appearing in the 
+   * sequence. This is populated in process().
    */
-  private var _operators : java.util.HashSet[String] = null
+  private lazy val _operators: HashMap[String, Int] = new HashMap[String, Int]
 
   /** Precomputed version of isConstant. */
   private var _isConstant = false
@@ -122,7 +122,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * This is a mapping from constants in the sequence to the (zero-based)
    * index of the constant.
    */
-  lazy val constantMap : scala.collection.mutable.OpenHashMap[BasicAtom, Int] = {
+  lazy val constantMap: scala.collection.mutable.OpenHashMap[BasicAtom, Int] = {
     var r = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
     _isConstant = true
     _gotIsConstant = true
@@ -133,16 +133,17 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
     r
   }
 
-  /** Compute these things when processing the atoms in process().
-   * 
-   * Determine whether we have to sort the atoms.  If we know the list is
+  /**
+   * Compute these things when processing the atoms in process().
+   *
+   * Determine whether we have to sort the atoms.  If the list is
    * commutative, then we have to sort it.
    */
-  val atoms : OmitSeq[BasicAtom] = (if (props.isC(false)) process(props, orig_xatoms).sorted(BasicAtomComparator)
-               else process(props, orig_xatoms))
+  val atoms: OmitSeq[BasicAtom] = (if (props.isC(false)) process(props, orig_xatoms).sorted(BasicAtomComparator)
+                                   else process(props, orig_xatoms))
 
   import SymbolicOperator.LIST
-  
+
   /**
    * The type of a sequence is derived from looking at the types of the
    * elements of the sequence.  If the elements all have the same type,
@@ -150,7 +151,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * or the sequence is empty, then the type is ANY.
    */
   lazy val theType = {
-    if (atoms.length == 0) LIST(ANY) 
+    if (atoms.length == 0) LIST(ANY)
     else {
       val aType = atoms(0).theType
       if (atoms.forall(aType == _.theType)) LIST(aType) else LIST(ANY)
@@ -164,56 +165,59 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   lazy val deBruijnIndex = atoms.foldLeft(0)(_ max _.deBruijnIndex)
   lazy val depth = atoms.foldLeft(0)(_ max _.depth) + 1
 
-  def hasOperator(op : Operator) = {
-    ((_operators == null) || (_operators.contains(op.name)))
+  def hasOperator(op: Operator) = {
+    _operators.contains(op.name)
   }
 
-  def hasOperator(op : String) = {
-    ((_operators == null) || (_operators.contains(op)))
+  def hasOperator(op: String) = {
+    _operators.contains(op)
+  }
+
+  def operatorCount(op: Operator): Int = {
+    _operators.getOrElse(op.name, 0)
+  }
+
+  def operatorCount(op: String): Int = {
+    _operators.getOrElse(op, 0)
   }
 
   /**
    * Process the atoms and build the new sequence.  This reduces any included
    * associative sequences, and incidentally makes sure the result is an
    * `OmitSeq`.
-   * 
+   *
    * This method is used during instance construction.
-   * 
+   *
    * @param props	The properties.
    * @param atoms	The atoms.
    * @return	The possibly-new sequence.
    */
   private def process(props: AlgProp,
-                      xatoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
-
+    xatoms: IndexedSeq[BasicAtom]): OmitSeq[BasicAtom] = {
     // If the list is associative, has an identity, has an absorber,
     // or is idempotent we process it.
     val assoc = props.isA(false)
     val ident = props.identity.getOrElse(null)
     val absor = props.absorber.getOrElse(null)
     val idemp = props.isI(false)
+    lazy val seen: HashSet[BasicAtom] = new HashSet[BasicAtom]
     var atoms: OmitSeq[BasicAtom] = xatoms
-    var seen : java.util.HashSet[BasicAtom] = new java.util.HashSet[BasicAtom]
     if (assoc || ident != null || absor != null || idemp) {
-      _operators = new java.util.HashSet[String]
       var index = 0
       var finalIndex = 0
-      var flattened_a = false
       while (index < atoms.size) {
         val atom = atoms(index)
-
         // Track the name of the operator appearing in the sequence.
         atom match {
-          case OpApply(opref, opargs, binds) => _operators.add(opref.operator.name)
+          case OpApply(opref, _, _) => _operators += (opref.operator.name -> (_operators.getOrElse(opref.operator.name, 0) + 1))
           case _ =>
-        }        
+        }
 
         if (absor == atom) {
-
           // Found the absorber.  It must be the only thing in the sequence.
-          _operators = new java.util.HashSet[String]
-           atom match {
-            case OpApply(opref, opargs, binds) => _operators.add(opref.operator.name)
+          _operators.clear
+          atom match {
+            case OpApply(opref, _, _) => _operators += (opref.operator.name -> (_operators.getOrElse(opref.operator.name, 0) + 1))
             case _ =>
           }
 
@@ -222,17 +226,13 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
 
         // The atom is not the identity?
         if (ident != atom) {
-          var flattened = false
           if (assoc) atom match {
             case AtomSeq(oprops, args) if props == oprops =>
-
               // Add the arguments directly to this list.  We can assume this
               // list has already been processed, so no deeper checking is
               // needed.
               atoms = atoms.omit(index)
               atoms = atoms.insert(index, args)
-              flattened = true
-              flattened_a =true
               // We have not yet checked the flattened arguments for
               // idempotency against the unflattened arguments. Therefore
               // we cannot skip the 1st flattened argument when checking
@@ -241,16 +241,14 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
               finalIndex -= 1
 
             case _ =>
-              // Nothing to do in this case.
+            // Nothing to do in this case.
           }
 
           // Handle idempotency. If idempotent and the current argument
           // has already been seen, skip it.
-          if (idemp && !flattened) {
-
+          if (idemp) {
             // Have we already seen this argument?
             if (seen.contains(atom)) {
-
               // Skip the argument due to idempotency.
               atoms = atoms.omit(index)
               finalIndex -= 1
@@ -259,9 +257,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
             // Track that we have seen this argument.
             seen.add(atom)
           }
-        }
-
-        // The atom IS the identity. Skip it.
+        } // The atom IS the identity. Skip it.
         else {
           atoms = atoms.omit(index)
           finalIndex -= 1
@@ -272,22 +268,22 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         finalIndex += 1
       } // Run through all arguments.
     }
-    
+
     // Done!
     return atoms
   }
-  
+
   /**
    * Get an element of this sequence by (zero-based) index.
-   * 
+   *
    * @param idx	The index.
    * @return	The requested element.
    */
   def apply(idx: Int) = atoms(idx)
-  
+
   /** The length of this sequence. */
   def length = atoms.length
-  
+
   /**
    * Try to match this atom sequence, as a pattern, against the provided atom.
    * Atom sequences only match other atom sequences, and they only match if
@@ -297,7 +293,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
    * correctly type subsequences.
    */
   def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-                           hints: Option[Any]): Outcome = {
+    hints: Option[Any]): Outcome = {
     if (BasicAtom.rewriteTimedOut) {
       Fail("Timed out", this, subject)
     } else {
@@ -311,7 +307,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         }
         case _ => None
       }
-      
+
       // Atom sequences only match other atom sequences.
       subject match {
         case as: AtomSeq =>
@@ -319,7 +315,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
           // sequences using the appropriate matching algorithm based on the
           // properties.
           def doMatchSequences(usebinds: Bindings): Outcome = {
-        	  // Now we have to decide how to compare the two sequences.  Note that
+            // Now we have to decide how to compare the two sequences.  Note that
             // if the properties matching changes, this will like have to change,
             // too, to use the matched properties.
             if (associative) {
@@ -336,31 +332,31 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
               }
             }
           }
-        
+
           // Match properties.  This may alter the bindings.
           props.tryMatch(as.props, binds) match {
             case fail: Fail =>
               Fail("Sequence properties do not match.", this, subject,
-                  Some(fail))
-              
+                Some(fail))
+
             case Match(newbinds) =>
               doMatchSequences(newbinds)
-              
+
             case Many(iter) =>
               Outcome.convert(iter ~> (doMatchSequences _),
-                  Fail("Sequence properties do not match.", this, subject))
+                Fail("Sequence properties do not match.", this, subject))
           }
-        
+
         case _ => Fail("An atom sequence may only match another atom sequence.",
-                       this, subject)
+          this, subject)
       }
     }
-	}
+  }
 
   def rewrite(binds: Bindings): (AtomSeq, Boolean) = {
     // Rewrite the properties.
     val (newprop, pchanged) = props.rewrite(binds)
-    
+
     // We must rewrite every child atom, and collect them into a new sequence.
     var schanged = false
     val newseq = atoms map {
@@ -369,7 +365,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
         schanged |= changed
         newatom
     }
-    
+
     // If anything changed, make a new sequence.
     if (pchanged || schanged) {
       (new AtomSeq(newprop, newseq), true)
@@ -377,7 +373,7 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
       (this, false)
     }
   }
-  
+
   def replace(map: Map[BasicAtom, BasicAtom]) = {
     map.get(this) match {
       case Some(atom) =>
@@ -408,15 +404,15 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
   /**
    * Provide a "naked" version of the sequence, without the parens and property
    * indicators.
-   * 
+   *
    * @return	The elements of the sequence, separated by commas.  Items internal
    * 					to the sequence may themselves be lists; that is okay, since the
    * 					parse string is used for those atoms.
    */
   def toNakedString = atoms.mkParseString("", ", ", "")
-  
+
   override lazy val hashCode = atoms.hashCode * 12289 + props.hashCode
-  override lazy val otherHashCode = atoms.otherHashCode + 8191*props.otherHashCode
+  override lazy val otherHashCode = atoms.otherHashCode + 8191 * props.otherHashCode
 
   /**
    * Two sequences are equal iff their properties and atoms are equal.
@@ -434,33 +430,33 @@ extends BasicAtom with IndexedSeq[BasicAtom] {
  * Simplified construction and matching for atom sequences.
  */
 object AtomSeq {
-  
+
   /** An empty atom sequence with no properties. */
   val EmptySeq = new AtomSeq(NoProps, IndexedSeq[BasicAtom]())
-  
+
   /** Get an empty atom sequence with no properties. */
   def apply() = EmptySeq
-  
+
   /**
    * Match an atom sequence's parts.
-   * 
+   *
    * @param seq	The sequence.
    * @return	The properties and the atoms.
    */
   def unapply(seq: AtomSeq) = Some(seq.props, seq.atoms)
-  
+
   /**
    * Make a new atom sequence with the given properties and children.
-   * 
+   *
    * @param props	The properties.
    * @param atoms	The atoms.
    */
   def apply(props: AlgProp, seq: IndexedSeq[BasicAtom]) =
     new AtomSeq(props, seq)
-  
+
   /**
    * Make a new atom sequence with the given properties and children.
-   * 
+   *
    * @param props	The properties.
    * @param atoms	The atoms.
    */
@@ -470,7 +466,7 @@ object AtomSeq {
 
 /**
  * Improve matching of atom sequences as lists of atoms.
- * 
+ *
  * This is intended for use in matching.  The general form is:
  * {{{
  * args match {
@@ -482,7 +478,7 @@ object AtomSeq {
 object Args {
   /**
    * Allow matching of an atom sequence as a sequence.
-   * 
+   *
    * @param seq	The atom sequence.
    * @return	The children as a matchable sequence.
    */
