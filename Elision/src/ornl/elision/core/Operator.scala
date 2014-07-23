@@ -33,8 +33,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================
-* */
+======================================================================*/
 package ornl.elision.core
 
 import scala.compat.Platform
@@ -582,8 +581,10 @@ object SymbolicOperator {
   /** Make an interpreter. */
   private val _main = new scala.tools.nsc.interpreter.IMain(_settings) {}
 
-  // Make the core package available.
-  _main.beQuietDuring(_main.interpret("import ornl.elision.core._"))
+  // Make the core package available.  This is commented out and not simply
+  // removed because it is part of a "to do" that must be revisited.
+  // TODO See how Scala is now handling the classpath.
+  //_main.beQuietDuring(_main.interpret("import ornl.elision.core._ //"))
 
   // Time the compilation of native handlers.
   import ornl.elision.util.Timeable

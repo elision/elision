@@ -36,7 +36,7 @@ import ornl.elision.util.ElisionException
 import ornl.elision.util.{Console, PropertyManager}
 import ornl.elision.util.Loc
 import ornl.elision.core.Dialect
-import scala.io.Source
+import java.io.StringReader
 
 /**
  * A requested setting is not present.
@@ -106,7 +106,7 @@ trait Executor extends PropertyManager {
    * @return	The sequence of atoms.
    */
   def parse(name: String, text: String) =
-    Dialect.parse('elision, name, Source.fromString(text))
+    Dialect.parse('elision, name, new StringReader(text))
     
   /**
    * Get the value of a setting, which must be defined.  If the setting 

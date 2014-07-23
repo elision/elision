@@ -29,6 +29,8 @@
  */
 package ornl.elision.util
 
+import scala.language.implicitConversions
+
 /**
  * This is a class for managing and printing debug output during execution
  * in a manner that "agrees" with Elision.

@@ -39,13 +39,13 @@ package ornl.elision
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.HashSet
-import org.parboiled.errors.ParsingException
 import ornl.elision.util.PrintConsole
 import ornl.elision.util.PropertyManager
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
 import ornl.elision.context.Context
 import ornl.elision.context.Executor
+import scala.language.implicitConversions
 
 /**
  * The core classes and definitions that make up the Elision runtime.

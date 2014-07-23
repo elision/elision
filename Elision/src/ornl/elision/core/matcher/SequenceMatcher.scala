@@ -54,6 +54,7 @@ import ornl.elision.core.wrapBindingsAtom
 import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
+import scala.language.reflectiveCalls
 import ornl.elision.core.AtomSeq
 import ornl.elision.core.Literal
 import ornl.elision.core.Variable
@@ -77,12 +78,15 @@ import ornl.elision.core.NamedRootType
  */
 object SequenceMatcher {
 
-  // add_bind adds a binding to a set of bindings, ensuring that it
-  // does not conflict (i.e. that the name is not bound to a different
-  // value) If bindings conflict, then returns None; otherwise, it
-  // adds e to the bindings in binds, and returns Some(binds++e). If
-  // the binding is already there, then it leaves it alone and returns
-  // the original.
+  /**
+   * Add a binding to a set of bindings, ensuring that it does not conflict
+   * (i.e. that the same name is bound to the same value).  If bindings do
+   * conflict then this will return `None`.  Otherwise this will add the
+   * provided bind to the bindings, unless it is already there.
+   * @param binds     The bindings.
+   * @param e         The bind to add.
+   * @return          The (possibly) modified bindings.
+   */
   def add_bind(binds: Option[Bindings],
     e: (Variable, BasicAtom)): Option[Bindings] = {
     Debugger("SequenceMatcher", "Attempting to add binding " + e.toString + " to " + binds.toString())

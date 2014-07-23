@@ -45,6 +45,7 @@ import ornl.elision.core.matcher.AMatcher
 import ornl.elision.core.matcher.CMatcher
 import ornl.elision.core.matcher.ACMatcher
 import ornl.elision.core.matcher.SequenceMatcher
+import scala.language.reflectiveCalls
 import scala.collection.mutable.HashMap
 
 /**
@@ -115,6 +116,7 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
 
   /** Precomputed version of isConstant. */
   private var _isConstant = false
+  
   /** Whether _isConstant has been set or not. */
   private var _gotIsConstant = false
 

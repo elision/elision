@@ -56,6 +56,7 @@ import ornl.elision.core.Variable
 import ornl.elision.core.Literal
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Loc
+import scala.language.reflectiveCalls
 
 abstract class res
 case class uninitialized() extends res

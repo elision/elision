@@ -53,6 +53,7 @@ import ornl.elision.core.knownExecutor
 import ornl.elision.core.toESymbol
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
+import scala.language.reflectiveCalls
 
 /**
  * Indicate an attempt to re-define an already-known operator.

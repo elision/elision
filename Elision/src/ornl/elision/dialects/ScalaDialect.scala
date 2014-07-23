@@ -33,7 +33,6 @@ import scala.io.Source
 
 import ornl.elision.core.BasicAtom
 import ornl.elision.core.Dialect
-import ornl.elision.parse.ElisionParser
 import ornl.elision.parse.Failure
 import ornl.elision.util.Loc
 
