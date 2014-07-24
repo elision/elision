@@ -219,7 +219,9 @@ class ParseWorker(name: String, reader: Reader) {
             "Possible internal error.")
       }
     }
-    for (count <- 0 until n) {
+    // Replaced the use of a range since ranges appear to be slow.
+    var count = 0
+    while (count < n) {
       if (blocks(block)(next) == EOF) {
         atEof = true
         return
@@ -235,6 +237,7 @@ class ParseWorker(name: String, reader: Reader) {
         block ^= 1
         readOther()
       }
+      count += 1
     } // Consume the requested number of characters.
   }
   
