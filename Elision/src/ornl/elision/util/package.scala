@@ -102,7 +102,7 @@ package object util {
    * @param obj     The next object whose hash should be added.
    */
   def hashify(hash: Int = 0, obj: Any) = {
-    hash * 12289 + obj.hashCode
+    hash + 12289 * obj.hashCode
   }
 
   /**
