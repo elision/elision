@@ -264,7 +264,7 @@ class Variable(typ: BasicAtom, val name: String,
 
   override lazy val hashCode = typ.hashCode * 12289 + name.hashCode
   override lazy val otherHashCode = typ.otherHashCode +
-  8191 * (name.toString).foldLeft(BigInt(0))(other_hashify) + 1
+  8191 * (name.toString).foldLeft(0)(other_hashify) + 1
   override def equals(varx: Any) = varx match {
     case ovar: Variable =>
       feq(ovar, this,
@@ -337,7 +337,7 @@ class MetaVariable(typ: BasicAtom, name: String,
   override val prefix = "$$"
   override lazy val hashCode = typ.hashCode * 12289 + name.hashCode
   override lazy val otherHashCode = typ.otherHashCode +
-    8193 * (name.toString).foldLeft(BigInt(0))(other_hashify) + 1
+    8193 * (name.toString).foldLeft(0)(other_hashify) + 1
 
   /**
    * Make a non-meta version of this metavariable.

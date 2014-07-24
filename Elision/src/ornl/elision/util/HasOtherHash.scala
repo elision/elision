@@ -40,5 +40,5 @@ trait HasOtherHash {
    * An alternate hash code.  This should be computed in a different manner
    * from the usual `hashCode`.
    */
-  val otherHashCode: BigInt
+  val otherHashCode: Int
 }

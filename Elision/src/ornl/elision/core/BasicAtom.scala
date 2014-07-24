@@ -240,7 +240,7 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * lower the chances of a hash collision (both different hash codes
    * will need to collide for a hash collision to occur).
    */
-  val otherHashCode: BigInt
+  val otherHashCode: Int
 
   /** YOU MUST OVERRIDE THIS IN INHERITED CLASSES! */
   override lazy val hashCode = {

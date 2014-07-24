@@ -95,7 +95,7 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   
   /** Generate the hash code. */
   override lazy val hashCode = 12289 * name.hashCode
-  override lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = (name.toString).foldLeft(0)(other_hashify)+1
   
   /**
    * Because of careful use of names, two named root types are equal
