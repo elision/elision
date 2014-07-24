@@ -40,6 +40,7 @@ package ornl.elision.core
 import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
+import scala.reflect.runtime.universe.{TypeTag, typeOf, typeTag, runtimeMirror}
 
 /**
  * Construction of a special form failed for the specified reason.
@@ -199,27 +200,38 @@ class BindingsHolder(loc: Loc, val tag: BasicAtom, val content: BindingsAtom) {
    * @param default			Optional default value if the key is not present.
    * @return	The value of the key, cast to the correct type.
    */
-  def fetchAs[TYPE](key: String, default: Option[TYPE] = None)
-  (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
+  def fetchAs[TYPE: TypeTag](key: String, default: Option[TYPE] = None): TYPE = {
     content.get(key) match {
       case None => default match {
         case Some(value) => value
         case None =>
 	        throw new SpecialFormException(loc,
-	            "Form " + tag.toParseString +
+	            "Special form " + tag.toParseString +
 	            " requires key " + toESymbol(key) + " but it was not given.")
       }
+      
       case Some(item) =>
-        if (mTYPE >:> Manifest.classType(key.getClass))
-          throw new SpecialFormException(loc,
-              "The value for key " + toESymbol(key) + " of form " +
-              tag.toParseString + " is of the wrong type: " +
-              item.toParseString + ". Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(key.getClass) + ".")
-        else
+        val cls = item.getClass()
+        val itemtype =
+          runtimeMirror(cls.getClassLoader).classSymbol(cls).toType
+        if (itemtype <:< typeTag[TYPE].tpe)
           item.asInstanceOf[TYPE]
+        else
+          throw new SpecialFormException(loc,
+              "The value for key #" + toESymbol(key) + " of special form " +
+              tag.toParseString +
+              " is of the wrong type.  Expected a subclass of " +
+              typeTag[TYPE].tpe + " but got " + itemtype + ".")
     }
   }
+  
+  /**
+   * Little method to get the type tag for an object.  Is there a better way?
+   * @param TYPE  The actual type of the object.
+   * @param thing The object.
+   * @return  The type tag for TYPE.
+   */
+  private def getTypeTag[TYPE: TypeTag](thing: TYPE) = typeTag[TYPE]
   
   /**
    * Determine whether the given key is present in this holder.

@@ -36,6 +36,8 @@
 ======================================================================*/
 package ornl.elision.util
 
+import scala.reflect.runtime.universe.{TypeTag, typeOf, weakTypeTag, typeTag, runtimeMirror}
+
 /**
  * The cache contains the wrong type of item for the requested key.
  * 
@@ -68,22 +70,36 @@ trait Cache {
    *                it correctly.
    * @return  The requested value, or the default value.
    */
-  def fetchAs[TYPE](key: String, default: TYPE)
-  (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
+  def fetchAs[TYPE: TypeTag](key: String, default: TYPE) = {
     _cache.get(key) match {
       case None =>
         _cache(key) = default
         default
+        
       case Some(item) =>
-        if (mTYPE >:> Manifest.classType(key.getClass))
-          throw new CacheException(
-              "The cache entry for key " + toQuotedString(key) +
-              " is of the wrong type.  Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(key.getClass) + ".")
-        else
+        try {
           item.asInstanceOf[TYPE]
+        } catch {
+          case except: Throwable =>
+            val cls = item.getClass()
+            val itemtype =
+              runtimeMirror(cls.getClassLoader).classSymbol(cls).toType
+            throw new CacheException(
+              "The cache entry for key " + toQuotedString(key) +
+              " is of the wrong type.  Expected a subclass of " +
+              typeTag[TYPE].tpe +
+              " but got " + itemtype + ".")
+        }
     }
   }
+  
+  /**
+   * Little method to get the type tag for an object.  Is there a better way?
+   * @param TYPE  The actual type of the object.
+   * @param thing The object.
+   * @return  The type tag for TYPE.
+   */
+  private def getTypeTag[TYPE: TypeTag](thing: TYPE) = typeTag[TYPE]
   
   /**
    * Stash a value in the cache for later lookup with `fetchAs`.  Read the
@@ -93,8 +109,7 @@ trait Cache {
    * @param value The value.
    * @return The stored value.
    */
-  def stash[TYPE](key: String, value: TYPE)
-  (implicit mTYPE: scala.reflect.Manifest[TYPE]) = {
+  def stash[TYPE](key: String, value: TYPE) = {
     _cache(key) = value
     value
   }
