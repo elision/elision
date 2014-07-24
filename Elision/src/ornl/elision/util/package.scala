@@ -102,7 +102,7 @@ package object util {
    * @param obj     The next object whose hash should be added.
    */
   def hashify(hash: Int = 0, obj: Any) = {
-    hash * 12289 + obj.hashCode
+    hash + 12289 * obj.hashCode
   }
 
   /**
@@ -119,7 +119,7 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
-  def other_hashify(hash: BigInt = 0, obj: Any): BigInt = {
+  def other_hashify(hash: Int = 0, obj: Any): Int = {
     obj match {
       case ohc: HasOtherHash => hash + 8191*ohc.otherHashCode
       case _ => hash + 8191*obj.hashCode

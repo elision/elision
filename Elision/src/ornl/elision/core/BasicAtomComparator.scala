@@ -82,6 +82,11 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    */
   var _riskyEqual: Boolean = true;
 
+  /**
+   * Whether to use custom equality functions.
+   */
+  var _customEqual: Boolean = false;
+  
   /** 
    * Declare the Elision property for setting whether to do risky
    * equality checking. 
@@ -92,6 +97,18 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       (pm: PropertyManager) => {
         _riskyEqual =
           pm.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
+      })
+      
+  /** 
+   * Declare the Elision property for setting whether to do custom
+   * equality checking. 
+   */
+  knownExecutor.declareProperty("custom_equality_check",
+      "Whether to use custom equality functions to check atoms.",
+      _customEqual,
+      (pm: PropertyManager) => {
+        _customEqual =
+          pm.getProperty[Boolean]("custom_equality_check").asInstanceOf[Boolean]
       })
 
 
@@ -108,13 +125,15 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    * @return  True if equal, false if not.
    */
   def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean = false) = {
-    (atom1 eq atom2) || (
+    (atom1 eq atom2) || 
+    ((
+      (atom1.isConstant == atom2.isConstant) &&
+      (atom1.hashCode == atom2.hashCode) &&
+      (if (_riskyEqual) true else
         (atom1.depth == atom2.depth) &&
-        (atom1.isConstant == atom2.isConstant) &&
         (atom1.isTerm == atom2.isTerm) &&
-        (atom1.hashCode == atom2.hashCode) &&
         (atom1.otherHashCode == atom2.otherHashCode) &&
-        (if (_riskyEqual) true else other)
+        (if(_customEqual) other else true)))
     )
   }
 

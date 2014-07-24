@@ -74,7 +74,7 @@ abstract class OmitSeq[A] extends IndexedSeq[A] with HasOtherHash {
   /**
    * Alternate hash code for OmitSeq 
    */
-  override lazy val otherHashCode = foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = foldLeft(0)(other_hashify)+1
 }
 
 /**
