@@ -1,12 +1,13 @@
 CHANGES
 =======
 
-Version 0.5 to Present
-----------------------
+Version 0.5 to Version 0.6
+--------------------------
 * Elision now has a bit string literal that can represent a fixed-length array
   of bits.  There is a library bootstrap/Bitstring.eli that can process these
   as signed / unsigned numbers in two's complement, construct and manipulate
   them in various ways.
+* The parser has been rewritten for better performance.
 
 Version 0.4 to Version 0.5
 --------------------------
