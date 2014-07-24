@@ -76,7 +76,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
   override lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
-  override lazy val hashCode = this.toString.hashCode
+  override lazy val hashCode = 12289 * mybinds.hashCode
 
   /** The type of a bindings atom is the special bindings type. */
   val theType = ANY

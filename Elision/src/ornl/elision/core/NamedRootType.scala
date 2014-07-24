@@ -94,7 +94,7 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   override def rewrite(binds: Bindings) = (this, false)
   
   /** Generate the hash code. */
-  override lazy val hashCode = name.hashCode()
+  override lazy val hashCode = 12289 * name.hashCode
   override lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
   
   /**
