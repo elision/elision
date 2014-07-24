@@ -151,7 +151,13 @@ class ParseWorker(name: String, reader: Reader) {
           n + " characters ahead.")
     }
     val buf = new StringBuilder()
-    for (index <- 0 until n) buf.append(look(index))
+    // This replaces the single line using a range as ranges seem to be slow
+    // at present.
+    var index = 0
+    while (index < n) {
+      buf.append(look(index))
+      index += 1
+    } // Grab the next n characters.
     buf.toString()
   }
   
@@ -168,9 +174,13 @@ class ParseWorker(name: String, reader: Reader) {
           BLOCKSIZE + " characters, but an attempt was made to read " +
           s.length + " characters ahead.")
     }
-    for (index <- 0 until s.length) {
+    // This replaces the shorter code using a range as ranges appear to be
+    // slow.
+    var index = 0
+    while (index < s.length) {
       if (s(index) != look(index)) return false
-    }
+      index += 1
+    } // Check the string against the lookahead.
     return true
   }
   
@@ -209,7 +219,9 @@ class ParseWorker(name: String, reader: Reader) {
             "Possible internal error.")
       }
     }
-    for (count <- 0 until n) {
+    // Replaced the use of a range since ranges appear to be slow.
+    var count = 0
+    while (count < n) {
       if (blocks(block)(next) == EOF) {
         atEof = true
         return
@@ -225,6 +237,7 @@ class ParseWorker(name: String, reader: Reader) {
         block ^= 1
         readOther()
       }
+      count += 1
     } // Consume the requested number of characters.
   }
   
