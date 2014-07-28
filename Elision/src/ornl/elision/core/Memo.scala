@@ -155,38 +155,38 @@ object Memo {
    * rewrite limit is stored!
    */
   private var _cache = 
-    new HashMap[((Int,BigInt),BitSet),(BasicAtom,Int)]() 
+    new HashMap[((Int,Int),BitSet),(BasicAtom,Int)]() 
   
   /** 
    * Keeps a count of how many times things in _cache have been accessed since
    * the last iteration of the replacement policy algorithm. 
    */  
   private var _cacheCounter =
-    new HashMap[((Int,BigInt),BitSet), Long]()
+    new HashMap[((Int,Int),BitSet), Long]()
   
   /**
    * Queue for implementing a FIFO replacement policy.
    */  
-  private var _cacheFIFO = new Queue[((Int,BigInt),BitSet)]
+  private var _cacheFIFO = new Queue[((Int,Int),BitSet)]
     
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
   private var _normal = 
-    new HashMap[((Int,BigInt),BitSet),Unit]() 
+    new HashMap[((Int,Int),BitSet),Unit]() 
   
   /** 
    * Keeps a count of how many times things in _normal have been accessed 
    * since the last iteration of the replacement policy algorithm. 
    */  
   private var _normalCounter =
-    new HashMap[((Int,BigInt),BitSet), Long]()
+    new HashMap[((Int,Int),BitSet), Long]()
   
   /**
    * Queue for implementing a FIFO replacement policy.
    */  
-  private var _normalFIFO = new Queue[((Int,BigInt),BitSet)]  
+  private var _normalFIFO = new Queue[((Int,Int),BitSet)]  
     
     
   /**
@@ -524,7 +524,7 @@ object Memo {
        
     // I haz a buckit. This will keep track of the items that haven't been 
     // accessed since the last checkup.
-    var bucket = new ListBuffer[((Int,BigInt),BitSet)]
+    var bucket = new ListBuffer[((Int,Int),BitSet)]
     
     val keyIterator = _cache.keySet.iterator
     while(keyIterator.hasNext) {
@@ -560,7 +560,7 @@ object Memo {
     var lowestCount = Long.MaxValue
     
     // I haz a buckit. This will keep track of the items with the lowest count.
-    var bucket = new ListBuffer[((Int,BigInt),BitSet)]
+    var bucket = new ListBuffer[((Int,Int),BitSet)]
     
     // find the items with the lowest count and put their keys in the bucket.
     // An iterator was used here because there wasn't a very convenient way to 
@@ -622,7 +622,7 @@ object Memo {
        
     // I haz a buckit. This will keep track of the items that haven't been 
     // accessed since the last checkup.
-    var bucket = new ListBuffer[((Int,BigInt),BitSet)]
+    var bucket = new ListBuffer[((Int,Int),BitSet)]
     
     val keyIterator = _normal.keySet.iterator
     while(keyIterator.hasNext) {
@@ -659,7 +659,7 @@ object Memo {
     var lowestCount = Long.MaxValue
     
     // I haz a buckit. This will keep track of the items with the lowest count.
-    var bucket = new ListBuffer[((Int,BigInt),BitSet)]
+    var bucket = new ListBuffer[((Int,Int),BitSet)]
     
     // find the items with the lowest count and put their keys in the bucket.
     // An iterator was used here because there wasn't a very convenient way to 
@@ -695,7 +695,7 @@ object Memo {
   }
   
   /** safely increments the counter for a key in _cacheCounter. */
-  def _incCacheCounter(key : ((Int,BigInt),BitSet)) {
+  def _incCacheCounter(key : ((Int,Int),BitSet)) {
     val counterHasKey = _cacheCounter.containsKey(key)
     
     val curCount = if(counterHasKey) {
@@ -708,7 +708,7 @@ object Memo {
   }
   
   /** safely increments the counter for a key in _normalCounter. */
-  def _incNormalCounter(key : ((Int,BigInt),BitSet)) {
+  def _incNormalCounter(key : ((Int,Int),BitSet)) {
     val counterHasKey = _normalCounter.containsKey(key)
     
     val curCount = if(counterHasKey) {
