@@ -69,12 +69,12 @@ abstract class OmitSeq[A] extends IndexedSeq[A] with HasOtherHash {
    * computation for an IndexedSeq uses toString (which is bad), so
    * hashCode has been overwritten.
    */
-  override lazy val hashCode = this.foldLeft(0)(hashify)+1
+  override lazy val hashCode = this.foldLeft(0)(hashify)
   
   /**
    * Alternate hash code for OmitSeq 
    */
-  override lazy val otherHashCode = foldLeft(0)(other_hashify)+1
+  override lazy val otherHashCode = foldLeft(0)(other_hashify)
 }
 
 /**

@@ -102,7 +102,9 @@ package object util {
    * @param obj     The next object whose hash should be added.
    */
   def hashify(hash: Int = 0, obj: Any) = {
-    hash + 12289 * obj.hashCode
+    // Add a constant to the end so that single element collections have a
+    // different hashcode than the element they contain.    
+    hash * 12289 + obj.hashCode + 31
   }
 
   /**
