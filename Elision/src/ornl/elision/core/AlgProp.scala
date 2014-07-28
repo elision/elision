@@ -38,7 +38,6 @@
 package ornl.elision.core
 
 import ornl.elision.util.ElisionException
-import ornl.elision.util.other_hashify
 import ornl.elision.util.Loc
 
 /**
