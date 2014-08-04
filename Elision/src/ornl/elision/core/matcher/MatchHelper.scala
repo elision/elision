@@ -69,7 +69,12 @@ object MatchHelper {
   def eliminateConstants(plist: AtomSeq, slist: AtomSeq): (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
     var patterns = plist.atoms
     var subjects = slist.atoms
-    for ((pat, pindex) <- plist.constantMap) {
+    var pat: BasicAtom = null
+    var pindex = -1
+
+    plist.constantMap.foreach(((thing): (BasicAtom, Int)) => {
+      pat = thing._1
+      pindex = thing._2
       slist.constantMap.get(pat) match {
         case None =>
           return (patterns, subjects, Some(Fail("Element " + pindex +
@@ -78,8 +83,8 @@ object MatchHelper {
           patterns = patterns.omit(pindex)
           subjects = subjects.omit(sindex)
       }
-    }
-    
+    })
+
     Debugger("matching") {
       Debugger("matching", "Removing Constants: Patterns: " +
         patterns.mkParseString("", ",", ""))
