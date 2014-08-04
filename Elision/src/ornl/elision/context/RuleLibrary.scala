@@ -362,18 +362,24 @@ extends Fickle with Mutable {
     
     // Now try every rule until one applies.
     Debugger("rewrite", "Rewriting atom: " + atom.toParseString)
-    for (rule <- rules) {
-      Debugger("rewrite", "Trying rule: " + rule.toParseString)
-      val (newatom, applied) = rule.doRewrite(atom)
-      if (applied) {
+    var _newatom = atom
+    var _applied = false
+    var i = 0
+    val rulelen = rules.length
+    while(i < rulelen && !_applied)
+    {
+      val (newatom, applied) = rules(i).doRewrite(atom)
+      if (applied == true) {
         // Return the rewrite result.
         Debugger("rewrite", "Rewrote to: " + newatom.toParseString)
-        return (newatom, true)
+        _newatom = newatom
+        _applied = applied
       }
-    } // Try all rules.
-
+      i += 1
+    }
+    
     Debugger("rewrite", "No rule applied to: " + atom.toParseString)
-    return (atom, false)
+    return (_newatom, _applied)
   }
   
   /**
@@ -822,16 +828,19 @@ extends Fickle with Mutable {
       // Get the rules.
       val rules = getRules(atom, Set(name))
       // Now try every rule until one applies.
-      for (rule <- rules) {
-      	val (newatom, applied) = rule.doRewrite(atom, hint)
-      	if (applied) {
-
-          // Return the rewrite result.
-          return (newatom, applied)
+      var _newatom = atom
+      var _applied = false
+      var i = 0
+      var len = rules.length
+      while(i < len && !_applied){
+        val (newatom, applied) = rules(i).doRewrite(atom, hint)
+        if (applied) {
+          _newatom = newatom
+          _applied = applied
         }
-      } // Try every rule until one applies.
-
-      return (atom, false)
+      }
+    
+      return (_newatom, _applied)
     }
     
     def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings, hints: Option[Any]) =
