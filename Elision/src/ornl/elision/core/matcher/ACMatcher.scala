@@ -401,9 +401,15 @@ object ACMatcher {
           var newPats = scala.collection.immutable.Vector.empty[BasicAtom]
           var newSubs = subs
           var last_sub_len = Int.MaxValue
-          for (patItem <- pats.takeWhile(p => !failFast)) {
+          // For comprehensions are slow in scala.
+          // for (patItem <- pats.takeWhile(p => !failFast)) {
+          val patslen = pats.length
+          var patindex = 0          
+          var patItem = pats(patindex)
+          while(patindex < patslen && !failFast){
             // Is the current pattern variable currently bound to
             // something?
+            patItem = pats(patindex)
               patItem match {
                 case patVar: Variable => {
                   // The pattern item is a variable. This is what we
@@ -457,6 +463,7 @@ object ACMatcher {
                   failFast = true
                 }
               }
+              patindex += 1
           } // Loop over patterns.
 
           // If we get here all of the previously bound pattern
