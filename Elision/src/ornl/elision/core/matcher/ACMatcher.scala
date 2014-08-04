@@ -56,6 +56,7 @@ import ornl.elision.core.Variable
 import ornl.elision.core.Literal
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Loc
+import ornl.elision.util.seqloop
 import scala.language.reflectiveCalls
 
 abstract class res
@@ -404,12 +405,14 @@ object ACMatcher {
           // For comprehensions are slow in scala.
           // for (patItem <- pats.takeWhile(p => !failFast)) {
           val patslen = pats.length
-          var patindex = 0          
-          var patItem = pats(patindex)
-          while(patindex < patslen && !failFast){
+          //var patindex = 0          
+          var patItem = pats(0)
+          //while(patindex < patslen && !failFast){
+          seqloop(pats, (patindex: Int) =>
+            {
             // Is the current pattern variable currently bound to
             // something?
-            patItem = pats(patindex)
+              patItem = pats(patindex)
               patItem match {
                 case patVar: Variable => {
                   // The pattern item is a variable. This is what we
@@ -463,8 +466,7 @@ object ACMatcher {
                   failFast = true
                 }
               }
-              patindex += 1
-          } // Loop over patterns.
+            }) // Loop over patterns.
 
           // If we get here all of the previously bound pattern
           // variables that still appear in the pattern have at least 1

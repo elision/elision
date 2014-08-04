@@ -44,6 +44,7 @@ package ornl.elision
  * Elision system.  Any part of Elision may use it, but it cannot use other
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
+import scala.collection.IndexedSeq
 package object util {
   /**
    * Turn a string into a properly-escaped double-quoted string.  The following
@@ -127,4 +128,33 @@ package object util {
       case _ => hash + 8191*obj.hashCode
     }
   }
+  
+  
+  // The following two functions exist because for comprehensions are slow in 
+  // Scala, but typing while loops over and over is annoying. If other looping
+  // contructs get better, we can switch these out.
+  /**
+   * Iterate a fixed number of times using a while loop.
+   * 
+   * @param start     Where to begin iteration
+   * @param end       Where to end iteration
+   * @param inclusive Whether to include the uppper bound
+   */
+  def countedloop(start: Int, end: Int, increment : Int = 1, closure : Unit => Unit){
+    var i = start
+    while(i < end){
+      closure()
+      i += 1
+    }
+  }
+  
+  def seqloop(collection : Seq[Any], closure : Int => Unit){
+    var i = 0
+    val len = collection.length
+    while(i < len){
+      closure(i)
+      i += 1
+    }
+  }
+  
 }
