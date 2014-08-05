@@ -128,9 +128,11 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     var r = scala.collection.mutable.OpenHashMap[BasicAtom, Int]()
     _isConstant = true
     _gotIsConstant = true
-    for (i <- 0 until atoms.length) {
+    var i = 0
+    while (i < atoms.length) {
       if (atoms(i).isConstant) r(atoms(i)) = i
       _isConstant = _isConstant && atoms(i).isConstant
+      i += 1
     }
     r
   }

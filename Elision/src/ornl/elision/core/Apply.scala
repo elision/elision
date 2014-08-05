@@ -45,6 +45,7 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
 import scala.collection.JavaConversions._
 import ornl.elision.util.ElisionException
+import ornl.elision.util.seqloop
 import ornl.elision.core.BasicAtomComparator._
 
 /**
@@ -77,18 +78,18 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
 
   if (BasicAtom.trackedOperators.contains(
     this.op match {
-      case x : Operator => x.name
-      case x : OperatorRef => x.name
-      case _ => ""
-    }
-  )) {
+      case x: Operator    => x.name
+      case x: OperatorRef => x.name
+      case _              => ""
+    })) {
     hasTrackedOps = true
   }
+  
   arg match {
     case x: AtomSeq => {
-      for (a <- x) {
-        hasTrackedOps = hasTrackedOps || a.hasTrackedOps
-      }
+      seqloop(x, (i:Int) =>
+        hasTrackedOps = hasTrackedOps || x(i).hasTrackedOps
+      )
     }
     case _ => {}
   }

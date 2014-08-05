@@ -44,6 +44,7 @@ package ornl.elision
  * Elision system.  Any part of Elision may use it, but it cannot use other
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
+import scala.collection.IndexedSeq
 package object util {
   /**
    * Turn a string into a properly-escaped double-quoted string.  The following
@@ -101,6 +102,7 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
+  @inline
   def hashify(hash: Int = 0, obj: Any) = {
     // Add a constant to the end so that single element collections have a
     // different hashcode than the element they contain.    
@@ -127,4 +129,47 @@ package object util {
       case _ => hash + 8191*obj.hashCode
     }
   }
+  
+  
+  // The following two functions exist because for comprehensions are slow in 
+  // Scala, but typing while loops over and over is annoying. If other looping
+  // contructs get better, we can switch these out.
+  /**
+   * Execute the closure a fixed number of times.
+   * 
+   * @param start     Where to begin iteration
+   * @param end       Where to end iteration
+   * @param increment How much to increment the index on each loop
+   * @param inclusive Whether to include the uppper bound
+   * @param closure   The function to execute. The argument to the closure is
+   *                   the loop index.
+   */  
+  @inline
+  def countedloop(start: Int, end: Int, increment : Int = 1, inclusive : Boolean = true, closure : Int => Unit){
+    var i = start
+    val _end = if(inclusive) end+1 else end
+    while(i < _end){
+      closure(i)
+      i += increment
+    }
+  }
+  
+  /**
+   * Iterate over a sequence. The argument to the closure is the current
+   * sequence index.
+   * 
+   * @param collection     The collection to iterate over.
+   * @param closure   The function to execute. The argument to the closure is
+   *                   the loop index.
+   */
+  @inline
+  def seqloop(collection : Seq[Any], closure : Int => Unit){
+    var i = 0
+    val len = collection.length
+    while(i < len){
+      closure(i)
+      i += 1
+    }
+  }
+  
 }

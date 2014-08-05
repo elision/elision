@@ -41,6 +41,7 @@ import ornl.elision.context.Context
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.util.seqloop
 
 /**
  * The ruleset strategy.
@@ -198,7 +199,7 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
     // we include it.
     var newargs: OmitSeq[BasicAtom] = EmptySeq
     var changed = false
-    for (index <- 0 until args.length) {
+    seqloop(args, (index : Int) => {
       // Get the argument.
       var arg = args(index)
       // Get the corresponding parameter.
@@ -217,7 +218,7 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
       }
       // Add the argument to the new argument list.
       newargs :+= arg
-    } // Loop over arguments.
+    }) // Loop over arguments.
     // If anything changed, make a new apply and return it.
     if (changed) return (Apply(op, AtomSeq(args.props, newargs)), true)
     else return (this, false)
