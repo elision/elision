@@ -161,12 +161,7 @@ package object util {
    *                   the loop index.
    */
   def seqloop(collection : Seq[Any], closure : Int => Unit){
-    var i = 0
-    val len = collection.length
-    while(i < len){
-      closure(i)
-      i += 1
-    }
+    countedloop(0, collection.length, 1, false, closure)
   }
   
 }
