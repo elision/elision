@@ -175,7 +175,6 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
   private val _endpoint = new Array[Int](_markcount)
   
   /** Initialize the marker and endpoint arrays. */
-  //for (i <- 0 until _markcount) {
   var i = 0
   while(i < _markcount) {
     _markers(i) = i
@@ -214,8 +213,6 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
         // All markers to the right of the last marker we moved should be
         // lined up just to its right, ready to start their movement.
 
-        // for comprehensions are slow.
-        // for (i <- here+1 until _markcount) _markers(i) = _markers(i-1) + 1
         var i = here + 1
         while (i < _markcount) {
           _markers(i) = _markers(i - 1) + 1
@@ -259,7 +256,6 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
       // have any chance of matching.
       var failed = false
       breakable {
-        // for (marker <- 0 to _markcount) {
         var marker = 0
         while (marker <= _markcount) {
 
@@ -310,7 +306,6 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
         // M+1 positions (for the M+1 groups).
         val nextList = new scala.collection.mutable.ArraySeq[BasicAtom](_markcount + 1)
         // for comprehensions are slow.
-        // for (marker <- 0 to _markcount) {
         var marker = 0
         while (marker <= _markcount) {
 

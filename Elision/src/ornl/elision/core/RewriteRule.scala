@@ -199,7 +199,6 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
     // we include it.
     var newargs: OmitSeq[BasicAtom] = EmptySeq
     var changed = false
-    //for (index <- 0 until args.length) {
     seqloop(args, (index : Int) => {
       // Get the argument.
       var arg = args(index)

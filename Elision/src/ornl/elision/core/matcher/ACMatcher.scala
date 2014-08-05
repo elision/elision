@@ -57,6 +57,7 @@ import ornl.elision.core.Literal
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Loc
 import ornl.elision.util.seqloop
+import scala.util.control.Breaks._
 import scala.language.reflectiveCalls
 
 abstract class res
@@ -402,16 +403,13 @@ object ACMatcher {
           var newPats = scala.collection.immutable.Vector.empty[BasicAtom]
           var newSubs = subs
           var last_sub_len = Int.MaxValue
-          // For comprehensions are slow in scala.
-          // for (patItem <- pats.takeWhile(p => !failFast)) {
           val patslen = pats.length
-          //var patindex = 0          
-          var patItem = pats(0)
-          //while(patindex < patslen && !failFast){
-          seqloop(pats, (patindex: Int) =>
-            {
-            // Is the current pattern variable currently bound to
-            // something?
+          var patindex = 0          
+          var patItem : BasicAtom = null
+          breakable {
+            while (patindex < patslen) {
+              // Is the current pattern variable currently bound to
+              // something?
               patItem = pats(patindex)
               patItem match {
                 case patVar: Variable => {
@@ -451,6 +449,7 @@ object ACMatcher {
                       if (!gotIt) {
                         // No, we did not. There is no way this can match.
                         failFast = true
+                        break
                       }
                     }
                   }
@@ -464,10 +463,13 @@ object ACMatcher {
                   // must remain in the pattern list.
                   //newPats = newPats :+ patItem
                   failFast = true
+                  break
                 }
               }
-            }) // Loop over patterns.
-
+              patindex += 1
+            } // Loop over patterns.
+          } //breakable
+          
           // If we get here all of the previously bound pattern
           // variables that still appear in the pattern have at least 1
           // thing they match in the subject. Do the actual matching.
