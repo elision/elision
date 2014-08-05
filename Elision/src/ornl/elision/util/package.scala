@@ -102,6 +102,7 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
+  @inline
   def hashify(hash: Int = 0, obj: Any) = {
     // Add a constant to the end so that single element collections have a
     // different hashcode than the element they contain.    
@@ -142,7 +143,8 @@ package object util {
    * @param inclusive Whether to include the uppper bound
    * @param closure   The function to execute. The argument to the closure is
    *                   the loop index.
-   */
+   */  
+  @inline
   def countedloop(start: Int, end: Int, increment : Int = 1, inclusive : Boolean = true, closure : Int => Unit){
     var i = start
     val _end = if(inclusive) end+1 else end
@@ -160,6 +162,7 @@ package object util {
    * @param closure   The function to execute. The argument to the closure is
    *                   the loop index.
    */
+  @inline
   def seqloop(collection : Seq[Any], closure : Int => Unit){
     countedloop(0, collection.length, 1, false, closure)
   }
