@@ -134,20 +134,32 @@ package object util {
   // Scala, but typing while loops over and over is annoying. If other looping
   // contructs get better, we can switch these out.
   /**
-   * Iterate a fixed number of times using a while loop.
+   * Execute the closure a fixed number of times.
    * 
    * @param start     Where to begin iteration
    * @param end       Where to end iteration
+   * @param increment How much to increment the index on each loop
    * @param inclusive Whether to include the uppper bound
+   * @param closure   The function to execute. The argument to the closure is
+   *                   the loop index.
    */
-  def countedloop(start: Int, end: Int, increment : Int = 1, closure : Unit => Unit){
+  def countedloop(start: Int, end: Int, increment : Int = 1, inclusive : Boolean = true, closure : Int => Unit){
     var i = start
-    while(i < end){
-      closure()
-      i += 1
+    val _end = if(inclusive) end+1 else end
+    while(i < _end){
+      closure(i)
+      i += increment
     }
   }
   
+  /**
+   * Iterate over a sequence. The argument to the closure is the current
+   * sequence index.
+   * 
+   * @param collection     The collection to iterate over.
+   * @param closure   The function to execute. The argument to the closure is
+   *                   the loop index.
+   */
   def seqloop(collection : Seq[Any], closure : Int => Unit){
     var i = 0
     val len = collection.length
