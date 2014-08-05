@@ -164,7 +164,12 @@ package object util {
    */
   @inline
   def seqloop(collection : Seq[Any], closure : Int => Unit){
-    countedloop(0, collection.length, 1, false, closure)
+    var i = 0
+    val len = collection.length
+    while(i < len){
+      closure(i)
+      i += 1
+    }
   }
   
 }
