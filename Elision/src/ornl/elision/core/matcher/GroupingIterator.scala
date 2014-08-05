@@ -38,8 +38,6 @@
 package ornl.elision.core.matcher
 
 import scala.annotation.tailrec
-import scala.util.control.Breaks._
-
 import ornl.elision.core.Apply
 import ornl.elision.core.AtomSeq
 import ornl.elision.core.BasicAtom
@@ -194,6 +192,7 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
     // Get the index of the rightmost marker.  It becomes the "current"
     // marker.
     var here = _markcount - 1
+    //while (true) {
     while (true) {
       // Move the current marker to the right.
       _markers(here) += 1
@@ -255,40 +254,37 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
       // Do a sanity check on the current groupings to see if they
       // have any chance of matching.
       var failed = false
-      breakable {
-        var marker = 0
-        while (marker <= _markcount) {
+      var marker = 0
+      while (!failed && marker <= _markcount) {
 
-          // Get the end of the slice.  The last time through the slice ends at
-          // the last subject.
-          val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
+        // Get the end of the slice.  The last time through the slice ends at
+        // the last subject.
+        val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
 
-          // If we are using associative grouping to group this slice,
-          // see if grouping in this manner generates something that has
-          // a chance of matching the pattern. We do this before
-          // constructing anything to avoid the cost of object creation
-          // for things that will never match.
-          if (((endSlice + 1 - startSlice) != 1) && (operator != null)) {
+        // If we are using associative grouping to group this slice,
+        // see if grouping in this manner generates something that has
+        // a chance of matching the pattern. We do this before
+        // constructing anything to avoid the cost of object creation
+        // for things that will never match.
+        if (((endSlice + 1 - startSlice) != 1) && (operator != null)) {
 
-            // Is the pattern for this grouping an operator apply?
-            _pats(marker) match {
-              case Apply(p_op0: OperatorRef, p_args0: AtomSeq) => {
+          // Is the pattern for this grouping an operator apply?
+          _pats(marker) match {
+            case Apply(p_op0: OperatorRef, p_args0: AtomSeq) => {
 
-                // Pattern/subject operator names must match.
-                if (p_op0.name != operator.name) {
-                  failed = true
-                  break
-                }
+              // Pattern/subject operator names must match.
+              if (p_op0.name != operator.name) {
+                failed = true
               }
-              case _ =>
             }
+            case _ =>
           }
+        }
 
-          // Set the start of the next slice.
-          startSlice = endSlice + 1
-          marker += 1
-        } // Collect all the slices.
-      } // breakable
+        // Set the start of the next slice.
+        startSlice = endSlice + 1
+        marker += 1
+      } // Collect all the slices.
 
       // If the grouping that was generated will never match, generate
       // the next grouping.
