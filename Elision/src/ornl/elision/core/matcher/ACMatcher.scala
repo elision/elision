@@ -92,6 +92,17 @@ object ACMatcher {
   // large predicates. I think there are cases where calling this at a
   // deeper level of nesting allows the search to get access to more
   // simple bindings, but more thought needs to be given to this.
+  /**
+   * Gets matches that must succeed in any potential match or return None
+   * if no match is possible.
+   * 
+   * @param ps      The pattern sequence.
+   * @param ss      The subject sequence.
+   * @param ibinds  Already discovered bindings that must hold in and potential
+   *                 match.
+   * @return        Bindings required for any potential matchm, or None if no
+   *                 match is possible.
+   */
   def get_mandatory_bindings(ps: AtomSeq, ss: AtomSeq,
     ibinds: Bindings): Option[Bindings] = {
     Debugger("ACmatching", "called ACMatcher.get_mandatory_bindings")

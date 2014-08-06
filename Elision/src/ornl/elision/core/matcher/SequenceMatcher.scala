@@ -136,6 +136,17 @@ object SequenceMatcher {
   // handles Apply data structures in the plist.head match {...}, and
   // it should be invoked from SequenceMatcher.tryMatch for
   // completeness.
+  /**
+   * Gets matches that must succeed in any potential match or return None
+   * if no match is possible.
+   * 
+   * @param ps      The pattern sequence.
+   * @param ss      The subject sequence.
+   * @param ibinds  Already discovered bindings that must hold in and potential
+   *                 match.
+   * @return        Bindings required for any potential matchm, or None if no
+   *                 match is possible.
+   */
   def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
     ibinds: Bindings): Option[Bindings] = {
     Debugger("matching", "called SequenceMatcher.get_mandatory_bindings")
