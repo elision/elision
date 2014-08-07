@@ -237,7 +237,7 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
         // The atom is not the identity?
         if (ident != atom) {
           if (assoc) atom match {
-            case AtomSeq(oprops, args) if props == oprops =>
+            case AtomSeq(oprops, args) if oprops.isA(false) =>
               // Add the arguments directly to this list.  We can assume this
               // list has already been processed, so no deeper checking is
               // needed.

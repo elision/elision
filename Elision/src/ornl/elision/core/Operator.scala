@@ -916,8 +916,8 @@ protected class SymbolicOperator protected (
         // If it does, we use it as-is, otherwise, apply the operator's
         // properties
         val diffProps = (props != args.props)
-        val newargs = if (diffProps) AtomSeq(props, args.atoms) else args
-        val opcount = newargs.operatorCount(this)
+        var newargs = if (diffProps) AtomSeq(props, args.atoms) else args
+        var opcount = newargs.operatorCount(this)
         var newseq = newargs.atoms
 
         // Flatten associative lists if it contains this operator.
@@ -938,21 +938,22 @@ protected class SymbolicOperator protected (
                 // is needed.  This flattens associative lists, as required.
                 newseq = newseq.omit(index)
                 newseq = newseq.insert(index, opargs)
+                opcount += opargs.operatorCount(this)
                 opsfound += 1
               case _ =>
                 // Nothing to do except increment the pointer.
                 index += 1
             }
           }
-          // We flattened the list, adding new arguments, so if this is
-          // commutative we need to sort
-          if (props.isC(false)) newseq = newseq.sorted(BasicAtomComparator)
+          // We flattened the list, adding new arguments, so we need to process
+          // the new atoms that have been inserted.
+          newargs = AtomSeq(props, newseq)
         }
 
         // Handle actual operator application.
         def handleApply(binds: Bindings): BasicAtom = {
           // Re-package the arguments with the correct properties.
-          val newargs = AtomSeq(props, newseq)
+          //val newargs = AtomSeq(props, newseq)
           // See if we are bypassing the native handler.
           var r: BasicAtom = null
           if (!bypass) {
@@ -972,23 +973,23 @@ protected class SymbolicOperator protected (
         if (!assoc) {
           // The number of arguments must exactly match the number of
           // parameters.
-          if (newseq.length > params.length) {
+          if (newargs.length > params.length) {
             throw new ArgumentListException(rhs.loc,
               "Too many arguments for non-associative operator " +
                 toESymbol(name) + ".  Expected " + params.length +
-                " but got " + newseq.length + ".")
-          } else if (newseq.length < params.length) {
+                " but got " + newargs.length + ".")
+          } else if (newargs.length < params.length) {
             throw new ArgumentListException(rhs.loc,
               "Too few arguments for non-associative operator " +
                 toESymbol(name) + ".  Expected " + params.length +
-                " but got " + newseq.length + ".")
+                " but got " + newargs.length + ".")
           }
         } else {
           // There are special cases to handle here.  First, if the argument
           // list is empty, but there is an identity, return it.  Second, if
           // the argument list is empty, but there is no identity, apply the
           // operator to the empty list.
-          if (newseq.length == 0) {
+          if (newargs.length == 0) {
             if (ident == null) {
               val r = handleApply(Bindings())
 
@@ -1012,10 +1013,10 @@ protected class SymbolicOperator protected (
         // f an identity, it is probably a mathematical operator of some kind,
         // and we probably do want f(x)->x.  So, for now, that's the rule.
         // For greater control, you have to use a case operator.
-        if (newseq.length == 1) {
+        if (newargs.length == 1) {
           if (assoc && ident != null) {
             // Get the atom.
-            val atom = newseq(0)
+            val atom = newargs(0)
             // Match the type of the atom against the type of the parameters.
             val param = params(0)
             param.tryMatch(atom) match {
@@ -1056,7 +1057,7 @@ protected class SymbolicOperator protected (
           //    operator.
 
           // Check to see if all arguments have the same type.
-          val anArg = newseq(0)
+          val anArg = newargs(0)
           /*
         if (!args.sameType) {
           throw new ArgumentListException(anArg.loc,
@@ -1076,7 +1077,7 @@ protected class SymbolicOperator protected (
             case Fail(reason, index) =>
               throw new ArgumentListException(anArg.loc,
                 "Incorrect argument for operator " + toESymbol(name) +
-                  " at position " + index + ": " + newseq(index).toParseString +
+                  " at position " + index + ": " + newargs(index).toParseString +
                   ".  " + reason())
             case Match(binds1) => {
               // The argument matches.
@@ -1099,11 +1100,11 @@ protected class SymbolicOperator protected (
           // We've run out of special cases to handle.  Now just try to match
           // the arguments against the parameters.
           val newparams = params.atoms
-          SequenceMatcher.tryMatch(newparams, newseq) match {
+          SequenceMatcher.tryMatch(newparams, newargs) match {
             case Fail(reason, index) =>
-              throw new ArgumentListException(newseq(index).loc,
+              throw new ArgumentListException(newargs(index).loc,
                 "Incorrect argument for operator " + toESymbol(name) +
-                  " at position " + index + ": " + newseq(index).toParseString +
+                  " at position " + index + ": " + newargs(index).toParseString +
                   ".  " + reason())
             case Match(binds1) => {
               // The argument list matches.
