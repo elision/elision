@@ -80,7 +80,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     /**
    * Whether to compute equality faster but in a riskier fashion.
    */
-  var _riskyEqual: Boolean = true;
+  var _riskyEqual: Boolean = false;
 
   /**
    * Whether to use custom equality functions.
@@ -126,14 +126,14 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    */
   def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean = false) = {
     (atom1 eq atom2) || 
-    ((
+    (
       (atom1.isConstant == atom2.isConstant) &&
       (atom1.hashCode == atom2.hashCode) &&
       (if (_riskyEqual) true else
         (atom1.depth == atom2.depth) &&
         (atom1.isTerm == atom2.isTerm) &&
-        (atom1.otherHashCode == atom2.otherHashCode) &&
-        (if(_customEqual) other else true)))
+        (atom1.otherHashCode == atom2.otherHashCode)
+      ) && (if(_customEqual) other else true)
     )
   }
 
@@ -177,8 +177,6 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     // (for reference): LIST(x) => LIST:OPREF . %(x), but the argument is also
     // a LIST(x), so we have an unbounded recursion.
     if (feq(left, right)) return 0
-    val hashcmp = left.hashCode compare right.hashCode
-    if (hashcmp == 0) return 0
     
     // Check the ordinals.
     val lo = getOrdinal(left)
@@ -198,6 +196,6 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
         if (sgn != 0) return sgn
       }
     }
-    hashcmp
+    left.otherHashCode compare right.otherHashCode
   }
 }
