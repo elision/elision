@@ -75,7 +75,7 @@ import ornl.elision.core.matcher.SequenceMatcher
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
-  override lazy val otherHashCode = (this.mybinds).foldLeft(0)(other_hashify)
+  override lazy val otherHashCode = (this.mybinds).foldLeft(0L)(other_hashify)
   override lazy val hashCode = 12289 * mybinds.hashCode
 
   /** The type of a bindings atom is the special bindings type. */

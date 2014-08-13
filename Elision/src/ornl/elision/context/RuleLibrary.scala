@@ -335,19 +335,19 @@ extends Fickle with Mutable {
       (newtop, appliedtop)
     }
   }
-  
+
   /**
-  * Rewrite the atom at the top level, once.
-  * 
-  * Do not memoize this method.
-  * 
-  * @param atom      The atom to rewrite.
-  * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
-  * @return  The rewritten atom, and true iff any rules were successfully
-  *          applied.
-  */
+   * Rewrite the atom at the top level, once.
+   *
+   * Do not memoize this method.
+   *
+   * @param atom      The atom to rewrite.
+   * @param rulesets  The rulesets to use, or `Set.empty` to use all enabled.
+   * @return  The rewritten atom, and true iff any rules were successfully
+   *          applied.
+   */
   private def _rewriteTop(atom: BasicAtom,
-      rulesets: Set[String]): (BasicAtom, Boolean) = {
+                          rulesets: Set[String]): (BasicAtom, Boolean) = {
 
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
@@ -357,28 +357,25 @@ extends Fickle with Mutable {
 
     // Get the rules.
     val rules = if (rulesets.isEmpty) getRules(atom)
-      else getRules(atom, rulesets)
+    else getRules(atom, rulesets)
 
-    
     // Now try every rule until one applies.
     Debugger("rewrite", "Rewriting atom: " + atom.toParseString)
     var _newatom = atom
     var _applied = false
     var i = 0
-    val rulelen = rules.length
-    while(i < rulelen && !_applied)
-    {
+    while (i < rules.length && !_applied) {
+      Debugger("rewrite", "Current rule attempt: " + rules(i).toParseString)
       val (newatom, applied) = rules(i).doRewrite(atom)
-      if (applied == true) {
-        // Return the rewrite result.
+      if (applied) {
         Debugger("rewrite", "Rewrote to: " + newatom.toParseString)
         _newatom = newatom
         _applied = applied
       }
       i += 1
     }
-    
-    Debugger("rewrite", "No rule applied to: " + atom.toParseString)
+
+    if (!_applied) Debugger("rewrite", "No rule applied to: " + atom.toParseString)
     return (_newatom, _applied)
   }
   
@@ -831,14 +828,18 @@ extends Fickle with Mutable {
       var _newatom = atom
       var _applied = false
       var i = 0
-      var len = rules.length
-      while(i < len && !_applied){
+      Debugger("rewrite", "Starting Rewrite rule application loop.")
+      while(i < rules.length && !_applied){
         val (newatom, applied) = rules(i).doRewrite(atom, hint)
+        Debugger("rewrite", "Current rule attempt: " + rules(i))
         if (applied) {
+          Debugger("rewrite", "Rewrote to: " + newatom.toParseString)
           _newatom = newatom
           _applied = applied
         }
+        i += 1
       }
+      Debugger("rewrite", "Finished Rewrite rule application loop.")
     
       return (_newatom, _applied)
     }

@@ -57,7 +57,6 @@ import ornl.elision.core.Literal
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Loc
 import ornl.elision.util.seqloop
-import scala.util.control.Breaks._
 import scala.language.reflectiveCalls
 
 abstract class res
@@ -93,6 +92,17 @@ object ACMatcher {
   // large predicates. I think there are cases where calling this at a
   // deeper level of nesting allows the search to get access to more
   // simple bindings, but more thought needs to be given to this.
+  /**
+   * Gets matches that must succeed in any potential match or return None
+   * if no match is possible.
+   * 
+   * @param ps      The pattern sequence.
+   * @param ss      The subject sequence.
+   * @param ibinds  Already discovered bindings that must hold in and potential
+   *                 match.
+   * @return        Bindings required for any potential matchm, or None if no
+   *                 match is possible.
+   */
   def get_mandatory_bindings(ps: AtomSeq, ss: AtomSeq,
     ibinds: Bindings): Option[Bindings] = {
     Debugger("ACmatching", "called ACMatcher.get_mandatory_bindings")
@@ -406,69 +416,65 @@ object ACMatcher {
           val patslen = pats.length
           var patindex = 0          
           var patItem : BasicAtom = null
-          breakable {
-            while (patindex < patslen) {
-              // Is the current pattern variable currently bound to
-              // something?
-              patItem = pats(patindex)
-              patItem match {
-                case patVar: Variable => {
-                  // The pattern item is a variable. This is what we
-                  // expect.
-                  newBinds.get(patVar.name) match {
-                    case None => {
-                      // Nothing is bound to this pattern variable, so we have
-                      // nothing to check. Since nothing is bound to this
-                      // pattern variable it must remain in the pattern
-                      // list.
-                      newPats = newPats :+ patItem
-                    }
+          while (!failFast && patindex < patslen) {
+            // Is the current pattern variable currently bound to
+            // something?
+            patItem = pats(patindex)
+            patItem match {
+              case patVar: Variable => {
+                // The pattern item is a variable. This is what we
+                // expect.
+                newBinds.get(patVar.name) match {
+                  case None => {
+                    // Nothing is bound to this pattern variable, so we have
+                    // nothing to check. Since nothing is bound to this
+                    // pattern variable it must remain in the pattern
+                    // list.
+                    newPats = newPats :+ patItem
+                  }
 
-                    case Some(atom) => {
-                      // The pattern variable is already bound to
-                      // something. That something MUST appear in the subject
-                      // list.
-                      var atom_subs = atom match {
-                        case Apply(opapllied, arguments) => {
-                          Debugger("ACmatching", "Doing something with an operator")
-                          Debugger("ACmatching", opapllied.toParseString + " ")
-                          Debugger("ACmatching", arguments.toParseString)
-                          if (opapllied == op.getOrElse(None)) AtomSeq(slist.props, arguments)
-                          else AtomSeq(slist.props, atom)
-                        }
-                        case _ => AtomSeq(slist.props, atom)
+                  case Some(atom) => {
+                    // The pattern variable is already bound to
+                    // something. That something MUST appear in the subject
+                    // list.
+                    var atom_subs = atom match {
+                      case Apply(opapllied, arguments) => {
+                        Debugger("ACmatching", "Doing something with an operator")
+                        Debugger("ACmatching", opapllied.toParseString + " ")
+                        Debugger("ACmatching", arguments.toParseString)
+                        if (opapllied == op.getOrElse(None)) AtomSeq(slist.props, arguments)
+                        else AtomSeq(slist.props, atom)
                       }
-                      var gotIt = false
-                      last_sub_len = newSubs.length
-                      newSubs = AtomSeq(slist.props, newSubs.diff(atom_subs))
-                      if (newSubs.length < last_sub_len) {
-                        gotIt = true
-                      }
-                      // Did we find something in the subject list equal to
-                      // the already bound pattern variable?
-                      if (!gotIt) {
-                        // No, we did not. There is no way this can match.
-                        failFast = true
-                        break
-                      }
+                      case _ => AtomSeq(slist.props, atom)
+                    }
+                    var gotIt = false
+                    last_sub_len = newSubs.length
+                    newSubs = AtomSeq(slist.props, newSubs.diff(atom_subs))
+                    if (newSubs.length < last_sub_len) {
+                      gotIt = true
+                    }
+                    // Did we find something in the subject list equal to
+                    // the already bound pattern variable?
+                    if (!gotIt) {
+                      // No, we did not. There is no way this can match.
+                      failFast = true
                     }
                   }
                 }
-
-                case _ => {
-                  // This is unexpected. We expect all the remaining
-                  // things in the pattern to be variables.
-
-                  // Since nothing is bound to this pattern variable it
-                  // must remain in the pattern list.
-                  //newPats = newPats :+ patItem
-                  failFast = true
-                  break
-                }
               }
-              patindex += 1
-            } // Loop over patterns.
-          } //breakable
+
+              case _ => {
+                // This is unexpected. We expect all the remaining
+                // things in the pattern to be variables.
+
+                // Since nothing is bound to this pattern variable it
+                // must remain in the pattern list.
+                //newPats = newPats :+ patItem
+                failFast = true
+              }
+            }
+            patindex += 1
+          } // Loop over patterns.
           
           // If we get here all of the previously bound pattern
           // variables that still appear in the pattern have at least 1
@@ -498,7 +504,7 @@ object ACMatcher {
     }) // Building the iterator iter.
 
     //    Debugger("ACmatching","(5)")
-    if (iter.hasNext) return Many(iter)
+    if (iter.hasNext) Many(iter)
     else Fail("The lists do not match.", plist, slist)
   }
 

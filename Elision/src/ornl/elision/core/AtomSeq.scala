@@ -217,27 +217,28 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
       var index = 0
       while (index < atoms.size) {
         val atom = atoms(index)
-        // Track the name and number of occurrences of the operator appearing in the sequence.
-        atom match {
-          case OpApply(opref, _, _) => _operators += (opref.operator.name -> (_operators.getOrElse(opref.operator.name, 0) + 1))
-          case _ =>
-        }
 
         if (absor == atom) {
           // Found the absorber.  It must be the only thing in the sequence.
           _operators.clear
           atom match {
             case OpApply(opref, _, _) => _operators += (opref.operator.name -> (_operators.getOrElse(opref.operator.name, 0) + 1))
-            case _ =>
+            case _                    =>
           }
 
           return OmitSeq[BasicAtom]() :+ atom
+        }
+        
+        // Track the name and number of occurrences of the operator appearing in the sequence.
+        atom match {
+          case OpApply(opref, _, _) => _operators += (opref.operator.name -> (_operators.getOrElse(opref.operator.name, 0) + 1))
+          case _ =>
         }
 
         // The atom is not the identity?
         if (ident != atom) {
           if (assoc) atom match {
-            case AtomSeq(oprops, args) if props == oprops =>
+            case AtomSeq(oprops, args) if oprops == props =>
               // Add the arguments directly to this list.  We can assume this
               // list has already been processed, so no deeper checking is
               // needed.
