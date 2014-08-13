@@ -114,20 +114,20 @@ class AlgProp(
     case None => None.hashCode
     case Some(atom) => atom.hashCode
   }
-  
-  override lazy val otherHashCode: Int =
-    (((((_codify(associative) * 8191) +
-    _codify(identity) * 8191) +
-    _codify(idempotent) * 8191) +
-    _codify(commutative) * 8191) +
-    _codify(absorber) * 8191)
-    
+     
   override lazy val hashCode =
     (((((_codify(associative) * 12289) +
     _codify(commutative) * 12289) +
     _codify(idempotent) * 12289) +
     _codify(absorber) * 12289) +
     _codify(identity) * 12289)
+    
+  override lazy val otherHashCode: Long =
+    (((((_codify(associative) * 8191) +
+    _codify(identity) * 8191) +
+    _codify(idempotent) * 8191) +
+    _codify(commutative) * 8191) +
+    _codify(absorber) * 8191)
   
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {

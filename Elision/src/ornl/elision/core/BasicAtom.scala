@@ -52,7 +52,6 @@ import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
 import scala.language.existentials
 import ornl.elision.context.TimedOut
-import ornl.elision.util.FastLinkedList
 
 /**
  * This marker trait is used to frighten developers and strike fear into
@@ -240,7 +239,7 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    * lower the chances of a hash collision (both different hash codes
    * will need to collide for a hash collision to occur).
    */
-  val otherHashCode: Int
+  val otherHashCode: Long
 
   /** YOU MUST OVERRIDE THIS IN INHERITED CLASSES! */
   override lazy val hashCode = {
@@ -302,6 +301,14 @@ abstract class BasicAtom(val loc: Loc = Loc.internal) extends HasOtherHash {
    */
   lazy val spouse = BasicAtom.buildSpouse(this)
 
+  override def equals(other: Any): Boolean =
+      other match {
+        case that: BasicAtom =>
+            BasicAtomComparator.feq(this, that)
+
+        case _ => false
+      }
+  
   /**
    * Get all the variables referenced in an atom. Override this if the
    * atom can actually contain variables.

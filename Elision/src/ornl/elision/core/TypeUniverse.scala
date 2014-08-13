@@ -90,6 +90,6 @@ object TypeUniverse extends SymbolLiteral(null, Symbol("^TYPE")) {
     
   /** Compute the hash code. */
   override lazy val hashCode = 12289 * value.hashCode
-  override lazy val otherHashCode = (value.toString).foldLeft(0)(other_hashify)  
+  override lazy val otherHashCode = (value.toString).foldLeft(0L)(other_hashify)  
   override def equals(other: Any) = TypeUniverse eq other.asInstanceOf[AnyRef]
 }

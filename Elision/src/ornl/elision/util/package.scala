@@ -102,11 +102,10 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
-  @inline
   def hashify(hash: Int = 0, obj: Any) = {
     // Add a constant to the end so that single element collections have a
     // different hashcode than the element they contain.    
-    hash * 12289 + obj.hashCode + 31
+    hash * 12289 + obj.hashCode + (if (hash==0) 31 else 0)
   }
 
   /**
@@ -123,7 +122,7 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
-  def other_hashify(hash: Int = 0, obj: Any): Int = {
+  def other_hashify(hash: Long = 0, obj: Any): Long = {
     obj match {
       case ohc: HasOtherHash => hash + 8191*ohc.otherHashCode
       case _ => hash + 8191*obj.hashCode
