@@ -37,6 +37,7 @@ import java.io.InputStreamReader
 import ornl.elision.util.Loc
 import ornl.elision.util.ElisionException
 
+
 /**
  * Raise a parse exception.
  * @param name    The source name.
@@ -327,7 +328,7 @@ class ParseWorker(name: String, reader: Reader) {
       count = 0
     }
     if (count < BLOCKSIZE) {
-      Arrays.fill(blocks(block ^ 1), count, BLOCKSIZE-1, EOF)
+      Arrays.fill(blocks(block ^ 1), count, BLOCKSIZE, EOF)
     }
   }
   
