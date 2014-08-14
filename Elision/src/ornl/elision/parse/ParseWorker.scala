@@ -36,6 +36,8 @@ import java.io.Reader
 import java.io.InputStreamReader
 import ornl.elision.util.Loc
 import ornl.elision.util.ElisionException
+import scala.util.parsing.combinator.token._
+
 
 /**
  * Raise a parse exception.
@@ -64,7 +66,7 @@ class ParseWorker(name: String, reader: Reader) {
   val BLOCKSIZE = 1024
   
   /** The end of file indicator. */
-  val EOF = (-1).toChar
+  val EOF = (0).toChar
   
   /** True if we have consumed up to the end of file. */
   private var atEof = false
@@ -327,7 +329,7 @@ class ParseWorker(name: String, reader: Reader) {
       count = 0
     }
     if (count < BLOCKSIZE) {
-      Arrays.fill(blocks(block ^ 1), count, BLOCKSIZE-1, EOF)
+      Arrays.fill(blocks(block ^ 1), count, BLOCKSIZE, EOF)
     }
   }
   
