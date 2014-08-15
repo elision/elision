@@ -265,12 +265,12 @@ object Apply {
             bypass: Boolean = false): BasicAtom = {
 
     // Temporarily disable rewrite timeouts.
-    val oldTimeout = BasicAtom.timeoutTime.value
+    /*val oldTimeout = BasicAtom.timeoutTime.value
     if (BasicAtom.rewriteTimedOut) {
       BasicAtom.timeoutTime.value = -1L
     } else {
       BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
-    }
+    }*/
 
     // Do not try to compute if metaterms are present.
     var retval: BasicAtom = null
@@ -313,7 +313,7 @@ object Apply {
     }
 
     // Resume timing out rewrites.
-    BasicAtom.timeoutTime.value = oldTimeout
+//    BasicAtom.timeoutTime.value = oldTimeout
 
     // Return the result.
     retval

@@ -893,12 +893,6 @@ protected class SymbolicOperator protected (
    */
   def doApply(rhs: BasicAtom, bypass: Boolean): BasicAtom = {
     // Temporarily disable rewrite timeouts if already timed out.
-    val oldTimeout = BasicAtom.timeoutTime.value
-    if (BasicAtom.rewriteTimedOut) {
-      BasicAtom.timeoutTime.value = -1L
-    } else {
-      BasicAtom.timeoutTime.value = Platform.currentTime + 10 * 1000
-    }
 
     rhs match {
       case args: AtomSeq =>
@@ -992,13 +986,8 @@ protected class SymbolicOperator protected (
           if (newargs.length == 0) {
             if (ident == null) {
               val r = handleApply(Bindings())
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
               return r
             } else {
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
               return ident
             }
           }
@@ -1026,16 +1015,10 @@ protected class SymbolicOperator protected (
                   "for operator " + toESymbol(name) + " at position 0: " +
                   atom.toParseString + ".  " + reason())
               case mat: Match => {
-                // Resume timing out rewrites.
-                BasicAtom.timeoutTime.value = oldTimeout
-
                 // The argument matches.
                 return atom
               }
               case many: Many => {
-                // Resume timing out rewrites.
-                BasicAtom.timeoutTime.value = oldTimeout
-
                 // The argument matches.
                 return atom
               }
@@ -1082,17 +1065,11 @@ protected class SymbolicOperator protected (
             case Match(binds1) => {
               // The argument matches.
               val r = handleApply(binds1)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
               return r
             }
             case Many(iter) => {
               // The argument matches.
               val r = handleApply(iter.next)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
               return r
             }
           }
@@ -1109,17 +1086,11 @@ protected class SymbolicOperator protected (
             case Match(binds1) => {
               // The argument list matches.
               val r = handleApply(binds1)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
               return r
             }
             case Many(iter) => {
               // The argument list matches.
               val r = handleApply(iter.next)
-
-              // Resume timing out rewrites.
-              BasicAtom.timeoutTime.value = oldTimeout
               return r
             }
           }
@@ -1127,9 +1098,6 @@ protected class SymbolicOperator protected (
 
       case _ => {
         val r = SimpleApply(this, rhs)
-
-        // Resume timing out rewrites.
-        BasicAtom.timeoutTime.value = oldTimeout
         return r
       }
     }
