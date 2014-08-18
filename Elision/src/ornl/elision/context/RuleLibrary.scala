@@ -336,6 +336,28 @@ extends Fickle with Mutable {
     }
   }
 
+  
+  private def _ruleSearch(atom : BasicAtom, rules : ListBuffer[RewriteRule]) =
+  {
+    //Debugger("rewrite", "Rewriting atom: " + atom.toParseString)
+    var _newatom = atom
+    var _applied = false
+    var i = 0
+    Debugger("rewrite", "Starting rule search...")
+    while (!BasicAtom.rewriteTimedOut && i < rules.length && !_applied) {
+      Debugger("rewrite", "Current rule attempt: " + rules(i).toParseString)
+      val (newatom, applied) = rules(i).doRewrite(atom)
+      if (applied) {
+        Debugger("rewrite", "Rule applied: " + rules(i).toString)
+        //Debugger("rewrite", "Rewrote to: " + newatom.toParseString.substring(0, 1024))        
+        _newatom = newatom
+        _applied = applied
+      }
+      i += 1
+    }
+    (_newatom, _applied)
+  }
+  
   /**
    * Rewrite the atom at the top level, once.
    *
@@ -360,22 +382,18 @@ extends Fickle with Mutable {
     else getRules(atom, rulesets)
 
     // Now try every rule until one applies.
-    Debugger("rewrite", "Rewriting atom: " + atom.toParseString)
+    //Debugger("rewrite", "Rewriting atom: " + atom.toParseString)
     var _newatom = atom
     var _applied = false
     var i = 0
-    while (i < rules.length && !_applied) {
-      Debugger("rewrite", "Current rule attempt: " + rules(i).toParseString)
-      val (newatom, applied) = rules(i).doRewrite(atom)
-      if (applied) {
-        Debugger("rewrite", "Rewrote to: " + newatom.toParseString)
-        _newatom = newatom
-        _applied = applied
-      }
-      i += 1
-    }
-
-    if (!_applied) Debugger("rewrite", "No rule applied to: " + atom.toParseString)
+    Debugger("rewrite", "Starting rule search...")
+    val pair = _ruleSearch(atom, rules)
+    _newatom = pair._1
+    _applied = pair._2
+        
+    
+    if (!_applied) Debugger("rewrite", "No rules applied.")
+    //if (!_applied) Debugger("rewrite", "No rules applied to: " + atom.toParseString.substring(0, 1024))
     return (_newatom, _applied)
   }
   
@@ -462,8 +480,7 @@ extends Fickle with Mutable {
    * @return  The rewritten atom, and true iff any rules were successfully
    *          applied.
    */
-  def rewrite(atom: BasicAtom) = {
-
+  def rewrite(atom: BasicAtom)  = {
     // Has this atom already been rewritten using (at least) the
     // current rulesets?
     atom.cleanRulesets match {
@@ -828,19 +845,12 @@ extends Fickle with Mutable {
       var _newatom = atom
       var _applied = false
       var i = 0
-      Debugger("rewrite", "Starting Rewrite rule application loop.")
-      while(i < rules.length && !_applied){
-        val (newatom, applied) = rules(i).doRewrite(atom, hint)
-        Debugger("rewrite", "Current rule attempt: " + rules(i))
-        if (applied) {
-          Debugger("rewrite", "Rewrote to: " + newatom.toParseString)
-          _newatom = newatom
-          _applied = applied
-        }
-        i += 1
-      }
-      Debugger("rewrite", "Finished Rewrite rule application loop.")
-    
+      Debugger("rewrite", "Starting rule search...")
+      val pair = _ruleSearch(atom, rules)
+      _newatom = pair._1
+      _applied = pair._2
+      
+      if (!_applied) Debugger("rewrite", "No rules applied.")
       return (_newatom, _applied)
     }
     

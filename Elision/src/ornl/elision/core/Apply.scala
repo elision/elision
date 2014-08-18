@@ -263,15 +263,6 @@ object Apply {
   def apply(op: BasicAtom, 
             arg: BasicAtom,
             bypass: Boolean = false): BasicAtom = {
-
-    // Temporarily disable rewrite timeouts.
-    val oldTimeout = BasicAtom.timeoutTime.value
-    if (BasicAtom.rewriteTimedOut) {
-      BasicAtom.timeoutTime.value = -1L
-    } else {
-      BasicAtom.timeoutTime.value = Platform.currentTime + 10*1000
-    }
-
     // Do not try to compute if metaterms are present.
     var retval: BasicAtom = null
     if (!op.evenMeta && !arg.isTerm) {
@@ -311,9 +302,6 @@ object Apply {
   	  retval = SimpleApply(op, arg)
       }
     }
-
-    // Resume timing out rewrites.
-    BasicAtom.timeoutTime.value = oldTimeout
 
     // Return the result.
     retval
