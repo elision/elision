@@ -125,6 +125,13 @@ with HasHistory {
       "If true, some rewrites may not be applied",
       false)
       
+  declareProperty("use_rewrite_history",
+      "Whether to use rewite history to detect rewrite cycles.",
+      true,
+      (pm: PropertyManager) => {
+        context.ruleLibrary.setTrackedAtoms(pm.getProperty[Boolean]("use_rewrite_history"))
+      })
+      
   /** Whether to trace the parser. */
   private var _trace = false
 
