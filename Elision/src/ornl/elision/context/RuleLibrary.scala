@@ -355,7 +355,6 @@ extends Fickle with Mutable {
       Debugger("rewrite", "Current rule attempt: " + rules(i).toParseString)
       val (newatom, applied) = rules(i).doRewrite(tatom.atom)
       if (applied) {
-        //_rulehistory.enqueue(rules(i))
         Debugger("rewrite", "Rule applied: " + rules(i).toString)
         //Debugger("rewrite", "Rewrote to: " + newatom.toParseString.substring(0, 1024))        
         _newatom = newatom
@@ -583,8 +582,6 @@ extends Fickle with Mutable {
    *          applied.
    */
   def rewrite(atom: BasicAtom, rulesets: Set[String] = Set.empty): (BasicAtom, Boolean) = {
-    //_atomhistory.enqueue(atom)
-    //_atomhistory += atom
     val pair = _rewrite(new TrackedAtom(atom), rulesets)
     (pair._1.atom, pair._2)
   }
@@ -616,7 +613,6 @@ extends Fickle with Mutable {
       Debugger("rewrite", "Rewriting timed out: " + tatom.atom.toParseString)
       throw new TimedOut(tatom.atom.loc, "Rewriting timed out")
     }
-//    _atomhistory += atom
     
     if (limit == 0) return (tatom, bool)
     else _rewriteOnce(tatom, rulesets) match {
@@ -624,19 +620,16 @@ extends Fickle with Mutable {
         return (newatom, bool)
       case (newatom, true) => {
         Debugger("rewrite", "Rewrote to: " + newatom.atom.toParseString)
-        //Debugger("rewrite", "Rule history: " + _rulehistory)
         if (tatom.atom == newatom) {
           return (newatom, true)
         }
         if(tatom.contains(newatom.atom)){
           Debugger("rewrite", "WARNING: Rewrite cycle detected:")
-          //Debugger("rewrite", "Rule history:")
-          //_rulehistory.foreach( historyelement => {
-          //      Debugger("rewrite", "Rule: " + historyelement)
-            //}
-          //)
           Debugger("rewrite", "Atom history:")
-          tatom.history.foreach(f =>Debugger("rewrite", f.atom.toParseString))
+          tatom.toSeq().foreach( h => {
+            Debugger("rewrite", h.toParseString)
+          })
+            
           return (newatom, true)
         }
         
@@ -753,16 +746,39 @@ extends Fickle with Mutable {
     @tailrec
     final def contains(thing:BasicAtom) : Boolean =
     {
-      //if(thing == atom) true
+      if(thing == atom) return true
       history match {
         case None => false
-        case Some(ta) if (thing == ta.atom) => true
         case Some(ta) => ta.contains(thing)
       }
     }
     
     final def hasloop() : Boolean = {
       this.contains(atom)
+    }
+    
+    @tailrec
+    final def toString(stringsofar : String = "") : String = {
+      history match {
+        case None => stringsofar + ", " + atom.toString
+        case Some(ta) => ta.toString(stringsofar + ", " + atom.toString) 
+      }
+    }
+    
+    @tailrec
+    final def toParseString(stringsofar : String = "") : String = {
+      history match {
+        case None => stringsofar + ", " + atom.toParseString
+        case Some(ta) => ta.toParseString(stringsofar + ", " + atom.toParseString) 
+      }
+    }
+    
+    @tailrec
+    final def toSeq(atoms: Seq[BasicAtom] = Seq.empty) : Seq[BasicAtom] = {
+      history match {
+        case None => atom +: atoms 
+        case Some(ta) => ta.toSeq(atom +: atoms) 
+      }
     }
   }
   
