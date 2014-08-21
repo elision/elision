@@ -141,6 +141,20 @@ extends Fickle with Mutable {
   // disabling, and declaration.
   private var actionList = List[Action]()
   
+  private var trackedAtoms = true
+  /**
+   * Control whether to use TrackedAtom's history feature to enable rewrite
+   * cycle detection.
+   * 
+   * @param setting Whether to use tracked atoms.
+   * @return This rule library.
+   */
+  def setTrackedAtoms(setting : Boolean) = {
+    Debugger("rule.library", "Using tracked atoms: " + setting)
+    trackedAtoms = setting
+    this
+  }
+  
   /**
    * Create a shallow clone of this rule library.  This returns a new rule
    * library instance; since the content of the library is immutable, this
@@ -363,7 +377,8 @@ extends Fickle with Mutable {
       i += 1
     }
     if(!_applied) (tatom, _applied)
-    else (new TrackedAtom(_newatom, Some(tatom)), _applied)
+    else (new TrackedAtom(_newatom, if(trackedAtoms) Some(tatom) else None),
+                           _applied)
   }
   
   /**
@@ -437,14 +452,16 @@ extends Fickle with Mutable {
             ta =>
               ta.atom
           }
-          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms), Some(tatom)), true) 
+          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms), 
+                                      if(trackedAtoms) Some(tatom) else None), true) 
           else (tatom, false)
         
         case Apply(lhs, rhs) =>
           val newlhs = _rewritechild(new TrackedAtom(lhs), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(rhs), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom), Some(tatom)), true)
+            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom),
+                  if(trackedAtoms) Some(tatom) else None), true)
           } else {
             (tatom, false)
           }
@@ -456,7 +473,8 @@ extends Fickle with Mutable {
           }
           val newbody = _rewritechild(new TrackedAtom(body), rulesets)
           if (newparam._2 || newbody._2) {
-            (new TrackedAtom(Lambda(newparam._1, newbody._1.atom), Some(tatom)), true)
+            (new TrackedAtom(Lambda(newparam._1, newbody._1.atom), 
+                  if(trackedAtoms) Some(tatom) else None), true)
           } else {
             (tatom, false)
           }
@@ -465,7 +483,8 @@ extends Fickle with Mutable {
           val newlhs = _rewritechild(new TrackedAtom(tag), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(content), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom),Some(tatom)), true)
+            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom), 
+                             if(trackedAtoms) Some(tatom) else None), true)
           } else {
             (tatom, false)
           }
@@ -740,9 +759,8 @@ extends Fickle with Mutable {
   */
   def makeRulesetRef(name: String): RulesetRef = new _RulesetRef(name)
   
-  
-  //private case class TrackedAtom(val atom:BasicAtom, val history:Queue[BasicAtom] = Queue.empty)
   private case class TrackedAtom(val atom:BasicAtom, val history:Option[TrackedAtom] = None){
+    
     @tailrec
     final def contains(thing:BasicAtom) : Boolean =
     {
