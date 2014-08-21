@@ -759,8 +759,22 @@ extends Fickle with Mutable {
   */
   def makeRulesetRef(name: String): RulesetRef = new _RulesetRef(name)
   
+  
+  /**
+   *  Keeps track of an atom's rewrite history. This enables rewrite cycle detection.
+   *  
+   *  @param atom The current atom state.
+   *  @param history The previous atom state
+   */
   private case class TrackedAtom(val atom:BasicAtom, val history:Option[TrackedAtom] = None){
     
+    /**
+     * Test to see if an atom existed in the TrackedAtom's rewrite history.
+     * 
+     * @param thing The atom being searched for.
+     * @return True is the atom searched for is in the rewrite history, 
+     *          false otherwise.
+     */
     @tailrec
     final def contains(thing:BasicAtom) : Boolean =
     {
@@ -771,10 +785,23 @@ extends Fickle with Mutable {
       }
     }
     
-    final def hasloop() : Boolean = {
-      this.contains(atom)
+    /**
+     * Test to see if the TrackedAtom has a loop within it.
+     * 
+     * @return True if this TrackedAtom has had its current value previously.
+     */
+    final def hascycle() : Boolean = {
+      history match {
+        case None => false
+        case Some(ta) => ta.contains(atom)
+      }
     }
     
+    /**
+     * Convert the TrackedAtom to a comma-separated list of atom strings.
+     * 
+     * @return The string  
+     */
     @tailrec
     final def toString(stringsofar : String = "") : String = {
       history match {
@@ -782,7 +809,12 @@ extends Fickle with Mutable {
         case Some(ta) => ta.toString(stringsofar + ", " + atom.toString) 
       }
     }
-    
+
+    /**
+     * Convert the TrackedAtom to a comma-separated list of parse strings.
+     * 
+     * @return The string  
+     */    
     @tailrec
     final def toParseString(stringsofar : String = "") : String = {
       history match {
@@ -791,6 +823,11 @@ extends Fickle with Mutable {
       }
     }
     
+    /**
+     * Convert a TrackedAtom to a sequence containing the full history of rewrites.
+     * 
+     * @return The sequence
+     */
     @tailrec
     final def toSeq(atoms: Seq[BasicAtom] = Seq.empty) : Seq[BasicAtom] = {
       history match {
