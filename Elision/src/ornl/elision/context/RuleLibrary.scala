@@ -110,8 +110,16 @@ extends ElisionException(loc, msg)
 class LiteralPatternException(loc: Loc, msg: String)
 extends ElisionException(loc, msg)
 
-class RewriteCycleException(loc: Loc, msg: String, val lastatom: BasicAtom)
-  extends ElisionException(loc, msg) {
+/**
+ * Indicate that a rewrite rule cycle has been detected.
+ * 
+ * @param msg        A human-readable message that includes which rules
+ *                    produced this condition.
+ * @param lastatom   The last incarnation of the atom that the writing
+ *                    process produced.
+ */
+class RewriteCycleException(msg: String, val lastatom: BasicAtom)
+  extends ElisionException(Loc.internal, msg) {
   override def toString =
     if (loc.source == "") msg else loc.toShortString + " " + msg
 }
@@ -667,7 +675,7 @@ extends Fickle with Mutable {
           }
           )
           Debugger("rewrite", msg.toString )
-          throw new RewriteCycleException(Loc.internal, msg.toString, tatom.atom)
+          throw new RewriteCycleException(msg.toString, tatom.atom)
         }
 
         return _doRewrite(newatom, rulesets, true,
@@ -779,8 +787,9 @@ extends Fickle with Mutable {
   /**
    *  Keeps track of an atom's rewrite history. This enables rewrite cycle detection.
    *  
-   *  @param atom The current atom state.
-   *  @param history The previous atom state
+   *  @param atom         The current atom state.
+   *  @param rewriterule  The rewrite rule, if any, that produced this atom.
+   *  @param history      The previous atom state
    */
   private case class TrackedAtom(val atom:BasicAtom, val rewriterule:Option[RewriteRule] = None, val history:Option[TrackedAtom] = None){
     
@@ -802,7 +811,7 @@ extends Fickle with Mutable {
     }
     
     /**
-     * Test to see if the TrackedAtom has a loop within it.
+     * Test to see if the TrackedAtom has a cycle within it.
      * 
      * @return True if this TrackedAtom has had its current value previously.
      */
@@ -827,7 +836,7 @@ extends Fickle with Mutable {
     }
 
     /**
-     * Convert the TrackedAtom to a comma-separated list of parse strings.
+     * Convert the TrackedAtom to a comma-separated list of atom parse strings.
      * 
      * @return The string  
      */    
@@ -840,7 +849,8 @@ extends Fickle with Mutable {
     }
     
     /**
-     * Convert a TrackedAtom to a sequence containing the full history of rewrites.
+     * Convert a TrackedAtom to a sequence containing the full history of
+     * rewrites.
      * 
      * @return The sequence
      */
