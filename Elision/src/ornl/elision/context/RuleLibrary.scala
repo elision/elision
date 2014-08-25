@@ -641,22 +641,23 @@ extends Fickle with Mutable {
           return (newatom, true)
         }
         if(tatom.hascycle){
-          Debugger("rewrite", "WARNING: Rewrite cycle detected:")
-          Debugger("rewrite", "Atom history (oldest on top):")
+          val msg : StringBuilder = new StringBuilder()
+          msg.append("Rewrite cycle detected.\n")
+          msg.append("Atom history (oldest on top):\n")
           tatom.toSeq().foreach( h => {
             h match {
               case (atom, Some(rule)) =>
-                 Debugger("rewrite", "Rule: " + rule.toParseString) 
-                 Debugger("rewrite", "  Result: " + atom.toParseString )
-              case (atom, None) =>
-                 Debugger("rewrite", "Rule: (Internal Action)") 
-                 Debugger("rewrite", "  Result: " + atom.toParseString )
+                msg.append("Rule: " + rule.toParseString + "\n")
+                msg.append("Result: " + atom.toParseString + "\n")
+              case (atom, None) => 
+                 msg.append("Rule: (Internal Action)\n")
+                 msg.append("Result: " + atom.toParseString + "\n")
             }            
-          })
-            
-          return (newatom, true)
+          }
+          )
+          Debugger("rewrite", msg.toString )
+          throw new RewriteCycleException(Loc.internal, msg.toString, tatom.atom)
         }
-        
 
         return _doRewrite(newatom, rulesets, true,
                          if(limit > 0) limit-1 else limit)
@@ -764,6 +765,17 @@ extends Fickle with Mutable {
   */
   def makeRulesetRef(name: String): RulesetRef = new _RulesetRef(name)
   
+  
+  class RewriteCycleException(loc: Loc, msg: String, val lastatom: BasicAtom) 
+  extends ElisionException(loc, msg) {
+  override def toString =
+    if (loc.source == "") msg else loc.toShortString+" "+msg
+  }
+  
+  object RewriteCycleException{
+    
+    def unapply(rce: RewriteCycleException) = Some(rce.loc, rce.msg, rce.lastatom)
+  }
   
   /**
    *  Keeps track of an atom's rewrite history. This enables rewrite cycle detection.
