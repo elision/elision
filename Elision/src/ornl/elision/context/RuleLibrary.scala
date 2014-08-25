@@ -110,6 +110,17 @@ extends ElisionException(loc, msg)
 class LiteralPatternException(loc: Loc, msg: String)
 extends ElisionException(loc, msg)
 
+class RewriteCycleException(loc: Loc, msg: String, val lastatom: BasicAtom)
+  extends ElisionException(loc, msg) {
+  override def toString =
+    if (loc.source == "") msg else loc.toShortString + " " + msg
+}
+
+object RewriteCycleException {
+
+  def unapply(rce: RewriteCycleException) = Some(rce.loc, rce.msg, rce.lastatom)
+}
+
 /**
  * Encapsulate a rule library.
  * 
@@ -601,7 +612,7 @@ extends Fickle with Mutable {
   def rewrite(atom: BasicAtom, rulesets: Set[String] = Set.empty): (BasicAtom, Boolean) = {
     val pair = _rewrite(new TrackedAtom(atom), rulesets)
     (pair._1.atom, pair._2)
-  }
+  } 
 
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
@@ -764,18 +775,6 @@ extends Fickle with Mutable {
   * @param name		The name of the ruleset.
   */
   def makeRulesetRef(name: String): RulesetRef = new _RulesetRef(name)
-  
-  
-  class RewriteCycleException(loc: Loc, msg: String, val lastatom: BasicAtom) 
-  extends ElisionException(loc, msg) {
-  override def toString =
-    if (loc.source == "") msg else loc.toShortString+" "+msg
-  }
-  
-  object RewriteCycleException{
-    
-    def unapply(rce: RewriteCycleException) = Some(rce.loc, rce.msg, rce.lastatom)
-  }
   
   /**
    *  Keeps track of an atom's rewrite history. This enables rewrite cycle detection.
