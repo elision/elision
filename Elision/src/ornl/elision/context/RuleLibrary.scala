@@ -469,16 +469,14 @@ extends Fickle with Mutable {
             ta =>
               ta.atom
           }
-          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms), None,
-                                      if(trackedAtoms) Some(tatom) else None), true) 
+          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms)), true) 
           else (tatom, false)
         
         case Apply(lhs, rhs) =>
           val newlhs = _rewritechild(new TrackedAtom(lhs), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(rhs), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom), None,
-                  if(trackedAtoms) Some(tatom) else None), true)
+            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom)), true)
           } else {
             (tatom, false)
           }
@@ -500,8 +498,7 @@ extends Fickle with Mutable {
           val newlhs = _rewritechild(new TrackedAtom(tag), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(content), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom), None,
-                             if(trackedAtoms) Some(tatom) else None), true)
+            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom)), true)
           } else {
             (tatom, false)
           }
