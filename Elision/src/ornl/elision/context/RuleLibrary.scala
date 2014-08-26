@@ -111,6 +111,25 @@ class LiteralPatternException(loc: Loc, msg: String)
 extends ElisionException(loc, msg)
 
 /**
+ * Indicate that a rewrite rule cycle has been detected.
+ * 
+ * @param msg        A human-readable message that includes which rules
+ *                    produced this condition.
+ * @param lastatom   The last incarnation of the atom that the writing
+ *                    process produced.
+ */
+class RewriteCycleException(msg: String, val lastatom: BasicAtom)
+  extends ElisionException(Loc.internal, msg) {
+  override def toString =
+    if (loc.source == "") msg else loc.toShortString + " " + msg
+}
+
+object RewriteCycleException {
+
+  def unapply(rce: RewriteCycleException) = Some(rce.loc, rce.msg, rce.lastatom)
+}
+
+/**
  * Encapsulate a rule library.
  * 
  * == Purpose ==
@@ -375,7 +394,7 @@ extends Fickle with Mutable {
       i += 1
     }
     if(!_applied) (tatom, _applied)
-    else (new TrackedAtom(_newatom, if(trackedAtoms) Some(tatom) else None),
+    else (new TrackedAtom(_newatom, Some(rules(i-1)), if(trackedAtoms) Some(tatom) else None),
                            _applied)
   }
   
@@ -435,7 +454,7 @@ extends Fickle with Mutable {
           // Rewrite the properties.  The result must still be a property spec.
           // If not, we keep the same properties.
           val newProps = _rewritechild(new TrackedAtom(props), rulesets) match {
-            case (TrackedAtom(ap: AlgProp, _), true) => flag = true; ap
+            case (TrackedAtom(ap: AlgProp, _, _), true) => flag = true; ap
             case _ => props
           }
           // Rewrite the atoms.
@@ -450,7 +469,7 @@ extends Fickle with Mutable {
             ta =>
               ta.atom
           }
-          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms), 
+          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms), None,
                                       if(trackedAtoms) Some(tatom) else None), true) 
           else (tatom, false)
         
@@ -458,7 +477,7 @@ extends Fickle with Mutable {
           val newlhs = _rewritechild(new TrackedAtom(lhs), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(rhs), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom),
+            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom), None,
                   if(trackedAtoms) Some(tatom) else None), true)
           } else {
             (tatom, false)
@@ -466,12 +485,12 @@ extends Fickle with Mutable {
         
         case Lambda(param, body) =>
           val newparam = _rewritechild(new TrackedAtom(param), rulesets) match {
-            case (TrackedAtom(v: Variable, _), true) => (v, true)
+            case (TrackedAtom(v: Variable, _, _), true) => (v, true)
               case _ => (param, false)
           }
           val newbody = _rewritechild(new TrackedAtom(body), rulesets)
           if (newparam._2 || newbody._2) {
-            (new TrackedAtom(Lambda(newparam._1, newbody._1.atom), 
+            (new TrackedAtom(Lambda(newparam._1, newbody._1.atom), None, 
                   if(trackedAtoms) Some(tatom) else None), true)
           } else {
             (tatom, false)
@@ -481,7 +500,7 @@ extends Fickle with Mutable {
           val newlhs = _rewritechild(new TrackedAtom(tag), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(content), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom), 
+            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom), None,
                              if(trackedAtoms) Some(tatom) else None), true)
           } else {
             (tatom, false)
@@ -601,7 +620,7 @@ extends Fickle with Mutable {
   def rewrite(atom: BasicAtom, rulesets: Set[String] = Set.empty): (BasicAtom, Boolean) = {
     val pair = _rewrite(new TrackedAtom(atom), rulesets)
     (pair._1.atom, pair._2)
-  }
+  } 
 
   /**
    * Rewrite the given atom, repeatedly applying the rules of the active
@@ -640,16 +659,24 @@ extends Fickle with Mutable {
         if (tatom.atom == newatom) {
           return (newatom, true)
         }
-        if(tatom.contains(newatom.atom)){
-          Debugger("rewrite", "WARNING: Rewrite cycle detected:")
-          Debugger("rewrite", "Atom history:")
+        if(tatom.hascycle){
+          val msg : StringBuilder = new StringBuilder()
+          msg.append("Rewrite cycle detected.\n")
+          msg.append("Atom history (oldest on top):\n")
           tatom.toSeq().foreach( h => {
-            Debugger("rewrite", h.toParseString)
-          })
-            
-          return (newatom, true)
+            h match {
+              case (atom, Some(rule)) =>
+                msg.append("Rule: " + rule.toParseString + "\n")
+                msg.append("Result: " + atom.toParseString + "\n")
+              case (atom, None) => 
+                 msg.append("Rule: (Internal Action)\n")
+                 msg.append("Result: " + atom.toParseString + "\n")
+            }            
+          }
+          )
+          Debugger("rewrite", msg.toString )
+          throw new RewriteCycleException(msg.toString, tatom.atom)
         }
-        
 
         return _doRewrite(newatom, rulesets, true,
                          if(limit > 0) limit-1 else limit)
@@ -757,14 +784,14 @@ extends Fickle with Mutable {
   */
   def makeRulesetRef(name: String): RulesetRef = new _RulesetRef(name)
   
-  
   /**
    *  Keeps track of an atom's rewrite history. This enables rewrite cycle detection.
    *  
-   *  @param atom The current atom state.
-   *  @param history The previous atom state
+   *  @param atom         The current atom state.
+   *  @param rewriterule  The rewrite rule, if any, that produced this atom.
+   *  @param history      The previous atom state
    */
-  private case class TrackedAtom(val atom:BasicAtom, val history:Option[TrackedAtom] = None){
+  private case class TrackedAtom(val atom:BasicAtom, val rewriterule:Option[RewriteRule] = None, val history:Option[TrackedAtom] = None){
     
     /**
      * Test to see if an atom existed in the TrackedAtom's rewrite history.
@@ -784,7 +811,7 @@ extends Fickle with Mutable {
     }
     
     /**
-     * Test to see if the TrackedAtom has a loop within it.
+     * Test to see if the TrackedAtom has a cycle within it.
      * 
      * @return True if this TrackedAtom has had its current value previously.
      */
@@ -809,7 +836,7 @@ extends Fickle with Mutable {
     }
 
     /**
-     * Convert the TrackedAtom to a comma-separated list of parse strings.
+     * Convert the TrackedAtom to a comma-separated list of atom parse strings.
      * 
      * @return The string  
      */    
@@ -822,15 +849,16 @@ extends Fickle with Mutable {
     }
     
     /**
-     * Convert a TrackedAtom to a sequence containing the full history of rewrites.
+     * Convert a TrackedAtom to a sequence containing the full history of
+     * rewrites.
      * 
      * @return The sequence
      */
     @tailrec
-    final def toSeq(atoms: Seq[BasicAtom] = Seq.empty) : Seq[BasicAtom] = {
+    final def toSeq(atoms: Seq[(BasicAtom, Option[RewriteRule])] = Seq.empty) : Seq[(BasicAtom, Option[RewriteRule])] = {
       history match {
-        case None => atom +: atoms 
-        case Some(ta) => ta.toSeq(atom +: atoms) 
+        case Some(ta) => ta.toSeq((atom, rewriterule) +: atoms)
+        case _ => (atom, rewriterule) +: atoms
       }
     }
   }
