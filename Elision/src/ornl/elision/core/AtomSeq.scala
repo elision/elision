@@ -136,6 +136,20 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     }
     r
   }
+  
+  lazy val variableMap: scala.collection.mutable.OpenHashMap[String, Int] = {
+    var r = scala.collection.mutable.OpenHashMap[String, Int]()
+    var i = 0
+    while (i < atoms.length) {
+      //if (atoms(i).isBindable) r(atoms(i)) = i
+      atoms(i) match {
+        case v:Variable => r(v.name) =  i
+        case _ => 
+      }
+      i += 1
+    }
+    r
+  }
 
   /**
    * Compute these things when processing the atoms in process().
@@ -214,8 +228,10 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     lazy val seen: HashSet[BasicAtom] = new HashSet[BasicAtom]
     var atoms: OmitSeq[BasicAtom] = xatoms
     if (assoc || ident != null || absor != null || idemp) {
-      var index = 0
-      while (index < atoms.size) {
+      // We iterate backwards so we can do less manipulation of indexes to
+      // keep things straight in omissions
+      var index = atoms.size - 1
+      while (index >= 0) {
         val atom = atoms(index)
 
         if (absor == atom) {
@@ -244,7 +260,7 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
               // needed.
               atoms = atoms.omit(index)
               atoms = atoms.insert(index, args)
-              if(args.length == 0) index -= 1
+
 
             case _ =>
             // Nothing to do in this case.
@@ -257,7 +273,6 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
             if (seen.contains(atom)) {
               // Skip the argument due to idempotency.
               atoms = atoms.omit(index)
-              index -= 1
             } else {
               // Track that we have seen this argument.
               seen.add(atom)
@@ -267,12 +282,11 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
         else {
           if(atoms.length > 1){
             atoms = atoms.omit(index)
-            index -= 1
           }
         }
 
         // Move to the next atom.
-        index += 1
+        index -= 1
       } // Run through all arguments.
     }
 
