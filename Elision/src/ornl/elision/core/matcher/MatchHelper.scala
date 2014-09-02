@@ -106,7 +106,22 @@ object MatchHelper {
           subjects = subjects.omit(sindex)
       })
 
-    //store a list of omissions to be made
+    val ret = (patterns, subjects, None)
+      
+    Debugger("matching") {
+      Debugger("matching", "After Removing Constants: Patterns: " +
+        ret._1.mkParseString("", ",", ""))
+      Debugger("matching", "                    Subjects: " +
+        ret._2.mkParseString("", ",", ""))
+    }
+    ret
+  }
+  
+
+  def eliminateBoundVariables(plist: AtomSeq, slist: AtomSeq, binds: Bindings):
+                              (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
+    var patterns = plist.atoms
+    var subjects = slist.atoms
     var pomissions = List[Int]()
     var somissions = List[BasicAtom]()
     /*plist.variableMap.foreach(((thing): (String, Int)) => {
@@ -115,14 +130,15 @@ object MatchHelper {
       if (binds.contains(pat)) vomissions = thing._2 +: vomissions
     })*/
 
-    //Marks patterns for removal
-    bindings.foreach(thing => {
+    
+    //Mark patterns for removal
+    binds.foreach(thing => {
       //If this variable exists in the map, get its ID. Otherwise, set -1
       //to indicate nonexistance.
       val pomission = plist.variableMap.getOrElse(thing._1, -1)
       //Add the pattern index to pomissions for later removal. Add the atom to
       //the subject omissions to be searched for and removed.
-      if (pomission >= 0) pomissions = pomission +: pomissions; somissions = thing._2 +: somissions 
+      if (pomission >= 0 && thing._2.isConstant) pomissions = pomission +: pomissions; somissions = thing._2 +: somissions 
     })
     //If there are no omissions to take care of, go ahead and return
     if (pomissions.length == 0) return (patterns, subjects, None)
@@ -165,121 +181,10 @@ object MatchHelper {
       Debugger("constant-elimination", "Eliminating pattern item: " + patterns(pindex).toParseString)
       patterns = patterns.omit(pindex)
     })
-    // We want to run across the list of indexes highest-to-lowest so that when
-    // we omit we don't wind up with wrong indexes
-    
-          
-    /*slist.indexOf((patterns(pindex)) match {
-        case -1 =>
-          return (patterns, subjects, Some(Fail("Element " + pindex +
-            " not found in subject list.", plist, slist)))
-        case sindex =>
-          Debugger("constant-elimination", "pindex:  " + pindex)
-          Debugger("constant-elimination", "Eliminating pattern item: " + patterns(pindex))
-          Debugger("constant-elimination", "sindex:  " + sindex)
-          Debugger("constant-elimination", "Eliminating subject item:  " + subjects(sindex))
-          patterns = patterns.omit(pindex)
-          subjects = subjects.omit(sindex)
-      }
-    })*/
-    
-    val ret = (patterns, subjects, None)
-      
-    Debugger("matching") {
-      Debugger("matching", "After Removing Constants: Patterns: " +
-        ret._1.mkParseString("", ",", ""))
-      Debugger("matching", "                    Subjects: " +
-        ret._2.mkParseString("", ",", ""))
-    }
-    ret
+    (patterns, subjects, None)
   }
-  
-/*
-  def eliminateBoundVariables(plist: AtomSeq, slist: AtomSeq, binds: Bindings):
-                              (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
-    var newpseq = plist
-    var newsseq = slist
-    
-    // We iterate across the patterns back-to-front to avoid indexing
-    // gymnastics on omit()
-    var i = plist.length - 1
-    //var boundterm: BasicAtom = null
-    var boundterms:List[(BasicAtom, Int)] = null
 
-    while (i >= 0) {
-      plist(i) match {
-        
-        // We want to eliminate bound variables from the patterns, so lets find
-        // the variables in the pattern
-        /*case Variable(_, name, _, _, _) => {
-          var boundterm = binds.getOrElse(name, null)
-          var boundterms = List[(BasicAtom, Int)]()
-          // If it's bound, store the atom and its index in the pattern
-          boundterm match {
-            case null => 
-            case as:AtomSeq => as.foreach(a => boundterms = (a, i) +: boundterms)
-            case _ => boundterms = (boundterm, i) +: boundterms
-          }
-        }*/
-        case v:Variable =>
-          {
-            var boundterm:Variable = plist.variableMap.getOrElse(v, null)
-            if(boundterm != null) {
-              boundterm match {
-                case null => 
-                case as:AtomSeq => as.foreach(a => boundterms = (a, i) +: boundterms)
-                case _ => boundterms = (boundterm, i) +: boundterms
-              }
-            }
-          }
-        case _ =>
-      }
-      i -= 1
-    }
-          if(boundterms == null) return (newpseq, newsseq, None)
-          boundterms.foreach( t => {
-            val eliminate = t._1
-            val pindex = t._2
-            val rhs_index = newsseq.indexOf(eliminate)
-            // Then we attempt to eliminate it from the subject. If we can't find
-            // One in the subject then we fail.
-            Debugger("constant-elimination", "Eliminating pattern item: " + newpseq(pindex).toParseString)
-            Debugger("constant-elimination", "Term to eliminate: " + eliminate.toParseString)
-            if(rhs_index < 0){
-             Debugger("constant-elimination", "Failed thanks to bound variables.") 
-             return (newpseq, newsseq, Some(Fail("Failed to eliminate bound term in subject.")))
-            }
-            Debugger("constant-elimination", "Eliminating subject item: " + newsseq(rhs_index).toParseString)
-            newsseq = newsseq.omit(rhs_index)
-            newpseq = newpseq.omit(pindex)
-          }) 
-    
-    (newpseq, newsseq, None)
-  }
-  */
-  def substituteBoundVariables(plist: AtomSeq, binds: Bindings):
-                              (OmitSeq[BasicAtom]) = {
-    val newpseq = plist.atoms
-
-    var i = plist.length - 1
-    while (i >= 0) {
-      plist(i) match {
-        case Variable(_, name, _, _, _) => {
-          var groundterm = binds.getOrElse(name, null)
-          if (groundterm != null) {
-            newpseq.omit(i)
-            newpseq.insert(i, IndexedSeq[BasicAtom](groundterm))
-          }
-        }
-        case _ =>
-      }
-      i -= 1
-    }
-
-    newpseq
-  }  
-  
-  /**
+    /**
    *  Given a pattern, split it into non-variable and variable lists.
    *  
    *  @param plist The pattern to split
