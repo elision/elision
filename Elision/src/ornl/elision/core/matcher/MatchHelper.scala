@@ -69,10 +69,9 @@ object MatchHelper {
    * @return  A triple that contains the new patterns, new subjects, and an
    *          optional failure instance in the event matching does not succeed.
    */
-  def eliminateConstants(plist: AtomSeq, slist: AtomSeq, binds: Bindings): (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
+  def eliminateConstants(plist: AtomSeq, slist: AtomSeq): (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
     var patterns = plist.atoms
     var subjects = slist.atoms
-    val bindings = binds
     var pat: BasicAtom = null
     var pindex = -1
 
@@ -118,7 +117,21 @@ object MatchHelper {
     ret
   }
   
-
+  /**
+   * Given two lists of atoms, identify and remove certain classes of variables
+   * that have been bound from the pattern sequence and the bound values from
+   * the subject sequence.
+   *
+   * The atoms in the two lists are assumed to be unordered.  That is, this
+   * method is only suitable for use when performing commutative matching
+   * (whether or not associative).
+   *
+   * @param plist The pattern list.
+   * @param slist The subject list.
+   * @param binds The bindings that need to be accounted for.
+   * @return  A triple that contains the new patterns, new subjects, and an
+   *          optional failure instance in the event matching does not succeed.
+   */
   def eliminateBoundVariables(plist: AtomSeq, slist: AtomSeq, binds: Bindings):
                               (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
     var patterns = plist.atoms
@@ -214,7 +227,7 @@ object MatchHelper {
     (patterns, subjects, None)
   }
 
-    /**
+  /**
    *  Given a pattern, split it into non-variable and variable lists.
    *  
    *  @param plist The pattern to split
@@ -237,6 +250,19 @@ object MatchHelper {
     (pl, vl)
   }
 
+  /**
+   * Peel the operator with the given name off the values of the given bindings.
+   * This gives us temporary bindings that can be used in AC matching to 
+   * eliminate constants.
+   * 
+   * This should only be used with associative-commutative matching.
+   * 
+   * @param binds The bindings to peel.
+   * @param name  The name of the operator to peel off.
+   * @return A tuple of new bindings and the operator refernce to use to 
+   *          wrap the naked atom sequences back up with after constant
+   *          elimination.
+   */
   def peelBindings(binds: Bindings, name: String) = {
     var newbinds: Bindings = Bindings()
     var opwrap:OperatorRef = null
@@ -252,6 +278,16 @@ object MatchHelper {
     (newbinds, opwrap)
   }
 
+  /**
+   * Apply the operator given in opref to the naked atom sequences in the bindings.
+   * 
+   * This should only be used with associative-commutative matching and in bindings
+   * previously processed by peelBindings()
+   * 
+   * @param binds The bindings to apply the operator to.
+   * @param opref The operator to be applied.
+   * @return The bindings with the operator applied to the naked atom sequences.
+   */
   def wrapBindings(binds: Bindings, opref: OperatorRef) = {
     var newbinds = Bindings()
     binds.foreach(item => {
