@@ -83,6 +83,7 @@ object SequenceMatcher {
    * (i.e. that the same name is bound to the same value).  If bindings do
    * conflict then this will return `None`.  Otherwise this will add the
    * provided bind to the bindings, unless it is already there.
+   * 
    * @param binds     The bindings.
    * @param e         The bind to add.
    * @return          The (possibly) modified bindings.
@@ -144,7 +145,7 @@ object SequenceMatcher {
    * @param ss      The subject sequence.
    * @param ibinds  Already discovered bindings that must hold in and potential
    *                 match.
-   * @return        Bindings required for any potential matchm, or None if no
+   * @return        Bindings required for any potential match, or None if no
    *                 match is possible.
    */
   def get_mandatory_bindings(plist: AtomSeq, slist: AtomSeq,
@@ -167,7 +168,7 @@ object SequenceMatcher {
       plist.head match {
         case p: Variable =>
           Debugger("matching", "found a variable")
-          Debugger("matching", p.name + " function " + slist.head.toParseString)
+          Debugger("matching", p.name + " -> " + slist.head.toParseString)
           /*if(typ == ANY) return get_mandatory_bindings(
                 AtomSeq(plist.props, plist.tail),
                 AtomSeq(slist.props, slist.tail), binds)*/
@@ -208,10 +209,35 @@ object SequenceMatcher {
                 }
               } else {
                 Debugger("matching", "SeqenceMatcher found AC operator " + ns)
-                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), binds) match {
+                //construct bindings with with this operator peeled off bound terms
+                var newbinds:Bindings = Bindings()
+                var opwrap: OperatorRef = null
+                /*binds.foreach(item => {
+                  Debugger("matching", "Want to peel " + item._1 + " -> " + item._2.toParseString)
+                  item._2 match {
+                    case Apply(opref:OperatorRef, seq) if(opref.name == ns) => newbinds = newbinds + (item._1 -> seq); opwrap = opref
+                    case _ => newbinds = newbinds + (item)
+                  }
+                })*/
+                val pb = MatchHelper.peelBindings(binds, ns)
+                newbinds = pb._1
+                opwrap = pb._2
+                Debugger("matching", "After peeling " + newbinds.toParseString)
+                ACMatcher.get_mandatory_bindings(AtomSeq(prpp, argp), AtomSeq(prps, argss), newbinds) match {
                   case None => return None
                   case Some(b) => binds = b
                 }
+                //rewrap the naked AC terms
+                /*newbinds = Bindings()
+                binds.foreach(item => {
+                  Debugger("matching", "Want to wrap " + item._1 + " -> " + item._2.toParseString)
+                  item._2 match {
+                    case as:AtomSeq if(as.props.isA(false) && as.props.isC(false)) => newbinds = newbinds + (item._1 -> Apply(opwrap, as))
+                    case _ => newbinds = newbinds + (item)
+                  }
+                })*/
+                newbinds = MatchHelper.wrapBindings(binds, opwrap)
+                binds=newbinds
               }
 
             //Not certain this is correct. 

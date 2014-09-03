@@ -86,7 +86,11 @@ object CMatcher {
     // If we cannot, we do not match.
     var (patterns, subjects, fail) =
       MatchHelper.eliminateConstants(plist, slist)
+    val be = MatchHelper.eliminateBoundVariables(plist, slist, binds)
+    fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) return fail.get
+    patterns = patterns.intersect(be._1)
+    subjects = subjects.intersect(be._2)
     
     // Step two is to match and eliminate any unbindable atoms.  These are
     // atoms that are not variables, and so their matching is much more

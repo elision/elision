@@ -921,9 +921,9 @@ protected class SymbolicOperator protected (
           // of this Operator to flatten out. We check how many we've found vs.
           // how many we know are in the sequence. Once we've found them all we
           // can cease looping.
-          var index = 0
+          var index = newseq.size - 1
           var opsfound = 0
-          while (opsfound < opcount && index < newseq.size) {
+          while (opsfound < opcount && index >= 0) {
             val atom = newseq(index)
             atom match {
               case OpApply(opref, opargs, _) if (opref.operator.name == this.name) =>
@@ -935,8 +935,8 @@ protected class SymbolicOperator protected (
                 opcount += opargs.operatorCount(this)
                 opsfound += 1
               case _ =>
-                // Nothing to do except increment the pointer.
-                index += 1
+                // Nothing to do except decrement the pointer.
+                index -= 1
             }
           }
           // We flattened the list, adding new arguments, so we need to process
