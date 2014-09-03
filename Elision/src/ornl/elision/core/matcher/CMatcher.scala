@@ -85,7 +85,7 @@ object CMatcher {
     // pattern, find and remove the same constant pattern from the subjects.
     // If we cannot, we do not match.
     var (patterns, subjects, fail) =
-      MatchHelper.eliminateConstants(plist, slist, binds)
+      MatchHelper.eliminateConstants(plist, slist)
     val be = MatchHelper.eliminateBoundVariables(plist, slist, binds)
     fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) return fail.get

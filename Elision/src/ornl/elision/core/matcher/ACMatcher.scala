@@ -110,7 +110,7 @@ object ACMatcher {
 //    var plistv = ps.atoms
 //    var slist = ss.atoms
     
-    var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss, binds)
+    var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss)
     val be = MatchHelper.eliminateBoundVariables(ps, ss, binds)
     fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) {
@@ -339,7 +339,7 @@ object ACMatcher {
     // exactly, and we match and remove them.
 
     if(op.isDefined) tempbinds = MatchHelper.peelBindings(binds, op.get.name)._1 else tempbinds = binds
-    var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist, tempbinds)
+    var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
     val be = MatchHelper.eliminateBoundVariables(plist, slist, tempbinds)
     if(op.isDefined) binds = MatchHelper.wrapBindings(mbinds, op.get) else binds = tempbinds
     fail = if(fail.isDefined) fail else be._3
