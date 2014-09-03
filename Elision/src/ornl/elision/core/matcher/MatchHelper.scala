@@ -131,7 +131,6 @@ object MatchHelper {
       if (binds.contains(pat)) vomissions = thing._2 +: vomissions
     })*/
 
-    
     //Mark patterns for removal
     binds.foreach(thing => {
       //If this variable exists in the map, get its ID. Otherwise, set -1
@@ -141,22 +140,41 @@ object MatchHelper {
       // the subject omissions to be searched for and removed.
       // It looks like different types of bindings will need different
       // strategies for elimination. Literals are low hanging fruit.
-      if (pomission >= 0){
-      thing._2 match{
-        case l:Literal[_] => pomissions = pomission +: pomissions; somissions = l +: somissions
-        Debugger("constant-elimination", "Found a variable -> Literal constant elimination.")
-        case _ =>
-      }
-      
+      if (pomission >= 0) {
+        def addOmission(p: Int, s: BasicAtom) {
+          pomissions = p +: pomissions; somissions = s +: somissions
+        }
+
+        thing._2 match {
+          case l: Literal[_] =>
+            addOmission(pomission, l)
+            Debugger("constant-elimination", "Found a {variable -> Literal} constant elimination.")
+          // If we have a naked atom sequence it's a peeled operator application
+          // and we can remove the atoms it contains. Make sure it's literals
+          // for the time being.
+          case as: AtomSeq if(as.forall(p => {
+            p match {
+              case _:Literal[_] => true
+              case _            => false
+            }
+          })) => {
+            Debugger("constant-elimination", "Found a {variable -> Literal Atom Sequence} constant elimination.")
+            addOmission(pomission, as)
+          }
+          case _ =>
+        }
+
       }
     })
     //If there are no omissions to take care of, go ahead and return
     if (pomissions.length == 0) return (patterns, subjects, None)
 
-    // For each omission, 
+    // For each subject omission... 
     somissions.foreach(somission =>
       {
         somission match {
+          // If we have a naked atom sequence it's a peeled operator application
+          // and we can remove the atoms it contains
           case as: AtomSeq => as.atoms.foreach(a => { 
                                 val sindex = subjects.indexOf(a) 
                                 if(sindex >= 0){
@@ -185,7 +203,9 @@ object MatchHelper {
           }
         }
       })
-
+   
+    // Remove the pattern variables. We do this in reverse to avoid indexing
+    // gymnastics
     pomissions.sorted.reverse.foreach(pindex => {
       Debugger("constant-elimination", "pindex:  " + pindex)
       Debugger("constant-elimination", "Eliminating pattern item: " + patterns(pindex).toParseString)

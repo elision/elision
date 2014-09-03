@@ -107,10 +107,10 @@ object ACMatcher {
     ibinds: Bindings): Option[Bindings] = {
     Debugger("ACmatching", "called ACMatcher.get_mandatory_bindings")
     var binds: Bindings = ibinds
-    var plistv = ps.atoms
-    var slist = ss.atoms
+//    var plistv = ps.atoms
+//    var slist = ss.atoms
     
-    /*var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss, binds)
+    var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss, binds)
     val be = MatchHelper.eliminateBoundVariables(ps, ss, binds)
     fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) {
@@ -118,7 +118,7 @@ object ACMatcher {
       return None
     }
     plistv = plistv.intersect(be._1)
-    slist = slist.intersect(be._2)*/
+    slist = slist.intersect(be._2)
 
     // TODO: error handling for fail?
     var (plist, vlist) = MatchHelper.stripVariables(plistv)
