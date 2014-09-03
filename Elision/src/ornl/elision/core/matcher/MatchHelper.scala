@@ -49,6 +49,7 @@ import ornl.elision.core.Variable
 import ornl.elision.core.Bindings
 import ornl.elision.core.OperatorRef
 import ornl.elision.core.Apply
+import ornl.elision.core.Literal
 
 /**
  * Provide some support methods for matching.
@@ -136,9 +137,18 @@ object MatchHelper {
       //If this variable exists in the map, get its ID. Otherwise, set -1
       //to indicate nonexistance.
       val pomission = plist.variableMap.getOrElse(thing._1, -1)
-      //Add the pattern index to pomissions for later removal. Add the atom to
-      //the subject omissions to be searched for and removed.
-      if (pomission >= 0 && thing._2.isConstant) pomissions = pomission +: pomissions; somissions = thing._2 +: somissions 
+      // Add the pattern index to pomissions for later removal. Add the atom to
+      // the subject omissions to be searched for and removed.
+      // It looks like different types of bindings will need different
+      // strategies for elimination. Literals are low hanging fruit.
+      if (pomission >= 0){
+      thing._2 match{
+        case l:Literal[_] => pomissions = pomission +: pomissions; somissions = l +: somissions
+        Debugger("constant-elimination", "Found a variable -> Literal constant elimination.")
+        case _ =>
+      }
+      
+      }
     })
     //If there are no omissions to take care of, go ahead and return
     if (pomissions.length == 0) return (patterns, subjects, None)
@@ -155,7 +165,7 @@ object MatchHelper {
                                   subjects = subjects.omit(sindex)}
                                 else{ 
                                   Debugger("constant-elimination", "sindex:  " + sindex)
-                                  Debugger("constant-elimination", "Unable to eliminate subject item:  " + a.toParseString)
+                                  Debugger("constant-elimination", "Failure. Unable to eliminate subject item:  " + a.toParseString)
                                   return (patterns, subjects, Some(Fail("Unable to eliminate item from subject.")))
                                 }
                               }
@@ -169,7 +179,7 @@ object MatchHelper {
             }
             else {
               Debugger("constant-elimination", "sindex:  " + sindex)
-              Debugger("constant-elimination", "Unable to eliminate subject item:  " + somission.toParseString)
+              Debugger("constant-elimination", "Failure. Unable to eliminate subject item:  " + somission.toParseString)
               return (patterns, subjects, Some(Fail("Unable to eliminate item from subject.")))
             }
           }

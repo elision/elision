@@ -107,16 +107,18 @@ object ACMatcher {
     ibinds: Bindings): Option[Bindings] = {
     Debugger("ACmatching", "called ACMatcher.get_mandatory_bindings")
     var binds: Bindings = ibinds
+    var plistv = ps.atoms
+    var slist = ss.atoms
     
-    var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss, binds)
-    /*val be = MatchHelper.eliminateBoundVariables(plistv, slist, binds)
-    plistv = be._1
-    slist = be._2
-    fail = if(fail.isDefined) fail else be._3*/
+    /*var (plistv, slist, fail) = MatchHelper.eliminateConstants(ps, ss, binds)
+    val be = MatchHelper.eliminateBoundVariables(ps, ss, binds)
+    fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) {
       Debugger("ACmatching", "failed match")
       return None
     }
+    plistv = plistv.intersect(be._1)
+    slist = slist.intersect(be._2)*/
 
     // TODO: error handling for fail?
     var (plist, vlist) = MatchHelper.stripVariables(plistv)
@@ -338,8 +340,12 @@ object ACMatcher {
 
     if(op.isDefined) tempbinds = MatchHelper.peelBindings(binds, op.get.name)._1 else tempbinds = binds
     var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist, tempbinds)
+    val be = MatchHelper.eliminateBoundVariables(plist, slist, tempbinds)
     if(op.isDefined) binds = MatchHelper.wrapBindings(mbinds, op.get) else binds = tempbinds
+    fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) return fail.get
+    patterns = patterns.intersect(be._1)
+    subjects = subjects.intersect(be._2)
 
     // Step two is to match and eliminate any unbindable atoms.  These are
     // atoms that are not variables, and so their matching is much more
