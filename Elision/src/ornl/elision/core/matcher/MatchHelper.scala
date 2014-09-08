@@ -159,21 +159,21 @@ object MatchHelper {
         }
 
         thing._2 match {
-          case l: Literal[_] =>
-            addOmission(pomission, l)
-            Debugger("constant-elimination", "Found a {variable -> Literal} constant elimination.")
           // If we have a naked atom sequence it's a peeled operator application
           // and we can remove the atoms it contains. Make sure it's literals
           // for the time being.
           case as: AtomSeq if(as.forall(p => {
             p match {
-              case _:Literal[_] => true
+              case _:BasicAtom if(!p.isBindable) => true 
               case _            => false
             }
           })) => {
-            Debugger("constant-elimination", "Found a {variable -> Literal Atom Sequence} constant elimination.")
+            Debugger("constant-elimination", "Found a {variable -> nonbindable atom sequence} constant elimination.")
             addOmission(pomission, as)
           }
+          case _:BasicAtom if(!thing._2.isBindable) =>
+            Debugger("constant-elimination", "Found a {variable -> nonbindable} constant elimination.")
+            addOmission(pomission,thing._2)
           case _ =>
         }
 
@@ -196,7 +196,7 @@ object MatchHelper {
                                   subjects = subjects.omit(sindex)}
                                 else{ 
                                   Debugger("constant-elimination", "sindex:  " + sindex)
-                                  Debugger("constant-elimination", "Failure. Unable to eliminate subject item:  " + a.toParseString)
+                                  Debugger("constant-elimination", "Unable to eliminate subject item:  " + a.toParseString)
                                   return (patterns, subjects, Some(Fail("Unable to eliminate item from subject.")))
                                 }
                               }
@@ -210,7 +210,7 @@ object MatchHelper {
             }
             else {
               Debugger("constant-elimination", "sindex:  " + sindex)
-              Debugger("constant-elimination", "Failure. Unable to eliminate subject item:  " + somission.toParseString)
+              Debugger("constant-elimination", "Unable to eliminate subject item:  " + somission.toParseString)
               return (patterns, subjects, Some(Fail("Unable to eliminate item from subject.")))
             }
           }
