@@ -216,17 +216,7 @@ object ACMatcher {
     Some(binds)
   }
 
-  /**
-   * Attempt to match two lists.  The second list can be re-ordered and
-   * re-grouped arbitrarily.
-   *
-   * @param plist	The pattern list.
-   * @param slist	The subject list.
-   * @param ibinds 	Bindings that must be honored in any match.
-   * @param op		An optional operator to apply to sublists.
-   * @return	The match outcome.
-   */
-  def tryMatch(plist: AtomSeq, slist: AtomSeq, ibinds: Bindings,
+  private def _tryMatch(plist: AtomSeq, slist: AtomSeq, ibinds: Bindings,
     op: Option[OperatorRef]): Outcome = {
     if (BasicAtom.rewriteTimedOut) {
       return Fail("Timed out", plist, slist)
@@ -245,21 +235,7 @@ object ACMatcher {
       return Fail("No subjects to be bound to patterns.", plist, slist)
     // If there are no patterns (and no subjects), there is nothing to do.
     if (plist.length == 0) return Match(binds)
-        
-    var tempbinds: Bindings = null
-    var opwrap: OperatorRef = null
-    if(op.isDefined) tempbinds = MatchHelper.peelBindings(binds, op.get.name)._1 else tempbinds = binds
-    var mbinds:Bindings = null
-    get_mandatory_bindings(plist, slist, tempbinds) match {
-      case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
-      case Some(b) =>
-        Debugger("ACmatching", "binding results: ")
-        Debugger("ACmatching", b.toParseString)
-        mbinds = b
-    }
-    if(op.isDefined) binds = MatchHelper.wrapBindings(mbinds, op.get) else binds = mbinds
-    
-
+            
     Debugger("ACmatching", "->trymatch")
     Debugger("ACmatching", "plist:")
     Debugger("ACmatching", plist.mkParseString("", ",", ""))
@@ -337,11 +313,11 @@ object ACMatcher {
 
     // Step one is to perform constant elimination.  Any constants must match
     // exactly, and we match and remove them.
-
+    var tempbinds:Bindings = null
     if(op.isDefined) tempbinds = MatchHelper.peelBindings(binds, op.get.name)._1 else tempbinds = binds
     var (patterns, subjects, fail) = MatchHelper.eliminateConstants(plist, slist)
     val be = MatchHelper.eliminateBoundVariables(plist, slist, tempbinds)
-    if(op.isDefined) binds = MatchHelper.wrapBindings(mbinds, op.get) else binds = tempbinds
+    if(op.isDefined) binds = MatchHelper.wrapBindings(tempbinds, op.get) else binds = tempbinds
     fail = if(fail.isDefined) fail else be._3
     if (fail.isDefined) return fail.get
     patterns = patterns.intersect(be._1)
@@ -366,7 +342,7 @@ object ACMatcher {
           _local = null
           _exhausted = true
           def findNext = {
-            //	    Debugger("ACmatching","empty findNext")
+            //      Debugger("ACmatching","empty findNext")
             _exhausted = true
           }
         }
@@ -526,6 +502,55 @@ object ACMatcher {
     //    Debugger("ACmatching","(5)")
     if (iter.hasNext) Many(iter)
     else Fail("The lists do not match.", plist, slist)
+
+  }
+  
+  
+  /**
+   * Attempt to match two lists.  The second list can be re-ordered and
+   * re-grouped arbitrarily.
+   *
+   * @param plist	The pattern list.
+   * @param slist	The subject list.
+   * @param ibinds 	Bindings that must be honored in any match.
+   * @param op		An optional operator to apply to sublists.
+   * @return	The match outcome.
+   */
+  def tryMatch(plist: AtomSeq, slist: AtomSeq, ibinds: Bindings,
+    op: Option[OperatorRef]): Outcome = {
+    if (BasicAtom.rewriteTimedOut) {
+      return Fail("Timed out", plist, slist)
+    }
+    var binds = ibinds
+    // Check the length.
+    if (plist.length > slist.length)
+      return Fail("More patterns than subjects, so no match is possible.",
+        plist, slist)
+    //    Debugger("ACmatching","(1)")
+    // If there are patterns, but not subjects, no match is possible.  If
+    // there are subjects, but not patterns, no match is possible.
+    if (plist.length == 0 && slist.length > 0)
+      return Fail("No patterns to bind to the subjects.", plist, slist)
+    if (slist.length == 0 && plist.length > 0)
+      return Fail("No subjects to be bound to patterns.", plist, slist)
+    // If there are no patterns (and no subjects), there is nothing to do.
+    if (plist.length == 0) return Match(binds)
+        
+    var tempbinds: Bindings = null
+    var opwrap: OperatorRef = null
+    if(op.isDefined) tempbinds = MatchHelper.peelBindings(binds, op.get.name)._1 else tempbinds = binds
+    var mbinds:Bindings = null
+    get_mandatory_bindings(plist, slist, tempbinds) match {
+      case None => return Fail((() => "Mandatory-bindings induced fail"), 0)
+      case Some(b) =>
+        Debugger("ACmatching", "binding results: ")
+        Debugger("ACmatching", b.toParseString)
+        mbinds = b
+    }
+    if(op.isDefined) binds = MatchHelper.wrapBindings(mbinds, op.get) else binds = mbinds
+    
+    
+    _tryMatch(plist, slist, binds, op)
   }
 
   /* How associative and commutative matching works.
