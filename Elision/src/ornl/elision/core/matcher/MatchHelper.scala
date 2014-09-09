@@ -164,15 +164,15 @@ object MatchHelper {
           // for the time being.
           case as: AtomSeq if(as.forall(p => {
             p match {
-              case _:BasicAtom if(!p.isBindable) => true 
+              case _:BasicAtom if(p.isConstant) => true 
               case _            => false
             }
           })) => {
-            Debugger("constant-elimination", "Found a {variable -> nonbindable atom sequence} constant elimination.")
+            Debugger("constant-elimination", "Found a {AtomSeq -> constant atom sequence} constant elimination.")
             addOmission(pomission, as)
           }
-          case _:BasicAtom if(!thing._2.isBindable) =>
-            Debugger("constant-elimination", "Found a {variable -> nonbindable} constant elimination.")
+          case _:BasicAtom if(thing._2.isConstant) =>
+            Debugger("constant-elimination", "Found a {variable -> constant} constant elimination.")
             addOmission(pomission,thing._2)
           case _ =>
         }
