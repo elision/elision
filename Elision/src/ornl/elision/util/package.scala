@@ -172,8 +172,8 @@ package object util {
     }
   }
 
+  private val factlookup = Vector[Int](1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800)
   def factorial(n: Int) = {
-    val lookup = Vector[Int](1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800)
-    if(n > 10) Int.MaxValue else lookup(n)
+    if(n > 10) Int.MaxValue else factlookup(n)
   }
 }
