@@ -30,6 +30,7 @@
 package ornl.elision.core
 
 import ornl.elision.util.PropertyManager
+import ornl.elision.util.Debugger
 
 /**
  * Compare basic atoms.
@@ -183,6 +184,39 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     var sgn = (getOrdinal(right) - lo).signum
     if (sgn != 0) return sgn
 
+    //If we're sorting between Applys, sort them based on their estimated cost to match
+    sgn = left match {
+      case lapp: Apply => {
+        lapp.arg match {
+          case las: AtomSeq => {
+            right match {
+              case rapp: Apply =>
+                rapp.arg match {
+                  case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
+                  case _ => 0
+                }
+              case _ => 0
+            }
+          }
+          case _ => 0
+        }
+      }
+      case _ => 0
+    }
+    if (sgn != 0) return sgn
+    
+    //If we're sorting between AtomSeq, sort them based on their cost to match
+    sgn = left match {
+      case las: AtomSeq => right match{
+        case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
+        case _ => 0
+      }
+      case _ => 0
+    }
+    if (sgn != 0) return sgn
+    
+    
+    
     // Watch for root types!
     if (left == TypeUniverse) {
       if (right == TypeUniverse) return 0

@@ -40,6 +40,7 @@ package ornl.elision.core
 import scala.collection.mutable.HashSet
 import scala.collection.IndexedSeq
 import ornl.elision.util.OmitSeq
+import ornl.elision.util
 import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.AMatcher
 import ornl.elision.core.matcher.CMatcher
@@ -47,6 +48,7 @@ import ornl.elision.core.matcher.ACMatcher
 import ornl.elision.core.matcher.SequenceMatcher
 import scala.language.reflectiveCalls
 import scala.collection.mutable.HashMap
+import ornl.elision.util.Debugger
 
 /**
  * Fast access to an untyped empty sequence.
@@ -149,6 +151,36 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
       i += 1
     }
     r
+  }
+  
+  lazy val matchingCost:Long = { 
+    var cost: Long = 
+    if(!props.isA(false) && !props.isC(false)) 1
+    else if(!props.isA(false) && props.isC(false)) this.length
+    else if(props.isA(false) && !props.isC(false)){
+      if(this.length < 20) util.factorial(this.length) 
+      else Long.MaxValue
+    }
+    else if(props.isA(false) && props.isC(false)){
+      if(this.length < 20) this.length * util.factorial(this.length)
+      else Long.MaxValue
+    }
+    else -1
+    
+    var i = 0
+    while (i < atoms.length){
+      atoms(i) match{
+      case as:AtomSeq => cost += as.matchingCost
+      case app:Apply => app.arg match{
+        case aas:AtomSeq => cost += aas.matchingCost
+        case _ =>
+      }
+      case _ =>
+      }
+      i = i +1
+    }
+    Debugger("cost", "Cost of " + this.toParseString + " = " + cost)
+    cost
   }
 
   /**

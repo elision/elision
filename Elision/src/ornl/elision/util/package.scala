@@ -45,6 +45,7 @@ package ornl.elision
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
 import scala.collection.IndexedSeq
+import scala.annotation.tailrec
 package object util {
   /**
    * Turn a string into a properly-escaped double-quoted string.  The following
@@ -170,5 +171,13 @@ package object util {
       i += 1
     }
   }
-  
+
+  def factorial(n: Int) = {
+    @tailrec
+    def _factorial(n: Int, acc: Int): Int = {
+      if (n == 0) acc
+      else _factorial(n - 1, n * acc)
+    }
+    _factorial(n, 1)
+  }
 }
