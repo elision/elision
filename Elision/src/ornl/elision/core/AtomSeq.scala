@@ -153,22 +153,20 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     r
   }
   
-  lazy val matchingCost:Long = { 
-    var cost: Long = 
+  lazy val matchingCost:Int = { 
+    var cost: Int = 
     if(!props.isA(false) && !props.isC(false)) 1
     else if(!props.isA(false) && props.isC(false)) this.length
     else if(props.isA(false) && !props.isC(false)){
-      if(this.length < 20) util.factorial(this.length) 
-      else Long.MaxValue
+      util.factorial(this.length) 
     }
     else if(props.isA(false) && props.isC(false)){
-      if(this.length < 20) this.length * util.factorial(this.length)
-      else Long.MaxValue
+      this.length * util.factorial(this.length)
     }
     else -1
     
     var i = 0
-    while (i < atoms.length){
+    while (i < atoms.length && cost > 0){
       atoms(i) match{
       case as:AtomSeq => cost += as.matchingCost
       case app:Apply => app.arg match{
@@ -180,7 +178,7 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
       i = i +1
     }
     Debugger("cost", "Cost of " + this.toParseString + " = " + cost)
-    cost
+    if(cost < 0) Int.MaxValue else cost
   }
 
   /**

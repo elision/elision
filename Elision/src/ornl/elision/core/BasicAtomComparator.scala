@@ -184,7 +184,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     var sgn = (getOrdinal(right) - lo).signum
     if (sgn != 0) return sgn
 
-    //If we're sorting between Applys, sort them based on their estimated cost to match
+    //If we're comparing Applys, compare them based on their estimated cost to match
     sgn = left match {
       case lapp: Apply => {
         lapp.arg match {
@@ -205,7 +205,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     }
     if (sgn != 0) return sgn
     
-    //If we're sorting between AtomSeq, sort them based on their cost to match
+    //If we're comparing AtomSeqs, compare them based on their cost to match
     sgn = left match {
       case las: AtomSeq => right match{
         case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
