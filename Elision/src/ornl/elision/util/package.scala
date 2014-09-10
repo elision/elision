@@ -173,11 +173,7 @@ package object util {
   }
 
   def factorial(n: Int) = {
-    @tailrec
-    def _factorial(n: Int, acc: Int): Int = {
-      if (n == 0) acc
-      else _factorial(n - 1, n * acc)
-    }
-    _factorial(n, 1)
+    val lookup = Vector[Int](1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800)
+    if(n > 10) Int.MaxValue else lookup(n)
   }
 }
