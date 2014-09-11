@@ -30,7 +30,6 @@
 package ornl.elision.core
 
 import ornl.elision.util.PropertyManager
-import ornl.elision.util.Debugger
 
 /**
  * Compare basic atoms.

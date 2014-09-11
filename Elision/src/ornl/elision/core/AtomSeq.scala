@@ -153,24 +153,24 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     r
   }
   
-  lazy val matchingCost:Int = { 
-    var cost: Int = 
-    if(!props.isA(false) && !props.isC(false)) 1
-    else if(!props.isA(false) && props.isC(false)) this.length
+  lazy val matchingCost: Double = { 
+    var cost: Double = 
+    if(!props.isA(false) && !props.isC(false)) Math.log(1)
+    else if(!props.isA(false) && props.isC(false)) Math.log(this.length)
     else if(props.isA(false) && !props.isC(false)){
-      util.factorial(this.length) 
+      Math.log(util.factorial(this.length)) 
     }
     else if(props.isA(false) && props.isC(false)){
-      this.length * util.factorial(this.length)
+      Math.log(this.length) + Math.log(util.factorial(this.length))
     }
     else -1
     
     var i = 0
     while (i < atoms.length && cost > 0){
       atoms(i) match{
-      case as:AtomSeq => cost += as.matchingCost
+      case as:AtomSeq => cost = cost + as.matchingCost
       case app:Apply => app.arg match{
-        case aas:AtomSeq => cost += aas.matchingCost
+        case aas:AtomSeq => cost = cost + aas.matchingCost
         case _ =>
       }
       case _ =>

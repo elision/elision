@@ -60,6 +60,8 @@ import ornl.elision.core.Literal
 import ornl.elision.core.Variable
 import ornl.elision.core.NoProps
 import ornl.elision.core.NamedRootType
+import ornl.elision.core.BasicAtomComparator
+import scala.Array
 
 /**
  * Match two sequences of atoms.
@@ -294,8 +296,29 @@ object SequenceMatcher {
       Debugger("SequenceMatcher", "mbinds")
       Debugger("SequenceMatcher", mbinds.toParseString)
       Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
+      // If we have at least two Applys, then sort the atoms, 
+      // hopefully putting the easiest matches first
+      var appcount = 0
+      val toSort = patterns.exists(p => 
+        p match {
+        case _: Apply => appcount += 1; if(appcount > 1) true else false
+        case _        => false
+      })
+      if (toSort) {
+        // calculate consideration order
+        val orderededConsideration = patterns.sorted(BasicAtomComparator)
+        //Reorder the subjects to match up with their patterns
+        var newsubs = List[BasicAtom]()
+        var i = orderededConsideration.length - 1
+        while (i >= 0) {
+          val a = orderededConsideration(i)
+          newsubs = subjects(patterns.indexOf(a)) +: newsubs
+          i -= 1
+        }
+        Debugger("SequenceMatcher", "Using sorted SequenceMatcher")
+        _tryMatch(orderededConsideration, OmitSeq.fromIndexedSeq(newsubs.toIndexedSeq), mbinds, 0)
+      } else _tryMatch(patterns, subjects, mbinds, 0)
 
-      _tryMatch(patterns, subjects, mbinds, 0)
     }
   }
 
