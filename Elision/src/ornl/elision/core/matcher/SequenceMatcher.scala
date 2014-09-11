@@ -269,6 +269,9 @@ object SequenceMatcher {
       Debugger("matching", "    Subjects: " + subjects.mkParseString("", ",", ""))
       Debugger("matching", "    Bindings: " + binds.toParseString)
     }
+    var _patterns = patterns
+    var _subjects = subjects
+    
         
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
@@ -276,26 +279,6 @@ object SequenceMatcher {
     } else if (patterns.length != subjects.length) {
       Fail("Sequences are not the same length.")
     } else {
-      //Properties should have been taken into account at creation time, so we ignore them here.
-      val plist = AtomSeq(NoProps, patterns)
-      val slist = AtomSeq(NoProps, subjects)
-      var mbinds = binds
-      get_mandatory_bindings(plist, slist, mbinds) match {
-        case None => return Fail((() => "SequenceMatcher mandatory-bindings induced fail"), 0)
-        case Some(b) =>
-          Debugger("matching", "binding results: ")
-          Debugger("matching", b.toParseString)
-          mbinds = b
-      }
-
-      Debugger("SequenceMatcher", "->trymatch")
-      Debugger("SequenceMatcher", "plist:")
-      Debugger("SequenceMatcher", plist.mkParseString("", ",", ""))
-      Debugger("SequenceMatcher", "slist")
-      Debugger("SequenceMatcher", slist.mkParseString("", ",", ""))
-      Debugger("SequenceMatcher", "mbinds")
-      Debugger("SequenceMatcher", mbinds.toParseString)
-      Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
       // If we have at least two Applys, then sort the atoms, 
       // hopefully putting the easiest matches first
       var sortablecount = 0
@@ -320,23 +303,45 @@ object SequenceMatcher {
         Debugger("OrderedSequenceMatcher", "slist")
         Debugger("OrderedSequenceMatcher", subjects.mkParseString("", ",", ""))
         // calculate consideration order
-        val orderededConsideration = patterns.sorted(BasicAtomComparator)
+        _patterns = patterns.sorted(BasicAtomComparator)
         //Reorder the subjects to match up with their patterns
         var newsubs = List[BasicAtom]()
-        var i = orderededConsideration.length - 1
+        var i = _patterns.length - 1
         while (i >= 0) {
-          val a = orderededConsideration(i)
+          val a = _patterns(i)
           newsubs = subjects(patterns.indexOf(a)) +: newsubs
           i -= 1
         }
         Debugger("OrderedSequenceMatcher", "After sorting:")
         Debugger("OrderedSequenceMatcher", "plist:")
-        Debugger("OrderedSequenceMatcher", orderededConsideration.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", _patterns.mkParseString("", ",", ""))
         Debugger("OrderedSequenceMatcher", "slist")
-        Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))        
+        Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))
+        _subjects = OmitSeq.fromIndexedSeq(newsubs.toIndexedSeq)
+      }
 
-        _tryMatch(orderededConsideration, OmitSeq.fromIndexedSeq(newsubs.toIndexedSeq), mbinds, 0)
-      } else _tryMatch(patterns, subjects, mbinds, 0)
+      
+      //Properties should have been taken into account at creation time, so we ignore them here.
+      val plist = AtomSeq(NoProps, _patterns)
+      val slist = AtomSeq(NoProps, _subjects)
+      var mbinds = binds
+      get_mandatory_bindings(plist, slist, mbinds) match {
+        case None => return Fail((() => "SequenceMatcher mandatory-bindings induced fail"), 0)
+        case Some(b) =>
+          Debugger("matching", "binding results: ")
+          Debugger("matching", b.toParseString)
+          mbinds = b
+      }
+        
+      Debugger("SequenceMatcher", "->trymatch")
+      Debugger("SequenceMatcher", "plist:")
+      Debugger("SequenceMatcher", plist.mkParseString("", ",", ""))
+      Debugger("SequenceMatcher", "slist")
+      Debugger("SequenceMatcher", slist.mkParseString("", ",", ""))
+      Debugger("SequenceMatcher", "mbinds")
+      Debugger("SequenceMatcher", mbinds.toParseString)
+      Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
+      _tryMatch(_patterns, _subjects, mbinds, 0)
 
     }
   }
