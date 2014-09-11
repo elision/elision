@@ -185,21 +185,11 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
 
     //If we're comparing Applys, compare them based on their estimated cost to match
     sgn = left match {
-      case lapp: Apply => {
-        lapp.arg match {
-          case las: AtomSeq => {
-            right match {
-              case rapp: Apply =>
-                rapp.arg match {
-                  case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
-                  case _ => 0
-                }
-              case _ => 0
-            }
-          }
-          case _ => 0
+      case lapp: Apply =>
+        right match {
+          case rapp: Apply => lapp.matchingCost `compare` rapp.matchingCost
+          case _           => 0
         }
-      }
       case _ => 0
     }
     if (sgn != 0) return sgn
