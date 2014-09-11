@@ -60,6 +60,8 @@ import ornl.elision.core.Literal
 import ornl.elision.core.Variable
 import ornl.elision.core.NoProps
 import ornl.elision.core.NamedRootType
+import ornl.elision.core.BasicAtomComparator
+import scala.Array
 
 /**
  * Match two sequences of atoms.
@@ -294,8 +296,48 @@ object SequenceMatcher {
       Debugger("SequenceMatcher", "mbinds")
       Debugger("SequenceMatcher", mbinds.toParseString)
       Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
+      // If we have at least two Applys, then sort the atoms, 
+      // hopefully putting the easiest matches first
+      var sortablecount = 0
+      var gotgold = false
+      val toSort = patterns.exists(p =>
+        p match {
+          case Apply(op, arg: AtomSeq) =>
+            sortablecount += 1
+            if (arg.props.isC(false) || arg.props.isA(false)) gotgold = true
+            if (sortablecount > 1 && gotgold) true else false
+          case arg: AtomSeq =>
+            sortablecount += 1
+            if (arg.props.isC(false) || arg.props.isA(false)) gotgold = true
+            if (sortablecount > 1 && gotgold) true else false
+          case _ => false
+        })
+      if (toSort) {
+        Debugger("OrderedSequenceMatcher", "Using sorted SequenceMatcher")
+        Debugger("OrderedSequenceMatcher", "Before sorting:")
+        Debugger("OrderedSequenceMatcher", "plist:")
+        Debugger("OrderedSequenceMatcher", patterns.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", "slist")
+        Debugger("OrderedSequenceMatcher", subjects.mkParseString("", ",", ""))
+        // calculate consideration order
+        val orderededConsideration = patterns.sorted(BasicAtomComparator)
+        //Reorder the subjects to match up with their patterns
+        var newsubs = List[BasicAtom]()
+        var i = orderededConsideration.length - 1
+        while (i >= 0) {
+          val a = orderededConsideration(i)
+          newsubs = subjects(patterns.indexOf(a)) +: newsubs
+          i -= 1
+        }
+        Debugger("OrderedSequenceMatcher", "After sorting:")
+        Debugger("OrderedSequenceMatcher", "plist:")
+        Debugger("OrderedSequenceMatcher", orderededConsideration.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", "slist")
+        Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))        
 
-      _tryMatch(patterns, subjects, mbinds, 0)
+        _tryMatch(orderededConsideration, OmitSeq.fromIndexedSeq(newsubs.toIndexedSeq), mbinds, 0)
+      } else _tryMatch(patterns, subjects, mbinds, 0)
+
     }
   }
 

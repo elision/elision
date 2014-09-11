@@ -183,6 +183,29 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     var sgn = (getOrdinal(right) - lo).signum
     if (sgn != 0) return sgn
 
+    //If we're comparing Applys, compare them based on their estimated cost to match
+    sgn = left match {
+      case lapp: Apply =>
+        right match {
+          case rapp: Apply => lapp.matchingCost `compare` rapp.matchingCost
+          case _           => 0
+        }
+      case _ => 0
+    }
+    if (sgn != 0) return sgn
+    
+    //If we're comparing AtomSeqs, compare them based on their cost to match
+    sgn = left match {
+      case las: AtomSeq => right match{
+        case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
+        case _ => 0
+      }
+      case _ => 0
+    }
+    if (sgn != 0) return sgn
+    
+    
+    
     // Watch for root types!
     if (left == TypeUniverse) {
       if (right == TypeUniverse) return 0
