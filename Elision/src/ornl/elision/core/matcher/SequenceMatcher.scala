@@ -298,14 +298,18 @@ object SequenceMatcher {
       Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
       // If we have at least two Applys, then sort the atoms, 
       // hopefully putting the easiest matches first
-      var appcount = 0
-      var goldapp = false
+      var sortablecount = 0
+      var gotgold = false
       val toSort = patterns.exists(p =>
         p match {
           case Apply(op, arg: AtomSeq) =>
-            appcount += 1
-            if (arg.props.isC(false) || arg.props.isA(false)) goldapp = true
-            if (appcount > 1 && goldapp) true else false
+            sortablecount += 1
+            if (arg.props.isC(false) || arg.props.isA(false)) gotgold = true
+            if (sortablecount > 1 && gotgold) true else false
+          case arg: AtomSeq =>
+            sortablecount += 1
+            if (arg.props.isC(false) || arg.props.isA(false)) gotgold = true
+            if (sortablecount > 1 && gotgold) true else false
           case _ => false
         })
       if (toSort) {
