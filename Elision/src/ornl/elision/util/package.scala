@@ -175,14 +175,14 @@ package object util {
   // Set the maximum factorial we will support.
   // 21! overflows a Long, so we use 20 here.
   private val maxfact = 20
-  private lazy val factlookup = {
+  private val factlookup = {
     def _factorial(n: Int) = {
       @tailrec
-      def __factorial(n: Int, acc: Int): Long = {
+      def __factorial(n: Int, acc: Long = 1): Long = {
         if (n == 0) acc
         else __factorial(n - 1, n * acc)
       }
-      __factorial(n, 1)
+      __factorial(n)
     }
     for(i <- 0 to maxfact) yield _factorial(maxfact)
   }
