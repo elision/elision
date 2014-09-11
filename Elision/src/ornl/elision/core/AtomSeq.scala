@@ -156,9 +156,9 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
   lazy val matchingCost: Double = { 
     var cost: Double = 
     if(!props.isA(false) && !props.isC(false)) Math.log(1)
-    else if(!props.isA(false) && props.isC(false)) Math.log(this.length)
+    else if(!props.isA(false) && props.isC(false)) Math.log(util.factorial(this.length))
     else if(props.isA(false) && !props.isC(false)){
-      Math.log(util.factorial(this.length)) 
+       Math.log(this.length)
     }
     else if(props.isA(false) && props.isC(false)){
       Math.log(this.length) + Math.log(util.factorial(this.length))

@@ -172,8 +172,22 @@ package object util {
     }
   }
 
-  private val factlookup = Vector[Int](1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800)
+  // Set the maximum factorial we will support.
+  // 21! overflows a Long, so we use 20 here.
+  private val maxfact = 20
+  private lazy val factlookup = {
+    def _factorial(n: Int) = {
+      @tailrec
+      def __factorial(n: Int, acc: Int): Long = {
+        if (n == 0) acc
+        else __factorial(n - 1, n * acc)
+      }
+      __factorial(n, 1)
+    }
+    for(i <- 0 to maxfact) yield _factorial(maxfact)
+  }
+  
   def factorial(n: Int) = {
-    if(n > 10) Int.MaxValue else factlookup(n)
+    if(n > maxfact) Long.MaxValue else factlookup(n)
   }
 }
