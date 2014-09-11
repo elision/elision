@@ -138,7 +138,9 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     }
     r
   }
-  
+  /**
+   * A map of that returns what index in a sequence a variable is located at 
+   */
   lazy val variableMap: scala.collection.mutable.OpenHashMap[String, Int] = {
     var r = scala.collection.mutable.OpenHashMap[String, Int]()
     var i = 0
@@ -153,6 +155,10 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     r
   }
   
+  /**
+   * This is the estimated cost of matching an atom sequence based on its
+   * algebraic properties, its length, and the matching cost of its children. 
+   */
   lazy val matchingCost: Double = { 
     var cost: Double = 
     if(!props.isA(false) && !props.isC(false)) Math.log(1)

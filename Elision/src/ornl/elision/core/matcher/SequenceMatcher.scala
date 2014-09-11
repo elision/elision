@@ -299,12 +299,22 @@ object SequenceMatcher {
       // If we have at least two Applys, then sort the atoms, 
       // hopefully putting the easiest matches first
       var appcount = 0
-      val toSort = patterns.exists(p => 
+      var goldapp = false
+      val toSort = patterns.exists(p =>
         p match {
-        case _: Apply => appcount += 1; if(appcount > 1) true else false
-        case _        => false
-      })
+          case Apply(op, arg: AtomSeq) =>
+            appcount += 1
+            if (arg.props.isC(false) || arg.props.isA(false)) goldapp = true
+            if (appcount > 1 && goldapp) true else false
+          case _ => false
+        })
       if (toSort) {
+        Debugger("OrderedSequenceMatcher", "Using sorted SequenceMatcher")
+        Debugger("OrderedSequenceMatcher", "Before sorting:")
+        Debugger("OrderedSequenceMatcher", "plist:")
+        Debugger("OrderedSequenceMatcher", patterns.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", "slist")
+        Debugger("OrderedSequenceMatcher", subjects.mkParseString("", ",", ""))
         // calculate consideration order
         val orderededConsideration = patterns.sorted(BasicAtomComparator)
         //Reorder the subjects to match up with their patterns
@@ -315,7 +325,12 @@ object SequenceMatcher {
           newsubs = subjects(patterns.indexOf(a)) +: newsubs
           i -= 1
         }
-        Debugger("SequenceMatcher", "Using sorted SequenceMatcher")
+        Debugger("OrderedSequenceMatcher", "After sorting:")
+        Debugger("OrderedSequenceMatcher", "plist:")
+        Debugger("OrderedSequenceMatcher", orderededConsideration.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", "slist")
+        Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))        
+
         _tryMatch(orderededConsideration, OmitSeq.fromIndexedSeq(newsubs.toIndexedSeq), mbinds, 0)
       } else _tryMatch(patterns, subjects, mbinds, 0)
 
