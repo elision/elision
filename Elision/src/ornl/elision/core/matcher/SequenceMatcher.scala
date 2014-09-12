@@ -281,25 +281,22 @@ object SequenceMatcher {
     } else {
       // If we have at least two Applys, then sort the atoms, 
       // hopefully putting the easiest matches first      
-      // Sorting only does good is we have an A and/or C operator application.
-      // Further, it only helps if we have at least two different operators.
-      // All other circumstances lead to no better of a situation because 
-      // the pattern sequence will remain essentially the same.
-      var sortablecount = 0
-      var gotgold = false
-      var firstfound:BasicAtom = null
+      // Only sort if cost-to-match is not monotonically increasing
+      // (i.e. if it's not already sorted sensibly)
+      var maxcost = 0.0
+      var monotonic = true
       val toSort = patterns.exists(p =>
         p match {
           case Apply(op, arg: AtomSeq) =>
-            sortablecount += 1
-            if(firstfound == null) firstfound = op
-            if ((arg.props.isC(false) || arg.props.isA(false)) && op != firstfound) gotgold = true;
-            if (sortablecount > 1 && gotgold) true else false
+            if (arg.matchingCost < maxcost) monotonic = false
+            maxcost = Math.max(maxcost, arg.matchingCost)
+            if(maxcost > 0 && !monotonic) true
+            else false            
           case arg: AtomSeq =>
-            sortablecount += 1
-            if(firstfound == null) firstfound = arg
-            if ((arg.props.isC(false) || arg.props.isA(false)) && arg != firstfound) gotgold = true
-            if (sortablecount > 1 && gotgold) true else false
+            if (arg.matchingCost < maxcost) monotonic = false
+            maxcost = Math.max(maxcost, arg.matchingCost)
+            if(maxcost > 0 && !monotonic) true
+            else false
           case _ => false
         })
       if (toSort) {
