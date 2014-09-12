@@ -60,6 +60,8 @@ import ornl.elision.core.Literal
 import ornl.elision.core.Variable
 import ornl.elision.core.NoProps
 import ornl.elision.core.NamedRootType
+import ornl.elision.core.BasicAtomComparator
+import scala.Array
 
 /**
  * Match two sequences of atoms.
@@ -212,13 +214,6 @@ object SequenceMatcher {
                 //construct bindings with with this operator peeled off bound terms
                 var newbinds:Bindings = Bindings()
                 var opwrap: OperatorRef = null
-                /*binds.foreach(item => {
-                  Debugger("matching", "Want to peel " + item._1 + " -> " + item._2.toParseString)
-                  item._2 match {
-                    case Apply(opref:OperatorRef, seq) if(opref.name == ns) => newbinds = newbinds + (item._1 -> seq); opwrap = opref
-                    case _ => newbinds = newbinds + (item)
-                  }
-                })*/
                 val pb = MatchHelper.peelBindings(binds, ns)
                 newbinds = pb._1
                 opwrap = pb._2
@@ -228,14 +223,6 @@ object SequenceMatcher {
                   case Some(b) => binds = b
                 }
                 //rewrap the naked AC terms
-                /*newbinds = Bindings()
-                binds.foreach(item => {
-                  Debugger("matching", "Want to wrap " + item._1 + " -> " + item._2.toParseString)
-                  item._2 match {
-                    case as:AtomSeq if(as.props.isA(false) && as.props.isC(false)) => newbinds = newbinds + (item._1 -> Apply(opwrap, as))
-                    case _ => newbinds = newbinds + (item)
-                  }
-                })*/
                 newbinds = MatchHelper.wrapBindings(binds, opwrap)
                 binds=newbinds
               }
@@ -267,6 +254,9 @@ object SequenceMatcher {
       Debugger("matching", "    Subjects: " + subjects.mkParseString("", ",", ""))
       Debugger("matching", "    Bindings: " + binds.toParseString)
     }
+    var _patterns = patterns
+    var _subjects = subjects
+    
         
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
@@ -274,9 +264,61 @@ object SequenceMatcher {
     } else if (patterns.length != subjects.length) {
       Fail("Sequences are not the same length.")
     } else {
+      // If we have at least two Applys, then sort the atoms, 
+      // hopefully putting the easiest matches first      
+      // Only sort if cost-to-match is not monotonically increasing
+      // (i.e. if it's not already sorted sensibly)
+      var maxcost = 0.0
+      var monotonic = true
+      val toSort = patterns.exists(p =>
+        p match {
+          case Apply(op, arg: AtomSeq) =>
+            if (arg.matchingCost < maxcost) monotonic = false
+            
+            if(!monotonic) true
+            else {
+              maxcost = Math.max(maxcost, arg.matchingCost)
+              false
+            }
+          case arg: AtomSeq =>
+            if (arg.matchingCost < maxcost) monotonic = false
+            
+            if(!monotonic) true
+            else{
+              maxcost = Math.max(maxcost, arg.matchingCost)
+              false
+            }
+          case _ => false
+        })
+      if (toSort) {
+        Debugger("OrderedSequenceMatcher", "Using sorted SequenceMatcher")
+        Debugger("OrderedSequenceMatcher", "Before sorting:")
+        Debugger("OrderedSequenceMatcher", "plist:")
+        Debugger("OrderedSequenceMatcher", patterns.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", "slist")
+        Debugger("OrderedSequenceMatcher", subjects.mkParseString("", ",", ""))
+        // calculate consideration order
+        _patterns = patterns.sorted(BasicAtomComparator)
+        //Reorder the subjects to match up with their patterns
+        var newsubs = Vector[BasicAtom]()
+        var i = _patterns.length - 1
+        while (i >= 0) {
+          val a = _patterns(i)
+          newsubs = subjects(patterns.indexOf(a)) +: newsubs
+          i -= 1
+        }
+        Debugger("OrderedSequenceMatcher", "After sorting:")
+        Debugger("OrderedSequenceMatcher", "plist:")
+        Debugger("OrderedSequenceMatcher", _patterns.mkParseString("", ",", ""))
+        Debugger("OrderedSequenceMatcher", "slist")
+        Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))
+        _subjects = OmitSeq.fromIndexedSeq(newsubs)
+      }
+
+      
       //Properties should have been taken into account at creation time, so we ignore them here.
-      val plist = AtomSeq(NoProps, patterns)
-      val slist = AtomSeq(NoProps, subjects)
+      val plist = AtomSeq(NoProps, _patterns)
+      val slist = AtomSeq(NoProps, _subjects)
       var mbinds = binds
       get_mandatory_bindings(plist, slist, mbinds) match {
         case None => return Fail((() => "SequenceMatcher mandatory-bindings induced fail"), 0)
@@ -285,7 +327,7 @@ object SequenceMatcher {
           Debugger("matching", b.toParseString)
           mbinds = b
       }
-
+        
       Debugger("SequenceMatcher", "->trymatch")
       Debugger("SequenceMatcher", "plist:")
       Debugger("SequenceMatcher", plist.mkParseString("", ",", ""))
@@ -294,8 +336,8 @@ object SequenceMatcher {
       Debugger("SequenceMatcher", "mbinds")
       Debugger("SequenceMatcher", mbinds.toParseString)
       Debugger("SequenceMatcher", "SequenceMatcher mandatory bindings: " + mbinds.toParseString)
+      _tryMatch(_patterns, _subjects, mbinds, 0)
 
-      _tryMatch(patterns, subjects, mbinds, 0)
     }
   }
 

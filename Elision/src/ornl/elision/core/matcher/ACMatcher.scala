@@ -152,8 +152,14 @@ object ACMatcher {
                     case uninitialized() =>
                       _somitme = _sindex
                       found(AtomSeq(prps, args))
-                    case found(_) => failed = true; Debugger("ACmatching", "Found too many operators with the same name."); toomany()
-                    case toomany() => failed = true; Debugger("ACmatching", "Found too many operators with the same name."); toomany()
+                    case found(_) =>
+                      failed = true
+                      Debugger("ACmatching", "Found too many operators with the same name.")
+                      toomany()
+                    case toomany() =>
+                      failed = true
+                      Debugger("ACmatching", "Found too many operators with the same name.")
+                      toomany()
                   }
                 } else {
                   Debugger("ACmatching", "found non-identically named operators")
@@ -190,7 +196,9 @@ object ACMatcher {
                   }
               }
 
-            case toomany() => Debugger("ACmatching", "Too many possible subjects. No new information acquired.") ; binds = binds
+            case toomany() => 
+              Debugger("ACmatching", "Too many possible subjects. No new information acquired.")
+              binds = binds
           }
         case _ => binds = binds // do nothing
       }

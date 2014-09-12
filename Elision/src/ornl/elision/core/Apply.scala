@@ -75,7 +75,12 @@ abstract class Apply(val op: BasicAtom, val arg: BasicAtom) extends BasicAtom {
   /** The hash code for this apply. */
   override lazy val hashCode = op.hashCode * 12289 + arg.hashCode
   override lazy val otherHashCode = op.otherHashCode + 8191*arg.otherHashCode
-
+  lazy val matchingCost = arg match {
+    case as: AtomSeq => as.matchingCost
+    case _           => 0
+  }
+  
+  
   if (BasicAtom.trackedOperators.contains(
     this.op match {
       case x: Operator    => x.name

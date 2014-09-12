@@ -155,7 +155,8 @@ object MatchHelper {
       // strategies for elimination. Literals are low hanging fruit.
       if (pomission >= 0) {
         def addOmission(p: Int, s: BasicAtom) {
-          pomissions = p +: pomissions; somissions = s +: somissions
+          pomissions = p +: pomissions
+          somissions = s +: somissions
         }
 
         thing._2 match {

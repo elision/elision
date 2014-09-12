@@ -45,6 +45,7 @@ package ornl.elision
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
 import scala.collection.IndexedSeq
+import scala.annotation.tailrec
 package object util {
   /**
    * Turn a string into a properly-escaped double-quoted string.  The following
@@ -170,5 +171,23 @@ package object util {
       i += 1
     }
   }
+
+  // Set the maximum factorial we will support.
+  // 21! overflows a Long, so we use 20 here.
+  private val maxfact = 20
+  private val factlookup = {
+    def _factorial(n: Int) = {
+      @tailrec
+      def __factorial(n: Int, acc: Long = 1): Long = {
+        if (n == 0) acc
+        else __factorial(n - 1, n * acc)
+      }
+      __factorial(n)
+    }
+    for(i <- 0 to maxfact) yield _factorial(maxfact)
+  }
   
+  def factorial(n: Int) = {
+    if(n > maxfact) Long.MaxValue else factlookup(n)
+  }
 }

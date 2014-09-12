@@ -454,7 +454,9 @@ extends Fickle with Mutable {
           // Rewrite the properties.  The result must still be a property spec.
           // If not, we keep the same properties.
           val newProps = _rewritechild(new TrackedAtom(props), rulesets) match {
-            case (TrackedAtom(ap: AlgProp, _, _), true) => flag = true; ap
+            case (TrackedAtom(ap: AlgProp, _, _), true) =>
+              flag = true
+              ap
             case _ => props
           }
           // Rewrite the atoms.
@@ -693,9 +695,13 @@ extends Fickle with Mutable {
   
   /** Bit index of the next ruleset. */
   private var _nextrs = 1
-  
+
   /** Local convenience method to get the next ruleset index. */
-  private def bump() = { val tmp = _nextrs ; _nextrs += 1 ; tmp }
+  private def bump() = {
+    val tmp = _nextrs
+    _nextrs += 1
+    tmp
+  }
   
   /** Bit zero is reserved for the default ruleset. */
   _rs2bit += ("DEFAULT" -> 0)
@@ -756,9 +762,11 @@ extends Fickle with Mutable {
   */
   def declareRuleset(name: String) = {
     actionList = DeclareRS(name) :: actionList
-    
+
     _rs2bit.get(name) match {
-      case None => _rs2bit += (name -> bump()) ; true
+      case None =>
+        _rs2bit += (name -> bump())
+        true
       case _ => false
     }
   }
