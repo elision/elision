@@ -289,14 +289,20 @@ object SequenceMatcher {
         p match {
           case Apply(op, arg: AtomSeq) =>
             if (arg.matchingCost < maxcost) monotonic = false
-            maxcost = Math.max(maxcost, arg.matchingCost)
-            if(maxcost > 0 && !monotonic) true
-            else false            
+            
+            if(!monotonic) true
+            else {
+              maxcost = Math.max(maxcost, arg.matchingCost)
+              false
+            }
           case arg: AtomSeq =>
             if (arg.matchingCost < maxcost) monotonic = false
-            maxcost = Math.max(maxcost, arg.matchingCost)
-            if(maxcost > 0 && !monotonic) true
-            else false
+            
+            if(!monotonic) true
+            else{
+              maxcost = Math.max(maxcost, arg.matchingCost)
+              false
+            }
           case _ => false
         })
       if (toSort) {
@@ -309,7 +315,7 @@ object SequenceMatcher {
         // calculate consideration order
         _patterns = patterns.sorted(BasicAtomComparator)
         //Reorder the subjects to match up with their patterns
-        var newsubs = List[BasicAtom]()
+        var newsubs = Vector[BasicAtom]()
         var i = _patterns.length - 1
         while (i >= 0) {
           val a = _patterns(i)
@@ -321,7 +327,7 @@ object SequenceMatcher {
         Debugger("OrderedSequenceMatcher", _patterns.mkParseString("", ",", ""))
         Debugger("OrderedSequenceMatcher", "slist")
         Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))
-        _subjects = OmitSeq.fromIndexedSeq(newsubs.toIndexedSeq)
+        _subjects = OmitSeq.fromIndexedSeq(newsubs)
       }
 
       

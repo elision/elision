@@ -52,7 +52,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     case x: MetaVariable => 2
     case x: Variable => 3
     case x: Apply => 4
-    case x: AtomSeq => 5
+    case x: AtomSeq => 4
     case x: BindingsAtom => 6
     case x: Lambda => 7
     case x: MapPair => 8
@@ -80,12 +80,12 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     /**
    * Whether to compute equality faster but in a riskier fashion.
    */
-  var _riskyEqual: Boolean = false;
+  var _riskyEqual: Boolean = false
 
   /**
    * Whether to use custom equality functions.
    */
-  var _customEqual: Boolean = false;
+  var _customEqual: Boolean = false
   
   /** 
    * Declare the Elision property for setting whether to do risky
@@ -188,6 +188,13 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       case lapp: Apply =>
         right match {
           case rapp: Apply => lapp.matchingCost `compare` rapp.matchingCost
+          case ras: AtomSeq => lapp.matchingCost `compare` ras.matchingCost
+          case _           => 0
+        }
+      case las: AtomSeq =>
+        right match {
+          case rapp: Apply => las.matchingCost `compare` rapp.matchingCost
+          case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
           case _           => 0
         }
       case _ => 0
@@ -195,7 +202,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     if (sgn != 0) return sgn
     
     //If we're comparing AtomSeqs, compare them based on their cost to match
-    sgn = left match {
+    /*sgn = left match {
       case las: AtomSeq => right match{
         case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
         case _ => 0
@@ -203,7 +210,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       case _ => 0
     }
     if (sgn != 0) return sgn
-    
+    */
     
     
     // Watch for root types!
