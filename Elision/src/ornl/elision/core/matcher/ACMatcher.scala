@@ -196,7 +196,9 @@ object ACMatcher {
                   }
               }
 
-            case toomany() => Debugger("ACmatching", "Too many possible subjects. No new information acquired.") ; binds = binds
+            case toomany() => 
+              Debugger("ACmatching", "Too many possible subjects. No new information acquired.")
+              binds = binds
           }
         case _ => binds = binds // do nothing
       }

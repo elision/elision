@@ -214,13 +214,6 @@ object SequenceMatcher {
                 //construct bindings with with this operator peeled off bound terms
                 var newbinds:Bindings = Bindings()
                 var opwrap: OperatorRef = null
-                /*binds.foreach(item => {
-                  Debugger("matching", "Want to peel " + item._1 + " -> " + item._2.toParseString)
-                  item._2 match {
-                    case Apply(opref:OperatorRef, seq) if(opref.name == ns) => newbinds = newbinds + (item._1 -> seq); opwrap = opref
-                    case _ => newbinds = newbinds + (item)
-                  }
-                })*/
                 val pb = MatchHelper.peelBindings(binds, ns)
                 newbinds = pb._1
                 opwrap = pb._2
@@ -230,14 +223,6 @@ object SequenceMatcher {
                   case Some(b) => binds = b
                 }
                 //rewrap the naked AC terms
-                /*newbinds = Bindings()
-                binds.foreach(item => {
-                  Debugger("matching", "Want to wrap " + item._1 + " -> " + item._2.toParseString)
-                  item._2 match {
-                    case as:AtomSeq if(as.props.isA(false) && as.props.isC(false)) => newbinds = newbinds + (item._1 -> Apply(opwrap, as))
-                    case _ => newbinds = newbinds + (item)
-                  }
-                })*/
                 newbinds = MatchHelper.wrapBindings(binds, opwrap)
                 binds=newbinds
               }
