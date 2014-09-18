@@ -148,12 +148,12 @@ object MatchHelper {
     binds.foreach(thing => {
       //If this variable exists in the map, get its ID. Otherwise, set -1
       //to indicate nonexistance.
-      val pomission = plist.variableMap.getOrElse(thing._1, -1)
+      val pomission = plist.variableMap.getOrElse(thing._1, List())
       // Add the pattern index to pomissions for later removal. Add the atom to
       // the subject omissions to be searched for and removed.
       // It looks like different types of bindings will need different
       // strategies for elimination. Literals are low hanging fruit.
-      if (pomission >= 0) {
+      if (pomission.length > 0) {
         def addOmission(p: Int, s: BasicAtom) {
           pomissions = p +: pomissions
           somissions = s +: somissions
@@ -161,8 +161,7 @@ object MatchHelper {
 
         thing._2 match {
           // If we have a naked atom sequence it's a peeled operator application
-          // and we can remove the atoms it contains. Make sure it's literals
-          // for the time being.
+          // and we can remove the atoms it contains. Make sure it's constant.
           case as: AtomSeq if(as.forall(p => {
             p match {
               case _:BasicAtom if(p.isConstant) => true 
@@ -170,11 +169,11 @@ object MatchHelper {
             }
           })) => {
             Debugger("constant-elimination", "Found a {AtomSeq -> constant atom sequence} constant elimination.")
-            addOmission(pomission, as)
+            pomission.foreach( om => addOmission(om, as))
           }
           case _:BasicAtom if(thing._2.isConstant) =>
             Debugger("constant-elimination", "Found a {variable -> constant} constant elimination.")
-            addOmission(pomission,thing._2)
+            pomission.foreach( om => addOmission(om,thing._2))
           case _ =>
         }
 

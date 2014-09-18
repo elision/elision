@@ -139,20 +139,28 @@ class AtomSeq(val props: AlgProp, orig_xatoms: IndexedSeq[BasicAtom])
     r
   }
   /**
-   * A map of that returns what index in a sequence a variable is located at 
+   * A map of that returns A list of indexes where a variable occurs
    */
-  lazy val variableMap: scala.collection.mutable.OpenHashMap[String, Int] = {
-    var r = scala.collection.mutable.OpenHashMap[String, Int]()
+  lazy val variableMap: scala.collection.mutable.OpenHashMap[String, List[Int]] = {
+    var r = scala.collection.mutable.OpenHashMap[String, List[Int]]()
     var i = 0
     while (i < atoms.length) {
       //if (atoms(i).isBindable) r(atoms(i)) = i
       atoms(i) match {
-        case v:Variable => r(v.name) =  i
+        case v:Variable if(r.contains(v.name)) => r(v.name) =  i +: r(v.name)
+        case v:Variable => r(v.name) = List[Int](i)
         case _ => 
       }
       i += 1
     }
     r
+  }
+  
+  lazy val variableMultiplicy: HashMap[String, (Boolean, Int, Int)] = {
+    val thing:String = ""
+    var varmul = HashMap[String, (Boolean, Int, Int)]()
+    varmul(thing) = (false, 0, 0)
+    varmul
   }
   
   /**

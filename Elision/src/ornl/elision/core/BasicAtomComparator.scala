@@ -180,7 +180,8 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     
     // Check the ordinals.
     val lo = getOrdinal(left)
-    var sgn = (getOrdinal(right) - lo).signum
+    val ro = getOrdinal(right)
+    var sgn = lo `compare` ro //(lo - ro).signum
     if (sgn != 0) return sgn
 
     //If we're comparing Applys, compare them based on their estimated cost to match
