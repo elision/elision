@@ -167,45 +167,45 @@ object Memo {
    * the completely rewritten atom and the cache level.  No knowledge of the
    * rewrite limit is stored!
    */
-  private lazy val _cache = 
+  private val _cache = 
     new MutableHashMap[CacheLookupKey,(BasicAtom,Int)]() 
   
   /** 
    * Keeps a count of how many times things in _cache have been accessed since
    * the last iteration of the replacement policy algorithm. 
    */  
-  private lazy val _cacheCounter =
+  private val _cacheCounter =
     new MutableHashMap[CacheLookupKey, Long]()
   
   /**
    * Queue for implementing a FIFO replacement policy.
    */  
-  private lazy val _cacheFIFO = new Queue[CacheLookupKey]
+  private val _cacheFIFO = new Queue[CacheLookupKey]
     
   /**
    * This set holds atoms that are in their "normal form" state and do not
    * get rewritten.
    */
-  private lazy val _normal = Set[CacheLookupKey]()
+  private val _normal = Set[CacheLookupKey]()
   
   /** 
    * Keeps a count of how many times things in _normal have been accessed 
    * since the last iteration of the replacement policy algorithm. 
    */  
-  private lazy val _normalCounter =
+  private val _normalCounter =
     new MutableHashMap[CacheLookupKey, Long]()
   
   /**
    * Queue for implementing a FIFO replacement policy.
    */  
-  private lazy val _normalFIFO = new Queue[CacheLookupKey]  
+  private val _normalFIFO = new Queue[CacheLookupKey]  
     
     
   /**
    * Track whether anything has been added at a particular cache level.  If
    * so, set the dirty flag to true.
    */
-  private lazy val _dirty = new Array[Boolean](_LIMIT)
+  private val _dirty = new Array[Boolean](_LIMIT)
   
   //======================================================================
   // Cache access.
@@ -442,18 +442,18 @@ object Memo {
     // Store the item in the cache.
     val t0 = System.currentTimeMillis()
     val lvl = 0 max level min (_LIMIT-1)
-    val cacheLookup = getCacheKey(atom, rulesets)
     _normal.synchronized {
+      val cacheValueLookup = getCacheKey(value, rulesets)
       _replacementPolicyNormal
-//      _normal.put(cacheLookup, Unit)
-      _normal += cacheLookup
-      _normalFIFO.enqueue(cacheLookup)
+      _normal += cacheValueLookup
+      _normalFIFO.enqueue(cacheValueLookup)
     }
     if (!(atom eq value)) {
       _cache.synchronized {
+        val cacheAtomLookup = getCacheKey(atom, rulesets)
         _replacementPolicyCache
-        _cache.put(cacheLookup, (value, level))
-        _cacheFIFO.enqueue(cacheLookup)
+        _cache.put(cacheAtomLookup, (value, level))
+        _cacheFIFO.enqueue(cacheAtomLookup)
       }
     }
     Debugger("memo") {
@@ -476,18 +476,18 @@ object Memo {
     val t0 = System.currentTimeMillis()
     val lvl = 0 max level min (_LIMIT-1)
 
-    val cacheLookup = getCacheKey(atom, rulesets)
     _normal.synchronized {
+      val cacheValueLookup = getCacheKey(value, rulesets)
       _replacementPolicyNormal
-//      _normal.put(cacheLookup, Unit)
-      _normal += cacheLookup
-      _incNormalCounter(cacheLookup)
+      _normal += cacheValueLookup
+      _incNormalCounter(cacheValueLookup)
     }
     if (!(atom eq value)) {
       _cache.synchronized {
+        val cacheAtomLookup = getCacheKey(atom, rulesets)
         _replacementPolicyCache
-        _cache.put(cacheLookup, (value, level))
-        _incCacheCounter(cacheLookup) 
+        _cache.put(cacheAtomLookup, (value, level))
+        _incCacheCounter(cacheAtomLookup) 
       }
     }
     Debugger("memo") {
@@ -509,14 +509,14 @@ object Memo {
     // Store the item in the cache.
     val t0 = System.currentTimeMillis()
     val lvl = 0 max level min (_LIMIT-1)
-    val cacheLookup = getCacheKey(atom, rulesets)
     _normal.synchronized {
-      //_normal.put(cacheLookup, Unit)
-      _normal += cacheLookup
+       val cacheValueLookup = getCacheKey(value, rulesets)
+      _normal += cacheValueLookup
     }
     if (!(atom eq value)) {
       _cache.synchronized {
-        _cache.put(cacheLookup, (value, level))
+        val cacheAtomLookup = getCacheKey(atom, rulesets)
+        _cache.put(cacheAtomLookup, (value, level))
       }
     }
     Debugger("memo") {
