@@ -70,6 +70,7 @@ import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.util.BitSetFastHash
 
 /**
  * Indicate an attempt to use an undeclared ruleset.
@@ -229,7 +230,7 @@ extends Fickle with Mutable {
   //======================================================================
 
   /** The active rulesets. */
-  val _active = new BitSet()
+  val _active = new BitSetFastHash()
 
   /** The active rulesets, by names. */
   var _activeNames : Set[String] = new HashSet[String]()
@@ -518,7 +519,7 @@ extends Fickle with Mutable {
     val usedRulesetsBits =
       if (rulesets.isEmpty) _active
       else {
-        var r = new BitSet()
+        var r = new BitSetFastHash()
         for (rs <- rulesets) r += getRulesetBit(rs)
         r
       }
@@ -750,7 +751,7 @@ extends Fickle with Mutable {
    * @return  The bits set for those rulesets.
    */
   def getRulesetBits(names: Set[String]) = {
-    names.foldLeft(new BitSet())(_ += getRulesetBit(_))
+    names.foldLeft(new BitSetFastHash())(_ += getRulesetBit(_))
   }
   
   /**
@@ -1010,7 +1011,7 @@ extends Fickle with Mutable {
     }
     
     // Figure out what rulesets this rule is in.  We build the bitset here.
-    val bits = new BitSet()
+    val bits = new BitSetFastHash()
     for (rs <- rule.rulesets) bits += getRulesetBit(rs)
     
     // Get (or create) the list for the kind of atom the rule's pattern uses.
@@ -1034,7 +1035,7 @@ extends Fickle with Mutable {
     // Get the list for the kind of atom the rule's pattern uses.
     val list = getRuleList(rule.pattern)
     // Get the bitset for the rule's ruleset membership.
-    val bits = new BitSet()
+    val bits = new BitSetFastHash()
     for (rs <- rule.rulesets) bits += getRulesetBit(rs)
     // Now remove every instance of the rule from the list.
     for (idx <- list.indices.reverse)
@@ -1078,7 +1079,7 @@ extends Fickle with Mutable {
    * @return	A list of rules.
    */
   def getRules(atom: BasicAtom, names: Set[String]) = {
-    val rsbits = names.foldLeft(new BitSet())(_ += getRulesetBit(_))
+    val rsbits = names.foldLeft(new BitSetFastHash())(_ += getRulesetBit(_))
     for ((bits, rule) <- getRuleList(atom); if (!(bits & rsbits).isEmpty))
       yield rule
   }
