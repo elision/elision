@@ -49,8 +49,10 @@ object Memo {
   private def getCacheKey(atom:BasicAtom, rulesets: BitSet): CacheLookupKey = {
     val hash = atom.hashCode
     val other = atom.otherHashCode
+    //Hashing a bitset is incredibly slow, so we make something up.
+    val bitsetMakeshiftHash:Long = rulesets.foldLeft(0)(_ ^ 1<<_)
     Debugger("memo", "Atom: " + atom.toParseString)
-    val code = ((hash, other), rulesets).hashCode
+    val code = (hash, other,  bitsetMakeshiftHash).hashCode
     Debugger("memo", "Code: " + code)
     code
   }
