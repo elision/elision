@@ -42,6 +42,8 @@ inc("bootstrap/Test.eli")
 
 // Get the math stuff.
 inc("bootstrap/Math.eli")
+inc("bootstrap/Debugger.eli")
+//debugon("memo")
 
 timing(true)
 // Non-commutative, non-associative operators.
