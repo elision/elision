@@ -44,10 +44,10 @@ import scala.collection.mutable.Set
  * details.
  */
 object Memo {
-  type CacheLookupKey = Int
+  type CacheLookupKey = (Int, Long, BitSet)
   // Use an arbitrary calculation to get a cache lookup key.
   private def getCacheKey(atom:BasicAtom, rulesets: BitSet): CacheLookupKey = {
-    (atom.hashCode, atom.otherHashCode, rulesets).hashCode
+    (atom.hashCode, atom.otherHashCode, rulesets)
   }
   
   //======================================================================
