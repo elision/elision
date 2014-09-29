@@ -79,6 +79,66 @@ import scala.Array
  * last.  Matches are returned iff the entire sequence matches.
  */
 object SequenceMatcher {
+  
+  /**
+   * Reorder Apply's and AtomSeq's based on the expected computational cost to
+   * match. Less computationally intensive sequences should be considered
+   * before the more intensive ones. 
+   * 
+   * Because this is the sequence matcher, the correspondence between patterns
+   * and their subjects is maintained.
+   * 
+   * @param pattern The pattern sequence to reorder
+   * @param subject The subject sequence to reorder
+   * 
+   * @return A reordered (pattern, subject) tuple.
+   */
+  private def reorder_matchcost(pattern: OmitSeq[BasicAtom], subject: OmitSeq[BasicAtom]) = {
+    // If we have at least two Applys, then sort the atoms, 
+    // hopefully putting the easiest matches first      
+    // Only sort if cost-to-match is not monotonically increasing
+    // (i.e. if it's not already sorted sensibly)
+    var maxcost = 0.0
+    var monotonic = true
+    val toSort = pattern.exists(p =>
+      p match {
+        case Apply(op, arg: AtomSeq) =>
+          if (arg.matchingCost < maxcost) monotonic = false
+
+          if (!monotonic) true
+          else {
+            maxcost = Math.max(maxcost, arg.matchingCost)
+            false
+          }
+        case arg: AtomSeq =>
+          if (arg.matchingCost < maxcost) monotonic = false
+
+          if (!monotonic) true
+          else {
+            maxcost = Math.max(maxcost, arg.matchingCost)
+            false
+          }
+        case _ => false
+      })
+    if (toSort) {
+      var zippedSeq = pattern zip subject
+      val multiplicity_sorted =
+        zippedSeq.sortWith((l: (BasicAtom, BasicAtom), r: (BasicAtom, BasicAtom)) => {
+          l._1 match {
+            case la: BasicAtom =>
+              r._1 match {
+                case ra: BasicAtom =>
+                  BasicAtomComparator(la, ra) == -1
+                case _ => false
+              }
+            case _ => false
+          }
+        })
+      val unzipped = multiplicity_sorted.unzip
+      (OmitSeq.fromIndexedSeq(unzipped._1), OmitSeq.fromIndexedSeq(unzipped._2))
+    } else (pattern, subject)
+  }
+  
 
   /**
    * Add a binding to a set of bindings, ensuring that it does not conflict
@@ -264,56 +324,10 @@ object SequenceMatcher {
     } else if (patterns.length != subjects.length) {
       Fail("Sequences are not the same length.")
     } else {
-      // If we have at least two Applys, then sort the atoms, 
-      // hopefully putting the easiest matches first      
-      // Only sort if cost-to-match is not monotonically increasing
-      // (i.e. if it's not already sorted sensibly)
-      var maxcost = 0.0
-      var monotonic = true
-      val toSort = patterns.exists(p =>
-        p match {
-          case Apply(op, arg: AtomSeq) =>
-            if (arg.matchingCost < maxcost) monotonic = false
-            
-            if(!monotonic) true
-            else {
-              maxcost = Math.max(maxcost, arg.matchingCost)
-              false
-            }
-          case arg: AtomSeq =>
-            if (arg.matchingCost < maxcost) monotonic = false
-            
-            if(!monotonic) true
-            else{
-              maxcost = Math.max(maxcost, arg.matchingCost)
-              false
-            }
-          case _ => false
-        })
-      if (toSort) {
-        Debugger("OrderedSequenceMatcher", "Using sorted SequenceMatcher")
-        Debugger("OrderedSequenceMatcher", "Before sorting:")
-        Debugger("OrderedSequenceMatcher", "plist:")
-        Debugger("OrderedSequenceMatcher", patterns.mkParseString("", ",", ""))
-        Debugger("OrderedSequenceMatcher", "slist")
-        Debugger("OrderedSequenceMatcher", subjects.mkParseString("", ",", ""))
-        // calculate consideration order
-        _patterns = patterns.sorted(BasicAtomComparator)
-        //Reorder the subjects to match up with their patterns
-        var newsubs = Vector[BasicAtom]()
-        var i = _patterns.length - 1
-        while (i >= 0) {
-          val a = _patterns(i)
-          newsubs = subjects(patterns.indexOf(a)) +: newsubs
-          i -= 1
-        }
-        Debugger("OrderedSequenceMatcher", "After sorting:")
-        Debugger("OrderedSequenceMatcher", "plist:")
-        Debugger("OrderedSequenceMatcher", _patterns.mkParseString("", ",", ""))
-        Debugger("OrderedSequenceMatcher", "slist")
-        Debugger("OrderedSequenceMatcher", newsubs.mkParseString("", ",", ""))
-        _subjects = OmitSeq.fromIndexedSeq(newsubs)
-      }
+      
+      val reconsideredvars = reorder_matchcost(_patterns, _subjects)
+      _patterns = reconsideredvars._1
+      _subjects = reconsideredvars._2
 
       
       //Properties should have been taken into account at creation time, so we ignore them here.
