@@ -44,6 +44,7 @@ import ornl.elision.core.toEString
 import ornl.elision.core.toESymbol
 import ornl.elision.core.NativeHandlerException
 import java.net.URLClassLoader
+import ornl.elision.util.Version
 
 /**
  * Trait for all handlers.
@@ -106,10 +107,13 @@ object NativeCompiler {
    * @return  The cache key.
    */
   private def getKey(source: String, operator: String, handler: String) = {
-    val key = (handler.hashCode()).toHexString
-    "NH" + operator.getBytes.map {
-      "%02x".format(_)
-    }.mkString("") + key
+    //Use the version information so we rebuild if needed across Elision versions.
+    val scala_version = util.Properties.versionString
+    val elision_version = (Version.major, Version.minor, Version.build)
+    val versionpart = (scala_version, elision_version).hashCode.toHexString
+    val handlerpart = (source, operator, handler).hashCode.toHexString
+    val key = versionpart + handlerpart
+    "NH" + key
   }
   
   /**
