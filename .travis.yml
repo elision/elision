@@ -48,5 +48,8 @@ branches:
   only:
     - master
 
-script: ./travis.sh
+script:
+  - cd Elision/
+  - ant debug
+  - ant release
 
