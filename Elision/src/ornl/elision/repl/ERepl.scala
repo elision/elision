@@ -59,6 +59,8 @@ object ReplMain {
    */
   var _wantCompile: Option[String] = None
   
+  var _wantClearCache = false
+  
   /**
    * If true, force a call to exit at the end of main to terminate all threads.
    */
@@ -99,6 +101,11 @@ object ReplMain {
         () => {
           ProcessorControl.bootstrap = false
           _wantPrior = true
+          None
+        }),
+      Switch(Some("delete-nhc"), Some('n'), "Delete the native handler cache.",
+        () => {
+          _wantClearCache = true
           None
         }),
       ArgSwitch(Some("compile"), Some('C'),
@@ -594,6 +601,21 @@ extends Processor(state.settings) {
 
     // Start the clock.
     startTimer
+    
+    if(ReplMain._wantClearCache){
+      val _cache = new File(state.settings("elision.cache"))
+      def delcache(f: File) {
+        if (f.isDirectory()) {
+
+          f.listFiles match {
+            case null =>
+            case xs => xs foreach delcache
+          }
+        }
+        f.delete()
+      }
+      delcache(_cache)
+    }
     
     // Bootstrap.  If there are errors, then quit.
     if (! bootstrap()) {

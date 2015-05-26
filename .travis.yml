@@ -38,16 +38,24 @@
 language: scala
 
 scala:
-  - 2.9.2
-  - 2.10
+  - 2.10.4
 
 jdk:
   - openjdk7
-  - openjdk6
 
 branches:
   only:
-    - sbt
+    - master
 
-script: travis.sh
+install:
+  - wget http://www.scala-lang.org/files/archive/scala-2.10.4.tgz
+  - tar xzf scala-2.10.4.tgz
+  - export SCALA_HOME="$(pwd)/scala-2.10.4"
+  - export PATH="$SCALA_HOME/bin/:$PATH"
+  - hash -r
+
+script:
+  - cd Elision/
+  - ant debug
+  - ant release
 
