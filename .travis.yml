@@ -48,11 +48,15 @@ branches:
   only:
     - master
 
+install:
+  - wget http://www.scala-lang.org/files/archive/scala-2.10.4.tgz
+  - tar xzf scala-2.10.4.tgz
+  - export SCALA_HOME="$(pwd)/scala-2.10.4"
+  - export PATH="$SCALA_HOME/bin/:$PATH"
+  - hash -r
+
 script:
   - cd Elision/
-  #This is a kind of yucky way to get the SCALA_HOME directory set.
-  - echo $TRAVIS_SCALA_VERSION
-  - export SCALA_HOME=$(dirname $(which scala))/../
   - ant debug
   - ant release
 
