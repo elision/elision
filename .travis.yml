@@ -51,6 +51,7 @@ branches:
 script:
   - cd Elision/
   #This is a kind of yucky way to get the SCALA_HOME directory set.
+  - echo $TRAVIS_SCALA_VERSION
   - export SCALA_HOME=$(dirname $(which scala))/../
   - ant debug
   - ant release
