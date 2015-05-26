@@ -48,5 +48,5 @@ branches:
   only:
     - master
 
-script: travis.sh
+script: ./travis.sh
 
