@@ -38,8 +38,7 @@
 language: scala
 
 scala:
-  - 2.9.2
-  - 2.10
+  - 2.10.4
 
 jdk:
   - openjdk7
@@ -47,7 +46,7 @@ jdk:
 
 branches:
   only:
-    - sbt
+    - master
 
 script: travis.sh
 
