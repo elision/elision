@@ -57,5 +57,9 @@ install:
 script:
   - cd Elision/
   - ant debug
+  - echo "" | ./elision.sh
+  - stty sane
+  - ant clean
   - ant release
-
+  - echo "" | ./elision.sh
+  - stty sane
