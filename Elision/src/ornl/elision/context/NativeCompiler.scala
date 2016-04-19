@@ -111,7 +111,7 @@ object NativeCompiler {
     val scala_version = util.Properties.versionString
     val elision_version = (Version.major, Version.minor, Version.build)
     val versionpart = (scala_version, elision_version).hashCode.toHexString
-    // Remove whitespace from the handler. We are getting an etremely high rate
+    // Remove whitespace from the handler. We are getting a high rate
     // of recompilationf of native handlers without this.
     val stripped_handler = handler.replaceAll("\\s", "")
     val handlerpart = (source.trim, operator.trim,
