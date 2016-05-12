@@ -37,7 +37,9 @@
 * */
 package ornl.elision.core
 
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.util.Loc
+import ornl.elision.util.seqloop
 
 /**
  * Encapsulate a simple atom to perform basic matching.
@@ -79,10 +81,11 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Applicable {
       binds: Bindings = Bindings()): Option[Bindings] = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
-      for (guard <- guards) {
-        val (newguard, _) = guard.rewrite(candidate)
+      //for (guard <- guards) {
+      seqloop(guards, (i: Int) => {
+        val (newguard, _) = guards(i).rewrite(candidate)
         if (!newguard.isTrue) return false
-      }
+      })
       true
     }
     

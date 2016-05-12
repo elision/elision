@@ -41,6 +41,8 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.other_hashify
+import ornl.elision.util.hashify
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.core.matcher.SequenceMatcher
 
 /**
@@ -73,7 +75,8 @@ import ornl.elision.core.matcher.SequenceMatcher
 case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   require(mybinds != null, "Bindings are null.")
   
-  lazy val otherHashCode = (this.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val otherHashCode = (this.mybinds).foldLeft(0L)(other_hashify)
+  override lazy val hashCode = 12289 * mybinds.hashCode
 
   /** The type of a bindings atom is the special bindings type. */
   val theType = ANY
@@ -157,7 +160,7 @@ case class BindingsAtom(mybinds: Bindings) extends BasicAtom with Applicable {
   def doApply(atom: BasicAtom, bypass: Boolean) = {
 		// Check the argument to see if it is a single symbol.
 		atom match {
-		  case SymbolLiteral(SYMBOL, sym) =>
+		  case SymbolLiteral(SYMBOL, sym, _) =>
   			// Try to extract the symbol from the binding.  If it is not there,
   			// then the answer is NONE.
   			mybinds.get(sym.name) match {
@@ -214,7 +217,7 @@ object BindingsAtom {
   private def _build(atoms: Seq[BasicAtom]) = atoms.foldLeft(Bindings()) {
     (binds, atom) => binds + (atom match {
       case MapPair(left, right) => left match {
-        case SymbolLiteral(_, sym) => (sym.name -> right)
+        case SymbolLiteral(_, sym, _) => (sym.name -> right)
         case _ =>
           throw new SpecialFormException(atom.loc,
               "Invalid binding specification: " + atom.toParseString)

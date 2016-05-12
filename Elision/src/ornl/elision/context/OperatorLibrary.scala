@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision.context
 
 import scala.collection.mutable.{Map => MMap}
@@ -52,6 +53,7 @@ import ornl.elision.core.knownExecutor
 import ornl.elision.core.toESymbol
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
+import scala.language.reflectiveCalls
 
 /**
  * Indicate an attempt to re-define an already-known operator.

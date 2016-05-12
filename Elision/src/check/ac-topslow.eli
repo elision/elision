@@ -1,0 +1,86 @@
+timing(true)
+
+decl.{! fid():INTEGER }
+decl.{! gid():INTEGER }
+decl.{! f($x:INTEGER,$y:INTEGER):INTEGER is %ACID[fid()]}
+decl.{! g($x:INTEGER,$y:INTEGER):INTEGER is %ACID[gid()]}
+decl.{! h($x:INTEGER):INTEGER }
+decl.{! top($x:INTEGER,$y:INTEGER):INTEGER is %AC}
+decl.{! doit($x:INTEGER):INTEGER }
+decl.{! found($x:INTEGER,$o1:INTEGER,$o2:INTEGER):INTEGER }
+decl.{rule
+         doit( top(h($x),g(f(h($x),$o1),$o2)) )
+      ->
+         found($x,$o1,$o2)
+      #rulesets DEFAULT
+}
+
+
+decl.{! c($x:INTEGER):INTEGER }
+decl.{! d($x:INTEGER,$y:INTEGER):INTEGER }
+
+
+decl.{! term1():INTEGER }
+decl.{rule term1() ->
+top(
+  h(10),
+  g(
+    f(h(1),h(2),h(3),h(7),h(8),h(9),h(13),h(18)),
+    f(h(1),h(2),h(3),h(7),h(8),h(9),h(13),h(19)),
+    f(h(2),h(3),h(4),h(5),h(6),h(7),h(8),h(9),h(11),h(12)),
+    f(h(2),h(3),h(4),h(5),h(6),h(7),h(8),h(10),h(11))
+  )
+)
+#rulesets DEFAULT}
+
+
+decl.{! term2():INTEGER }
+decl.{rule term2() ->
+top(
+  h(c(10)),
+  g(
+    f(h(c(1)),h(c(2)),h(c(3)),h(c(7)),h(c(8)),h(c(9)),h(c(13)),h(c(18))),
+    f(h(c(1)),h(c(2)),h(c(3)),h(c(7)),h(c(8)),h(c(9)),h(c(13)),h(c(19))),
+    f(h(c(2)),h(c(3)),h(c(4)),h(c(5)),h(c(6)),h(c(7)),h(c(8)),h(c(9)),h(c(11)),h(c(12))),
+    f(h(c(2)),h(c(3)),h(c(4)),h(c(5)),h(c(6)),h(c(7)),h(c(8)),h(c(10)),h(c(11)))
+  )
+)
+#rulesets DEFAULT}
+
+
+// Set the internal Elision flag to use the slow AC matching that will always
+// find a match when there actually is one.
+setprop("rewrite_aggressive_fail", false)
+
+
+// Peform the hard match using the doit() operator.
+// doit(term1())
+
+// Peform the hard match directly with the Elision match facility.
+{match top(h($x),g(f(h($x),$o1),$o2))}.
+top(
+  h(10),
+  g(
+    f(h(1),h(2),h(3),h(7),h(8),h(9),h(13),h(18)),
+    f(h(1),h(2),h(3),h(7),h(8),h(9),h(13),h(19)),
+    f(h(2),h(3),h(4),h(5),h(6),h(7),h(8),h(9),h(11),h(12)),
+    f(h(2),h(3),h(4),h(5),h(6),h(7),h(8),h(10),h(11))
+  )
+)
+
+
+// Peform the harder match using the doit() operator.
+// doit(term2())
+
+// Peform the harder match directly with the Elision match facility.
+// {match top(h($x),g(f(h($x),$o1),$o2))}.
+// top(
+//   h(c(10)),
+//   g(
+//     f(h(c(1)),h(c(2)),h(c(3)),h(c(7)),h(c(8)),h(c(9)),h(c(13)),h(c(18))),
+//     f(h(c(1)),h(c(2)),h(c(3)),h(c(7)),h(c(8)),h(c(9)),h(c(13)),h(c(19))),
+//     f(h(c(2)),h(c(3)),h(c(4)),h(c(5)),h(c(6)),h(c(7)),h(c(8)),h(c(9)),h(c(11)),h(c(12))),
+//     f(h(c(2)),h(c(3)),h(c(4)),h(c(5)),h(c(6)),h(c(7)),h(c(8)),h(c(10)),h(c(11)))
+//   )
+// )
+

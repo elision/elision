@@ -101,6 +101,8 @@ object EliRegexes extends syntax.SyntaxRegexes {
   
   val numHex = new Regex("""(-?0(x|X)[0-9a-fA-F]*([0-9a-fA-F]+[.])?[0-9a-fA-F]+p?)""",
     "all")
+  val numOct = new Regex("""(-?0(o|O)[0-7]*([0-7]+[.])?[0-7]+(e|p)?)""",
+    "all")
   val numBin = new Regex("""(-?0(b|B)[0-1]*([0-1]+[.])?[0-1]+(e|p)?)""",
     "all")
   val numDec = new Regex("""(-?[0-9]*([0-9]+[.])?[0-9]+(e|p)?)""",
@@ -130,6 +132,7 @@ object EliRegexes extends syntax.SyntaxRegexes {
     symbolBackTicks,
     symbolNormal,
     numHex,
+    numOct,
     numBin,
     numDec
   )
@@ -159,6 +162,7 @@ object EliRegexes extends syntax.SyntaxRegexes {
     symbolBackTicks -> EliWebColors.vars,
     symbolNormal -> EliWebColors.vars,
     numHex -> EliWebColors.constants,
+    numOct -> EliWebColors.constants,
     numBin -> EliWebColors.constants,
     numDec -> EliWebColors.constants
   )
@@ -188,6 +192,7 @@ object EliRegexes extends syntax.SyntaxRegexes {
     symbolBackTicks -> -1,
     symbolNormal -> -1,
     numHex -> -1,
+    numOct -> -1,
     numBin -> -1,
     numDec -> -1
   )

@@ -29,7 +29,9 @@
  */
 package ornl.elision.parse
 
-import scala.io.Source
+import ornl.elision.context.Context
+import java.io.StringReader
+import java.io.Reader
 
 /**
  * This serves to unify the various parsers currently in Elision.  Once there
@@ -46,16 +48,19 @@ abstract trait AbstractParser {
   /**
    * Entry point to parse all atoms from the given string.
    * 
-   * @param line  The string to parse.
+   * @param line    The string to parse.
+   * @param context The context needed to generate atoms.
    * @return  The parsing result.
    */
-  def parseAtoms(line: String): Presult = parseAtoms(Source.fromString(line))
+  def parseAtoms(line: String, context: Context): Presult =
+    parseAtoms(new StringReader(line), context)
     
   /**
    * Entry point to parse all atoms from the given source.
    * 
-   * @param line  The source to parse.
+   * @param line    The source to parse.
+   * @param context The context needed to generate atoms.
    * @return  The parsing result.
    */
-  def parseAtoms(source: Source): Presult
+  def parseAtoms(source: Reader, context: Context): Presult
 }

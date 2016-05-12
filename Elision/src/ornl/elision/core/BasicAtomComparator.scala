@@ -29,6 +29,8 @@
  */
 package ornl.elision.core
 
+import ornl.elision.util.PropertyManager
+
 /**
  * Compare basic atoms.
  * 
@@ -50,7 +52,7 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
     case x: MetaVariable => 2
     case x: Variable => 3
     case x: Apply => 4
-    case x: AtomSeq => 5
+    case x: AtomSeq => 4
     case x: BindingsAtom => 6
     case x: Lambda => 7
     case x: MapPair => 8
@@ -74,7 +76,67 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    * @return  -1 if left < right, 0 if left = right, and 1 if left > right.
    */
   def apply(left: BasicAtom, right: BasicAtom) = compare(left, right)
+
+    /**
+   * Whether to compute equality faster but in a riskier fashion.
+   */
+  var _riskyEqual: Boolean = false
+
+  /**
+   * Whether to use custom equality functions.
+   */
+  var _customEqual: Boolean = false
   
+  /** 
+   * Declare the Elision property for setting whether to do risky
+   * equality checking. 
+   */
+  knownExecutor.declareProperty("risky_equality_check",
+      "Whether to do fast, but risky, equality checking of atoms.",
+      _riskyEqual,
+      (pm: PropertyManager) => {
+        _riskyEqual =
+          pm.getProperty[Boolean]("risky_equality_check").asInstanceOf[Boolean]
+      })
+      
+  /** 
+   * Declare the Elision property for setting whether to do custom
+   * equality checking. 
+   */
+  knownExecutor.declareProperty("custom_equality_check",
+      "Whether to use custom equality functions to check atoms.",
+      _customEqual,
+      (pm: PropertyManager) => {
+        _customEqual =
+          pm.getProperty[Boolean]("custom_equality_check").asInstanceOf[Boolean]
+      })
+
+
+  /**
+   * Perform "fast equality checking" on two atoms.  This performs basic
+   * structural comparson of the atoms.  If this cannot prove that the two
+   * atoms are either equal to unequal, then the closure `other` is invoked
+   * to resolve.
+   * 
+   * @param atom1   The first atom.
+   * @param atom2   The second atom.
+   * @param other   Other checking to perform, if the fast check is
+   *                indeterminate.
+   * @return  True if equal, false if not.
+   */
+  def feq(atom1: BasicAtom, atom2: BasicAtom, other: => Boolean = false) = {
+    (atom1 eq atom2) || 
+    (
+      (atom1.isConstant == atom2.isConstant) &&
+      (atom1.hashCode == atom2.hashCode) &&
+      (if (_riskyEqual) true else
+        (atom1.depth == atom2.depth) &&
+        (atom1.isTerm == atom2.isTerm) &&
+        (atom1.otherHashCode == atom2.otherHashCode)
+      ) && (if(_customEqual) other else true)
+    )
+  }
+
   /**
    * Perform a comparison of optional atoms.  None is less than Some.
    * 
@@ -108,10 +170,49 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
    * @return  -1 if left < right, 0 if left = right, and 1 if left > right.
    */
   def compare(left: BasicAtom, right: BasicAtom): Int = {
-    // First check the ordinals.
+
+    // Compare the atoms and store the result for possible later use.
+    // This explicitly breaks a potential unbounded
+    // recursion caused by the LIST(x) operator.  The problems looks like this
+    // (for reference): LIST(x) => LIST:OPREF . %(x), but the argument is also
+    // a LIST(x), so we have an unbounded recursion.
+    if (feq(left, right)) return 0
+    
+    // Check the ordinals.
     val lo = getOrdinal(left)
-    var sgn = (lo - getOrdinal(right)).signum
+    val ro = getOrdinal(right)
+    var sgn = lo `compare` ro //(lo - ro).signum
     if (sgn != 0) return sgn
+
+    //If we're comparing Applys, compare them based on their estimated cost to match
+    sgn = left match {
+      case lapp: Apply =>
+        right match {
+          case rapp: Apply => lapp.matchingCost `compare` rapp.matchingCost
+          case ras: AtomSeq => lapp.matchingCost `compare` ras.matchingCost
+          case _           => 0
+        }
+      case las: AtomSeq =>
+        right match {
+          case rapp: Apply => las.matchingCost `compare` rapp.matchingCost
+          case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
+          case _           => 0
+        }
+      case _ => 0
+    }
+    if (sgn != 0) return sgn
+    
+    //If we're comparing AtomSeqs, compare them based on their cost to match
+    /*sgn = left match {
+      case las: AtomSeq => right match{
+        case ras: AtomSeq => las.matchingCost `compare` ras.matchingCost
+        case _ => 0
+      }
+      case _ => 0
+    }
+    if (sgn != 0) return sgn
+    */
+    
     
     // Watch for root types!
     if (left == TypeUniverse) {
@@ -119,183 +220,13 @@ object BasicAtomComparator extends Ordering[BasicAtom] {
       else return 1
     } else if (right == TypeUniverse) return -1
     
-    // Test for fast equality.  This explicitly breaks a potential unbounded
-    // recursion caused by the LIST(x) operator.  The problems looks like this
-    // (for reference): LIST(x) => LIST:OPREF . %(x), but the argument is also
-    // a LIST(x), so we have an unbounded recursion.
-    if (feq(left, right, false)) {
-      return 0
-    }
-    
-    // Ordinals did not solve the problem; the two atoms have the same ordinal.
-    // Try to order the atoms by their types.  Watch for recursion!
+    //If ordinals and root types don't get us anywhere, use the atom types
     if (!(left.theType eq right.theType)) {
       if (!(left.theType eq left) && !(right.theType eq right)) {
         sgn = compare(left.theType, right.theType)
         if (sgn != 0) return sgn
       }
     }
-    
-    // The types did not resolve anything.  We have to try more specific
-    // tests.
-    lo match {
-      case 0 =>
-        // Compare literals by their values.  We already know the two literals
-        // have the same type... but might be different classes!
-        return left match {
-          case llit: IntegerLiteral => right match {
-            case rlit: IntegerLiteral => llit.value.compare(rlit.value)
-            case _ => -1
-          }
-          case llit: BitStringLiteral => right match {
-            case rlit: BitStringLiteral =>
-              val (l1, l2) = llit.value
-              val (r1, r2) = rlit.value
-              sgn = l1 compare r1
-              if (sgn != 0) return sgn
-              sgn = l2 compare r2
-              return l2 compare r2
-          }
-          case llit: BooleanLiteral => right match {
-            case rlit: BooleanLiteral => llit.value.compare(rlit.value)
-            case _ => -1
-          }
-          case llit: StringLiteral => right match {
-            case rlit: IntegerLiteral => 1
-            case rlit: StringLiteral => llit.value.compare(rlit.value)
-            case _ => -1
-          }
-          case llit: SymbolLiteral => right match {
-            case rlit: IntegerLiteral => 1
-            case rlit: StringLiteral => 1
-            case rlit: SymbolLiteral => llit.value.name.compare(rlit.value.name)
-            case _ => -1
-          }
-          case llit: FloatLiteral => right match {
-            case rlit: IntegerLiteral => 1
-            case rlit: StringLiteral => 1
-            case rlit: SymbolLiteral => 1
-            case rlit: FloatLiteral =>
-              val (l1,l2,l3) = llit.value
-              val (r1,r2,r3) = rlit.value
-              sgn = l1 compare r1
-              if (sgn != 0) return sgn
-              sgn = l2 compare r2
-              if (sgn != 0) return sgn
-              return l3 compare r3
-          }
-        }
-        
-      case 1 =>
-        // Comparing algebraic properties.  We just compare them piece by
-        // piece.
-        val lap = left.asInstanceOf[AlgProp]
-        val rap = right.asInstanceOf[AlgProp]
-        sgn = compare(lap.absorber, rap.absorber)
-        if (sgn != 0) return sgn
-        sgn = compare(lap.associative, rap.associative)
-        if (sgn != 0) return sgn
-        sgn = compare(lap.commutative, rap.commutative)
-        if (sgn != 0) return sgn
-        sgn = compare(lap.idempotent, rap.idempotent)
-        if (sgn != 0) return sgn
-        return compare(lap.identity, rap.identity)
-        
-      case 2 =>
-        // Compare metavariables.  We just order them by name and ignore all else.
-        return left.asInstanceOf[MetaVariable].name compare right.asInstanceOf[MetaVariable].name
-        
-      case 3 =>
-        // Compare variables.  We just order them by name and ignore all else.
-        return left.asInstanceOf[Variable].name compare right.asInstanceOf[Variable].name
-        
-      case 4 =>
-        // Compare two applies.  Compare the operators and then the arguments.
-        val lap = left.asInstanceOf[Apply]
-        val rap = right.asInstanceOf[Apply]
-        sgn = compare(lap.op, rap.op)
-        if (sgn != 0) return sgn
-        return compare(lap.arg, rap.arg)
-        
-      case 5 =>
-        // Compare two atom sequences.  We order by algebraic properties, then
-        // by length, and finally by order of the items.
-        val las = left.asInstanceOf[AtomSeq]
-        val ras = right.asInstanceOf[AtomSeq]
-        sgn = compare(las.props, ras.props)
-        if (sgn != 0) return sgn
-        sgn = (las.length - ras.length).signum
-        if (sgn != 0) return sgn
-        // Now we have to order by the elements.  We already know the sequences
-        // are the same length.  Walk them and try to find some case where they
-        // are distinct.
-        var index = 0
-        for (index <- 0 until las.length) {
-          sgn = compare(las(index), ras(index))
-          if (sgn != 0) return sgn
-        } // Compare all elements of the sequences.
-        return 0
-        
-      case 6 =>
-        // Compare two bindings atoms.  Ordering bindings atoms is tricky.
-        // First try ordering them my number of bindings.
-        val lbinds = left.asInstanceOf[BindingsAtom].mybinds
-        val rbinds = right.asInstanceOf[BindingsAtom].mybinds
-        sgn = (lbinds.size - rbinds.size).signum
-        if (sgn != 0) return sgn
-        // Now we have to actually compare the bindings.  To do this we
-        // merge the key sets and then order the result.  Then we compare
-        // the values for every key.
-        val keyset = lbinds.keySet.union(rbinds.keySet).toIndexedSeq.sorted
-        for (key <- keyset) {
-          sgn = compare(lbinds.get(key), rbinds.get(key))
-          if (sgn != 0) return sgn
-        } // Compare all elements.
-        return 0
-        
-      case 7 =>
-        // Compare two lambdas.  We order them by body only, since the
-        // DeBruijn indices replace the parameters.
-        return compare(left.asInstanceOf[Lambda].body,
-            right.asInstanceOf[Lambda].body)
-            
-      case 8 =>
-        // Compare two map pairs.  We just compare the elements.
-        val lmp = left.asInstanceOf[MapPair]
-        val rmp = right.asInstanceOf[MapPair]
-        sgn = compare(lmp.left, rmp.left)
-        if (sgn != 0) return sgn
-        return compare(lmp.right, rmp.right)
-        
-      case 9 =>
-        // Compare two match atoms.
-        return compare(left.asInstanceOf[MatchAtom].pattern,
-            right.asInstanceOf[MatchAtom].pattern)
-            
-      case 10 =>
-        // Compare two special forms.
-        val lsf = left.asInstanceOf[SpecialForm]
-        val rsf = right.asInstanceOf[SpecialForm]
-        sgn = compare(lsf.tag, rsf.tag)
-        if (sgn != 0) return sgn
-        return compare(lsf.content, rsf.content)
-        
-      case 11 =>
-        // Comparing two ruleset references.  They sort by name.
-        return left.asInstanceOf[RulesetRef].name.compare(
-            right.asInstanceOf[RulesetRef].name)
-        
-      case 12 =>
-        // Comparing two operator references.  They sort by name.
-        return left.asInstanceOf[OperatorRef].name.compare(
-            right.asInstanceOf[OperatorRef].name)
-        
-      case _ =>
-        // Something annoying has happened.
-        throw new ornl.elision.util.ElisionException(left.loc,
-            "ERROR: No sort order defined for: " + left.toParseString)
-    }
-    
-    // If we get here, something is wrong.  Bail out.
+    left.otherHashCode compare right.otherHashCode
   }
 }

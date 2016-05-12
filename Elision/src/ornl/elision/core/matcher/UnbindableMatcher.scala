@@ -94,10 +94,30 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
    * Next index to start looking for a subject to match.
    */
   private var _nextsubindex = 0
+
+
+  def get_shallowest_unbindable(patterns :OmitSeq[BasicAtom]) : Int = {
+    var cur_index = patterns.indexWhere(!_.isBindable, 0)
+    var min_index = cur_index
+    var min_depth = -1
+
+    while (cur_index >= 0) {
+      val cur_depth = patterns(cur_index).depth
+      if (min_depth == -1 || cur_depth < min_depth) {
+	min_index = cur_index
+	min_depth = cur_depth
+      }
+
+      cur_index = patterns.indexWhere(!_.isBindable,cur_index+1)
+    }
+
+    return min_index
+  }
   
   // Locate the first unbindable pattern and save its index.  This is the only
   // pattern we try to match in this instance.
-  private val _patindex = patterns.indexWhere(!_.isBindable)
+  private val _patindex = get_shallowest_unbindable(patterns)
+
   if (_patindex < 0) {
     // There were no patterns.  Return the binding we got as the only "match."
     // This will be returned, and then findNext will be invoked which will mark
@@ -126,6 +146,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
    */
   
   def findNext {
+//    println("unbindable matcher findNext")
     // If we had either a current match or a local iterator, then the matching
     // infrastructure would use it up before calling this method.  Since we
     // have arrived here, we do not have either.
@@ -154,7 +175,8 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
       _exhausted = true
       return
     }
-    
+//    println(patterns(_patindex).toParseString)
+//    println(subjects(subindex).toParseString)
     // Try to match the subject and the pattern.
     val iterator = patterns(_patindex).tryMatch(subjects(subindex), binds) match {
       case fail:Fail =>
@@ -172,6 +194,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
         // a new iterator for the next pattern.
         iter
     }
+//    println("foo")
     
     // If we arrive here, we were able to match the subject and pattern, and
     // we have an iterator over the matches.  Now we must combine this with
@@ -188,6 +211,7 @@ class UnbindableMatcher(patterns: OmitSeq[BasicAtom],
           _local = null
           _exhausted = true
           def findNext = {
+//	    println("unbindable empty findNext")
             _exhausted = true
           }
         }

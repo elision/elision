@@ -44,6 +44,12 @@ import ornl.elision.core.giveMkParseString
 import ornl.elision.util.Debugger
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.OmitSeq.fromIndexedSeq
+import scala.language.reflectiveCalls
+import ornl.elision.core.Variable
+import ornl.elision.core.Bindings
+import ornl.elision.core.OperatorRef
+import ornl.elision.core.Apply
+import ornl.elision.core.Literal
 
 /**
  * Provide some support methods for matching.
@@ -53,7 +59,7 @@ object MatchHelper {
   /**
    * Given two lists of atoms, identify and remove any constants from the two
    * lists, returning the resulting lists.
-   * 
+   *
    * The atoms in the two lists are assumed to be unordered.  That is, this
    * method is only suitable for use when performing commutative matching
    * (whether or not associative).
@@ -61,28 +67,238 @@ object MatchHelper {
    * @param plist	The pattern list.
    * @param slist	The subject list.
    * @return  A triple that contains the new patterns, new subjects, and an
-   *          optional failure instance in the event matching does not succeed. 
+   *          optional failure instance in the event matching does not succeed.
    */
-  def eliminateConstants(plist: AtomSeq, slist: AtomSeq):
-  		(OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
+  def eliminateConstants(plist: AtomSeq, slist: AtomSeq): (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
     var patterns = plist.atoms
     var subjects = slist.atoms
-    for ((pat, pindex) <- plist.constantMap) {
-      slist.constantMap.get(pat) match {
+    var pat: BasicAtom = null
+    var pindex = -1
+
+    Debugger("matching") {
+      Debugger("matching", "Removing Constants: Patterns: " +
+        patterns.mkParseString("", ",", ""))
+      Debugger("matching", "                    Subjects: " +
+        subjects.mkParseString("", ",", ""))
+    }
+    
+    //store a list of omissions to be made
+    var omissions = List[Int]()
+    plist.constantMap.foreach(((thing): (BasicAtom, Int)) => {
+      pat = thing._1
+      //pindex = thing._2
+      omissions = thing._2 +: omissions 
+    })
+    
+    // We want to run across the list of indexes highest-to-lowest so that when
+    // we omit we don't wind up with wrong indexes
+    omissions.sorted.reverse.foreach((pindex) =>
+    slist.constantMap.get(patterns(pindex)) match {
         case None =>
           return (patterns, subjects, Some(Fail("Element " + pindex +
             " not found in subject list.", plist, slist)))
         case Some(sindex) =>
+          Debugger("constant-elimination", "pindex:  " + pindex)
+          Debugger("constant-elimination", "Eliminating pattern item: " + patterns(pindex))
+          Debugger("constant-elimination", "sindex:  " + sindex)
+          Debugger("constant-elimination", "Eliminating subject item:  " + subjects(sindex))
           patterns = patterns.omit(pindex)
           subjects = subjects.omit(sindex)
-      }
-    } // Omit constants from the lists.
+      })
+
+    val ret = (patterns, subjects, None)
+      
     Debugger("matching") {
-	    Debugger("matching", "Removing Constants: Patterns: " +
-	        patterns.mkParseString("", ",", ""))
-	    Debugger("matching", "                    Subjects: " +
-	        subjects.mkParseString("", ",", ""))
+      Debugger("matching", "After Removing Constants: Patterns: " +
+        ret._1.mkParseString("", ",", ""))
+      Debugger("matching", "                    Subjects: " +
+        ret._2.mkParseString("", ",", ""))
     }
+    ret
+  }
+  
+  /**
+   * Given two lists of atoms, identify and remove certain classes of variables
+   * that have been bound from the pattern sequence and the bound values from
+   * the subject sequence.
+   *
+   * The atoms in the two lists are assumed to be unordered.  That is, this
+   * method is only suitable for use when performing commutative matching
+   * (whether or not associative).
+   *
+   * @param plist The pattern list.
+   * @param slist The subject list.
+   * @param binds The bindings that need to be accounted for.
+   * @return  A triple that contains the new patterns, new subjects, and an
+   *          optional failure instance in the event matching does not succeed.
+   */
+  def eliminateBoundVariables(plist: AtomSeq, slist: AtomSeq, binds: Bindings):
+                              (OmitSeq[BasicAtom], OmitSeq[BasicAtom], Option[Fail]) = {
+    var patterns = plist.atoms
+    var subjects = slist.atoms
+    var pomissions = List[Int]()
+    var somissions = List[BasicAtom]()
+    /*plist.variableMap.foreach(((thing): (String, Int)) => {
+      val pat = thing._1
+      //pindex = thing._2
+      if (binds.contains(pat)) vomissions = thing._2 +: vomissions
+    })*/
+
+    //Mark patterns for removal
+    binds.foreach(thing => {
+      //If this variable exists in the map, get its ID. Otherwise, set -1
+      //to indicate nonexistance.
+      val pomission = plist.variableMap.getOrElse(thing._1, List())
+      // Add the pattern index to pomissions for later removal. Add the atom to
+      // the subject omissions to be searched for and removed.
+      // It looks like different types of bindings will need different
+      // strategies for elimination. Literals are low hanging fruit.
+      if (pomission.length > 0) {
+        def addOmission(p: Int, s: BasicAtom) {
+          pomissions = p +: pomissions
+          somissions = s +: somissions
+        }
+
+        thing._2 match {
+          // If we have a naked atom sequence it's a peeled operator application
+          // and we can remove the atoms it contains. Make sure it's constant.
+          case as: AtomSeq if(as.forall(p => {
+            p match {
+              case _:BasicAtom if(p.isConstant) => true 
+              case _            => false
+            }
+          })) => {
+            Debugger("constant-elimination", "Found a {AtomSeq -> constant atom sequence} constant elimination.")
+            pomission.foreach( om => addOmission(om, as))
+          }
+          case _:BasicAtom if(thing._2.isConstant) =>
+            Debugger("constant-elimination", "Found a {variable -> constant} constant elimination.")
+            pomission.foreach( om => addOmission(om,thing._2))
+          case _ =>
+        }
+
+      }
+    })
+    //If there are no omissions to take care of, go ahead and return
+    if (pomissions.length == 0) return (patterns, subjects, None)
+
+    // For each subject omission... 
+    somissions.foreach(somission =>
+      {
+        somission match {
+          // If we have a naked atom sequence it's a peeled operator application
+          // and we can remove the atoms it contains
+          case as: AtomSeq => as.atoms.foreach(a => { 
+                                val sindex = subjects.indexOf(a) 
+                                if(sindex >= 0){
+                                  Debugger("constant-elimination", "sindex:  " + sindex)
+                                  Debugger("constant-elimination", "Eliminating subject item:  " + subjects(sindex).toParseString)
+                                  subjects = subjects.omit(sindex)}
+                                else{ 
+                                  Debugger("constant-elimination", "sindex:  " + sindex)
+                                  Debugger("constant-elimination", "Unable to eliminate subject item:  " + a.toParseString)
+                                  return (patterns, subjects, Some(Fail("Unable to eliminate item from subject.")))
+                                }
+                              }
+            )
+          case _ => {
+            val sindex = subjects.indexOf(somission)
+            if (sindex >= 0){
+              Debugger("constant-elimination", "sindex:  " + sindex)
+              Debugger("constant-elimination", "Eliminating subject item:  " + subjects(sindex).toParseString)
+              subjects = subjects.omit(sindex)
+            }
+            else {
+              Debugger("constant-elimination", "sindex:  " + sindex)
+              Debugger("constant-elimination", "Unable to eliminate subject item:  " + somission.toParseString)
+              return (patterns, subjects, Some(Fail("Unable to eliminate item from subject.")))
+            }
+          }
+        }
+      })
+   
+    // Remove the pattern variables. We do this in reverse to avoid indexing
+    // gymnastics
+    pomissions.sorted.reverse.foreach(pindex => {
+      Debugger("constant-elimination", "pindex:  " + pindex)
+      Debugger("constant-elimination", "Eliminating pattern item: " + patterns(pindex).toParseString)
+      patterns = patterns.omit(pindex)
+    })
     (patterns, subjects, None)
   }
+
+  /**
+   *  Given a pattern, split it into non-variable and variable lists.
+   *  
+   *  @param plist The pattern to split
+   */
+  def stripVariables(plist: OmitSeq[BasicAtom]): (OmitSeq[BasicAtom], OmitSeq[BasicAtom]) = {
+    var (pl, vl) = (plist, plist)
+    if (plist.length <= 0) {
+      return (pl, vl)
+    }
+
+    var _pindex = plist.length - 1
+    while (_pindex >= 0) {
+      plist(_pindex) match {
+        case _: Variable => pl = pl.omit(_pindex)
+        case _ => vl = vl.omit(_pindex)
+      }
+      _pindex = _pindex - 1
+    }
+
+    (pl, vl)
+  }
+
+  /**
+   * Peel the operator with the given name off the values of the given bindings.
+   * This gives us temporary bindings that can be used in AC matching to 
+   * eliminate constants.
+   * 
+   * This should only be used with associative-commutative matching.
+   * 
+   * @param binds The bindings to peel.
+   * @param name  The name of the operator to peel off.
+   * @return A tuple of new bindings and the operator refernce to use to 
+   *          wrap the naked atom sequences back up with after constant
+   *          elimination.
+   */
+  def peelBindings(binds: Bindings, name: String) = {
+    var newbinds: Bindings = Bindings()
+    var opwrap:OperatorRef = null
+    binds.foreach(item => {
+      Debugger("matching", "Want to peel " + item._1 + " -> " + item._2.toParseString)
+      item._2 match {
+        case Apply(opref: OperatorRef, seq) if (opref.name == name) =>
+          newbinds = newbinds + (item._1 -> seq)
+          opwrap = opref
+        case _ => newbinds = newbinds + (item)
+      }
+    })
+    (newbinds, opwrap)
+  }
+
+  /**
+   * Apply the operator given in opref to the naked atom sequences in the bindings.
+   * 
+   * This should only be used with associative-commutative matching and in bindings
+   * previously processed by peelBindings()
+   * 
+   * @param binds The bindings to apply the operator to.
+   * @param opref The operator to be applied.
+   * @return The bindings with the operator applied to the naked atom sequences.
+   */
+  def wrapBindings(binds: Bindings, opref: OperatorRef) = {
+    var newbinds = Bindings()
+    binds.foreach(item => {
+      Debugger("matching", "Want to wrap " + item._1 + " -> " + item._2.toParseString)
+      item._2 match {
+        case as: AtomSeq if (as.props.isA(false) && as.props.isC(false)) => newbinds = newbinds + (item._1 -> Apply(opref, as))
+        case _ => newbinds = newbinds + (item)
+      }
+    })
+    newbinds
+  }
+    
+  
 }

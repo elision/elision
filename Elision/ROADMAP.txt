@@ -8,15 +8,6 @@ Discussion of the roadmap or of Elision in general should take place on the
 Google group: elision-dev@googlegroups.com.  Visit http://elision.github.com
 for a link to the group.
 
-Compilable Context
-------------------
-* First Priority *
-Big systems like Hyperion create huge contexts that cannot be loaded after
-compilation because methods are too large.  This means that the system must
-break these into multiple objects to enable loading.  One method may be to
-create multiple "stages," with each stage declaring a limited number of
-operators, rules, etc.
-
 Architecture
 ------------
 * Second Priority *

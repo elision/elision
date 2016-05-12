@@ -41,6 +41,7 @@ import ornl.elision.context.Context
 import ornl.elision.util.OmitSeq
 import ornl.elision.util.Debugger
 import ornl.elision.util.Loc
+import ornl.elision.util.seqloop
 
 /**
  * The ruleset strategy.
@@ -64,7 +65,7 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
   /** The ruleset names that are concrete. */
   private val _namelist = (names.map {
     _ match {
-      case SymbolLiteral(_, sym) => sym.name
+      case SymbolLiteral(_, sym, _) => sym.name
       case StringLiteral(_, name) => name
       case _ =>
         _conc = false
@@ -198,7 +199,7 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
     // we include it.
     var newargs: OmitSeq[BasicAtom] = EmptySeq
     var changed = false
-    for (index <- 0 until args.length) {
+    seqloop(args, (index : Int) => {
       // Get the argument.
       var arg = args(index)
       // Get the corresponding parameter.
@@ -217,7 +218,7 @@ extends SpecialForm(sfh.loc, sfh.tag, sfh.content) with Rewriter {
       }
       // Add the argument to the new argument list.
       newargs :+= arg
-    } // Loop over arguments.
+    }) // Loop over arguments.
     // If anything changed, make a new apply and return it.
     if (changed) return (Apply(op, AtomSeq(args.props, newargs)), true)
     else return (this, false)
@@ -327,13 +328,13 @@ object RewriteRule {
     // Make the binding.
     var binds:Bindings = Bindings() + (""->AtomSeq(NoProps, mappair))
     if (guards.length > 0) {
-      binds += ("if" -> AtomSeq(NoProps, guards.toIndexedSeq[BasicAtom]))
+      binds += ("if" -> AtomSeq(NoProps, guards.toIndexedSeq))
     }
     if (rulesets.size > 0) {
       binds += ("rulesets" ->
           AtomSeq(NoProps, rulesets.map {
             str => Literal(Symbol(str))
-          }.toIndexedSeq[BasicAtom]))
+          }.toIndexedSeq))
     }
     name match {
       case None =>
@@ -386,7 +387,7 @@ object RewriteRule {
       bh.fetchAs[AtomSeq]("rulesets", Some(EmptySeq))
     val rulesets = rseq map {
       rs => rs match {
-        case SymbolLiteral(_, name) => name.name
+        case SymbolLiteral(_, name, _) => name.name
         case _ =>
           throw new SpecialFormException(rs.loc,
               "Ruleset specification is not a symbol: " + rs.toParseString)
@@ -459,11 +460,12 @@ class RewriteRule private (
       hint: Option[Any] = None): (BasicAtom, Boolean) = {
     // Local function to check the guards.
     def checkGuards(candidate: Bindings): Boolean = {
-      for (guard <- guards) {
-        val (newguard, _) = guard.rewrite(candidate)
+      //for (guard <- guards) {
+      seqloop(guards, (i: Int) => {
+        val (newguard, _) = guards(i).rewrite(candidate)
         val (newguard1, _) = knownExecutor.context.ruleLibrary.rewrite(newguard)
         if (!newguard1.isTrue) return false
-      }
+      })
       true
     }
     
@@ -551,7 +553,7 @@ class RewriteRule private (
   def doRewrite(atom: BasicAtom, binds: Bindings, hint: Option[Any]) = {
     // Has rewriting timed out?
     if (BasicAtom.rewriteTimedOut) {
-      (atom, true)
+      (atom, false)
     } else {
       // Try to apply the rewrite rule.  Whatever we get back is the result.
       _tryRewrite(atom, binds, hint)

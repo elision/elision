@@ -33,11 +33,14 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ======================================================================*/
+ * ======================================================================
+ * */
 package ornl.elision.core
 
+import ornl.elision.core.BasicAtomComparator._
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Loc
+import scala.reflect.runtime.universe.{TypeTag, typeOf, typeTag, runtimeMirror}
 
 /**
  * Construction of a special form failed for the specified reason.
@@ -197,27 +200,38 @@ class BindingsHolder(loc: Loc, val tag: BasicAtom, val content: BindingsAtom) {
    * @param default			Optional default value if the key is not present.
    * @return	The value of the key, cast to the correct type.
    */
-  def fetchAs[TYPE](key: String, default: Option[TYPE] = None)
-  (implicit mTYPE: scala.reflect.Manifest[TYPE]): TYPE = {
+  def fetchAs[TYPE: TypeTag](key: String, default: Option[TYPE] = None): TYPE = {
     content.get(key) match {
       case None => default match {
         case Some(value) => value
         case None =>
 	        throw new SpecialFormException(loc,
-	            "Form " + tag.toParseString +
+	            "Special form " + tag.toParseString +
 	            " requires key " + toESymbol(key) + " but it was not given.")
       }
+      
       case Some(item) =>
-        if (mTYPE >:> Manifest.classType(key.getClass))
-          throw new SpecialFormException(loc,
-              "The value for key " + toESymbol(key) + " of form " +
-              tag.toParseString + " is of the wrong type: " +
-              item.toParseString + ". Expected " + mTYPE.toString +
-              " but got " + Manifest.classType(key.getClass) + ".")
-        else
+        val cls = item.getClass()
+        val itemtype =
+          runtimeMirror(cls.getClassLoader).classSymbol(cls).toType
+        if (itemtype <:< typeTag[TYPE].tpe)
           item.asInstanceOf[TYPE]
+        else
+          throw new SpecialFormException(loc,
+              "The value for key #" + toESymbol(key) + " of special form " +
+              tag.toParseString +
+              " is of the wrong type.  Expected a subclass of " +
+              typeTag[TYPE].tpe + " but got " + itemtype + ".")
     }
   }
+  
+  /**
+   * Little method to get the type tag for an object.  Is there a better way?
+   * @param TYPE  The actual type of the object.
+   * @param thing The object.
+   * @return  The type tag for TYPE.
+   */
+  private def getTypeTag[TYPE: TypeTag](thing: TYPE) = typeTag[TYPE]
   
   /**
    * Determine whether the given key is present in this holder.
@@ -266,8 +280,8 @@ extends BasicAtom(loc) {
   val theType: BasicAtom = ANY
   lazy val isTerm = tag.isTerm && content.isTerm
 
-  override lazy val hashCode = tag.hashCode * 31 + content.hashCode
-  lazy val otherHashCode = tag.otherHashCode + 8191*content.otherHashCode
+  override lazy val hashCode = tag.hashCode * 12289 + content.hashCode
+  override lazy val otherHashCode = tag.otherHashCode + 8191*content.otherHashCode
   
   override def equals(other: Any) = other match {
     case sf:SpecialForm =>
@@ -330,7 +344,7 @@ object SpecialForm {
    * @param content		The content.
    * @return	The constructed special form.
    */
-  def apply(loc: Loc, tag: BasicAtom, content: BasicAtom) = {
+  def apply(loc: Loc, tag: BasicAtom, content: BasicAtom): BasicAtom = {
     val sfh = new SpecialFormHolder(loc, tag, content)
     tag match {
 	    case sl:SymbolLiteral => sl.value match {

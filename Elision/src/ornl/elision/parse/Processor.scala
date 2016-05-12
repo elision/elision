@@ -42,6 +42,10 @@ import ornl.elision.util.HasHistory
 import ornl.elision.util.ElisionException
 import ornl.elision.util.Version
 import ornl.elision.util.Loc
+import ornl.elision.core.Dialect
+import java.io.FileReader
+import java.io.Reader
+import java.io.InputStreamReader
 
 /**
  * Manage the default parser kind to use.
@@ -77,12 +81,12 @@ trait TraceableParse {
 /**
  * A processor is responsible for reading and handling atoms.
  * 
- * The processor instance maintains a [[ornl.elision.core.Context]] instance
+ * The processor instance maintains a [[ornl.elision.context.Context]] instance
  * that is available via the `context` field.  An existing context can be
  * provided when the processor is created.  Otherwise a new context is created
  * and used.
  * 
- * The processor instance also maintains its own [[ornl.elision.core.AtomParser]]
+ * The processor instance also maintains its own [[ornl.elision.parse.ElisionParser]]
  * instance to parse atoms.  You can enable and disable tracing of the parser
  * via the `trace` field.
  * 
@@ -120,6 +124,13 @@ with HasHistory {
       "Whether to aggresively fail fast while rewriting. " +
       "If true, some rewrites may not be applied",
       false)
+      
+  declareProperty("use_rewrite_history",
+      "Whether to use rewite history to detect rewrite cycles.",
+      true,
+      (pm: PropertyManager) => {
+        context.ruleLibrary.setTrackedAtoms(pm.getProperty[Boolean]("use_rewrite_history"))
+      })
       
   /** Whether to trace the parser. */
   private var _trace = false
@@ -174,29 +185,32 @@ with HasHistory {
    * @param name    The name of the source to parse.
    * @return  The new parser.
    */
-  private def _makeParser(name: String) = new ElisionParser(name, _trace)
+  private def _makeParser(name: String) = new FastEliParser(name, _trace)
   
   /**
    * Read the content of the provided file.  This method uses a
-   * [[ornl.elision.parse.FileResolver]] instance to find the requested
+   * [[ornl.elision.util.FileResolver]] instance to find the requested
    * file.
    * 
    * @param filename		The file to read.  It may be absolute, or it may be
    * 										relative to the current directory.
    * @param quiet       If true, do not emit any error messages.
-   * @return  True if the file was found; false if it was not.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
   def read(filename: String, quiet: Boolean): Boolean = {
     // Make a resolver from the properties.  Is this costly to do every time
     // we want to read a file?  Probably not.
+    
     val usePath = getProperty[Boolean]("usepath")
     val useClassPath = getProperty[Boolean]("useclasspath")
     val path = getProperty[String]("path")
     val resolver = FileResolver(usePath, useClassPath, Some(path))
+    var result = false
+    
     resolver.find(filename) match {
       case None =>
         if (!quiet) console.error("File not found: " + filename)
-        false
+        result = false
         
       case Some((reader, dir)) =>
         Processor.fileReadStack.push(filename)
@@ -209,13 +223,13 @@ with HasHistory {
         }
         
         // Proceed with reading the file's stream.
-        read(scala.io.Source.fromInputStream(reader), filename)
+        result = read(new InputStreamReader(reader), filename)
         
         // Restore our original path.
         setProperty[String]("path", path)
         Processor.fileReadStack.pop
-        true
     }
+    result
   }
   
   /**
@@ -224,9 +238,10 @@ with HasHistory {
    * @param file		The file to read.
    * @throws	java.io.IOException
    * 					The file cannot be found or cannot be read.
+   * @return  True if the file was found and parse was successful; false if it was not.
    */
   def read(file: java.io.File) {
-    read(scala.io.Source.fromFile(file), file.getAbsolutePath)
+    read(new FileReader(file), file.getAbsolutePath())
   }
   
   /**
@@ -236,26 +251,13 @@ with HasHistory {
    * @param filename  The file name, if relevant.
    * @throws	java.io.IOException
    * 					An error occurred trying to read.
+   * @return  True if parse was successful; false if it was not.
    */
-  def read(source: scala.io.Source, filename: String = "(console)") {
-    _execute(_makeParser(filename).parseAtoms(source), true) 
-  }
-  
-  /**
-   * Convert a result from parsing to a list of basic atoms. 
-   * This is currently used for unit testing.
-   *
-   * @param result    The result from Processor.parse.
-   * @return          A list of the atoms returned or an empty list if the 
-   *                  result was not a success.
-   */
-  def toBasicAtom(result: ParseResult) : List[BasicAtom] = result match {
-    case ParseSuccess(atoms) =>
-      atoms
-      
-    case _ =>
-      println("Round trip testing failed for atom:\n")
-      List[BasicAtom]()
+  def read(source: Reader, filename: String = "(console)") = {
+    _execute(_makeParser(filename).parseAtoms(source, context), true) match {
+      case _: Success => true
+      case _: Failure => false
+    }
   }
   
   /**
@@ -291,14 +293,7 @@ with HasHistory {
       lline = prior.get
       console.emitln(lline)
     }
-    _execute(_makeParser(name).parseAtoms(lline))
-  }
-  
-  def parse(name: String, text: String) = {
-    _makeParser(name).parseAtoms(text) match {
-      case Failure(err) => ParseFailure(err)
-      case Success(nodes) => ParseSuccess(nodes map (_.interpret(context)))
-    }
+    _execute(_makeParser(name).parseAtoms(lline, context))
   }
   
   /**
@@ -309,7 +304,7 @@ with HasHistory {
    *                    This is accomplished by throwing an exception to
    *                    be caught at a higher level.
    */
-  private def _execute(result: Presult, stoponerror: Boolean = false) {
+  private def _execute(result: Presult, stoponerror: Boolean = false) : Presult = {
     import ornl.elision.util.ElisionException
     startTimer
     try {
@@ -321,19 +316,13 @@ with HasHistory {
   			  // We assume that there is at least one handler; otherwise not much
   			  // will happen.  Process each node.
   			  console.reset
-  			  for (node <- nodes) {
-  			    _handleNode(node) match {
-  			      case None =>
-  			      case Some(newnode) =>
-  			        // Interpret the node.
-                val atom = newnode.interpret(context)
-  			        _handleAtom(atom) match {
-  			          case None =>
-  			          case Some(newatom) =>
-  			            // Hand off the node.
-  			            _result(newatom)
-  			        }
-  			    }
+  			  for (atom <- nodes) {
+		        _handleAtom(atom) match {
+		          case None =>
+		          case Some(newatom) =>
+		            // Hand off the node.
+		            _result(newatom)
+		        }
   			    // Watch for errors.  If we are stopping on errors, stop.
   			    if (stoponerror && console.errors > 0) {
   			      throw new ElisionException(Loc.internal, "Stopping due to errors.")
@@ -369,18 +358,7 @@ with HasHistory {
     }
     stopTimer
     showElapsed
-  }
-  
-  private def _handleNode(node: AST.BA): Option[AST.BA] = {
-    // Pass the node to the handlers.  If any returns None, we are done.
-    var theNode = node
-    for (handler <- _queue) {
-      handler.handleNode(theNode) match {
-        case None => return None
-        case Some(alt) => theNode = alt
-      }
-    } // Perform all handlers.
-    return Some(theNode)
+    result
   }
   
   private def _handleAtom(atom: BasicAtom): Option[BasicAtom] = {
@@ -392,6 +370,7 @@ with HasHistory {
     // We'll only send the GUI atom data here. This may change depending how 
     // we ultimately want the GUI to
     // receive data about the atoms it needs to visualize.
+        
     ReplActor ! ("toGUI", "startBatch")
     ReplActor ! ("toGUI", (theAtom, "Parsed Atom: "))
     
@@ -406,7 +385,6 @@ with HasHistory {
           ReplActor ! ("toGUI", (theAtom, "Handler " + (handlersCount - 1) + " result: "))
       }
     } // Perform all handlers.
-    
     ReplActor ! ("toGUI", "endBatch")
     return Some(theAtom)
   }
@@ -481,7 +459,7 @@ with HasHistory {
             os.arch={prop.get("os.arch").toString}
             version={major+"."+minor}
             build={build}
-            scala.version={util.Properties.versionString}
+            scala.version={scala.util.Properties.versionString}
           />
         val cont = <context>{context.toParseString}</context>
         val err = th match {
@@ -561,7 +539,7 @@ with HasHistory {
       // Re-create the context.
       console.emitln("Reloading context...")
       val cont = (coreXML \ "context").text
-      new ElisionParser(corePath).parseAtoms(cont) match {
+      new FastEliParser(corePath).parseAtoms(cont, context) match {
         case Failure(err) =>
           console.error(err)
           console.emitln("Context cannot be reloaded.")
@@ -615,7 +593,7 @@ with HasHistory {
       context = checkpt._2
       true
     } catch {
-      case _ => false
+      case _: Throwable => false
     }
   }
 
@@ -663,17 +641,6 @@ object Processor {
      *          not continue.
      */
     def init(exec: Executor): Boolean = true
-
-    /**
-     * Handle a parsed abstract syntax tree node.  The default return value
-     * for this method is `Some(node)`.  If you need to do processing of the
-     * node, override this method.  Otherwise you can leave it as-is.
-     * 
-     * @param node		The node to process.
-     * @return	An optional replacement node, or `None` if the node should be
-     * 					*discarded*.
-     */
-    def handleNode(node: AST.BA): Option[AST.BA] = Some(node)
 
     /**
      * Handle an atom.  The default return value for this method is

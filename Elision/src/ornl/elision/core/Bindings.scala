@@ -41,6 +41,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.{OpenHashMap => MutableHashMap}
 import scala.collection.mutable.SynchronizedMap
 import ornl.elision.util.OmitSeq
+import ornl.elision.util.hashify
 
 /**
  * Bindings are used to store variable / value maps used during matching, and
@@ -78,6 +79,8 @@ extends HashMap[String, BasicAtom] with Mutable {
   def ++(other: Bindings): Bindings = new Bindings(self ++ other.self)
   override def -(key: String): Bindings = new Bindings(self - key)
 
+  override lazy val hashCode = self.foldLeft(0)(hashify)  
+  
   // @@@ JUST FOR DEBUGGING!!!
   var rewrites: MutableHashMap[BasicAtom, (BasicAtom, Boolean)] =
     new MutableHashMap[BasicAtom, (BasicAtom, Boolean)]()

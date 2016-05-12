@@ -48,6 +48,7 @@ import sage2D.GamePanel
 
 import ornl.elision.gui._
 import ornl.elision.gui.menus.filefilters._
+import ornl.elision.gui.trees.TreeVisLevel
 
 /**  Eva's menu bar */
 class EvaMenuBar extends MenuBar {
@@ -97,8 +98,8 @@ class EvaMenuBar extends MenuBar {
     // Reset Camera : reset's the camera in the visualization panel.
     val resetCameraItem = new MenuItem(Action("Reset Camera") {
             mainGUI.visPanel.curLevel match {
-                case camPanel : sage2D.HasCamera =>
-                    camPanel.camera.reset
+                case camPanel : TreeVisLevel =>
+                    camPanel.renderThread.camera.reset
             }
     } )
     resetCameraItem.mnemonic = event.Key.R

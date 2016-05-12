@@ -64,11 +64,15 @@ All rights reserved.
 	
 	
   	<!-- A target to configure the build for release. -->
-	<target name="release" unless="build.debug"
+	<target name="release-config" unless="build.debug"
 		description="Select release configuration.">
 		<property name="build.optimize" value="on"/>
 		<property name="build.debug"    value="off"/>
 		<echo level="info">Building RELEASE configuration.</echo>
+	</target>
+	
+	<target name="release" unless="build.debug"
+		description="Build release configuration." depends="release-config,jars">
 	</target>
 
 
@@ -105,7 +109,6 @@ bin, lib, and other folders.</echo>
 	<target name="init" depends="start,debug,checks">
 		<property name="build.base" 	value="."/>
 		<property name="build.src"  	value="${build.base}/src"/>
-		<property name="build.test"  	value="${build.base}/test"/>
 		<property name="build.doc"  	value="${build.base}/doc"/>
 		<property name="build.bin"  	value="${build.base}/bin"/>
 		<property name="build.lib"  	value="${build.base}/lib"/>
@@ -141,7 +144,7 @@ bin, lib, and other folders.</echo>
 	
 	
 	<!-- A simple target to build both the jars and the documentation. -->
-	<target name="all" depends="jars,docs, build_tests"
+	<target name="all" depends="jars,docs"
 		description="Build the jars and the API documentation."/>
 	
 	
@@ -153,16 +156,6 @@ bin, lib, and other folders.</echo>
 	</target>
 	
 
-	<target name="build_tests" depends="compile">
-		<scalac
-			destdir		="${build.bin}"
-			classpathref	="build.classpath"
-			deprecation	="on"
-			unchecked	="on">
-			<src path="${build.test}"/>
-		</scalac>
-	</target>
-	
 	<!-- Clean up the entire folder, removing all directories and generated
 		 files including the date-stamped save directories. -->
 	<target name="distclean" depends="clean"
@@ -180,20 +173,18 @@ bin, lib, and other folders.</echo>
 	<target name="compile" depends="init"
 		description="Compile all Scala code.">
 		<mkdir dir="${build.bin}"/>
+		<echo>  Deprecation: ... on</echo>
+	    <echo>  Unchecked: ..... on</echo>
+	  	<echo>  Optimise: ...... ${build.optimize}</echo>
+
 		<scalac
 			destdir		="${build.bin}"
 			classpathref	="build.classpath"
+			optimise="${build.optimize}"
 			deprecation	="on"
 			unchecked	="on">
 			<src path="${build.src}"/>
 		</scalac>
-		<!-- javac
-			destdir		="${build.bin}"
-			classpathref	="build.classpath"
-			includeantruntime ="false"
-			deprecation	="on">
-			<src path="${build.src}"/>
-		</javac -->
 		<copy todir="${build.bin}" overwrite="yes">
 			<fileset dir="${build.src}" includes="**/*.eli"/>
 			<filterset>

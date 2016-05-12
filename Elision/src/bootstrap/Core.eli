@@ -112,20 +112,6 @@ decl.{! listprops()
 }
 
 //======================================================================
-// If.
-//======================================================================
-
-decl.{operator #name=if #cases
-  %(true, $then @lazy, $else @lazy) -> $$then,
-  %(false, $then @lazy, $else @lazy) -> $$else,
-  %($P: BOOLEAN, $then @lazy, $else @lazy) -> _
-  #description="Simple if-then(-else)."
-  #detail=
-  "If the first argument is true, return the second.  If the first argument ".
-  "is false, return the third."
-}
-
-//======================================================================
 // Meta.
 //======================================================================
 
@@ -178,7 +164,7 @@ decl.{! operator($name)
   #handler=
   """
   args match {
-    case Args(SymbolLiteral(_, sym)) =>
+    case Args(SymbolLiteral(_, sym, _)) =>
       context.operatorLibrary(sym.name)
     case Args(StringLiteral(_, name)) =>
       context.operatorLibrary(name)
@@ -197,7 +183,7 @@ decl.{! getop($x)
         opref.operator
       case Args(op: Operator) =>
       	op
-      case Args(SymbolLiteral(_, sym)) =>
+      case Args(SymbolLiteral(_, sym, _)) =>
         getop(sym.name)
       case Args(StringLiteral(_, name)) =>
         getop(name)
@@ -229,7 +215,25 @@ decl.{! setdebruijn($enable: BOOLEAN)
   "only useful when you are debugging lambdas."
 }
 
-decl.{! is_constant($x): BOOLEAN
+decl.{! is_literal($x @meta): BOOLEAN
+  #handler=
+  """
+    args match {
+      case Args(term) =>
+        if (term.isInstanceOf[Literal[_]]) Literal.TRUE else Literal.FALSE
+      case _ =>
+        as_is
+    }
+  """
+  #description="Determine whether an atom is a literal."
+  #detail=
+  "If the atom $x is a literal, return true.  Otherwise, return false.  This ".
+  "is primarily useful for guards.  You will probably need to protect ".
+  "variables by making them into metavariables ($$ instead of $) to prevent ".
+  "overzealous evaluation."
+}
+
+decl.{! is_constant($x @meta): BOOLEAN
   #handler=
   """
     args match {
@@ -244,10 +248,10 @@ decl.{! is_constant($x): BOOLEAN
   "If the atom $x is a constant, return true.  Otherwise, return false.  This ".
   "is primarily useful for guards.  You will probably need to protect ".
   "variables by making them into metavariables ($$ instead of $) to prevent ".
-  "zealous evaluation."
+  "overzealous evaluation."
 }
 
-decl.{! is_bindable($x): BOOLEAN
+decl.{! is_bindable($x @meta): BOOLEAN
   #handler=
   """
     args match {
@@ -288,7 +292,7 @@ decl.{! _help_op($r)
     args match {
       case Args(or: OperatorRef) =>
         givehelp(or.name)
-      case Args(SymbolLiteral(_, sym)) =>
+      case Args(SymbolLiteral(_, sym, _)) =>
         givehelp(sym.name)
       case Args(StringLiteral(_, name)) =>
         givehelp(name)
@@ -702,7 +706,7 @@ decl.{! _declprop($name: STRING, $default, $description: STRING)
            case StringLiteral(_, str) => str
            case IntegerLiteral(_, ival) => ival
            case BooleanLiteral(_, flag) => flag
-           case SymbolLiteral(_, sym) => sym
+           case SymbolLiteral(_, sym, _) => sym
          }
          exec.declareProperty(name, description, realval)
          console.emitln("Declared property "+toEString(name)+" with type "+

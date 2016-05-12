@@ -54,7 +54,7 @@ import scala.collection.immutable.BitSet
  *  - [[ornl.elision.actors]] contains actors used for internal communication.
  *  - [[ornl.elision.cli]] contains classes for interpreting the CLI.
  *  - [[ornl.elision.core]] is the core package that contains the primary classes.
- *  - [[ornl.elision.generators]] provides generators to convert atoms to strings.
+ *  - [[ornl.elision.dialects]] provides generators to convert atoms to strings.
  *  - [[ornl.elision.gui]] contains the Elision GUI, Eva.
  *  - [[ornl.elision.parse]] contains the Elision parser(s).
  *  - [[ornl.elision.profile]] contains the Elision profiler.

@@ -36,6 +36,8 @@
 ======================================================================*/
 package ornl.elision.util
 
+import scala.language.existentials
+
 /**
  * Provide information about the current version of Elision.
  * 
@@ -55,6 +57,7 @@ package ornl.elision.util
  *     build = "build date / time identifier"/>
  *   <main name="command name" class="fully.qualified.class.name"
  *     description="human-readable description"/>
+ *   <dialect name="dialect name" class="fully.qualified.class.name"/>
  *   <option name="option name" class="fully.qualified.class.name"
  *     description="human-readable description" value="value"/>
  * </configuration>
@@ -81,7 +84,7 @@ package ornl.elision.util
  * The following is the DTD for the configuration file.
  * 
  * {{{
- * <!ELEMENT configuration (version,(main|option)*,ANY*)>
+ * <!ELEMENT configuration (version,(main|dialect|option)*,ANY*)>
  * <!ATTLIST configuration name CDATA #REQUIRED>
  * <!ATTLIST configuration maintainer CDATA #REQUIRED>
  * <!ATTLIST configuration web CDATA #REQUIRED>
@@ -96,6 +99,9 @@ package ornl.elision.util
  * <!ATTLIST main class CDATA #REQUIRED>
  * <!ATTLIST main description CDATA #REQUIRED>
  * <!ATTLIST main gui (true|false) #REQUIRED>
+ * <!ELEMENT dialect (ANY*)>
+ * <!ATTLIST dialect name CDATA #REQUIRED>
+ * <!ATTLIST dialect class CDATA #REQUIRED>
  * <!ELEMENT option (ANY*)>
  * <!ATTLIST option name CDATA #REQUIRED>
  * <!ATTLIST option class CDATA #REQUIRED>
@@ -136,7 +142,10 @@ object Version {
     
   /** The commands.  Map each command to its class and a description. */
   private var _commands: Map[String,CEntry] = Map()
-        
+  
+  /** The dialects.  Map each dialect name to a class. */
+  private var _dialects: Map[Symbol, AnyRef] = Map()
+  
   /** A type for an entry in the options catalog. */
   type OEntry = (Class[_], String, String)
   
@@ -206,6 +215,14 @@ object Version {
     // If not a gui, exit.
     if (!gui) System.exit(0)
   }
+  
+  /**
+   * Return the loaded dialects.  This is a map from symbol to a class, but
+   * the class has not been verified to be a dialect (yet).
+   * 
+   * @return  The known dialects.
+   */
+  def getDialects() = _dialects
   
   /**
    * Create a help string with the given width.
@@ -282,6 +299,25 @@ object Version {
             		ex.toString)
         }
 	    } // Pull out the mains.
+	    
+	    // Pull out the dialects.
+	    for (dialect <- config.\("dialect")) {
+	      // Pull out the parts.
+	      val name = dialect.\("@name").text
+	      val fqcn = dialect.\("@class").text
+	      // We can load the class, but not check it without creating a
+	      // dependency on the dialect registry, and we don't want that.
+	      // So here we just store it and let the registry pull it later.
+	      try {
+	        val clazz = Class.forName(fqcn).newInstance()
+	        _dialects += (Symbol(name) -> clazz.asInstanceOf[AnyRef])
+	      } catch {
+	        case ex: Exception =>
+            println("ERROR: Elision is mis-configured.  The class for " +
+                "dialect "+name+" could not be loaded and instantiated.\n" +
+            		"Reason: " + ex.toString)
+	      }
+	    } // Pull out the dialects.
 	  }
   }
   _init

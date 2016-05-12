@@ -36,27 +36,27 @@ import ornl.elision.core.RulesetRef
 import ornl.elision.core.TypedSymbolicOperator
 import ornl.elision.context.NativeCompiler
 import ornl.elision.core.Literal
-import ornl.elision.generators.ScalaGenerator
+import ornl.elision.dialects.ScalaGenerator
 
 /**
  * Generate compilable Scala source files for a context.
  */
 object ContextGenerator {
-  
+
   /**
    * Generate the context as compilable Scala source.  The generated files
    * all use the specified base name.  If this does not specify an absolute
    * path, then the files are placed in the "current working folder," which
    * is determined by the operating system.
-   * 
+   *
    * The purpose of this is to write a compilable version of the entire context
    * as a single object that, when executed, creates and returns a complete
    * context object.  While this is effective for those items that are
    * contained in the context, it does not necessarily capture those items
    * contained in the executor.
-   * 
+   *
    * The basic public structure of the file that is created is the following.
-   * 
+   *
    * {{{
    * object SC21e4fe213a6c {
    *   def main(args: Array[String]) {
@@ -67,24 +67,24 @@ object ContextGenerator {
    *   }
    * }
    * }}}
-   * 
+   *
    * The `main` method can be used to start the context and enter the REPL from
    * the prompt.  The `populate` method adds the necessary information to the
    * provided context.
-   * 
+   *
    * @param fn          Base file name for files to be generated.
    * @param context     The context to write.
    */
   def generate(fn: String, context: Context) {
     val dot = fn.lastIndexOf('.')
     val slash = fn.lastIndexOf('/') max -1
-    val filename = (if (dot > 0) fn.substring(0,dot) else fn) + ".scala"
+    val filename = (if (dot > 0) fn.substring(0, dot) else fn) + ".scala"
     val basename =
-      (if (dot > 0) fn.substring(slash+1,dot) else fn.substring(slash+1))
+      (if (dot > 0) fn.substring(slash + 1, dot) else fn.substring(slash + 1))
     val file = new FileWriter(filename)
-    
+
     // Write boilerplate.
-    import ornl.elision.util.Version.{major, minor, build}
+    import ornl.elision.util.Version.{ major, minor, build }
     val prop = System.getProperties
     file.append(
         """|/**
@@ -128,23 +128,21 @@ object ContextGenerator {
            |  }
            |  def populate(context: Context) {
            |""".stripMargin format (
-               new java.util.Date,
-               major+"."+minor,
-               build,
-               util.Properties.versionString,
-               prop.get("java.vendor"),
-               prop.get("java.version"),
-               prop.get("os.name"),
-               prop.get("os.version"),
-               prop.get("os.arch"),
-               basename
-               )
-           )
-    
+        new java.util.Date,
+        major + "." + minor,
+        build,
+        scala.util.Properties.versionString,
+        prop.get("java.vendor"),
+        prop.get("java.version"),
+        prop.get("os.name"),
+        prop.get("os.version"),
+        prop.get("os.arch"),
+        basename))
+
     // Boilerplate text for both cases.
     val pre = "context.declare("
     val post = ")"
-           
+
     // Now we can append the code to create the context.  To do this, we first
     // traverse the rule list and collect all the rules in the order they are
     // present in the library.
@@ -157,23 +155,27 @@ object ContextGenerator {
       known = pair._1
       thelist = pair._2
     } // Collect all rules and their dependencies.
-    
+
     for (rule <- context.ruleLibrary.getAllRules) {
       // Write the rule and any dependencies.  The new set of "known" stuff is
       // returned, and we preserve it.
-      val pair = context.collect(rule, known, thelist)
-      known = pair._1
-      thelist = pair._2
+      //Synthetic rules are generated internally, so we don't export them 
+      if (!rule.synthetic) {
+        val pair = context.collect(rule, known, thelist)
+        known = pair._1
+        thelist = pair._2
+      }
     } // Collect all rules and their dependencies.
-    
+
     // Any remaining rulesets can be collected now.
     for (ruleset <- context.ruleLibrary.getAllRulesets) {
       val pair = context.collect(RulesetRef(context.ruleLibrary, ruleset),
-          known, thelist)
+        known, thelist)
       known = pair._1
       thelist = pair._2
     } // Collect any missed rulesets.
-    
+    //remove items that got grabbed twice
+    thelist = thelist.distinct
     // Write the pieces now.
     val width = 10 // How many items per stage?
     var stage = 1
@@ -201,10 +203,10 @@ object ContextGenerator {
               // Found a handler.  Convert it to an object and write it in the
               // stream.
               NativeCompiler.writeStash(tso.loc.source, tso.name, text, file)
-              
+
             case _ =>
           }
-          
+
         case _ =>
       }
       file.append(pre)
@@ -231,23 +233,23 @@ object ContextGenerator {
     if (size != 0) {
       file.append("  } // End of _stage%d.\n" format stage)
     }
-    
+
     // Now emit the complete method that handles the remaining items.
     file.append("  private def _complete(context: Context) {\n")
-    
+
     // Enable those rulesets that need to be enabled.
     import ornl.elision.util.toQuotedString
     for (ruleset <- context.ruleLibrary.getActiveRulesets) {
       file.append("context.ruleLibrary.enableRuleset(%s)\n".format(
-          toQuotedString(ruleset)))
+        toQuotedString(ruleset)))
     } // Enable the rulesets that need to be enabled.
-    
+
     // Emit the bindings.
     for (bind <- context.binds) {
       file.append("context.bind(%s, %s)\n" format (
-          toQuotedString(bind._1), bind._2.toString))
+        toQuotedString(bind._1), bind._2.toString))
     } // Write all bindings.
-    
+
     // Emit the cache.  The cache can contain arbitrary stuff, so here we
     // only preserve one item: the list of included files.
     import scala.collection.mutable.Set
@@ -257,7 +259,7 @@ object ContextGenerator {
     file.append(included map (toQuotedString(_)) mkString (","))
     file.append(")\n")
     file.append("    context.stash(\"read_once.included\", set)\n")
-    
+
     // Done.  Close up the object.
     file.append("  } // End of _complete.\n")
     file.append("} // End of object.\n")

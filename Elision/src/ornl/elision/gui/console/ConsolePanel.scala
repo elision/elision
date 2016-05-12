@@ -62,8 +62,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   background = GUIColors.bgColor
   preferredSize = new Dimension(Integer.MAX_VALUE, 300)
     
-  /** Used for setting border spacings in this panel */
-  val inset = 3
+  
   
 
   /** The EditorPane containing the REPL */
@@ -72,7 +71,8 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   /** The ScrollPane containing the console. */
   val scrollingConsolePanel = new ScrollPane {
     background = GUIColors.bgColor
-    border = new javax.swing.border.EmptyBorder(inset,inset,inset,inset)
+    border = new javax.swing.border.EmptyBorder(ConsolePanel.inset, 
+        ConsolePanel.inset, ConsolePanel.inset, ConsolePanel.inset)
     
     horizontalScrollBarPolicy = ScrollPane.BarPolicy.Never
     verticalScrollBarPolicy = ScrollPane.BarPolicy.Always
@@ -106,7 +106,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
         replThread.start
       case "Welcome" => // ignore messages.
       case _ =>
-        System.out.println("ConsolePanel error: Eva is not in a recognized mode.")
+        mainGUI.consolePanel.console.emitln("ConsolePanel error: Eva is not in a recognized mode.")
     }
   }
   
@@ -114,12 +114,7 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
   override def paint(g : Graphics2D) : Unit = {
     // Sometimes paint will throw an exception when Eva's mode is switched. 
     // We'll just ignore these exceptions.
-    try {
-      super.paint(g)
-    }
-    catch {
-      case _ : Throwable => 
-    }
+    super.paint(g)
   }
   
   console.start
@@ -132,6 +127,9 @@ class ConsolePanel extends BoxPanel(Orientation.Vertical) {
 object ConsolePanel {
   /** If the Repl panel's maximum lines is set below this, then it will not enforce a maximum on the lines it retains.*/
   val infiniteMaxLines = 10
+  
+  /** Used for setting border spacings in this panel */
+  val inset = 3
   
   /** The maximum number of columns to enforce in the EditorPane*/
   var maxCols = 80

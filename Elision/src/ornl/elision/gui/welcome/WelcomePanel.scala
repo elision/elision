@@ -3,7 +3,9 @@ package ornl.elision.gui.welcome
 import java.awt._
 import java.awt.geom.Rectangle2D
 import scala.util.Random
-import collection.mutable.ListBuffer
+import scala.collection.mutable.ListBuffer
+
+import ornl.elision.gui._
 
 import sage2D._
 import sage2D.sprites._
@@ -91,9 +93,9 @@ class WelcomePanel(game : GamePanel) extends Level(game, null) {
 	
 	// start()
    // timer.setDelay(6)
-   System.out.println("Welcome to Eva - Elision Visualization Assistant!")
-   System.out.println("------------------------------------------------------")
-   System.out.println("Please select a mode from the Mode menu.")
+   mainGUI.consolePanel.console.emitln("Welcome to Eva - Elision Visualization Assistant!")
+   mainGUI.consolePanel.console.emitln("------------------------------------------------------")
+   mainGUI.consolePanel.console.emitln("Please select a mode from the Mode menu.")
 }
 
 /** 

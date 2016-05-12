@@ -76,15 +76,17 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   NamedRootType._set(this)
   
   /**
-	 * Try to match this type against the provided atom.  Note that root types
-	 * match only themselves, so the match works iff the subject is equal to this
-	 * pattern.
-	 */
-	override def tryMatchWithoutTypes(subject: BasicAtom, binds: Bindings,
-	    hints: Option[Any]) =
-	  // A root type matches only itself.
-	  if (this == subject) Match(binds)
-	  else Fail("This type matches only itself.", this, subject)
+   * Try to match this type against the provided atom.  Note that root types
+   * match only themselves, so the match works iff the subject is equal to this
+   * pattern.
+   */
+  override def tryMatchWithoutTypes(subject: BasicAtom, 
+                                    binds: Bindings,
+	                            hints: Option[Any]) = {
+    // A root type matches only itself.
+    if (this == subject) Match(binds)
+    else Fail("This type matches only itself.", this, subject)
+  }
 
   /**
    * The root types cannot be rewritten, as they do not have children.
@@ -92,8 +94,8 @@ extends SymbolLiteral(TypeUniverse, Symbol(name)) {
   override def rewrite(binds: Bindings) = (this, false)
   
   /** Generate the hash code. */
-  override lazy val hashCode = name.hashCode()
-  override lazy val otherHashCode = (name.toString).foldLeft(BigInt(0))(other_hashify)+1
+  override lazy val hashCode = 12289 * name.hashCode
+  override lazy val otherHashCode = (name.toString).foldLeft(0L)(other_hashify)
   
   /**
    * Because of careful use of names, two named root types are equal

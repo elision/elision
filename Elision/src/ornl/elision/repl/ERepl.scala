@@ -39,6 +39,8 @@ import ornl.elision.cli.CLI
 import ornl.elision.cli.Switch
 import ornl.elision.parse.Processor
 import ornl.elision.parse.ProcessorControl
+import ornl.elision.util.Loc
+import scala.language.reflectiveCalls
 
 /**
  * Implement an interface to run the REPL from the prompt.
@@ -56,6 +58,8 @@ object ReplMain {
    * output file name.
    */
   var _wantCompile: Option[String] = None
+  
+  var _wantClearCache = false
   
   /**
    * If true, force a call to exit at the end of main to terminate all threads.
@@ -97,6 +101,11 @@ object ReplMain {
         () => {
           ProcessorControl.bootstrap = false
           _wantPrior = true
+          None
+        }),
+      Switch(Some("delete-nhc"), Some('n'), "Delete the native handler cache.",
+        () => {
+          _wantClearCache = true
           None
         }),
       ArgSwitch(Some("compile"), Some('C'),
@@ -202,12 +211,9 @@ object ReplMain {
       erepl.run()
     } catch {
       case th: Throwable =>
-        try {
-          erepl.console.error("(" + th.getClass + ") " + th.getMessage())
-          if (erepl.getProperty[Boolean]("stacktrace")) th.printStackTrace()
-        } catch {
-          case _ =>
-        }
+        erepl.console.error("(" + th.getClass + ") " + th.getMessage())
+        if (erepl.getProperty[Boolean]("stacktrace")) 
+          th.printStackTrace()
         erepl.coredump("Internal error.", Some(th))
     }
     erepl.clean()
@@ -290,7 +296,7 @@ extends Processor(state.settings) {
             case x:Any => Some(x.toString)
         }
     } catch {
-        case _ => None
+        case _: Throwable => None
     }
   }
   
@@ -304,7 +310,7 @@ extends Processor(state.settings) {
             case x:Any => Some(x.toString)
         }
     } catch {
-        case _ => None
+        case _: Throwable => None
     }
   }
   
@@ -316,7 +322,7 @@ extends Processor(state.settings) {
             case x:Any => Some(x.toString)
         }
     } catch {
-        case _ => None
+        case _: Throwable => None
     }
   }
   
@@ -352,20 +358,20 @@ extends Processor(state.settings) {
       ReplActor.waitForGUI("formatting on")
     }
     
-//    if(getProperty[Boolean]("syntaxcolor")) {
-//      // color-format the atom's parseString and print it.
-//      val formatCols = console.width
-//      val formatRows = console.height
-//      val atomParseString = ConsoleStringFormatter.format(
-//          prefix + atom.toParseString, formatCols)
-//      ornl.elision.util.AnsiPrintConsole.width = formatCols
-//      ornl.elision.util.AnsiPrintConsole.height = formatRows
-//      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
-//      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
-//    } else {
+    if(getProperty[Boolean]("syntaxcolor")) {
+      // color-format the atom's parseString and print it.
+      val formatCols = console.width
+      val formatRows = console.height
+      val atomParseString = ConsoleStringFormatter.format(
+          prefix + atom.toParseString, formatCols)
+      ornl.elision.util.AnsiPrintConsole.width = formatCols
+      ornl.elision.util.AnsiPrintConsole.height = formatRows
+      ornl.elision.util.AnsiPrintConsole.quiet = console.quiet
+      ornl.elision.util.AnsiPrintConsole.emitln(atomParseString)
+    } else {
       // use the standard printing console and print without syntax coloring.
       console.emitln(prefix + atom.toParseString)
-//    }
+    }
     
     if(ReplActor.guiActor != null) {
       ReplActor ! ("syntaxcolor", false)
@@ -456,10 +462,11 @@ extends Processor(state.settings) {
         val string = atom.toParseString
         // Parse this string.
         parse("", string) match {
-          case ParseFailure(msg) =>
+          case Dialect.Failure(_, msg) =>
             console.error("Round trip testing failed for atom:\n  " + string +
                 "\nParsing terminated with an error:\n  " + msg + "\n")
-          case ParseSuccess(atoms) =>
+                
+          case Dialect.Success(atoms) =>
             if (atoms.length < 1) {
               console.error("Round trip testing failed for atom:\n  " + string +
                   "\nParsing returned no atoms.")
@@ -471,6 +478,14 @@ extends Processor(state.settings) {
               console.error("Round trip testing failed for atom:\n  " + string +
                   "\nAtom returned by parser not equal to original:\n  " +
                   atoms(0).toParseString)
+              console.error("Original atom:  " + atom.toParseString)
+              console.error("Original atom:  " + atom.toString)
+              console.error("Original hash:  " + atom.hashCode)
+              console.error("Original other: " + atom.otherHashCode)
+              console.error("Reparsed atom:  " + atoms(0).toParseString)
+              console.error("Reparsed atom:  " + atoms(0).toString)
+              console.error("Reparsed hash:  " + atoms(0).hashCode)
+              console.error("Reparsed other: " + atoms(0).otherHashCode)
             }
         }
       }
@@ -490,7 +505,7 @@ extends Processor(state.settings) {
         true
       }
       override def handleAtom(atom: BasicAtom) = {
-        if (atom eq ApplyData._no_show) None
+        if (atom == ApplyData._no_show) None
         else Some(atom)
       }
       override def result(atom: BasicAtom) = {
@@ -586,6 +601,21 @@ extends Processor(state.settings) {
 
     // Start the clock.
     startTimer
+    
+    if(ReplMain._wantClearCache){
+      val _cache = new File(state.settings("elision.cache"))
+      def delcache(f: File) {
+        if (f.isDirectory()) {
+
+          f.listFiles match {
+            case null =>
+            case xs => xs foreach delcache
+          }
+        }
+        f.delete()
+      }
+      delcache(_cache)
+    }
     
     // Bootstrap.  If there are errors, then quit.
     if (! bootstrap()) {
@@ -703,7 +733,7 @@ extends Processor(state.settings) {
       if (!fetchline("e> ", "q> ")) {
         // Read any additional segments.  Everything happens in the while loop,
         // but the loop needs a body, so that's the zero.
-        while (!fetchline(" > ", " > ") && blanks < 3) 0
+        while (!fetchline(" > ", " > ") && blanks < 3) {}
         if (blanks >= 3) {
           console.emitln("Entry terminated by three blank lines.")
           line = ""
@@ -742,12 +772,9 @@ extends Processor(state.settings) {
           console.emitln("Free memory: %d/%d (%4.1f%%)".format(free, mem, perc))
 
         case th: Throwable =>
-          try {
-            console.error("(" + th.getClass + ") " + th.getMessage())
-            if (getProperty[Boolean]("stacktrace")) th.printStackTrace()
-          } catch {
-            case _ =>
-          }
+          console.error("(" + th.getClass + ") " + th.getMessage())
+          if (getProperty[Boolean]("stacktrace")) 
+            th.printStackTrace()
           coredump("Internal error.", Some(th))
       }
     } // Forever read, eval, print.

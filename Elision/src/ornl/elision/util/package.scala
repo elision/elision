@@ -33,7 +33,8 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+======================================================================
+* */
 package ornl.elision
 
 /**
@@ -43,6 +44,8 @@ package ornl.elision
  * Elision system.  Any part of Elision may use it, but it cannot use other
  * parts of the Elision system!  That is, it is a leaf in the use hierarchy.
  */
+import scala.collection.IndexedSeq
+import scala.annotation.tailrec
 package object util {
   /**
    * Turn a string into a properly-escaped double-quoted string.  The following
@@ -100,7 +103,11 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
-  def hashify(hash: Int = 0, obj: Any) = hash * 31 + obj.hashCode
+  def hashify(hash: Int = 0, obj: Any) = {
+    // Add a constant to the end so that single element collections have a
+    // different hashcode than the element they contain.    
+    hash * 12289 + obj.hashCode + (if (hash==0) 31 else 0)
+  }
 
   /**
    * Compute an alternate hash code from many different objects. An
@@ -116,10 +123,71 @@ package object util {
    * @param hash    The initial hash code.
    * @param obj     The next object whose hash should be added.
    */
-  def other_hashify(hash: BigInt = 0, obj: Any): BigInt = {
+  def other_hashify(hash: Long = 0, obj: Any): Long = {
     obj match {
       case ohc: HasOtherHash => hash + 8191*ohc.otherHashCode
       case _ => hash + 8191*obj.hashCode
     }
+  }
+  
+  
+  // The following two functions exist because for comprehensions are slow in 
+  // Scala, but typing while loops over and over is annoying. If other looping
+  // contructs get better, we can switch these out.
+  /**
+   * Execute the closure a fixed number of times.
+   * 
+   * @param start     Where to begin iteration
+   * @param end       Where to end iteration
+   * @param increment How much to increment the index on each loop
+   * @param inclusive Whether to include the uppper bound
+   * @param closure   The function to execute. The argument to the closure is
+   *                   the loop index.
+   */  
+  @inline
+  def countedloop(start: Int, end: Int, increment : Int = 1, inclusive : Boolean = true, closure : Int => Unit){
+    var i = start
+    val _end = if(inclusive) end+1 else end
+    while(i < _end){
+      closure(i)
+      i += increment
+    }
+  }
+  
+  /**
+   * Iterate over a sequence. The argument to the closure is the current
+   * sequence index.
+   * 
+   * @param collection     The collection to iterate over.
+   * @param closure   The function to execute. The argument to the closure is
+   *                   the loop index.
+   */
+  @inline
+  def seqloop(collection : Seq[Any], closure : Int => Unit){
+    var i = 0
+    val len = collection.length
+    while(i < len){
+      closure(i)
+      i += 1
+    }
+  }
+
+  // Set the maximum factorial we will support.
+  // 21! overflows a Long, so we use 20 here.
+  private val maxfact = 20
+  private val factlookup = {
+    def _factorial(n: Int) = {
+      @tailrec
+      def __factorial(n: Int, acc: Long = 1): Long = {
+        if (n == 0) acc
+        else __factorial(n - 1, n * acc)
+      }
+      __factorial(n)
+    }
+    for(i <- 0 to maxfact) yield _factorial(maxfact)
+  }
+  
+  def factorial(n: Int) = {
+    if(n > maxfact) Long.MaxValue else factlookup(n)
   }
 }

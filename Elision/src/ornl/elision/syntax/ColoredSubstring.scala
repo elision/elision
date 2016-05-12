@@ -36,13 +36,11 @@
 ======================================================================*/
 package ornl.elision.syntax
 
-import java.awt.Color
-
 /** 
  * A single-colored substring of a SyntaxFormattedLine. 
  * @param str     The uncolored substring.
  * @param color   The color for this substring.
  */
-class ColoredSubstring(val str : String, val color : Color) {
+class ColoredSubstring(val str : String, val color : String) {
   override def toString : String = str
 } 

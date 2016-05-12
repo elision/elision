@@ -33,9 +33,11 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-======================================================================*/
+ ======================================================================
+ * */
 package ornl.elision.core.matcher
 
+import scala.annotation.tailrec
 import ornl.elision.core.Apply
 import ornl.elision.core.AtomSeq
 import ornl.elision.core.BasicAtom
@@ -50,7 +52,7 @@ import ornl.elision.util.OmitSeq.fromIndexedSeq
  * The number of patterns must be less than the number of subjects, or an
  * exception is thrown on construction.  Note that if there are more patterns
  * than subjects, no match is possible.  If there are equal numbers of patterns
- * and subjects, use the [[ornl.elision.core.SequenceMatcher]] instead.
+ * and subjects, use the [[ornl.elision.core.matcher.SequenceMatcher]] instead.
  * 
  * Additionally the number of patterns must be at least two.  If the number of
  * patterns is less than two, there is no need to perform any grouping.
@@ -75,7 +77,7 @@ import ornl.elision.util.OmitSeq.fromIndexedSeq
  * @param op				The operator, if known.
  */
 class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
-    op: Option[OperatorRef]) extends Iterator[OmitSeq[BasicAtom]] {
+                       op: Option[OperatorRef]) extends Iterator[OmitSeq[BasicAtom]] {
   
   /* How this class works.
    * 
@@ -147,7 +149,7 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
   private val _subs = subjects.atoms
   
   // Enforce the length constraint.
-	require(_pats.length < _subs.length)
+  require(_pats.length < _subs.length)
   require(_pats.length > 1)
   
   /** The operator, if known.  This avoids lots of gets. */
@@ -158,137 +160,198 @@ class GroupingIterator(patterns: AtomSeq, subjects: AtomSeq,
   
   /** Current result, if any. */
   private var _current: IndexedSeq[BasicAtom] = null
-	
-	// Compute the initial and final marker vectors.
+  
+  // Compute the initial and final marker vectors.
   
   /** This is the number of markers needed. */
-	private val _markcount = _pats.length - 1
-	/** This is the number of "slots" for markers. */
-	private val _slotcount = _subs.length - 1
-	/** The marker position array. */
-	private val _markers = new Array[Int](_markcount)
-	/** The maximum value for each marker position. */
-	private val _endpoint = new Array[Int](_markcount)
-	
-	/** Initialize the marker and endpoint arrays. */
-	for (i <- 0 until _markcount) {
-	  _markers(i) = i
-	  _endpoint(i) = _subs.length - _pats.length + i
-	} // Initialize the arrays.
-	
+  private val _markcount = _pats.length - 1
+  /** This is the number of "slots" for markers. */
+  private val _slotcount = _subs.length - 1
+  /** The marker position array. */
+  private val _markers = new Array[Int](_markcount)
+  /** The maximum value for each marker position. */
+  private val _endpoint = new Array[Int](_markcount)
+  
+  /** Initialize the marker and endpoint arrays. */
+  var i = 0
+  while(i < _markcount) {
+    _markers(i) = i
+    _endpoint(i) = _subs.length - _pats.length + i
+    i += 1
+  } // Initialize the arrays.
+
   /**
    * Advance the markers array once.  This updates the markers to the
    * next position, or sets the `_exhausted` flag if there are no more
    * positions.
-   * 
+   *
    * Note that this method does not work when there is exactly one pattern.
    * Thus we have to deal with that case at the top level.
    */
-	private def _advance {
-	  // Get the index of the rightmost marker.  It becomes the "current"
-	  // marker.
-	  var here = _markcount-1
-	  while(true) {
-	    // Move the current marker to the right.
-	    _markers(here) += 1
-	    // If we reach the limit for the marker, then we need to shift to the
-	    // marker to its left and begin to advance it.  Otherwise we correct
-	    // any markers to the right of the current marker and return the next
-	    // grouping.
-	    if (_markers(here) > _endpoint(here)) {
-	      here -= 1
-	      // If we run out of markers to advance, we are done and the iterator
-	      // is exhausted.
-	      if (here < 0) {
-	        _exhausted = true
-	        return
-	      }
-	    } else {
-	      // All markers to the right of the last marker we moved should be
-	      // lined up just to its right, ready to start their movement.
-	      for (i <- here+1 until _markcount) _markers(i) = _markers(i-1) + 1
-	      return
-	    }
-	  } // Advance markers to the next grouping.
-	}
-	
-	/**
-	 * Use up the current value, and set it to null.  Whatever it was is
-	 * returned.
-	 * 
-	 * @return	The prior current value.
-	 */
-	private def useCurrent = {
-	  val tmp = _current
-	  _current = null
-	  tmp
-	}
-	
-	/**
-	 * Determine if this iterator has another grouping.
-	 * 
-	 * @return True if there is another grouping, and false if not.
-	 */
-	def hasNext = {
-	  if (_exhausted) false
-	  else if (_current != null) true
-	  else {
-	    // The easy cases are gone.  We have to generate the next grouping.
-	    // The marker array already contains the recipe for generating the
-	    // next grouping, so we use it now, and advance it at the end.
-	    
-	    // We need the endpoints of the slice.  The first slice starts at zero.
-	    var startSlice = 0
-	    
-	    // This holds the list we are building.  If there are M markers, we need
-	    // M+1 positions (for the M+1 groups).
-	    val nextList = new scala.collection.mutable.ArraySeq[BasicAtom](_markcount+1)
-	    for (marker <- 0 to _markcount) {
-	      // Get the end of the slice.  The last time through the slice ends at
-	      // the last subject.
-	      val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
-	      
-	      // Now get the slice.
-	      val slice = _subs.slice(startSlice, endSlice+1)
-	      
-	      // Turn the slice into an atom list, except in the case of a single
-	      // atom.
-	      val item: BasicAtom =
-	        (if (slice.length != 1) {
-		        // Turn the slice into a list.
-		      	val list = AtomSeq(subjects.props, slice)
-		      
-			      // If we have an operator, apply it now.
-		      	if (operator != null) Apply(operator, list) else list
-	        } else {
-	        	slice(0)
-	        })
-	      
-	      // Save the item.
-	      nextList(marker) = item
-	      
-	      // Set the start of the next slice.
-	      startSlice = endSlice+1
-	    } // Collect all the slices.
-	    
-	    // Save the new current value.
-	    _current = nextList
-	    
-	    // Advance the markers.
-	    _advance
-	    
-	    // We have a value.
-	    true
-	  }
-	}
-	
-	/**
-	 * Get the next grouping.
-	 * 
-	 * @return	The next grouping.
-	 */
-	def next =
-	  if (_current != null) useCurrent
-	  else if (hasNext) useCurrent
-	  else null
+  private def _advance {
+    // Get the index of the rightmost marker.  It becomes the "current"
+    // marker.
+    var here = _markcount - 1
+    //while (true) {
+    while (true) {
+      // Move the current marker to the right.
+      _markers(here) += 1
+      // If we reach the limit for the marker, then we need to shift to the
+      // marker to its left and begin to advance it.  Otherwise we correct
+      // any markers to the right of the current marker and return the next
+      // grouping.
+      if (_markers(here) > _endpoint(here)) {
+        here -= 1
+        // If we run out of markers to advance, we are done and the iterator
+        // is exhausted.
+        if (here < 0) {
+          _exhausted = true
+          return
+        }
+      } else {
+        // All markers to the right of the last marker we moved should be
+        // lined up just to its right, ready to start their movement.
+
+        var i = here + 1
+        while (i < _markcount) {
+          _markers(i) = _markers(i - 1) + 1
+          i += 1
+        }
+        return
+      }
+    } // Advance markers to the next grouping.
+  }
+  
+  /**
+  * Use up the current value, and set it to null.  Whatever it was is
+  * returned.
+  * 
+  * @return	The prior current value.
+  */
+  private def useCurrent = {
+    val tmp = _current
+    _current = null
+    tmp
+  }
+
+  /**
+   * Determine if this iterator has another grouping.
+   *
+   * @return True if there is another grouping, and false if not.
+   */
+  @scala.annotation.tailrec
+  final def hasNext = {
+    if (_exhausted) false
+    else if (_current != null) true
+    else {
+      // The easy cases are gone.  We have to generate the next grouping.
+      // The marker array already contains the recipe for generating the
+      // next grouping, so we use it now, and advance it at the end.
+
+      // We need the endpoints of the slice.  The first slice starts at zero.
+      var startSlice = 0
+
+      // Do a sanity check on the current groupings to see if they
+      // have any chance of matching.
+      var failed = false
+      var marker = 0
+      while (!failed && marker <= _markcount) {
+
+        // Get the end of the slice.  The last time through the slice ends at
+        // the last subject.
+        val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
+
+        // If we are using associative grouping to group this slice,
+        // see if grouping in this manner generates something that has
+        // a chance of matching the pattern. We do this before
+        // constructing anything to avoid the cost of object creation
+        // for things that will never match.
+        if (((endSlice + 1 - startSlice) != 1) && (operator != null)) {
+
+          // Is the pattern for this grouping an operator apply?
+          _pats(marker) match {
+            case Apply(p_op0: OperatorRef, p_args0: AtomSeq) => {
+
+              // Pattern/subject operator names must match.
+              if (p_op0.name != operator.name) {
+                failed = true
+              }
+            }
+            case _ =>
+          }
+        }
+
+        // Set the start of the next slice.
+        startSlice = endSlice + 1
+        marker += 1
+      } // Collect all the slices.
+
+      // If the grouping that was generated will never match, generate
+      // the next grouping.
+      if (failed) {
+        _current = null
+        _advance
+        hasNext
+      } // This may be a valid grouping.
+      else {
+
+        // We need the endpoints of the slice.  The first slice starts at zero.
+        startSlice = 0
+
+        // This holds the list we are building.  If there are M markers, we need
+        // M+1 positions (for the M+1 groups).
+        val nextList = new scala.collection.mutable.ArraySeq[BasicAtom](_markcount + 1)
+        // for comprehensions are slow.
+        var marker = 0
+        while (marker <= _markcount) {
+
+          // Get the end of the slice.  The last time through the slice ends at
+          // the last subject.
+          val endSlice = if (marker == _markcount) _slotcount else _markers(marker)
+
+          // Now get the slice.
+          val slice = _subs.slice(startSlice, endSlice + 1)
+
+          // Turn the slice into an atom list, except in the case of a single
+          // atom.
+          val item: BasicAtom =
+            (if (slice.length != 1) {
+              // Turn the slice into a list.
+              val list = AtomSeq(subjects.props, slice)
+
+              // If we have an operator, apply it now.
+              if (operator != null) Apply(operator, list) else list
+            } else {
+              slice(0)
+            })
+
+          // Save the item.
+          nextList(marker) = item
+
+          // Set the start of the next slice.
+          startSlice = endSlice + 1
+          marker += 1
+        } // Collect all the slices.
+
+        // Save the new current value.
+        _current = nextList
+
+        // Advance the markers.
+        _advance
+
+        // We have a value.
+        true
+      }
+    }
+  }
+  
+  /**
+   * Get the next grouping.
+   * 
+   * @return	The next grouping.
+   */
+  def next =
+    if (_current != null) useCurrent
+    else if (hasNext) useCurrent
+    else null
 }

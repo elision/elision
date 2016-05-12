@@ -43,6 +43,8 @@ import ornl.elision.core.knownExecutor
 import ornl.elision.core.toEString
 import ornl.elision.core.toESymbol
 import ornl.elision.core.NativeHandlerException
+import java.net.URLClassLoader
+import ornl.elision.util.Version
 
 /**
  * Trait for all handlers.
@@ -66,9 +68,10 @@ object NativeCompiler {
    * @param operator  The operator name.
    * @param handler   The handler.
    * @param obj       The object to stash.
+   * @return	The key for the object stored.
    */
   def stash(source: String, operator: String, handler: String,
-      obj: HandlerClass) {
+      obj: HandlerClass) = {
     // Compute the key and store the object.
     val key = getKey(source, operator, handler)
     _override += (key -> obj)
@@ -104,10 +107,17 @@ object NativeCompiler {
    * @return  The cache key.
    */
   private def getKey(source: String, operator: String, handler: String) = {
-    val key = (handler.hashCode()).toHexString
-    "NH" + operator.getBytes.map {
-      "%02x".format(_)
-    }.mkString("") + key
+    //Use the version information so we rebuild if needed across Elision versions.
+    val scala_version = util.Properties.versionString
+    val elision_version = (Version.major, Version.minor, Version.build)
+    val versionpart = (scala_version, elision_version).hashCode.toHexString
+    // Remove whitespace from the handler. We are getting a high rate
+    // of recompilation of native handlers without this.
+    val stripped_handler = handler.replaceAll("\\s", "")
+    val handlerpart = (source.trim, operator.trim,
+                       stripped_handler).hashCode.toHexString
+    val key = versionpart + handlerpart
+    "NH" + key
   }
   
   /**
@@ -168,18 +178,26 @@ class NativeCompiler {
   if (!_cache.exists) {
     _cache.mkdir
   }
+  
+  // Try to get a URL class loader.  If we cannot, give up!
+  private val _cl = {
+    var here = java.lang.Thread.currentThread.getContextClassLoader
+    while (! here.isInstanceOf[URLClassLoader]) {
+      here = here.getParent()
+      if (here == null) {
+        throw new NativeHandlerException(Loc.internal, "Unable to locate " +
+        		"correct class loader and obtain class path.  Cannot continue.")
+      }
+    } // Find a URL class loader.
+    here.asInstanceOf[URLClassLoader]
+  }
 
   // Get the path separator and then use it to build the classpath as a string.
   // We need it to construct the settings.
   private val _prop = new scala.sys.SystemProperties
   private val _ps = _prop("path.separator")
-  private lazy val _urls =
-    java.lang.Thread.currentThread.getContextClassLoader match {
-    case cl: java.net.URLClassLoader => cl.getURLs.toList
-    case other => sys.error("classloader is not a URLClassLoader. " +
-        "It is a " + other.getClass.getName)
-  }
-  private lazy val _classpath = (_urls.map(_.getPath)).mkString(_ps)
+  private val _urls = _cl.getURLs.toList
+  private val _classpath = (_urls.map(_.getPath)).mkString(_ps)
   
   // Build the settings, reporter, and compiler to use later on.
   private val _settings = new Settings(knownExecutor.console.emitln _)

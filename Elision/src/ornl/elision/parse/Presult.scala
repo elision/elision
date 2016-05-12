@@ -29,6 +29,8 @@
  */
 package ornl.elision.parse
 
+import ornl.elision.core.BasicAtom
+
 /** A parse result. */
 abstract sealed class Presult
 
@@ -37,7 +39,7 @@ abstract sealed class Presult
  * 
  * @param nodes The nodes parsed.
  */
-case class Success(nodes: List[AST.BA]) extends Presult
+case class Success(nodes: List[BasicAtom]) extends Presult
 
 /**
  * The parse failed.

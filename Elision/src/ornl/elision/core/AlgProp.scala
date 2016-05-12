@@ -33,11 +33,11 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ======================================================================*/
+ * ======================================================================
+ * */
 package ornl.elision.core
 
 import ornl.elision.util.ElisionException
-import ornl.elision.util.other_hashify
 import ornl.elision.util.Loc
 
 /**
@@ -114,16 +114,20 @@ class AlgProp(
     case None => None.hashCode
     case Some(atom) => atom.hashCode
   }
-  
-  lazy val otherHashCode =
-    (this.toString).foldLeft(BigInt(0))(other_hashify)+1
-    
+     
   override lazy val hashCode =
-    (((((_codify(associative) * 31) +
-    _codify(commutative) * 31) +
-    _codify(idempotent) * 31) +
-    _codify(absorber) * 31) +
-    _codify(identity) * 31)
+    (((((_codify(associative) * 12289) +
+    _codify(commutative) * 12289) +
+    _codify(idempotent) * 12289) +
+    _codify(absorber) * 12289) +
+    _codify(identity) * 12289)
+    
+  override lazy val otherHashCode: Long =
+    (((((_codify(associative) * 8191) +
+    _codify(identity) * 8191) +
+    _codify(idempotent) * 8191) +
+    _codify(commutative) * 8191) +
+    _codify(absorber) * 8191)
   
   // Type check the Boolean properties.
   private def _isNotBool(opt: Option[BasicAtom]) = opt match {
@@ -507,7 +511,7 @@ object AlgProp {
   /**
    * Create an algebraic properties object.
    * 
-   * @param loc           Location of this properties object declaration.
+   * @param loc          Location of this properties object declaration.
 	 * @param associative		Optional associativity.  Default is none.
 	 * @param commutative		Optional commutativity.  Default is none.
 	 * @param idempotent		Optional idempotency.  Default is none.

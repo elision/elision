@@ -53,14 +53,15 @@ import ornl.elision.core.MapPair
 import ornl.elision.core.SymbolLiteral
 import ornl.elision.core.toEString
 import ornl.elision.core.Variable
-import ornl.elision.generators.ScalaGenerator
-import ornl.elision.generators.ElisionGenerator
+import ornl.elision.dialects.ScalaGenerator
+import ornl.elision.dialects.ElisionGenerator
 import ornl.elision.util.Cache
 import ornl.elision.util.Version
 import ornl.elision.util.Version.build
 import ornl.elision.util.Version.major
 import ornl.elision.util.Version.minor
 import ornl.elision.util.toQuotedString
+import ornl.elision.core.Dialect
 
 /**
  * A context provides access to operator libraries and rules, along with
@@ -77,7 +78,7 @@ import ornl.elision.util.toQuotedString
  *
  * This class provides for management of four things:
  *  - A set of [[ornl.elision.core.Bindings]].
- *  - An instance of [[ornl.elision.core.OperatorLibrary]].
+ *  - An instance of [[ornl.elision.context.OperatorLibrary]].
  *  - Rulesets.
  *  - "Automatic" rewriting of atoms using rules.
  */
@@ -241,7 +242,7 @@ class Context extends Fickle with Mutable with Cache {
       operatorLibrary.add(op)
       op
       
-    case SymbolLiteral(_, sym) =>
+    case SymbolLiteral(_, sym, _) =>
       ruleLibrary.declareRuleset(sym.name)
       RulesetRef(this, sym.name)
       
@@ -412,7 +413,7 @@ class Context extends Fickle with Mutable with Cache {
             case rr: RulesetRef => Literal(Symbol(rr.name))
             case x => x
           }
-          ScalaGenerator(what, app)
+          Dialect.serialize('scala, app, what)
           
         case _ =>
           // Ruleset references are unusual.  We need to process them as symbols.
@@ -423,7 +424,7 @@ class Context extends Fickle with Mutable with Cache {
             case rr: RulesetRef => Literal(Symbol(rr.name))
             case x => x
           }
-          ElisionGenerator(what, app)
+          Dialect.serialize('elision, app, what)
       }
       app.append(post(kind)).append('\n')
     } // Write all atoms, in order.
