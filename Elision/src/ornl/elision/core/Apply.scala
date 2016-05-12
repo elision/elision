@@ -473,6 +473,15 @@ case class OpApply protected[core] (override val op: OperatorRef,
         throw new ElisionException(arg.loc, "Operator '" + desiredOp +
                                    "' is not tracked. Add with BasicAtom::trackOperator().")
       }
+
+      // Was a new operator to track added after we computed the
+      // current myOperators map?
+      if (myOperators.get(desiredOp) == null) {
+
+        // For now just go and completely recompute myOperators.
+        myOperators = null
+        return getOperators(opNames)
+      }
       r.addAll(myOperators.get(desiredOp))
     }
     return Some(r)
