@@ -421,70 +421,74 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
 
-    // Do we need to compute the operators contained in the current
-    // Apply?
-    if (myOperators == null) {
+    this.synchronized {
 
-      // Yes, look for the tracked operators. Since looking for the
-      // operators is a high cost action, we will look for all of them
-      // at once.
-      myOperators = new java.util.HashMap[String, HashSet[Apply]]()
-      for (opName <- BasicAtom.trackedOperators) 
-        myOperators.put(opName, new HashSet[Apply])
+      // Do we need to compute the operators contained in the current
+      // Apply?
+      if (myOperators == null) {
 
-      // This is used a lot, so it needs to be fast. We will find all
-      // the variables here with a stack to avoid recursive calls.
-      var work = new Stack[BasicAtom]
-      var done = new HashSet[BasicAtom]
-      work.push(this)
-      while (!work.isEmpty) {
+        // Yes, look for the tracked operators. Since looking for the
+        // operators is a high cost action, we will look for all of them
+        // at once.
+        myOperators = new java.util.HashMap[String, HashSet[Apply]]()
+        for (opName <- BasicAtom.trackedOperators) {
+          myOperators.put(opName, new HashSet[Apply])
+        }
+
+        // This is used a lot, so it needs to be fast. We will find all
+        // the variables here with a stack to avoid recursive calls.
+        var work = new Stack[BasicAtom]
+        var done = new HashSet[BasicAtom]
+        work.push(this)
+        while (!work.isEmpty) {
         work.pop match {
 
-          // Are we working on an operator instance?
-          case op: OpApply => {
+            // Are we working on an operator instance?
+            case op: OpApply => {
 
-            // Is this apply one of the ones we are looking for?
-            val currName = op.op.name
+              // Is this apply one of the ones we are looking for?
+              val currName = op.op.name
             
-            if (BasicAtom.trackedOperators.contains(currName)) {
-              myOperators.get(currName).add(op)
-            }
+              if (BasicAtom.trackedOperators.contains(currName)) {
+                myOperators.get(currName).add(op)
+              }
 
-            // Push all the operator arguments on the stack to check, if
-            // we have not already checked this operator instance and
-            // the argument contains some of the operators instance we
-            // are looking for.
-            if (!(done contains op) && (op.hasTrackedOps)) {
-              for (a <- op.arg) if (a.hasTrackedOps) work.push(a)
-              done += op
+              // Push all the operator arguments on the stack to check, if
+              // we have not already checked this operator instance and
+              // the argument contains some of the operators instance we
+              // are looking for.
+              if (!(done contains op) && (op.hasTrackedOps)) {
+                for (a <- op.arg) if (a.hasTrackedOps) work.push(a)
+                done += op
+              }
             }
-          }
           
-          // Any other type of atom we ignore.
-          case _ => {}
+            // Any other type of atom we ignore.
+            case _ => {}
+          }
+        }      
+      }
+
+      // Collect up all of the desired operator instances.
+      var r : HashSet[BasicAtom] = new HashSet[BasicAtom]()
+      for (desiredOp <- opNames) {
+        if (!BasicAtom.trackedOperators.contains(desiredOp)) {
+          throw new ElisionException(arg.loc, "Operator '" + desiredOp +
+                                     "' is not tracked. Add with BasicAtom::trackOperator().")
         }
-      }      
-    }
 
-    // Collect up all of the desired operator instances.
-    var r : HashSet[BasicAtom] = new HashSet[BasicAtom]()
-    for (desiredOp <- opNames) {
-      if (!BasicAtom.trackedOperators.contains(desiredOp)) {
-        throw new ElisionException(arg.loc, "Operator '" + desiredOp +
-                                   "' is not tracked. Add with BasicAtom::trackOperator().")
+        // Was a new operator to track added after we computed the
+        // current myOperators map?
+        if (myOperators.get(desiredOp) == null) {
+
+          // For now just go and completely recompute myOperators.
+          myOperators = null
+          return getOperators(opNames)
+        }
+        r.addAll(myOperators.get(desiredOp))
       }
-
-      // Was a new operator to track added after we computed the
-      // current myOperators map?
-      if (myOperators.get(desiredOp) == null) {
-
-        // For now just go and completely recompute myOperators.
-        myOperators = null
-        return getOperators(opNames)
-      }
-      r.addAll(myOperators.get(desiredOp))
+      return Some(r)
     }
-    return Some(r)
   }
 
     /*
