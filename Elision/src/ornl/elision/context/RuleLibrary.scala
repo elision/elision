@@ -739,10 +739,15 @@ extends Fickle with Mutable {
   * 					not allowed.
   */
   private def getRulesetBit(name: String) =
-    _rs2bit.getOrElseUpdate(name, (
-      if (allowUndeclared) bump()
-      else throw new NoSuchRulesetException(Loc.internal,
-        "The ruleset " + name + " has not been declared.")))
+    _rs2bit.synchronized {
+      _rs2bit.getOrElseUpdate(name, (
+        if (allowUndeclared) bump()
+        else {
+          throw new NoSuchRulesetException(Loc.internal,
+            "The ruleset '" + name + "' has not been declared.")
+        }))
+    }
+
   
   /**
    * Get the bit set for a collection of rulesets.
@@ -764,11 +769,13 @@ extends Fickle with Mutable {
   def declareRuleset(name: String) = {
     actionList = DeclareRS(name) :: actionList
 
-    _rs2bit.get(name) match {
-      case None =>
-        _rs2bit += (name -> bump())
-        true
-      case _ => false
+    _rs2bit.synchronized {
+      _rs2bit.get(name) match {
+        case None =>
+          _rs2bit += (name -> bump())
+          true
+        case _ => false
+      }
     }
   }
   
