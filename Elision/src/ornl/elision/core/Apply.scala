@@ -421,6 +421,8 @@ case class OpApply protected[core] (override val op: OperatorRef,
    */
   override def getOperators(opNames: HashSet[String]): Option[HashSet[BasicAtom]] = {
 
+    this.synchronized {
+
     // Do we need to compute the operators contained in the current
     // Apply?
     if (myOperators == null) {
@@ -447,6 +449,9 @@ case class OpApply protected[core] (override val op: OperatorRef,
             val currName = op.op.name
             
             if (BasicAtom.trackedOperators.contains(currName)) {
+              if (myOperators.get(currName) == null) {
+                myOperators.put(currName, new HashSet[Apply])
+              }
               myOperators.get(currName).add(op)
             }
 
@@ -476,7 +481,8 @@ case class OpApply protected[core] (override val op: OperatorRef,
 
       // Was a new operator to track added after we computed the
       // current myOperators map?
-      if (myOperators.get(desiredOp) == null) {
+      if ((myOperators == null) ||
+          (myOperators.get(desiredOp) == null)) {
 
         // For now just go and completely recompute myOperators.
         myOperators = null
@@ -485,6 +491,7 @@ case class OpApply protected[core] (override val op: OperatorRef,
       r.addAll(myOperators.get(desiredOp))
     }
     return Some(r)
+    }
   }
 
     /*

@@ -472,14 +472,20 @@ extends Fickle with Mutable {
             ta =>
               ta.atom
           }
-          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms)), true) 
+          if (flag) (new TrackedAtom(AtomSeq(newProps, newAtoms), 
+                                     None, 
+                                     if(trackedAtoms) Some(tatom) else None), 
+                     true) 
           else (tatom, false)
         
         case Apply(lhs, rhs) =>
           val newlhs = _rewritechild(new TrackedAtom(lhs), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(rhs), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom)), true)
+            (new TrackedAtom(Apply(newlhs._1.atom, newrhs._1.atom), 
+                             None, 
+                             if(trackedAtoms) Some(tatom) else None), 
+             true)
           } else {
             (tatom, false)
           }
@@ -491,8 +497,10 @@ extends Fickle with Mutable {
           }
           val newbody = _rewritechild(new TrackedAtom(body), rulesets)
           if (newparam._2 || newbody._2) {
-            (new TrackedAtom(Lambda(newparam._1, newbody._1.atom), None, 
-                  if(trackedAtoms) Some(tatom) else None), true)
+            (new TrackedAtom(Lambda(newparam._1, newbody._1.atom), 
+                             None, 
+                             if(trackedAtoms) Some(tatom) else None), 
+             true)
           } else {
             (tatom, false)
           }
@@ -501,7 +509,10 @@ extends Fickle with Mutable {
           val newlhs = _rewritechild(new TrackedAtom(tag), rulesets)
           val newrhs = _rewritechild(new TrackedAtom(content), rulesets)
           if (newlhs._2 || newrhs._2) {
-            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom)), true)
+            (new TrackedAtom(SpecialForm(tatom.atom.loc, newlhs._1.atom, newrhs._1.atom), 
+                             None, 
+                             if(trackedAtoms) Some(tatom) else None), 
+             true)
           } else {
             (tatom, false)
           }
@@ -649,33 +660,38 @@ extends Fickle with Mutable {
       Debugger("rewrite", "Rewriting timed out: " + tatom.atom.toParseString)
       throw new TimedOut(tatom.atom.loc, "Rewriting timed out")
     }
+
+    // Is there a rewrite cycle?
+    if(tatom.hascycle){
+      val msg : StringBuilder = new StringBuilder()
+      msg.append("Rewrite cycle detected.\n")
+      msg.append("Atom history (oldest on top):\n")
+      tatom.toSeq().foreach( h => {
+        h match {
+          case (atom, Some(rule)) =>
+            msg.append("Rule: " + rule.toParseString + "\n")
+            msg.append("Result: " + atom.toParseString + "\n")
+          case (atom, None) => 
+             msg.append("Rule: (Internal Action)\n")
+             msg.append("Result: " + atom.toParseString + "\n")
+        }            
+      }
+      )
+      Debugger("rewrite", msg.toString )
+      throw new RewriteCycleException(msg.toString, tatom.atom)
+    }
     
-    if (limit == 0) return (tatom, bool)
+    if (limit == 0) {
+      return (tatom, bool)
+    }
     else _rewriteOnce(tatom, rulesets) match {
-      case (newatom, false) =>
+      case (newatom, false) => {
         return (newatom, bool)
+      }
       case (newatom, true) => {
         Debugger("rewrite", "Rewrote to: " + newatom.atom.toParseString)
         if (tatom.atom == newatom) {
           return (newatom, true)
-        }
-        if(tatom.hascycle){
-          val msg : StringBuilder = new StringBuilder()
-          msg.append("Rewrite cycle detected.\n")
-          msg.append("Atom history (oldest on top):\n")
-          tatom.toSeq().foreach( h => {
-            h match {
-              case (atom, Some(rule)) =>
-                msg.append("Rule: " + rule.toParseString + "\n")
-                msg.append("Result: " + atom.toParseString + "\n")
-              case (atom, None) => 
-                 msg.append("Rule: (Internal Action)\n")
-                 msg.append("Result: " + atom.toParseString + "\n")
-            }            
-          }
-          )
-          Debugger("rewrite", msg.toString )
-          throw new RewriteCycleException(msg.toString, tatom.atom)
         }
 
         return _doRewrite(newatom, rulesets, true,
@@ -823,8 +839,12 @@ extends Fickle with Mutable {
      */
     final def hascycle() : Boolean = {
       history match {
-        case None => false
-        case Some(ta) => ta.contains(atom)
+        case None => {
+          false
+        }
+        case Some(ta) => {
+          ta.contains(atom)
+        }
       }
     }
     
